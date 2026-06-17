@@ -7,12 +7,19 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "demo": "tsx src/demo.ts"
   },
   "dependencies": {
-    "@4-pillars/types": "workspace:*"
+    "@4-pillars/types": "workspace:*",
+    "@fullstackfamily/manseryeok": "^1.0.8"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "@types/node": "^22",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.8"
   }
 }
