@@ -1,0 +1,20 @@
+{
+  "name": "@4-pillars/report-engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@4-pillars/types": "workspace:*",
+    "@4-pillars/saju-core": "workspace:*",
+    "@4-pillars/content": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,87 +1,52 @@
-# Welcome to React Router!
+# 4-pillars (사주대소 / SajuDaiso)
 
-A modern, production-ready template for building full-stack React applications using React Router.
+AI 기반 사주 리포트 서비스. 한국/일본 시장 대상, 계산 엔진은 공통·콘텐츠/운영은 국가별 분리.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
+자세한 제품 정의는 [docs/prd.md](docs/prd.md) 참고.
 
-## Features
+## 모노레포 구조
 
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+```
+4-pillars/
+├─ apps/
+│  ├─ kr-web/   # 한국 웹 (React Router, Vercel)
+│  ├─ jp-web/   # 일본 웹 (React Router, Vercel)
+│  └─ api/      # API (Hono, Render)
+└─ packages/
+   ├─ types/         # @4-pillars/types        공통 타입
+   ├─ saju-core/     # @4-pillars/saju-core     사주 원국 계산
+   ├─ report-engine/ # @4-pillars/report-engine 리포트 조합
+   ├─ content/       # @4-pillars/content       ko/ja 콘텐츠
+   └─ ui/            # @4-pillars/ui            공통 UI
+```
 
-## Getting Started
+- 패키지 매니저: **pnpm** (workspace), 빌드 오케스트레이션: **Turborepo**
+- 내부 패키지는 빌드 없이 TS 소스를 직접 소비 (`exports` → `./src/index.ts`)
 
-### Installation
-
-Install the dependencies:
+## 시작하기
 
 ```bash
-npm install
+pnpm install
 ```
 
-### Development
-
-Start the development server with HMR:
+### 개발
 
 ```bash
-npm run dev
+pnpm dev                      # 전체 워크스페이스
+pnpm --filter kr-web dev      # 한국 웹만 (http://localhost:5173)
+pnpm --filter api dev         # API만 (http://localhost:3001)
 ```
 
-Your application will be available at `http://localhost:5173`.
-
-## Building for Production
-
-Create a production build:
+### 빌드 / 타입체크
 
 ```bash
-npm run build
+pnpm build
+pnpm typecheck
 ```
 
-## Deployment
+## 기술 스택
 
-### Docker Deployment
-
-To build and run using Docker:
-
-```bash
-docker build -t my-app .
-
-# Run the container
-docker run -p 3000:3000 my-app
-```
-
-The containerized application can be deployed to any platform that supports Docker, including:
-
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
-
-### DIY Deployment
-
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
-
-Make sure to deploy the output of `npm run build`
-
-```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
-```
-
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
-
----
-
-Built with ❤️ using React Router.
+- Frontend: React Router, TypeScript, Tailwind CSS (예정: React Query, Zustand)
+- API: Hono, TypeScript (예정: Zod, Drizzle ORM)
+- DB: Supabase Postgres
+- 배포: Vercel(kr-web, jp-web), Render(api)
