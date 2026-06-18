@@ -47,7 +47,10 @@ describe("auth routes", () => {
     const res = await app.request("/google/start?redirect=http://localhost:3000/welcome");
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toContain("https://provider.test/authorize");
-    expect(res.headers.get("set-cookie")).toContain("oauth_tx=");
+    const cookie = res.headers.get("set-cookie") ?? "";
+    expect(cookie).toContain("oauth_tx=");
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("Path=/auth");
   });
 
   it("허용되지 않은 redirect는 400을 반환한다", async () => {
@@ -74,5 +77,22 @@ describe("auth routes", () => {
       headers: { cookie: "oauth_tx=" + encodeURIComponent(JSON.stringify({ state: "real", verifier: "v", nonce: "n", redirect: "http://localhost:3000" })) },
     });
     expect(res.status).toBe(400);
+  });
+
+  it("서브도메인 스푸핑 redirect는 400을 반환한다 (open-redirect 방지)", async () => {
+    const app = createAuthRoutes(fakeDeps());
+    const res = await app.request("/google/start?redirect=http://localhost:3000.evil.com/x");
+    expect(res.status).toBe(400);
+  });
+
+  it("callback 성공 시 세션 쿠키를 설정하고 redirect로 302한다", async () => {
+    const app = createAuthRoutes(fakeDeps());
+    const tx = { state: "s1", verifier: "v", nonce: "n", redirect: "http://localhost:3000/welcome" };
+    const res = await app.request("/google/callback?code=c&state=s1", {
+      headers: { cookie: "oauth_tx=" + encodeURIComponent(JSON.stringify(tx)) },
+    });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("http://localhost:3000/welcome");
+    expect(res.headers.get("set-cookie")).toContain("sid=");
   });
 });

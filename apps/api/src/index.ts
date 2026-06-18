@@ -12,7 +12,7 @@ const app = new Hono();
 app.use(
   "*",
   cors({
-    origin: (origin) => (config.webOrigins.includes(origin) ? origin : config.webOrigins[0] ?? origin),
+    origin: (origin) => (config.webOrigins.includes(origin) ? origin : null),
     credentials: true,
   }),
 );

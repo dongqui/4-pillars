@@ -25,6 +25,14 @@ interface TxState {
   redirect: string;
 }
 
+function isAllowedRedirect(redirect: string, webOrigins: string[]): boolean {
+  try {
+    return webOrigins.includes(new URL(redirect).origin);
+  } catch {
+    return false;
+  }
+}
+
 function isProviderName(deps: AuthDeps, name: string): name is ProviderName {
   return Object.prototype.hasOwnProperty.call(deps.providers, name);
 }
@@ -59,7 +67,7 @@ export function createAuthRoutes(deps: AuthDeps): Hono {
     if (!isProviderName(deps, provider)) return c.json({ error: "unknown provider" }, 404);
 
     const redirect = c.req.query("redirect") ?? config.defaultRedirect;
-    if (!config.webOrigins.some((o) => redirect.startsWith(o))) {
+    if (!isAllowedRedirect(redirect, config.webOrigins)) {
       return c.json({ error: "invalid redirect" }, 400);
     }
 
