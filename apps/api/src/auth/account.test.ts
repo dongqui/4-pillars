@@ -66,10 +66,17 @@ describe("resolveUser", () => {
     const res = await resolveUser(fake.repo, { provider: "kakao", profile: profile({ emailVerified: false }), locale: "ko" });
     expect(res.created).toBe(true);
     expect(fake.users.size).toBe(2);
+    expect(fake.identities.filter((i) => i.userId === "u1")).toHaveLength(0);
   });
 
   it("이메일이 없으면 새 유저를 만든다", async () => {
     const res = await resolveUser(fake.repo, { provider: "line", profile: profile({ email: null, emailVerified: false }), locale: "ja" });
+    expect(res.created).toBe(true);
+    expect(fake.users.size).toBe(1);
+  });
+
+  it("이메일이 null이면 emailVerified가 true여도 새 유저를 만든다", async () => {
+    const res = await resolveUser(fake.repo, { provider: "apple", profile: profile({ email: null, emailVerified: true }), locale: "ko" });
     expect(res.created).toBe(true);
     expect(fake.users.size).toBe(1);
   });
