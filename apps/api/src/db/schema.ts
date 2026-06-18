@@ -26,7 +26,7 @@ export const authIdentities = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    provider: text("provider").notNull(),
+    provider: text("provider").$type<ProviderName>().notNull(),
     providerUserId: text("provider_user_id").notNull(),
     email: text("email"),
     emailVerified: boolean("email_verified").default(false).notNull(),
