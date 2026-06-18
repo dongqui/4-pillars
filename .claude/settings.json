@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm --filter kr-web typecheck)",
+      "Bash(bash \"C:/Users/kimwi/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.2/skills/subagent-driven-development/scripts/review-package\" 7e9a42b 6fe91c6)",
+      "PowerShell(git -C \"C:\\\\Users\\\\kimwi\\\\OneDrive\\\\Desktop\\\\dev\\\\4-pillars\" branch --show-current)"
+    ]
+  }
+}

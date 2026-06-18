@@ -149,21 +149,22 @@ Deploy
 - Supabase: DB
 ```
 
-## 추천 도메인
+## 도메인 구조
+
+단일 부모 도메인 + 서브도메인 구조로 운영한다. 부모 도메인을 공유해야
+api가 발급하는 세션 쿠키(`Domain=.example.com`, httpOnly)를 kr/jp 웹이
+함께 사용할 수 있다.
 
 ```txt
-sajudaiso.kr      → kr-web
-sujimei.jp        → jp-web
-api.sajudaiso.com → api
+kr.example.com   → kr-web
+jp.example.com   → jp-web
+api.example.com  → api
 ```
 
-또는 초반에는:
-
-```txt
-kr.example.com
-jp.example.com
-api.example.com
-```
+> 세션 전략: 간편 로그인 성공 시 api가 부모 도메인 스코프의 httpOnly 세션
+> 쿠키를 설정하며, 모든 서브도메인(kr/jp/api)이 이를 공유한다. 도메인이
+> 서로 다른 eTLD+1(`.kr` / `.jp` / `.com`)로 분리되면 쿠키 공유가 불가능하므로
+> 반드시 동일 부모 도메인의 서브도메인으로 구성한다.
 
 사용자 플로우
 
