@@ -23,6 +23,7 @@ interface TxState {
   verifier: string;
   nonce: string;
   redirect: string;
+  locale?: string | null;
 }
 
 function isAllowedRedirect(redirect: string, webOrigins: string[]): boolean {
@@ -71,10 +72,13 @@ export function createAuthRoutes(deps: AuthDeps): Hono {
       return c.json({ error: "invalid redirect" }, 400);
     }
 
+    const localeParam = c.req.query("locale");
+    const locale = localeParam === "ko" || localeParam === "ja" ? localeParam : null;
+
     const state = generateState();
     const nonce = generateNonce();
     const { verifier, challenge } = createPkcePair();
-    const tx: TxState = { state, verifier, nonce, redirect };
+    const tx: TxState = { state, verifier, nonce, redirect, locale };
 
     setCookie(c, TX_COOKIE, JSON.stringify(tx), {
       httpOnly: true,
@@ -110,7 +114,11 @@ export function createAuthRoutes(deps: AuthDeps): Hono {
     const tokens = await p.exchangeCode({ code, codeVerifier: tx.verifier });
     const profile = await p.fetchProfile(tokens);
 
-    const { userId } = await resolveUser(deps.authRepo, { provider, profile, locale: null });
+    if (profile.nonce != null && profile.nonce !== tx.nonce) {
+      return c.json({ error: "nonce mismatch" }, 400);
+    }
+
+    const { userId } = await resolveUser(deps.authRepo, { provider, profile, locale: tx.locale ?? null });
     const { token, expiresAt } = await issueSession(deps.sessionRepo, userId, now());
 
     deleteCookie(c, TX_COOKIE, { path: "/auth" });

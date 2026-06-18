@@ -6,7 +6,9 @@ export function buildAuthUrl(args: {
   apiBaseUrl: string;
   provider: AuthProviderName;
   returnUrl: string;
+  locale?: string;
 }): string {
   const base = args.apiBaseUrl.replace(/\/+$/, "");
-  return `${base}/auth/${args.provider}/start?redirect=${encodeURIComponent(args.returnUrl)}`;
+  const localePart = args.locale ? `&locale=${encodeURIComponent(args.locale)}` : "";
+  return `${base}/auth/${args.provider}/start?redirect=${encodeURIComponent(args.returnUrl)}${localePart}`;
 }

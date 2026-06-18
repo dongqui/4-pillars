@@ -15,6 +15,7 @@ export default function Login() {
         onClose={() => setOpen(false)}
         apiBaseUrl={apiBaseUrl}
         returnUrl={returnUrl}
+        locale="ja"
         title="ログイン"
         labels={{
           kakao: "Kakaoで始める",

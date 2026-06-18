@@ -8,6 +8,7 @@ export interface NormalizedProfile {
   emailVerified: boolean;
   name: string | null;
   raw: unknown;
+  nonce?: string | null;
 }
 
 export interface TokenResponse {

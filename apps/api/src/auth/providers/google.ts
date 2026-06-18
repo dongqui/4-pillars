@@ -45,6 +45,7 @@ export function createGoogleProvider(config: ProviderConfig): OAuthProvider {
         emailVerified: Boolean(claims.email_verified),
         name: claims.name ?? null,
         raw: claims,
+        nonce: claims.nonce ?? null,
       };
     },
   };

@@ -21,4 +21,9 @@ describe("buildAuthUrl", () => {
   it("4개 provider를 정해진 순서로 노출한다", () => {
     expect(PROVIDER_ORDER).toEqual(["kakao", "line", "google", "apple"]);
   });
+
+  it("locale가 주어지면 쿼리에 붙인다", () => {
+    const url = buildAuthUrl({ apiBaseUrl: "https://api.example.com", provider: "kakao", returnUrl: "https://x.com", locale: "ko" });
+    expect(url).toContain("&locale=ko");
+  });
 });

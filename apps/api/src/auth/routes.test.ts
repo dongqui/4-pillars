@@ -85,6 +85,20 @@ describe("auth routes", () => {
     expect(res.status).toBe(400);
   });
 
+  it("callback에서 nonce 불일치 시 400을 반환한다", async () => {
+    const deps = fakeDeps();
+    deps.providers.google = {
+      ...deps.providers.google,
+      fetchProfile: async () => ({ providerUserId: "p1", email: "a@b.com", emailVerified: true, name: "A", raw: {}, nonce: "WRONG" }),
+    };
+    const app = createAuthRoutes(deps);
+    const tx = { state: "s1", verifier: "v", nonce: "n", redirect: "http://localhost:3000/welcome" };
+    const res = await app.request("/google/callback?code=c&state=s1", {
+      headers: { cookie: "oauth_tx=" + encodeURIComponent(JSON.stringify(tx)) },
+    });
+    expect(res.status).toBe(400);
+  });
+
   it("callback 성공 시 세션 쿠키를 설정하고 redirect로 302한다", async () => {
     const app = createAuthRoutes(fakeDeps());
     const tx = { state: "s1", verifier: "v", nonce: "n", redirect: "http://localhost:3000/welcome" };

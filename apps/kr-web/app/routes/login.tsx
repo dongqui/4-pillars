@@ -15,6 +15,7 @@ export default function Login() {
         onClose={() => setOpen(false)}
         apiBaseUrl={apiBaseUrl}
         returnUrl={returnUrl}
+        locale="ko"
       />
     </main>
   );

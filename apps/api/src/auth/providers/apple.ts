@@ -64,6 +64,7 @@ export function createAppleProvider(config: AppleConfig): OAuthProvider {
         emailVerified: claims.email_verified === true || claims.email_verified === "true",
         name: null, // name은 최초 form_post 바디에서만 옴 (라우트에서 별도 처리)
         raw: claims,
+        nonce: claims.nonce ?? null,
       };
     },
   };

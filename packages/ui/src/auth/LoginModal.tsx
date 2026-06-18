@@ -7,6 +7,7 @@ export interface LoginModalProps {
   returnUrl: string;
   labels?: Partial<Record<AuthProviderName, string>>;
   title?: string;
+  locale?: string;
 }
 
 const DEFAULT_LABELS: Record<AuthProviderName, string> = {
@@ -24,6 +25,7 @@ export function LoginModal({
   returnUrl,
   labels,
   title = "로그인",
+  locale,
 }: LoginModalProps) {
   if (!open) return null;
   return (
@@ -41,7 +43,7 @@ export function LoginModal({
         {PROVIDER_ORDER.map((provider) => (
           <a
             key={provider}
-            href={buildAuthUrl({ apiBaseUrl, provider, returnUrl })}
+            href={buildAuthUrl({ apiBaseUrl, provider, returnUrl, locale })}
             data-provider={provider}
             style={{ display: "block", padding: "10px 12px", border: "1px solid #ddd", borderRadius: 6, textAlign: "center", textDecoration: "none", color: "#111" }}
           >

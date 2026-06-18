@@ -41,6 +41,7 @@ export function createLineProvider(config: ProviderConfig): OAuthProvider {
         emailVerified: email !== null,
         name: claims.name ?? null,
         raw: claims,
+        nonce: claims.nonce ?? null,
       };
     },
   };
