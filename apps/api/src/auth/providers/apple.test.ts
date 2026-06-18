@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, afterEach, vi } from "vitest";
 import { createAppleProvider } from "./apple.js";
+import * as http from "./http.js";
+import { decodeJwtPayload } from "./http.js";
 
 const config = {
   clientId: "com.x.app",
@@ -12,6 +14,8 @@ const config = {
 };
 
 describe("apple provider", () => {
+  afterEach(() => vi.restoreAllMocks());
+
   it("authorize URL은 appleid 엔드포인트 + response_mode=form_post를 쓴다", () => {
     const p = createAppleProvider(config);
     const url = new URL(p.buildAuthorizeUrl({ state: "st", codeChallenge: "ch", nonce: "no" }));
@@ -26,5 +30,20 @@ describe("apple provider", () => {
     const idToken = `h.${Buffer.from(JSON.stringify({ sub: "A1", email: "a@b.com", email_verified: "true" })).toString("base64url")}.s`;
     const profile = await p.fetchProfile({ accessToken: "x", idToken, raw: {} });
     expect(profile).toMatchObject({ providerUserId: "A1", email: "a@b.com", emailVerified: true });
+  });
+
+  it("exchangeCode는 ES256로 서명된 client_secret JWT를 보낸다", async () => {
+    const p = createAppleProvider(config);
+    const spy = vi.spyOn(http, "postForm").mockResolvedValue({ access_token: "at", id_token: "it" });
+    await p.exchangeCode({ code: "c", codeVerifier: "v" });
+    expect(spy).toHaveBeenCalledTimes(1);
+    const params = spy.mock.calls[0][1] as Record<string, string>;
+    const clientSecret = params.client_secret;
+    // header: alg ES256, kid
+    const header = JSON.parse(Buffer.from(clientSecret.split(".")[0], "base64url").toString());
+    expect(header).toMatchObject({ alg: "ES256", kid: "KEY123" });
+    // claims: iss=teamId, sub=clientId, aud=apple
+    const claims = decodeJwtPayload(clientSecret);
+    expect(claims).toMatchObject({ iss: "TEAM123", sub: "com.x.app", aud: "https://appleid.apple.com" });
   });
 });
