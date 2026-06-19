@@ -1,3 +1,5 @@
+import { useRouteLoaderData } from "react-router";
+
 export type Locale = "ko" | "ja";
 
 export const DEFAULT_LOCALE: Locale = "ko";
@@ -33,4 +35,9 @@ export function localeFromRequest(request: Request, envLocale?: string | null): 
     langParam: url.searchParams.get("lang"),
     envLocale,
   });
+}
+
+export function useLocale(): Locale {
+  const data = useRouteLoaderData("root") as { locale: Locale } | undefined;
+  return data?.locale ?? DEFAULT_LOCALE;
 }
