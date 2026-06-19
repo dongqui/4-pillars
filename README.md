@@ -9,11 +9,11 @@ AI 기반 사주 리포트 서비스. 한국/일본 시장 대상, 계산 엔진
 ```
 4-pillars/
 ├─ apps/
-│  ├─ kr-web/   # 한국 웹 (React Router, Vercel)
-│  ├─ jp-web/   # 일본 웹 (React Router, Vercel)
+│  ├─ web/      # 통합 웹 (React Router, Vercel) — locale은 런타임 Host로 판별 (kr.* → ko, jp.* → ja)
 │  └─ api/      # API (Hono, Render)
 └─ packages/
    ├─ types/         # @4-pillars/types        공통 타입
+   ├─ i18n/          # @4-pillars/i18n          ko/ja UI 카피 사전
    ├─ saju-core/     # @4-pillars/saju-core     사주 원국 계산
    ├─ report-engine/ # @4-pillars/report-engine 리포트 조합
    ├─ content/       # @4-pillars/content       ko/ja 콘텐츠
@@ -33,7 +33,7 @@ pnpm install
 
 ```bash
 pnpm dev                      # 전체 워크스페이스
-pnpm --filter kr-web dev      # 한국 웹만 (http://localhost:5173)
+pnpm --filter web dev         # 웹만 (http://localhost:5173)
 pnpm --filter api dev         # API만 (http://localhost:3001)
 ```
 
@@ -49,4 +49,4 @@ pnpm typecheck
 - Frontend: React Router, TypeScript, Tailwind CSS (예정: React Query, Zustand)
 - API: Hono, TypeScript (예정: Zod, Drizzle ORM)
 - DB: Supabase Postgres
-- 배포: Vercel(kr-web, jp-web), Render(api)
+- 배포: Vercel(web, 멀티 도메인), Render(api)
