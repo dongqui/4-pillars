@@ -1,14 +1,16 @@
 {
-  "name": "kr-web",
+  "name": "web",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
+    "test": "vitest run",
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@4-pillars/i18n": "workspace:*",
     "@4-pillars/types": "workspace:*",
     "@4-pillars/ui": "workspace:*",
     "@react-router/node": "7.16.0",
@@ -26,6 +28,7 @@
     "@types/react-dom": "^19.2.3",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
-    "vite": "^8.0.3"
+    "vite": "^8.0.3",
+    "vitest": "^2.1.8"
   }
 }
