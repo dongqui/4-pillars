@@ -85,22 +85,21 @@ interface FunnelData {
 ## 5. 컴포넌트 구조 (재활용 분리 + co-location)
 
 **분리 원칙**
-- **도메인 비의존 프리미티브**는 `src/components/ui/`에 분리해 재활용한다.
+- **도메인 비의존 프리미티브**는 `src/components/`에 분리해 재활용한다. (전용 컴포넌트는 전부 `app/` 하위에 co-location하므로 `components/`에는 프리미티브만 남고, `ui/` 하위 폴더는 두지 않는다.)
 - **랜딩·퍼널 전용 컴포넌트와 로직**은 App Router의 **co-location** 방식으로 각 라우트 폴더 아래(`_` 접두 private 폴더)에 둔다. 라우트에 종속된 관심사를 해당 페이지 옆에 모은다.
 
 ```
 src/
-  components/
-    ui/                       # 디자인 시스템 프리미티브 (도메인 비의존, 재활용)
-      Button.tsx              # variant: primary | secondary | ghost | danger
-      SegmentedControl.tsx    # 양력/음력 등 범용 세그먼트 토글
-      Toggle.tsx              # 진태양시 스위치
-      OptionCard.tsx          # 선택형 카드(성별 등)
-      ProgressBar.tsx
-      Badge.tsx               # 오행/십성 태그
-      WheelPicker.tsx         # 범용 휠(스피너) 컬럼
-      DateWheelPicker.tsx     # 년/월/일 휠 (WheelPicker 조합)
-      TimeWheelPicker.tsx     # 시/분 휠 (WheelPicker 조합)
+  components/                 # 디자인 시스템 프리미티브 (도메인 비의존, 재활용)
+    Button.tsx                # variant: primary | secondary | ghost | danger
+    SegmentedControl.tsx      # 양력/음력 등 범용 세그먼트 토글
+    Toggle.tsx                # 진태양시 스위치
+    OptionCard.tsx            # 선택형 카드(성별 등)
+    ProgressBar.tsx
+    Badge.tsx                 # 오행/십성 태그
+    WheelPicker.tsx           # 범용 휠(스피너) 컬럼
+    DateWheelPicker.tsx       # 년/월/일 휠 (WheelPicker 조합)
+    TimeWheelPicker.tsx       # 시/분 휠 (WheelPicker 조합)
   app/
     layout.tsx
     globals.css
