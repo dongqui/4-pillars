@@ -1,10 +1,19 @@
+import { LandingNav } from "./_components/LandingNav";
+import { Hero } from "./_components/Hero";
+import { KnowSection } from "./_components/KnowSection";
+import { SampleReport } from "./_components/SampleReport";
+import { TrustSection } from "./_components/TrustSection";
+import { FooterCta } from "./_components/FooterCta";
+
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-      <h1 className="text-3xl font-semibold tracking-tight">사주대소</h1>
-      <p className="text-zinc-600 dark:text-zinc-400">
-        생년월일시로 사주 원국을 계산하는 서비스 (준비 중)
-      </p>
-    </main>
+    <div className="flex-1">
+      <LandingNav />
+      <Hero />
+      <KnowSection />
+      <SampleReport />
+      <TrustSection />
+      <FooterCta />
+    </div>
   );
 }

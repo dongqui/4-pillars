@@ -60,3 +60,18 @@ body {
 .saju-scroll {
   scrollbar-width: none;
 }
+
+/* step-change fade-in (matches design reference) */
+@keyframes saju-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.saju-fade {
+  animation: saju-fade 0.35s ease both;
+}
