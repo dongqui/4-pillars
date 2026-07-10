@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { WheelPicker, type WheelItem } from "./WheelPicker";
 
 interface DateValue {
@@ -23,21 +24,33 @@ function daysInMonth(y: number, m: number): number {
   return new Date(y, m, 0).getDate(); // m: 1..12
 }
 
-const CURRENT_YEAR = 2026;
+const CURRENT_YEAR = new Date().getFullYear();
 
 export function DateWheelPicker({ value, onChange }: Props) {
-  const years: WheelItem[] = range(1930, CURRENT_YEAR).map((y) => ({
-    value: y,
-    label: `${y}`,
-  }));
-  const months: WheelItem[] = range(1, 12).map((m) => ({
-    value: m,
-    label: `${m}`,
-  }));
-  const days: WheelItem[] = range(1, daysInMonth(value.y, value.m)).map((d) => ({
-    value: d,
-    label: `${d}`,
-  }));
+  const years: WheelItem[] = useMemo(
+    () =>
+      range(1930, CURRENT_YEAR).map((y) => ({
+        value: y,
+        label: `${y}`,
+      })),
+    []
+  );
+  const months: WheelItem[] = useMemo(
+    () =>
+      range(1, 12).map((m) => ({
+        value: m,
+        label: `${m}`,
+      })),
+    []
+  );
+  const days: WheelItem[] = useMemo(
+    () =>
+      range(1, daysInMonth(value.y, value.m)).map((d) => ({
+        value: d,
+        label: `${d}`,
+      })),
+    [value.y, value.m]
+  );
 
   function clampDay(y: number, m: number, d: number): number {
     return Math.min(d, daysInMonth(y, m));

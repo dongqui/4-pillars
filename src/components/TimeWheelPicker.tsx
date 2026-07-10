@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { WheelPicker, type WheelItem } from "./WheelPicker";
 
 interface TimeValue {
@@ -23,17 +24,20 @@ function range(start: number, end: number): WheelItem[] {
 }
 
 export function TimeWheelPicker({ value, onChange }: Props) {
+  const hours = useMemo(() => range(0, 23), []);
+  const minutes = useMemo(() => range(0, 59), []);
+
   return (
     <div className="flex items-center justify-center gap-2">
       <WheelPicker
-        items={range(0, 23)}
+        items={hours}
         value={value.h}
         onChange={(h) => onChange({ h, m: value.m })}
         width={64}
       />
       <span className="text-slate-400 text-xl font-bold">:</span>
       <WheelPicker
-        items={range(0, 59)}
+        items={minutes}
         value={value.m}
         onChange={(m) => onChange({ h: value.h, m })}
         width={64}
