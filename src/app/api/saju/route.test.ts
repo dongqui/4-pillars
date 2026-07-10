@@ -58,4 +58,11 @@ describe("POST /api/saju", () => {
     const res = await POST(post(validBody));
     expect(res.status).toBe(500);
   });
+
+  it("putCached 실패도 500으로 감싼다", async () => {
+    getCached.mockResolvedValue(null);
+    putCached.mockRejectedValue(new Error("db write fail"));
+    const res = await POST(post(validBody));
+    expect(res.status).toBe(500);
+  });
 });

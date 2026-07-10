@@ -56,6 +56,12 @@ describe("handleSaju", () => {
     expect(res.body).toHaveProperty("error");
   });
 
+  it("계산 불가한 날짜 → 422", async () => {
+    const res = await handleSaju({ ...validBody, month: 2, day: 31 }, deps());
+    expect(res.status).toBe(422);
+    expect(res.body).toHaveProperty("error");
+  });
+
   it("생성 실패 → 502, putCached 미호출", async () => {
     const d = deps({
       generator: { model: "stub", generate: vi.fn().mockRejectedValue(new Error("LLM down")) },

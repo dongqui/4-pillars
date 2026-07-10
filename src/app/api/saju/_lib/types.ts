@@ -21,6 +21,11 @@ export interface Interpretation {
   relationships: Section;
 }
 
+/** API 에러 응답 본문 */
+export interface ErrorResponse {
+  error: string;
+}
+
 /** API 성공 응답 */
 export interface SajuResponse {
   /** 요청받은 이름 (해석엔 미반영, echo용) */
@@ -31,7 +36,14 @@ export interface SajuResponse {
   cached: boolean;
 }
 
-/** 해석 생성기 (LLM 어댑터). 지금은 stub, 나중에 실제 LLM으로 교체. */
+/**
+ * 해석 생성기 (LLM 어댑터). 지금은 stub, 나중에 실제 LLM으로 교체.
+ *
+ * ⚠️ 캐시 주의: 해석은 (4기둥 + 성별)로만 캐시된다(chartKey 참조). 따라서
+ * generate()는 원국(4기둥)·성별에서 파생되는 사실만 사용해야 한다.
+ * analysis.daeun 처럼 정확한 생시에 의존하는 값을 해석에 반영하려면
+ * 캐시 키(chartKey)를 그 입력까지 포함하도록 넓혀야 한다.
+ */
 export interface InterpretationGenerator {
   /** 생성 모델 식별자 (DB에 기록) */
   readonly model: string;

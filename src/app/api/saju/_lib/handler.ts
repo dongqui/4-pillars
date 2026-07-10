@@ -2,7 +2,7 @@ import { analyze } from "@/lib/saju-core";
 import { parseRequest, ValidationError } from "./input";
 import { chartKey, pillarsJson } from "./key";
 import { getCached, putCached } from "./store";
-import type { InterpretationGenerator, SajuResponse } from "./types";
+import type { ErrorResponse, InterpretationGenerator, SajuResponse } from "./types";
 
 export interface HandlerDeps {
   generator: InterpretationGenerator;
@@ -12,7 +12,7 @@ export interface HandlerDeps {
 
 export interface HandlerResult {
   status: number;
-  body: SajuResponse | { error: string };
+  body: SajuResponse | ErrorResponse;
 }
 
 export async function handleSaju(raw: unknown, deps: HandlerDeps): Promise<HandlerResult> {
@@ -30,7 +30,8 @@ export async function handleSaju(raw: unknown, deps: HandlerDeps): Promise<Handl
   try {
     analysis = analyze(parsed.input);
   } catch (e) {
-    return { status: 422, body: { error: (e as Error).message } };
+    console.error("[handleSaju] 원국 계산 실패", e);
+    return { status: 422, body: { error: "생년월일시를 확인해 주세요" } };
   }
 
   // 3. 캐시 조회 (DB 오류는 상위로 전파 → 500)
