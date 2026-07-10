@@ -12,6 +12,8 @@ export function OptionCard({ selected, onClick, children, className = "" }: Prop
     <button
       type="button"
       onClick={onClick}
+      role="radio"
+      aria-checked={selected}
       className={`font-semibold rounded-2xl transition-all cursor-pointer border-2 ${
         selected
           ? "border-accent bg-accent-50 text-accent"

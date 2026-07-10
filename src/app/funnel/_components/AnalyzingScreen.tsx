@@ -6,7 +6,11 @@ interface Props {
 
 export function AnalyzingScreen({ name }: Props) {
   return (
-    <div className="flex-1 min-h-screen flex flex-col items-center justify-center px-10">
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex-1 min-h-screen flex flex-col items-center justify-center px-10"
+    >
       <div className="w-[60px] h-[60px] rounded-full border-[3px] border-slate-200 border-t-accent animate-spin" />
       <div className="text-[22px] font-bold mt-[30px] tracking-tight">
         사주를 계산하고 있어요

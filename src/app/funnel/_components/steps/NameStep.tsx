@@ -14,6 +14,7 @@ export function NameStep() {
         value={data.name}
         onChange={(e) => update({ name: e.target.value })}
         placeholder="이름"
+        aria-label="이름"
         autoFocus
         className="w-full border-0 border-b-2 border-slate-200 focus:border-accent outline-none py-2.5 px-0.5 text-[30px] font-bold text-slate-900 placeholder:text-slate-300"
       />

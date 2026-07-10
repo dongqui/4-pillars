@@ -32,6 +32,8 @@ export function WheelPicker({ items, value, onChange, width = 72 }: Props) {
     if (Math.abs(el.scrollTop - target) > 1) el.scrollTop = target;
   }, [value, items]);
 
+  useEffect(() => () => { if (settle.current) clearTimeout(settle.current); }, []);
+
   function handleScroll() {
     const el = ref.current;
     if (!el) return;

@@ -12,7 +12,7 @@ export function GenderStep() {
         {name}님의 성별은?
       </h1>
       <p className="text-[15px] text-slate-500 mb-9">양·음 기운 해석에 사용돼요.</p>
-      <div className="flex gap-3.5">
+      <div className="flex gap-3.5" role="radiogroup" aria-label="성별">
         <OptionCard
           selected={data.gender === "male"}
           onClick={() => update({ gender: "male" })}

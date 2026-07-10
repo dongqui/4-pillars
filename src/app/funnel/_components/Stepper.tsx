@@ -1,4 +1,4 @@
-import { STEPS, stepIndex } from "../_lib/steps";
+import { STEPS } from "../_lib/steps";
 
 interface Props {
   index: number;
@@ -61,6 +61,3 @@ export function Stepper({ index }: Props) {
     </nav>
   );
 }
-
-// stepIndex re-export 편의 (미사용시 무시)
-export { stepIndex };

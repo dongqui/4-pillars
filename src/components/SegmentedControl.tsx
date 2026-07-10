@@ -20,6 +20,7 @@ export function SegmentedControl<T extends string>({
 }: Props<T>) {
   return (
     <div
+      role="radiogroup"
       className={`flex gap-[3px] bg-slate-100 rounded-xl p-[3px] ${className}`}
     >
       {options.map((opt) => {
@@ -29,6 +30,8 @@ export function SegmentedControl<T extends string>({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
+            role="radio"
+            aria-checked={on}
             className={`flex-1 text-sm rounded-[9px] py-[11px] transition-all cursor-pointer ${
               on
                 ? "bg-white text-slate-900 font-semibold shadow-[0_1px_2px_rgba(15,23,42,.08)]"

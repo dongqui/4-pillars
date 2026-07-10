@@ -29,6 +29,7 @@ export function BirthTimeStep() {
       <button
         type="button"
         onClick={() => update({ timeKnown: !data.timeKnown })}
+        aria-pressed={!data.timeKnown}
         className={`w-full flex items-center gap-2.5 mt-4 text-sm font-semibold rounded-xl px-[18px] py-4 transition-all cursor-pointer border ${
           data.timeKnown
             ? "border-slate-200 bg-white text-slate-500"
