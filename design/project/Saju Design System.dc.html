@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  ::selection{background:#DBEAFE;}
+</style>
+</helmet>
+
+<div style="background:#FFFFFF; font-family:'Pretendard','Pretendard Variable',-apple-system,system-ui,sans-serif; color:#0F172A; min-height:100vh; -webkit-font-smoothing:antialiased; line-height:1.5;">
+<div style="--accent: {{accent}}; --radius: {{radiusPx}}; --shadow: {{shadow}};">
+<div style="max-width:1080px; margin:0 auto; padding:clamp(40px,6vw,72px) clamp(20px,5vw,32px) 120px;">
+
+  <!-- ============ HEADER ============ -->
+  <header style="margin-bottom:80px;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:28px;">
+      <div style="width:28px; height:28px; border-radius:8px; background:var(--accent,#2563EB); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:15px;">四</div>
+      <span style="font-weight:600; font-size:15px; letter-spacing:-0.01em;">Saju Analytics</span>
+      <span style="margin-left:8px; font-size:12px; font-weight:600; color:var(--accent,#2563EB); background:#EFF6FF; padding:3px 8px; border-radius:6px;">Design System</span>
+    </div>
+    <h1 style="font-size:clamp(30px,7vw,46px); line-height:1.1; font-weight:700; letter-spacing:-0.03em; margin:0 0 20px; max-width:760px;">사주 분석을 데이터로 설명하는<br>디자인 시스템</h1>
+    <p style="font-size:18px; color:#475569; max-width:620px; margin:0 0 32px; text-wrap:pretty;">신비주의가 아닌 분석. 차트와 구조화된 리포트로 사주명리를 설명하는, 신뢰할 수 있는 SaaS 인터페이스를 위한 컴포넌트 라이브러리.</p>
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      <span style="font-size:13px; font-weight:500; color:#334155; border:1px solid #E2E8F0; background:#F8FAFC; padding:6px 12px; border-radius:999px;">분석적</span>
+      <span style="font-size:13px; font-weight:500; color:#334155; border:1px solid #E2E8F0; background:#F8FAFC; padding:6px 12px; border-radius:999px;">신뢰감</span>
+      <span style="font-size:13px; font-weight:500; color:#334155; border:1px solid #E2E8F0; background:#F8FAFC; padding:6px 12px; border-radius:999px;">미니멀</span>
+      <span style="font-size:13px; font-weight:500; color:#334155; border:1px solid #E2E8F0; background:#F8FAFC; padding:6px 12px; border-radius:999px;">데이터 기반</span>
+      <span style="font-size:13px; font-weight:500; color:#334155; border:1px solid #E2E8F0; background:#F8FAFC; padding:6px 12px; border-radius:999px;">전문적</span>
+    </div>
+  </header>
+
+  <!-- ============ COLOR ============ -->
+  <section style="margin-bottom:88px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#94A3B8; margin-bottom:10px;">Foundations</div>
+    <h2 style="font-size:28px; font-weight:700; letter-spacing:-0.02em; margin:0 0 8px;">컬러 시스템</h2>
+    <p style="font-size:16px; color:#64748B; margin:0 0 32px; max-width:560px;">차분한 중립 톤 위에 단일 프라이머리 블루. 오행은 채도를 절제한 카테고리 팔레트로 데이터에서만 의미를 가집니다.</p>
+
+    <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:12px;">Primary · #2563EB</div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(72px,1fr)); gap:8px; margin-bottom:36px;">
+      <div><div style="height:64px; background:#EFF6FF; border:1px solid #E2E8F0; border-radius:10px;"></div><div style="font-size:11px; color:#94A3B8; margin-top:6px;">50</div></div>
+      <div><div style="height:64px; background:#DBEAFE; border-radius:10px;"></div><div style="font-size:11px; color:#94A3B8; margin-top:6px;">100</div></div>
+      <div><div style="height:64px; background:#BFDBFE; border-radius:10px;"></div><div style="font-size:11px; color:#94A3B8; margin-top:6px;">200</div></div>
+      <div><div style="height:64px; background:#60A5FA; border-radius:10px;"></div><div style="font-size:11px; color:#94A3B8; margin-top:6px;">400</div></div>
+      <div><div style="height:64px; background:#3B82F6; border-radius:10px;"></div><div style="font-size:11px; color:#94A3B8; margin-top:6px;">500</div></div>
+      <div><div style="height:64px; background:#2563EB; border-radius:10px; box-shadow:0 0 0 2px #fff, 0 0 0 4px #2563EB;"></div><div style="font-size:11px; color:#2563EB; font-weight:700; margin-top:6px;">600</div></div>
+      <div><div style="height:64px; background:#1D4ED8; border-radius:10px;"></div><div style="font-size:11px; color:#94A3B8; margin-top:6px;">700</div></div>
+    </div>
+
+    <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:12px;">Neutral · Slate</div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(52px,1fr)); gap:6px; margin-bottom:36px;">
+      <div><div style="height:48px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px;"></div><div style="font-size:10px; color:#94A3B8; margin-top:5px;">50</div></div>
+      <div><div style="height:48px; background:#F1F5F9; border-radius:8px;"></div><div style="font-size:10px; color:#94A3B8; margin-top:5px;">100</div></div>
+      <div><div style="height:48px; background:#E2E8F0; border-radius:8px;"></div><div style="font-size:10px; color:#94A3B8; margin-top:5px;">200</div></div>
+      <div><div style="height:48px; background:#CBD5E1; border-radius:8px;"></div><div style="font-size:10px; color:#94A3B8; margin-top:5px;">300</div></div>
+      <div><div style="height:48px; background:#94A3B8; border-radius:8px;"></div><div style="font-size:10px; color:#94A3B8; margin-top:5px;">400</div></div>
+      <div><div style="height:48px; background:#64748B; border-radius:8px;"></div><div style="font-size:10px; color:#94A3B8; margin-top:5px;">500</div></div>
+      <div><div style="height:48px; background:#475569; border-radius:8px;"></div><div style="font-size:10px; color:#94A3B8; margin-top:5px;">600</div></div>
+      <div><div style="height:48px; background:#334155; border-radius:8px;"></div><div style="font-size:10px; color:#94A3B8; margin-top:5px;">700</div></div>
+      <div><div style="height:48px; background:#1E293B; border-radius:8px;"></div><div style="font-size:10px; color:#94A3B8; margin-top:5px;">800</div></div>
+      <div><div style="height:48px; background:#0F172A; border-radius:8px;"></div><div style="font-size:10px; color:#94A3B8; margin-top:5px;">900</div></div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:24px;">
+      <div>
+        <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:12px;">Semantic</div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
+          <div><div style="height:48px; background:#16A34A; border-radius:8px;"></div><div style="font-size:11px; color:#64748B; margin-top:6px;">Success</div></div>
+          <div><div style="height:48px; background:#D97706; border-radius:8px;"></div><div style="font-size:11px; color:#64748B; margin-top:6px;">Warning</div></div>
+          <div><div style="height:48px; background:#DC2626; border-radius:8px;"></div><div style="font-size:11px; color:#64748B; margin-top:6px;">Danger</div></div>
+          <div><div style="height:48px; background:#2563EB; border-radius:8px;"></div><div style="font-size:11px; color:#64748B; margin-top:6px;">Info</div></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:12px;">오행 · Five Elements</div>
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:8px;">
+          <div><div style="height:48px; background:#2E9E6B; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700;">木</div><div style="font-size:11px; color:#64748B; margin-top:6px;">목 Wood</div></div>
+          <div><div style="height:48px; background:#DC5A4B; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700;">火</div><div style="font-size:11px; color:#64748B; margin-top:6px;">화 Fire</div></div>
+          <div><div style="height:48px; background:#C99A3F; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700;">土</div><div style="font-size:11px; color:#64748B; margin-top:6px;">토 Earth</div></div>
+          <div><div style="height:48px; background:#8492A6; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700;">金</div><div style="font-size:11px; color:#64748B; margin-top:6px;">금 Metal</div></div>
+          <div><div style="height:48px; background:#3E6FB0; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700;">水</div><div style="font-size:11px; color:#64748B; margin-top:6px;">수 Water</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TYPOGRAPHY ============ -->
+  <section style="margin-bottom:88px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#94A3B8; margin-bottom:10px;">Foundations</div>
+    <h2 style="font-size:28px; font-weight:700; letter-spacing:-0.02em; margin:0 0 8px;">타이포그래피</h2>
+    <p style="font-size:16px; color:#64748B; margin:0 0 32px; max-width:560px;">Pretendard 단일 패밀리. 한글과 라틴, 숫자가 한 시스템 안에서 정렬됩니다. 크고 읽기 쉬운 위계.</p>
+    <div style="border:1px solid #E2E8F0; border-radius:var(--radius,12px); overflow:hidden;">
+      <div style="display:flex; align-items:baseline; gap:24px; padding:20px 24px; border-bottom:1px solid #F1F5F9;"><div style="width:120px; font-size:12px; color:#94A3B8; flex:none;">Display · 46/700</div><div style="font-size:46px; font-weight:700; letter-spacing:-0.03em;">갑자일주</div></div>
+      <div style="display:flex; align-items:baseline; gap:24px; padding:20px 24px; border-bottom:1px solid #F1F5F9;"><div style="width:120px; font-size:12px; color:#94A3B8; flex:none;">H1 · 28/700</div><div style="font-size:28px; font-weight:700; letter-spacing:-0.02em;">오행 분포 분석</div></div>
+      <div style="display:flex; align-items:baseline; gap:24px; padding:20px 24px; border-bottom:1px solid #F1F5F9;"><div style="width:120px; font-size:12px; color:#94A3B8; flex:none;">H2 · 20/600</div><div style="font-size:20px; font-weight:600; letter-spacing:-0.01em;">일간의 강약과 용신</div></div>
+      <div style="display:flex; align-items:baseline; gap:24px; padding:20px 24px; border-bottom:1px solid #F1F5F9;"><div style="width:120px; font-size:12px; color:#94A3B8; flex:none;">Body · 16/400</div><div style="font-size:16px; font-weight:400; color:#334155;">사주는 태어난 연·월·일·시를 천간과 지지로 환산한 여덟 글자의 구조입니다.</div></div>
+      <div style="display:flex; align-items:baseline; gap:24px; padding:20px 24px; border-bottom:1px solid #F1F5F9;"><div style="width:120px; font-size:12px; color:#94A3B8; flex:none;">Small · 14/500</div><div style="font-size:14px; font-weight:500; color:#475569;">데이터 기준: 만세력 · 진태양시 보정 적용</div></div>
+      <div style="display:flex; align-items:baseline; gap:24px; padding:20px 24px;"><div style="width:120px; font-size:12px; color:#94A3B8; flex:none;">Mono · 13</div><div style="font-size:13px; font-family:'SF Mono',ui-monospace,Menlo,monospace; color:#64748B;">1990-02-20 · 04:30 KST · GMT+9</div></div>
+    </div>
+  </section>
+
+  <!-- ============ SPACING / RADIUS / SHADOW ============ -->
+  <section style="margin-bottom:88px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#94A3B8; margin-bottom:10px;">Foundations</div>
+    <h2 style="font-size:28px; font-weight:700; letter-spacing:-0.02em; margin:0 0 32px;">스페이싱 · 라운딩 · 그림자</h2>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:24px;">
+      <div style="border:1px solid #E2E8F0; border-radius:var(--radius,12px); padding:24px; box-shadow:var(--shadow);">
+        <div style="font-size:13px; font-weight:600; margin-bottom:16px;">Spacing · 4px base</div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; align-items:center; gap:12px;"><div style="height:14px; width:4px; background:var(--accent,#2563EB); border-radius:2px;"></div><span style="font-size:12px; color:#64748B;">4</span></div>
+          <div style="display:flex; align-items:center; gap:12px;"><div style="height:14px; width:8px; background:var(--accent,#2563EB); border-radius:2px;"></div><span style="font-size:12px; color:#64748B;">8</span></div>
+          <div style="display:flex; align-items:center; gap:12px;"><div style="height:14px; width:12px; background:var(--accent,#2563EB); border-radius:2px;"></div><span style="font-size:12px; color:#64748B;">12</span></div>
+          <div style="display:flex; align-items:center; gap:12px;"><div style="height:14px; width:16px; background:var(--accent,#2563EB); border-radius:2px;"></div><span style="font-size:12px; color:#64748B;">16</span></div>
+          <div style="display:flex; align-items:center; gap:12px;"><div style="height:14px; width:24px; background:var(--accent,#2563EB); border-radius:2px;"></div><span style="font-size:12px; color:#64748B;">24</span></div>
+          <div style="display:flex; align-items:center; gap:12px;"><div style="height:14px; width:32px; background:var(--accent,#2563EB); border-radius:2px;"></div><span style="font-size:12px; color:#64748B;">32</span></div>
+          <div style="display:flex; align-items:center; gap:12px;"><div style="height:14px; width:48px; background:var(--accent,#2563EB); border-radius:2px;"></div><span style="font-size:12px; color:#64748B;">48</span></div>
+        </div>
+      </div>
+      <div style="border:1px solid #E2E8F0; border-radius:var(--radius,12px); padding:24px; box-shadow:var(--shadow);">
+        <div style="font-size:13px; font-weight:600; margin-bottom:16px;">Radius · 12 default</div>
+        <div style="display:flex; gap:12px; align-items:flex-end;">
+          <div style="text-align:center;"><div style="width:48px; height:48px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:6px;"></div><div style="font-size:11px; color:#94A3B8; margin-top:6px;">6</div></div>
+          <div style="text-align:center;"><div style="width:56px; height:56px; background:#EFF6FF; border:1.5px solid var(--accent,#2563EB); border-radius:12px;"></div><div style="font-size:11px; color:var(--accent,#2563EB); font-weight:700; margin-top:6px;">12</div></div>
+          <div style="text-align:center;"><div style="width:48px; height:48px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:16px;"></div><div style="font-size:11px; color:#94A3B8; margin-top:6px;">16</div></div>
+        </div>
+      </div>
+      <div style="border:1px solid #E2E8F0; border-radius:var(--radius,12px); padding:24px; box-shadow:var(--shadow);">
+        <div style="font-size:13px; font-weight:600; margin-bottom:16px;">Elevation</div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div style="height:30px; background:#fff; border:1px solid #E2E8F0; border-radius:8px; font-size:11px; color:#94A3B8; display:flex; align-items:center; padding:0 10px;">none</div>
+          <div style="height:30px; background:#fff; border:1px solid #F1F5F9; border-radius:8px; box-shadow:0 1px 2px rgba(15,23,42,.04),0 1px 3px rgba(15,23,42,.06); font-size:11px; color:#64748B; display:flex; align-items:center; padding:0 10px;">soft</div>
+          <div style="height:30px; background:#fff; border-radius:8px; box-shadow:0 6px 16px rgba(15,23,42,.08),0 1px 3px rgba(15,23,42,.06); font-size:11px; color:#64748B; display:flex; align-items:center; padding:0 10px;">elevated</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COMPONENTS ============ -->
+  <section style="margin-bottom:88px;">
+    <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#94A3B8; margin-bottom:10px;">Components</div>
+    <h2 style="font-size:28px; font-weight:700; letter-spacing:-0.02em; margin:0 0 32px;">컴포넌트</h2>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:24px;">
+      <!-- buttons -->
+      <div style="border:1px solid #E2E8F0; border-radius:var(--radius,12px); padding:24px; box-shadow:var(--shadow);">
+        <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:16px;">Buttons</div>
+        <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+          <button style="font-family:inherit; font-size:14px; font-weight:600; color:#fff; background:var(--accent,#2563EB); border:none; padding:10px 16px; border-radius:10px; cursor:pointer;" style-hover="background:#1D4ED8;">분석 시작</button>
+          <button style="font-family:inherit; font-size:14px; font-weight:600; color:#334155; background:#fff; border:1px solid #CBD5E1; padding:10px 16px; border-radius:10px; cursor:pointer;" style-hover="background:#F8FAFC;">리포트 보기</button>
+          <button style="font-family:inherit; font-size:14px; font-weight:600; color:#475569; background:transparent; border:none; padding:10px 12px; border-radius:10px; cursor:pointer;" style-hover="background:#F1F5F9;">취소</button>
+          <button style="font-family:inherit; font-size:14px; font-weight:600; color:#DC2626; background:#FEF2F2; border:1px solid #FECACA; padding:10px 16px; border-radius:10px; cursor:pointer;" style-hover="background:#FEE2E2;">삭제</button>
+        </div>
+      </div>
+      <!-- badges -->
+      <div style="border:1px solid #E2E8F0; border-radius:var(--radius,12px); padding:24px; box-shadow:var(--shadow);">
+        <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:16px;">오행 태그 · 십성</div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          <span style="display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:#1F7A52; background:#E7F5EE; padding:5px 11px; border-radius:999px;"><span style="width:7px;height:7px;border-radius:999px;background:#2E9E6B;"></span>목 木</span>
+          <span style="display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:#B23A2E; background:#FCEAE7; padding:5px 11px; border-radius:999px;"><span style="width:7px;height:7px;border-radius:999px;background:#DC5A4B;"></span>화 火</span>
+          <span style="display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:#9A7320; background:#F8EFD9; padding:5px 11px; border-radius:999px;"><span style="width:7px;height:7px;border-radius:999px;background:#C99A3F;"></span>토 土</span>
+          <span style="display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:#4F5E73; background:#EEF1F6; padding:5px 11px; border-radius:999px;"><span style="width:7px;height:7px;border-radius:999px;background:#8492A6;"></span>금 金</span>
+          <span style="display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:#2B5288; background:#E8EEF8; padding:5px 11px; border-radius:999px;"><span style="width:7px;height:7px;border-radius:999px;background:#3E6FB0;"></span>수 水</span>
+          <span style="font-size:13px; font-weight:600; color:#334155; background:#F1F5F9; padding:5px 11px; border-radius:8px;">비견</span>
+          <span style="font-size:13px; font-weight:600; color:#334155; background:#F1F5F9; padding:5px 11px; border-radius:8px;">식신</span>
+          <span style="font-size:13px; font-weight:600; color:var(--accent,#2563EB); background:#EFF6FF; padding:5px 11px; border-radius:8px;">일간</span>
+        </div>
+      </div>
+      <!-- input -->
+      <div style="border:1px solid #E2E8F0; border-radius:var(--radius,12px); padding:24px; box-shadow:var(--shadow);">
+        <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:16px;">Input</div>
+        <label style="font-size:13px; font-weight:500; color:#475569; display:block; margin-bottom:7px;">생년월일시</label>
+        <div style="display:flex; align-items:center; gap:8px; border:1px solid #CBD5E1; border-radius:10px; padding:11px 14px; background:#fff;">
+          <span style="color:#94A3B8; font-size:15px;">📅</span>
+          <input value="1990-02-20  04:30" readonly style="border:none; outline:none; font-family:inherit; font-size:15px; color:#0F172A; flex:1; background:transparent;">
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; margin-top:12px; border:1.5px solid var(--accent,#2563EB); border-radius:10px; padding:11px 14px; background:#fff; box-shadow:0 0 0 3px #EFF6FF;">
+          <input value="홍길동" style="border:none; outline:none; font-family:inherit; font-size:15px; color:#0F172A; flex:1; background:transparent;">
+          <span style="font-size:12px; color:var(--accent,#2563EB); font-weight:600;">활성</span>
+        </div>
+      </div>
+      <!-- toggle + select -->
+      <div style="border:1px solid #E2E8F0; border-radius:var(--radius,12px); padding:24px; box-shadow:var(--shadow);">
+        <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:16px;">Toggle · Select</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+          <span style="font-size:14px; color:#334155;">진태양시 보정</span>
+          <div style="width:42px; height:24px; border-radius:999px; background:var(--accent,#2563EB); position:relative;"><div style="position:absolute; top:2px; right:2px; width:20px; height:20px; border-radius:999px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2);"></div></div>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:14px; color:#334155;">서머타임 반영</span>
+          <div style="width:42px; height:24px; border-radius:999px; background:#CBD5E1; position:relative;"><div style="position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:999px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2);"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SAMPLE REPORT ============ -->
+  <section>
+    <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#94A3B8; margin-bottom:10px;">In context</div>
+    <h2 style="font-size:28px; font-weight:700; letter-spacing:-0.02em; margin:0 0 8px;">사주 리포트 · 적용 예시</h2>
+    <p style="font-size:16px; color:#64748B; margin:0 0 32px; max-width:560px;">여덟 글자의 원국을 표로, 오행 균형을 차트로, 분석을 구조화된 패널로. 운세 점괘가 아닌 데이터.</p>
+
+    <!-- card -->
+    <div style="border:1px solid #E2E8F0; border-radius:var(--radius,12px); box-shadow:var(--shadow); overflow:hidden;">
+      <!-- card head -->
+      <div style="padding:24px 28px; border-bottom:1px solid #F1F5F9; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+        <div>
+          <div style="font-size:20px; font-weight:700; letter-spacing:-0.01em;">홍길동 · 갑자일주</div>
+          <div style="font-size:13px; color:#94A3B8; margin-top:3px; font-family:'SF Mono',ui-monospace,monospace;">양력 1990.02.20 04:30 · 남 · 진태양시 보정</div>
+        </div>
+        <span style="font-size:13px; font-weight:600; color:#1F7A52; background:#E7F5EE; padding:6px 12px; border-radius:999px;">일간 갑목(甲) · 신강</span>
+      </div>
+
+      <!-- four pillars -->
+      <div style="padding:24px 28px;">
+        <div style="font-size:13px; font-weight:700; color:#334155; margin-bottom:14px;">사주 원국 · 四柱</div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
+
+          <!-- 시주 -->
+          <div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:#94A3B8; margin-bottom:8px;">시주 時</div>
+            <div style="text-align:center; font-size:11px; color:#64748B; margin-bottom:6px;">식신</div>
+            <div style="background:#FCEAE7; border-radius:10px; padding:14px 0; text-align:center;"><div style="font-size:34px; font-weight:700; color:#B23A2E; line-height:1;">丙</div><div style="font-size:12px; color:#B23A2E; margin-top:5px; font-weight:600;">병 · 火</div></div>
+            <div style="background:#E7F5EE; border-radius:10px; padding:14px 0; text-align:center; margin-top:8px;"><div style="font-size:34px; font-weight:700; color:#1F7A52; line-height:1;">寅</div><div style="font-size:12px; color:#1F7A52; margin-top:5px; font-weight:600;">인 · 木</div></div>
+            <div style="text-align:center; font-size:11px; color:#64748B; margin-top:6px;">비견</div>
+          </div>
+
+          <!-- 일주 -->
+          <div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--accent,#2563EB); margin-bottom:8px;">일주 日</div>
+            <div style="text-align:center; font-size:11px; color:var(--accent,#2563EB); font-weight:600; margin-bottom:6px;">일간 · 我</div>
+            <div style="background:#E7F5EE; border-radius:10px; padding:14px 0; text-align:center; box-shadow:0 0 0 2px var(--accent,#2563EB);"><div style="font-size:34px; font-weight:700; color:#1F7A52; line-height:1;">甲</div><div style="font-size:12px; color:#1F7A52; margin-top:5px; font-weight:600;">갑 · 木</div></div>
+            <div style="background:#E8EEF8; border-radius:10px; padding:14px 0; text-align:center; margin-top:8px;"><div style="font-size:34px; font-weight:700; color:#2B5288; line-height:1;">子</div><div style="font-size:12px; color:#2B5288; margin-top:5px; font-weight:600;">자 · 水</div></div>
+            <div style="text-align:center; font-size:11px; color:#64748B; margin-top:6px;">정인</div>
+          </div>
+
+          <!-- 월주 -->
+          <div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:#94A3B8; margin-bottom:8px;">월주 月</div>
+            <div style="text-align:center; font-size:11px; color:#64748B; margin-bottom:6px;">편재</div>
+            <div style="background:#F8EFD9; border-radius:10px; padding:14px 0; text-align:center;"><div style="font-size:34px; font-weight:700; color:#9A7320; line-height:1;">戊</div><div style="font-size:12px; color:#9A7320; margin-top:5px; font-weight:600;">무 · 土</div></div>
+            <div style="background:#E7F5EE; border-radius:10px; padding:14px 0; text-align:center; margin-top:8px;"><div style="font-size:34px; font-weight:700; color:#1F7A52; line-height:1;">寅</div><div style="font-size:12px; color:#1F7A52; margin-top:5px; font-weight:600;">인 · 木</div></div>
+            <div style="text-align:center; font-size:11px; color:#64748B; margin-top:6px;">비견</div>
+          </div>
+
+          <!-- 년주 -->
+          <div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:#94A3B8; margin-bottom:8px;">년주 年</div>
+            <div style="text-align:center; font-size:11px; color:#64748B; margin-bottom:6px;">편관</div>
+            <div style="background:#EEF1F6; border-radius:10px; padding:14px 0; text-align:center;"><div style="font-size:34px; font-weight:700; color:#4F5E73; line-height:1;">庚</div><div style="font-size:12px; color:#4F5E73; margin-top:5px; font-weight:600;">경 · 金</div></div>
+            <div style="background:#FCEAE7; border-radius:10px; padding:14px 0; text-align:center; margin-top:8px;"><div style="font-size:34px; font-weight:700; color:#B23A2E; line-height:1;">午</div><div style="font-size:12px; color:#B23A2E; margin-top:5px; font-weight:600;">오 · 火</div></div>
+            <div style="text-align:center; font-size:11px; color:#64748B; margin-top:6px;">상관</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- charts row -->
+      <div style="padding:4px 28px 24px; display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:24px;">
+        <!-- element balance -->
+        <div style="border:1px solid #F1F5F9; border-radius:10px; padding:20px;">
+          <div style="font-size:13px; font-weight:700; color:#334155; margin-bottom:16px;">오행 분포 · 8자 기준</div>
+          <div style="display:flex; flex-direction:column; gap:13px;">
+            <div style="display:flex; align-items:center; gap:12px;"><div style="width:42px; font-size:13px; font-weight:600; color:#1F7A52;">목 木</div><div style="flex:1; height:10px; background:#F1F5F9; border-radius:999px; overflow:hidden;"><div style="width:100%; height:100%; background:#2E9E6B; border-radius:999px;"></div></div><div style="width:18px; text-align:right; font-size:13px; font-weight:600; color:#334155;">3</div></div>
+            <div style="display:flex; align-items:center; gap:12px;"><div style="width:42px; font-size:13px; font-weight:600; color:#B23A2E;">화 火</div><div style="flex:1; height:10px; background:#F1F5F9; border-radius:999px; overflow:hidden;"><div style="width:66%; height:100%; background:#DC5A4B; border-radius:999px;"></div></div><div style="width:18px; text-align:right; font-size:13px; font-weight:600; color:#334155;">2</div></div>
+            <div style="display:flex; align-items:center; gap:12px;"><div style="width:42px; font-size:13px; font-weight:600; color:#9A7320;">토 土</div><div style="flex:1; height:10px; background:#F1F5F9; border-radius:999px; overflow:hidden;"><div style="width:33%; height:100%; background:#C99A3F; border-radius:999px;"></div></div><div style="width:18px; text-align:right; font-size:13px; font-weight:600; color:#334155;">1</div></div>
+            <div style="display:flex; align-items:center; gap:12px;"><div style="width:42px; font-size:13px; font-weight:600; color:#4F5E73;">금 金</div><div style="flex:1; height:10px; background:#F1F5F9; border-radius:999px; overflow:hidden;"><div style="width:33%; height:100%; background:#8492A6; border-radius:999px;"></div></div><div style="width:18px; text-align:right; font-size:13px; font-weight:600; color:#334155;">1</div></div>
+            <div style="display:flex; align-items:center; gap:12px;"><div style="width:42px; font-size:13px; font-weight:600; color:#2B5288;">수 水</div><div style="flex:1; height:10px; background:#F1F5F9; border-radius:999px; overflow:hidden;"><div style="width:33%; height:100%; background:#3E6FB0; border-radius:999px;"></div></div><div style="width:18px; text-align:right; font-size:13px; font-weight:600; color:#334155;">1</div></div>
+          </div>
+        </div>
+        <!-- strength + score -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div style="border:1px solid #F1F5F9; border-radius:10px; padding:18px 20px;">
+            <div style="font-size:13px; font-weight:700; color:#334155; margin-bottom:4px;">균형 점수</div>
+            <div style="display:flex; align-items:baseline; gap:4px;"><span style="font-size:34px; font-weight:700; letter-spacing:-0.02em; color:var(--accent,#2563EB);">78</span><span style="font-size:15px; color:#94A3B8; font-weight:600;">/ 100</span></div>
+            <div style="font-size:12px; color:#64748B; margin-top:2px;">목 기운 강세 · 화/금 보완 필요</div>
+          </div>
+          <div style="border:1px solid #F1F5F9; border-radius:10px; padding:18px 20px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;"><span style="font-size:13px; font-weight:700; color:#334155;">일간 강약</span><span style="font-size:12px; font-weight:600; color:#1F7A52;">신강 62%</span></div>
+            <div style="height:8px; background:#F1F5F9; border-radius:999px; position:relative; overflow:hidden;"><div style="width:62%; height:100%; background:linear-gradient(90deg,#94A3B8,#2E9E6B); border-radius:999px;"></div></div>
+            <div style="display:flex; justify-content:space-between; margin-top:6px;"><span style="font-size:10px; color:#CBD5E1;">신약</span><span style="font-size:10px; color:#CBD5E1;">신강</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- analysis tabs -->
+      <div style="padding:0 28px 28px;">
+        <div style="display:inline-flex; gap:2px; background:#F1F5F9; border-radius:10px; padding:3px; margin-bottom:18px;">
+          <button onClick="{{ onTab0 }}" style="font-family:inherit; font-size:13px; border:none; padding:7px 14px; border-radius:8px; cursor:pointer; transition:all .12s; {{ tabStyle0 }}">원국 해석</button>
+          <button onClick="{{ onTab1 }}" style="font-family:inherit; font-size:13px; border:none; padding:7px 14px; border-radius:8px; cursor:pointer; transition:all .12s; {{ tabStyle1 }}">오행 분석</button>
+          <button onClick="{{ onTab2 }}" style="font-family:inherit; font-size:13px; border:none; padding:7px 14px; border-radius:8px; cursor:pointer; transition:all .12s; {{ tabStyle2 }}">십성 구성</button>
+          <button onClick="{{ onTab3 }}" style="font-family:inherit; font-size:13px; border:none; padding:7px 14px; border-radius:8px; cursor:pointer; transition:all .12s; {{ tabStyle3 }}">대운 흐름</button>
+        </div>
+        <div style="background:#F8FAFC; border:1px solid #F1F5F9; border-radius:10px; padding:20px 22px;">
+          <div style="font-size:15px; font-weight:600; color:#0F172A; margin-bottom:6px;">{{ tabTitle }}</div>
+          <p style="font-size:14px; line-height:1.65; color:#475569; margin:0; text-wrap:pretty;">{{ tabDesc }}</p>
+        </div>
+      </div>
+
+    </div>
+
+    <p style="font-size:12px; color:#CBD5E1; margin-top:16px; text-align:center;">데이터는 만세력 기준으로 계산되며, 해석은 명리학 통계 모델에 기반합니다.</p>
+  </section>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1080, &quot;height&quot;: 1700 },
+  &quot;accent&quot;: { &quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#2563EB&quot;, &quot;tsType&quot;: &quot;string&quot; },
+  &quot;radius&quot;: { &quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 12, &quot;min&quot;: 0, &quot;max&quot;: 24, &quot;tsType&quot;: &quot;number&quot; },
+  &quot;shadow&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;soft&quot;, &quot;options&quot;: [&quot;none&quot;, &quot;soft&quot;, &quot;elevated&quot;], &quot;tsType&quot;: &quot;string&quot; }
+}">
+class Component extends DCLogic {
+  state = { tab: 0 };
+  renderVals() {
+    const radius = (this.props.radius ?? 12) + 'px';
+    const shadowMap = {
+      none: 'none',
+      soft: '0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06)',
+      elevated: '0 6px 16px rgba(15,23,42,.08), 0 1px 3px rgba(15,23,42,.06)'
+    };
+    const tab = this.state.tab;
+    const seg = (on) => on
+      ? 'background:#ffffff;color:#0F172A;font-weight:600;box-shadow:0 1px 2px rgba(15,23,42,.08);'
+      : 'background:transparent;color:#64748B;font-weight:500;';
+    const panels = [
+      { title: '갑목(甲) 일간, 인월(寅月) 생', desc: '봄의 길목에서 태어난 갑목 일간으로, 월지와 시지에 인목(寅)이 거듭 자리해 비견의 뿌리가 단단합니다. 자수(子)가 일지에서 정인으로 일간을 생조해 전반적으로 신강한 구조입니다.' },
+      { title: '목 3 · 화 2 · 토 1 · 금 1 · 수 1', desc: '목 기운이 8자 중 3개로 가장 강하고 화가 이를 설기합니다. 토·금·수는 각 1개로 균형 점수 78점. 강한 목을 다스릴 금(金)과 흐름을 잡아줄 화(火)가 용신·희신으로 작용합니다.' },
+      { title: '비견·식신 중심, 편재·편관 보조', desc: '비견이 두 개로 자기 주관과 추진력이 뚜렷하고, 식신이 이를 생산적으로 표현합니다. 년주의 편관(庚)과 월주의 편재(戊)가 외부 책임과 현실 감각을 더합니다.' },
+      { title: '현재 대운 丙戌 (32–41세)', desc: '병화(丙) 식신 대운으로 표현력과 활동성이 커지는 시기입니다. 술토(戌)가 재성의 기반을 보강해 실행 결과가 자산으로 연결되기 쉬운 흐름으로 분석됩니다.' }
+    ];
+    return {
+      accent: this.props.accent ?? '#2563EB',
+      radiusPx: radius,
+      shadow: shadowMap[this.props.shadow ?? 'soft'] || shadowMap.soft,
+      onTab0: () => this.setState({ tab: 0 }),
+      onTab1: () => this.setState({ tab: 1 }),
+      onTab2: () => this.setState({ tab: 2 }),
+      onTab3: () => this.setState({ tab: 3 }),
+      tabStyle0: seg(tab === 0),
+      tabStyle1: seg(tab === 1),
+      tabStyle2: seg(tab === 2),
+      tabStyle3: seg(tab === 3),
+      tabTitle: panels[tab].title,
+      tabDesc: panels[tab].desc
+    };
+  }
+}
+</script>
+</body>
+</html>

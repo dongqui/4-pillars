@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  .saju-scroll::-webkit-scrollbar{width:0;height:0;}
+  @keyframes saju-spin{to{transform:rotate(360deg)}}
+  @keyframes saju-pulse{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#EEF1F6; display:flex; align-items:flex-start; justify-content:center; padding:32px 16px; font-family:'Pretendard',-apple-system,system-ui,sans-serif; color:#0F172A;">
+
+  <!-- PHONE -->
+  <div style="width:390px; height:844px; background:#fff; border-radius:44px; box-shadow:0 24px 60px rgba(15,23,42,.18); border:1px solid #E2E8F0; overflow:hidden; position:relative;">
+
+    <!-- status bar -->
+    <div style="position:absolute; top:0; left:0; right:0; height:50px; padding:0 26px; display:flex; align-items:center; justify-content:space-between; z-index:20; font-size:14px; font-weight:600;">
+      <span>9:41</span>
+      <span style="font-size:12px; letter-spacing:1px; color:#0F172A;">●●● ▮</span>
+    </div>
+
+    <!-- ============ FUNNEL INPUT ============ -->
+    <sc-if value="{{ isInput }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute; inset:0; display:flex; flex-direction:column;">
+
+      <!-- header: back + progress -->
+      <div style="padding:54px 20px 0;">
+        <div style="display:flex; align-items:center; gap:12px; height:40px;">
+          <button onClick="{{ goBack }}" style="border:none; background:transparent; cursor:pointer; font-size:26px; line-height:1; color:#334155; width:30px; height:30px; display:flex; align-items:center; justify-content:center; padding:0; {{ backVis }}">‹</button>
+          <div style="flex:1; height:4px; background:#F1F5F9; border-radius:999px; overflow:hidden;">
+            <div style="height:100%; background:#2563EB; border-radius:999px; transition:width .4s cubic-bezier(.4,0,.2,1); width:{{ progressPct }};"></div>
+          </div>
+          <span style="font-size:12px; font-weight:600; color:#94A3B8; width:28px; text-align:right;">{{ stepLabel }}</span>
+        </div>
+      </div>
+
+      <!-- body -->
+      <div class="saju-scroll" style="flex:1; overflow-y:auto; padding:32px 24px 16px;">
+
+        <!-- STEP 0 · name -->
+        <sc-if value="{{ s0 }}" hint-placeholder-val="{{ true }}">
+        <div>
+          <h1 style="font-size:25px; font-weight:700; letter-spacing:-0.02em; line-height:1.3; margin:0 0 8px;">이름을 알려주세요</h1>
+          <p style="font-size:14px; color:#64748B; margin:0 0 36px;">리포트에 표시할 이름이에요.</p>
+          <input value="{{ name }}" onInput="{{ onName }}" placeholder="이름" style="width:100%; border:none; border-bottom:2px solid #E2E8F0; padding:8px 2px; font-family:inherit; font-size:26px; font-weight:700; color:#0F172A; outline:none;" style-focus="border-bottom-color:#2563EB;">
+        </div>
+        </sc-if>
+
+        <!-- STEP 1 · gender -->
+        <sc-if value="{{ s1 }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h1 style="font-size:25px; font-weight:700; letter-spacing:-0.02em; line-height:1.3; margin:0 0 8px;">{{ name }}님의 성별은<br>무엇인가요?</h1>
+          <p style="font-size:14px; color:#64748B; margin:0 0 32px;">양·음 기운 해석에 사용돼요.</p>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <button onClick="{{ setMale }}" style="text-align:left; font-family:inherit; font-size:17px; font-weight:600; border-radius:14px; padding:20px 20px; cursor:pointer; transition:all .12s; {{ maleCard }}">남성</button>
+            <button onClick="{{ setFemale }}" style="text-align:left; font-family:inherit; font-size:17px; font-weight:600; border-radius:14px; padding:20px 20px; cursor:pointer; transition:all .12s; {{ femaleCard }}">여성</button>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- STEP 2 · birth date -->
+        <sc-if value="{{ s2 }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h1 style="font-size:25px; font-weight:700; letter-spacing:-0.02em; line-height:1.3; margin:0 0 8px;">생년월일을<br>입력해주세요</h1>
+          <p style="font-size:14px; color:#64748B; margin:0 0 28px;">달력 종류를 먼저 선택해주세요.</p>
+          <div style="display:flex; gap:2px; background:#F1F5F9; border-radius:12px; padding:3px; margin-bottom:18px;">
+            <button onClick="{{ setSolar }}" style="flex:1; font-family:inherit; font-size:14px; border:none; padding:11px 0; border-radius:9px; cursor:pointer; transition:all .12s; {{ solarStyle }}">양력</button>
+            <button onClick="{{ setLunar }}" style="flex:1; font-family:inherit; font-size:14px; border:none; padding:11px 0; border-radius:9px; cursor:pointer; transition:all .12s; {{ lunarStyle }}">음력</button>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; border:1px solid #CBD5E1; border-radius:14px; padding:18px 18px; cursor:pointer;">
+            <span style="font-size:22px; font-weight:700; letter-spacing:-0.01em;">1990. 02. 20.</span>
+            <span style="font-size:18px;">📅</span>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- STEP 3 · birth time -->
+        <sc-if value="{{ s3 }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h1 style="font-size:25px; font-weight:700; letter-spacing:-0.02em; line-height:1.3; margin:0 0 8px;">태어난 시간을<br>알려주세요</h1>
+          <p style="font-size:14px; color:#64748B; margin:0 0 28px;">시(時) 기둥 계산에 사용돼요.</p>
+          <div style="display:flex; align-items:center; justify-content:space-between; border-radius:14px; padding:18px 18px; transition:all .12s; {{ timeFieldStyle }}">
+            <span style="font-size:22px; font-weight:700; letter-spacing:-0.01em;">{{ timeFieldText }}</span>
+            <span style="font-size:18px;">🕓</span>
+          </div>
+          <button onClick="{{ toggleTimeUnknown }}" style="width:100%; display:flex; align-items:center; gap:10px; margin-top:14px; font-family:inherit; font-size:14px; font-weight:600; border-radius:12px; padding:14px 16px; cursor:pointer; transition:all .12s; {{ unknownChip }}">
+            <span style="font-size:15px;">{{ unknownMark }}</span> 태어난 시간을 몰라요
+          </button>
+        </div>
+        </sc-if>
+
+        <!-- STEP 4 · review -->
+        <sc-if value="{{ s4 }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h1 style="font-size:25px; font-weight:700; letter-spacing:-0.02em; line-height:1.3; margin:0 0 8px;">입력 내용을<br>확인해주세요</h1>
+          <p style="font-size:14px; color:#64748B; margin:0 0 24px;">맞다면 분석을 시작할게요.</p>
+          <div style="border:1px solid #E2E8F0; border-radius:16px; overflow:hidden;">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 18px; border-bottom:1px solid #F1F5F9;"><span style="font-size:13px; color:#94A3B8;">이름</span><span style="font-size:15px; font-weight:600;">{{ name }}</span></div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 18px; border-bottom:1px solid #F1F5F9;"><span style="font-size:13px; color:#94A3B8;">성별</span><span style="font-size:15px; font-weight:600;">{{ genderLabel }}</span></div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 18px; border-bottom:1px solid #F1F5F9;"><span style="font-size:13px; color:#94A3B8;">생년월일</span><span style="font-size:15px; font-weight:600;">{{ dateLabel }}</span></div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 18px;"><span style="font-size:13px; color:#94A3B8;">태어난 시간</span><span style="font-size:15px; font-weight:600;">{{ timeLabel }}</span></div>
+          </div>
+
+          <button onClick="{{ toggleTrueSolar }}" style="width:100%; text-align:left; display:flex; align-items:center; justify-content:space-between; border:1px solid #E2E8F0; background:#F8FAFC; border-radius:14px; padding:14px 16px; margin-top:14px; cursor:pointer; font-family:inherit;">
+            <span>
+              <span style="display:block; font-size:14px; font-weight:600; color:#334155;">진태양시 보정</span>
+              <span style="display:block; font-size:12px; color:#94A3B8; margin-top:1px;">출생지 경도 기준 시간 보정</span>
+            </span>
+            <span style="width:46px; height:26px; border-radius:999px; position:relative; flex:none; transition:background .15s; {{ tsTrack }}">
+              <span style="position:absolute; top:2px; width:22px; height:22px; border-radius:999px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25); transition:left .15s; {{ tsKnob }}"></span>
+            </span>
+          </button>
+        </div>
+        </sc-if>
+
+      </div>
+
+      <!-- CTA -->
+      <div style="padding:12px 24px 30px; background:linear-gradient(180deg,rgba(255,255,255,0),#fff 32%);">
+        <button onClick="{{ next }}" style="width:100%; font-family:inherit; font-size:16px; font-weight:600; border:none; padding:16px 0; border-radius:14px; cursor:pointer; transition:all .15s; {{ ctaStyle }}">{{ ctaLabel }}</button>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============ ANALYZING SCREEN ============ -->
+    <sc-if value="{{ isAnalyzing }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 40px;">
+      <div style="width:54px; height:54px; border-radius:999px; border:3px solid #E2E8F0; border-top-color:#2563EB; animation:saju-spin .8s linear infinite;"></div>
+      <div style="font-size:18px; font-weight:700; margin-top:26px; letter-spacing:-0.01em;">사주를 계산하고 있어요</div>
+      <div style="font-size:14px; color:#64748B; margin-top:6px;">만세력 환산 · 오행 분석 중</div>
+      <div style="margin-top:30px; display:flex; flex-direction:column; gap:10px; width:100%; max-width:240px;">
+        <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:#334155;"><span style="color:#16A34A;">✓</span> 천간·지지 변환</div>
+        <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:#334155;"><span style="color:#16A34A;">✓</span> 오행 분포 집계</div>
+        <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:#94A3B8; animation:saju-pulse 1.2s ease-in-out infinite;"><span style="color:#2563EB;">●</span> 십성·용신 분석</div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============ REPORT SCREEN ============ -->
+    <sc-if value="{{ isReport }}" hint-placeholder-val="{{ false }}">
+    <div class="saju-scroll" style="position:absolute; inset:0; overflow-y:auto; padding:50px 0 40px; background:#F8FAFC;">
+
+      <!-- top bar -->
+      <div style="position:sticky; top:0; z-index:10; background:rgba(248,250,252,.9); backdrop-filter:blur(8px); padding:12px 18px; display:flex; align-items:center; justify-content:space-between;">
+        <button onClick="{{ goInput }}" style="border:none; background:transparent; cursor:pointer; font-size:20px; color:#334155; width:36px; height:36px; border-radius:10px;">‹</button>
+        <span style="font-size:15px; font-weight:600;">분석 리포트</span>
+        <span style="font-size:16px; color:#94A3B8; width:36px; text-align:center;">↗</span>
+      </div>
+
+      <div style="padding:6px 18px 0;">
+        <!-- profile card -->
+        <div style="background:#fff; border:1px solid #E2E8F0; border-radius:16px; padding:20px; box-shadow:0 1px 3px rgba(15,23,42,.05);">
+          <div style="font-size:21px; font-weight:700; letter-spacing:-0.01em;">홍길동 · 갑자일주</div>
+          <div style="font-size:12px; color:#94A3B8; margin-top:3px; font-family:ui-monospace,monospace;">양력 1990.02.20 04:30 · 남 · 진태양시 보정</div>
+          <div style="display:flex; gap:7px; margin-top:14px; flex-wrap:wrap;">
+            <span style="font-size:12px; font-weight:600; color:#1F7A52; background:#E7F5EE; padding:5px 11px; border-radius:999px;">일간 갑목(甲)</span>
+            <span style="font-size:12px; font-weight:600; color:#2563EB; background:#EFF6FF; padding:5px 11px; border-radius:999px;">신강 62%</span>
+          </div>
+        </div>
+
+        <!-- four pillars -->
+        <div style="background:#fff; border:1px solid #E2E8F0; border-radius:16px; padding:20px 16px; margin-top:14px; box-shadow:0 1px 3px rgba(15,23,42,.05);">
+          <div style="font-size:14px; font-weight:700; color:#334155; margin:0 4px 14px;">사주 원국 · 四柱</div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
+            <dc-import name="PillarCell" label="시주 時" top-god="식신" stem-char="丙" stem-reading="병" stem-element="fire" bot-char="寅" bot-reading="인" bot-element="wood" bot-god="비견" hint-size="100%,210px"></dc-import>
+            <dc-import name="PillarCell" label="일주 日" top-god="일간 · 我" stem-char="甲" stem-reading="갑" stem-element="wood" bot-char="子" bot-reading="자" bot-element="water" bot-god="정인" day-master="true" hint-size="100%,210px"></dc-import>
+            <dc-import name="PillarCell" label="월주 月" top-god="편재" stem-char="戊" stem-reading="무" stem-element="earth" bot-char="寅" bot-reading="인" bot-element="wood" bot-god="비견" hint-size="100%,210px"></dc-import>
+            <dc-import name="PillarCell" label="년주 年" top-god="편관" stem-char="庚" stem-reading="경" stem-element="metal" bot-char="午" bot-reading="오" bot-element="fire" bot-god="상관" hint-size="100%,210px"></dc-import>
+          </div>
+        </div>
+
+        <!-- element distribution -->
+        <div style="background:#fff; border:1px solid #E2E8F0; border-radius:16px; padding:20px; margin-top:14px; box-shadow:0 1px 3px rgba(15,23,42,.05);">
+          <div style="font-size:14px; font-weight:700; color:#334155; margin-bottom:16px;">오행 분포 · 8자 기준</div>
+          <div style="display:flex; flex-direction:column; gap:13px;">
+            <dc-import name="ElementBar" label="목 木" element="wood" value="3" max="3" hint-size="100%,20px"></dc-import>
+            <dc-import name="ElementBar" label="화 火" element="fire" value="2" max="3" hint-size="100%,20px"></dc-import>
+            <dc-import name="ElementBar" label="토 土" element="earth" value="1" max="3" hint-size="100%,20px"></dc-import>
+            <dc-import name="ElementBar" label="금 金" element="metal" value="1" max="3" hint-size="100%,20px"></dc-import>
+            <dc-import name="ElementBar" label="수 水" element="water" value="1" max="3" hint-size="100%,20px"></dc-import>
+          </div>
+        </div>
+
+        <!-- score + strength -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px;">
+          <div style="background:#fff; border:1px solid #E2E8F0; border-radius:16px; padding:18px; box-shadow:0 1px 3px rgba(15,23,42,.05);">
+            <div style="font-size:13px; font-weight:700; color:#334155;">균형 점수</div>
+            <div style="display:flex; align-items:baseline; gap:3px; margin-top:6px;"><span style="font-size:32px; font-weight:700; letter-spacing:-0.02em; color:#2563EB;">78</span><span style="font-size:14px; color:#94A3B8; font-weight:600;">/100</span></div>
+            <div style="font-size:12px; color:#64748B; margin-top:2px;">목 강세 · 화/금 보완</div>
+          </div>
+          <div style="background:#fff; border:1px solid #E2E8F0; border-radius:16px; padding:18px; box-shadow:0 1px 3px rgba(15,23,42,.05);">
+            <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; font-weight:700; color:#334155;">일간 강약</span><span style="font-size:11px; font-weight:600; color:#1F7A52;">신강</span></div>
+            <div style="height:8px; background:#F1F5F9; border-radius:999px; overflow:hidden; margin-top:14px;"><div style="width:62%; height:100%; background:linear-gradient(90deg,#94A3B8,#2E9E6B); border-radius:999px;"></div></div>
+            <div style="display:flex; justify-content:space-between; margin-top:6px;"><span style="font-size:10px; color:#CBD5E1;">신약</span><span style="font-size:10px; color:#CBD5E1;">신강</span></div>
+          </div>
+        </div>
+
+        <!-- analysis tabs -->
+        <div style="background:#fff; border:1px solid #E2E8F0; border-radius:16px; padding:18px; margin-top:14px; box-shadow:0 1px 3px rgba(15,23,42,.05);">
+          <div style="display:flex; gap:2px; background:#F1F5F9; border-radius:11px; padding:3px; margin-bottom:16px; overflow-x:auto;" class="saju-scroll">
+            <button onClick="{{ onTab0 }}" style="flex:1; white-space:nowrap; font-family:inherit; font-size:12px; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; transition:all .12s; {{ tabStyle0 }}">원국</button>
+            <button onClick="{{ onTab1 }}" style="flex:1; white-space:nowrap; font-family:inherit; font-size:12px; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; transition:all .12s; {{ tabStyle1 }}">오행</button>
+            <button onClick="{{ onTab2 }}" style="flex:1; white-space:nowrap; font-family:inherit; font-size:12px; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; transition:all .12s; {{ tabStyle2 }}">십성</button>
+            <button onClick="{{ onTab3 }}" style="flex:1; white-space:nowrap; font-family:inherit; font-size:12px; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; transition:all .12s; {{ tabStyle3 }}">대운</button>
+          </div>
+          <div style="font-size:15px; font-weight:600; color:#0F172A; margin-bottom:6px;">{{ tabTitle }}</div>
+          <p style="font-size:14px; line-height:1.65; color:#475569; margin:0; text-wrap:pretty;">{{ tabDesc }}</p>
+        </div>
+
+        <p style="font-size:11px; color:#CBD5E1; margin:16px 4px 0; text-align:center; line-height:1.5;">만세력 기준 계산 · 명리학 통계 모델 기반 해석</p>
+      </div>
+    </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 422, &quot;height&quot;: 908 }
+}">
+class Component extends DCLogic {
+  state = { screen: 'input', step: 0, tab: 0, name: '홍길동', gender: 'male', cal: 'solar', timeKnown: true, trueSolar: true };
+
+  startAnalyze = () => {
+    this.setState({ screen: 'analyzing' });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ screen: 'report' }), 1700);
+  };
+  next = () => {
+    const { step, name } = this.state;
+    if (step === 0 && !name.trim()) return;
+    if (step >= 4) this.startAnalyze();
+    else this.setState({ step: step + 1 });
+  };
+  goBack = () => {
+    if (this.state.step > 0) this.setState(p => ({ step: p.step - 1 }));
+  };
+  componentWillUnmount() { clearTimeout(this._t); }
+
+  renderVals() {
+    const s = this.state;
+    const seg = (on) => on
+      ? 'background:#ffffff;color:#0F172A;font-weight:600;box-shadow:0 1px 2px rgba(15,23,42,.08);'
+      : 'background:transparent;color:#64748B;font-weight:500;';
+    const panels = [
+      { title: '갑목(甲) 일간, 인월(寅月) 생', desc: '봄의 길목에서 태어난 갑목 일간으로, 월지와 시지에 인목(寅)이 거듭 자리해 비견의 뿌리가 단단합니다. 자수(子)가 일지에서 정인으로 일간을 생조해 전반적으로 신강한 구조입니다.' },
+      { title: '목 3 · 화 2 · 토 1 · 금 1 · 수 1', desc: '목 기운이 8자 중 3개로 가장 강하고 화가 이를 설기합니다. 토·금·수는 각 1개로 균형 점수 78점. 강한 목을 다스릴 금(金)과 흐름을 잡아줄 화(火)가 용신·희신으로 작용합니다.' },
+      { title: '비견·식신 중심, 편재·편관 보조', desc: '비견이 두 개로 자기 주관과 추진력이 뚜렷하고, 식신이 이를 생산적으로 표현합니다. 년주의 편관(庚)과 월주의 편재(戊)가 외부 책임과 현실 감각을 더합니다.' },
+      { title: '현재 대운 丙戌 (32–41세)', desc: '병화(丙) 식신 대운으로 표현력과 활동성이 커지는 시기입니다. 술토(戌)가 재성의 기반을 보강해 실행 결과가 자산으로 연결되기 쉬운 흐름으로 분석됩니다.' }
+    ];
+    const card = (on) => on
+      ? 'border:1.5px solid #2563EB; background:#EFF6FF; color:#2563EB;'
+      : 'border:1.5px solid #E2E8F0; background:#fff; color:#0F172A;';
+    const canNext = !(s.step === 0 && !s.name.trim());
+    const timeStr = s.timeKnown ? '04:30' : '시간 모름';
+    return {
+      isInput: s.screen === 'input',
+      isAnalyzing: s.screen === 'analyzing',
+      isReport: s.screen === 'report',
+      startAnalyze: this.startAnalyze,
+      goInput: () => this.setState({ screen: 'input', step: 0 }),
+      // funnel
+      next: this.next,
+      goBack: this.goBack,
+      s0: s.step === 0, s1: s.step === 1, s2: s.step === 2, s3: s.step === 3, s4: s.step === 4,
+      progressPct: ((s.step + 1) / 5 * 100) + '%',
+      stepLabel: (s.step + 1) + '/5',
+      backVis: s.step > 0 ? 'visibility:visible;' : 'visibility:hidden;',
+      ctaLabel: s.step >= 4 ? '사주 분석 시작' : '다음',
+      ctaStyle: canNext
+        ? 'color:#fff; background:#2563EB; box-shadow:0 6px 16px rgba(37,99,235,.28);'
+        : 'color:#94A3B8; background:#F1F5F9; box-shadow:none; cursor:default;',
+      name: s.name,
+      onName: (e) => this.setState({ name: e.target.value }),
+      setMale: () => this.setState({ gender: 'male' }),
+      setFemale: () => this.setState({ gender: 'female' }),
+      setSolar: () => this.setState({ cal: 'solar' }),
+      setLunar: () => this.setState({ cal: 'lunar' }),
+      toggleTimeUnknown: () => this.setState(p => ({ timeKnown: !p.timeKnown })),
+      toggleTrueSolar: () => this.setState(p => ({ trueSolar: !p.trueSolar })),
+      maleCard: card(s.gender === 'male'),
+      femaleCard: card(s.gender === 'female'),
+      solarStyle: seg(s.cal === 'solar'),
+      lunarStyle: seg(s.cal === 'lunar'),
+      timeFieldStyle: s.timeKnown
+        ? 'border:1px solid #CBD5E1; color:#0F172A;'
+        : 'border:1px solid #E2E8F0; background:#F8FAFC; color:#CBD5E1;',
+      timeFieldText: timeStr,
+      unknownChip: s.timeKnown
+        ? 'border:1px solid #E2E8F0; background:#fff; color:#64748B;'
+        : 'border:1.5px solid #2563EB; background:#EFF6FF; color:#2563EB;',
+      unknownMark: s.timeKnown ? '○' : '●',
+      genderLabel: s.gender === 'male' ? '남성' : '여성',
+      dateLabel: (s.cal === 'solar' ? '양력 ' : '음력 ') + '1990. 02. 20.',
+      timeLabel: timeStr,
+      tsTrack: s.trueSolar ? 'background:#2563EB;' : 'background:#CBD5E1;',
+      tsKnob: s.trueSolar ? 'left:22px;' : 'left:2px;',
+      onTab0: () => this.setState({ tab: 0 }),
+      onTab1: () => this.setState({ tab: 1 }),
+      onTab2: () => this.setState({ tab: 2 }),
+      onTab3: () => this.setState({ tab: 3 }),
+      tabStyle0: seg(s.tab === 0),
+      tabStyle1: seg(s.tab === 1),
+      tabStyle2: seg(s.tab === 2),
+      tabStyle3: seg(s.tab === 3),
+      tabTitle: panels[s.tab].title,
+      tabDesc: panels[s.tab].desc
+    };
+  }
+}
+</script>
+</body>
+</html>
