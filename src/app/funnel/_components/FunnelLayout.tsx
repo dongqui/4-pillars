@@ -6,9 +6,11 @@ interface Props {
   total: number;
   footer: React.ReactNode;
   children: React.ReactNode;
+  onBack: () => void;
+  showBack: boolean;
 }
 
-export function FunnelLayout({ index, total, footer, children }: Props) {
+export function FunnelLayout({ index, total, footer, children, onBack, showBack }: Props) {
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* 데스크톱 좌측 레일 */}
@@ -39,10 +41,24 @@ export function FunnelLayout({ index, total, footer, children }: Props) {
       {/* 우측/모바일 본문 */}
       <main className="flex-1 min-w-0 flex flex-col">
         <div className="px-6 md:px-14 pt-8">
-          <FunnelProgress index={index} total={total} />
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="이전"
+              className={`md:hidden border-0 bg-transparent cursor-pointer text-[26px] leading-none text-slate-700 w-[30px] h-[30px] flex items-center justify-center p-0 ${
+                showBack ? "visible" : "invisible"
+              }`}
+            >
+              ‹
+            </button>
+            <div className="flex-1">
+              <FunnelProgress index={index} total={total} />
+            </div>
+          </div>
         </div>
         <div className="saju-scroll flex-1 overflow-y-auto flex items-center justify-center px-6 md:px-14 py-6">
-          <div key={index} className="w-full max-w-[440px]">
+          <div key={index} className="saju-fade w-full max-w-[440px]">
             {children}
           </div>
         </div>

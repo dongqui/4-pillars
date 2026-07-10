@@ -66,6 +66,8 @@ function FunnelInner() {
     <FunnelLayout
       index={index}
       total={total}
+      onBack={goBack}
+      showBack={index > 0}
       footer={
         <FunnelFooter
           canNext={canNext}

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function ReportPage() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
@@ -6,12 +8,12 @@ export default function ReportPage() {
       </div>
       <h1 className="text-2xl font-bold tracking-tight mt-2">분석이 완료되었어요</h1>
       <p className="text-slate-500">리포트 화면은 준비 중입니다.</p>
-      <a
+      <Link
         href="/"
         className="mt-4 text-[15px] font-semibold text-accent hover:opacity-80"
       >
         처음으로 →
-      </a>
+      </Link>
     </main>
   );
 }
