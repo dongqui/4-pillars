@@ -82,7 +82,11 @@ interface FunnelData {
 - `time`: `timeKnown === false`면 시간 입력 스킵 가능.
 - review에서 제출 → 분석중 화면.
 
-## 5. 컴포넌트 구조 (재활용 분리)
+## 5. 컴포넌트 구조 (재활용 분리 + co-location)
+
+**분리 원칙**
+- **도메인 비의존 프리미티브**는 `src/components/ui/`에 분리해 재활용한다.
+- **랜딩·퍼널 전용 컴포넌트와 로직**은 App Router의 **co-location** 방식으로 각 라우트 폴더 아래(`_` 접두 private 폴더)에 둔다. 라우트에 종속된 관심사를 해당 페이지 옆에 모은다.
 
 ```
 src/
@@ -97,19 +101,11 @@ src/
       WheelPicker.tsx         # 범용 휠(스피너) 컬럼
       DateWheelPicker.tsx     # 년/월/일 휠 (WheelPicker 조합)
       TimeWheelPicker.tsx     # 시/분 휠 (WheelPicker 조합)
-    funnel/
-      FunnelLayout.tsx        # 반응형: 데스크톱 좌측 스텝퍼 레일 / 모바일 풀스크린
-      Stepper.tsx             # 데스크톱 좌측 스텝 표시
-      FunnelProgress.tsx      # 상단 진행 바 + n/5
-      FunnelFooter.tsx        # 이전 / 다음(CTA)
-      AnalyzingScreen.tsx     # 분석중 스피너 (placeholder 흐름)
-      steps/
-        NameStep.tsx
-        GenderStep.tsx
-        BirthDateStep.tsx
-        BirthTimeStep.tsx
-        ReviewStep.tsx
-    landing/
+  app/
+    layout.tsx
+    globals.css
+    page.tsx                  # 랜딩
+    _components/              # 랜딩 전용 (co-location)
       LandingNav.tsx
       Hero.tsx                # 히어로 + 리포트 미리보기 카드
       ReportPreviewCard.tsx
@@ -117,18 +113,30 @@ src/
       SampleReport.tsx
       TrustSection.tsx / TrustBadge.tsx
       FooterCta.tsx
-  context/
-    FunnelContext.tsx
-  hooks/
-    useFunnelNav.ts
-  lib/
     funnel/
-      steps.ts                # 스텝 순서/검증 (순수)
-      date.ts                 # 휠 옵션 생성, 날짜/시간 모델 헬퍼 (순수)
-  app/
-    page.tsx                  # 랜딩
-    funnel/page.tsx           # 퍼널 컨테이너 (FunnelProvider + 가드 + 스텝 스위치)
+      page.tsx                # 퍼널 컨테이너 (FunnelProvider + 가드 + 스텝 스위치)
+      _components/
+        FunnelLayout.tsx      # 반응형: 데스크톱 좌측 스텝퍼 레일 / 모바일 풀스크린
+        Stepper.tsx           # 데스크톱 좌측 스텝 표시
+        FunnelProgress.tsx    # 상단 진행 바 + n/5
+        FunnelFooter.tsx      # 이전 / 다음(CTA)
+        AnalyzingScreen.tsx   # 분석중 스피너 (placeholder 흐름)
+        steps/
+          NameStep.tsx
+          GenderStep.tsx
+          BirthDateStep.tsx
+          BirthTimeStep.tsx
+          ReviewStep.tsx
+      _context/
+        FunnelContext.tsx     # 입력값 + updater (Context API)
+      _hooks/
+        useFunnelNav.ts       # ?step 기반 스텝 네비게이션
+      _lib/
+        steps.ts              # 스텝 순서/검증 (순수)
+        date.ts               # 휠 옵션 생성, 날짜/시간 모델 헬퍼 (순수)
 ```
+
+> `_` 접두 폴더는 라우팅에서 제외되는 private 폴더다(Next 관용). 실제 폴더/파일 규칙은 구현 시 `node_modules/next/dist/docs/`로 재확인한다.
 
 ### 5.1 반응형 레이아웃 (`FunnelLayout`)
 
@@ -164,8 +172,8 @@ src/
 ## 9. 테스트
 
 - **Vitest** (기설치)로 비시각 로직을 테스트:
-  - `lib/funnel/steps.ts`: 스텝 순서, next/back 전이, 검증 로직
-  - `lib/funnel/date.ts`: 휠 옵션 생성(윤년/월별 일수), 값 clamp
+  - `app/funnel/_lib/steps.ts`: 스텝 순서, next/back 전이, 검증 로직
+  - `app/funnel/_lib/date.ts`: 휠 옵션 생성(윤년/월별 일수), 값 clamp
 - 픽셀 일치는 `npm run dev` 시각 확인으로 검증.
 - 컴포넌트 렌더 테스트가 필요하면 `@testing-library/react` 추가를 별도 제안(현재 미설치).
 
