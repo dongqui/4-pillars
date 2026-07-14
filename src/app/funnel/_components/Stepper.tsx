@@ -1,22 +1,23 @@
-import { STEPS } from "../_lib/steps";
+import { ALL_STEPS, type StepKey } from "../_lib/steps";
 
 interface Props {
   index: number;
 }
 
-const meta: Record<(typeof STEPS)[number], { label: string; sub: string }> = {
+const meta: Record<StepKey, { label: string; sub: string }> = {
   name: { label: "이름", sub: "리포트 표시 이름" },
   gender: { label: "성별", sub: "양·음 기운 해석" },
   birth: { label: "생년월일", sub: "만세력 환산" },
   time: { label: "태어난 시간", sub: "시주 계산" },
+  birthplace: { label: "출생지", sub: "지역 기반 조정" },
   review: { label: "확인", sub: "입력 내용 검토" },
 };
 
 export function Stepper({ index }: Props) {
-  const last = STEPS.length - 1;
+  const last = ALL_STEPS.length - 1;
   return (
     <nav className="mt-11 flex flex-col">
-      {STEPS.map((key, i) => {
+      {ALL_STEPS.map((key: StepKey, i: number) => {
         const active = i === index;
         const done = i < index;
         const m = meta[key];
