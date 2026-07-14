@@ -25,7 +25,7 @@ function earliestAllowedStep(data: FunnelData): StepKey {
 function FunnelInner() {
   const router = useRouter();
   const { data } = useFunnel();
-  const { step, index, total, goNext, goBack } = useFunnelNav();
+  const { step, steps, index, total, goNext, goBack } = useFunnelNav();
   const [analyzing, setAnalyzing] = useState(false);
 
   // 가드: 현재 스텝이 활성 목록에 없거나 허용 스텝보다 앞서면(수동 URL 이동 등) 되돌린다
@@ -86,6 +86,7 @@ function FunnelInner() {
   return (
     <FunnelLayout
       index={index}
+      steps={steps}
       total={total}
       onBack={goBack}
       showBack={index > 0}

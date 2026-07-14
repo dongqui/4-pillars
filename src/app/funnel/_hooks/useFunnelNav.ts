@@ -39,6 +39,7 @@ export function useFunnelNav() {
 
   return {
     step,
+    steps,
     index: stepIndex(steps, step),
     total: steps.length,
     goTo,

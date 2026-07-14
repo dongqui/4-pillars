@@ -1,7 +1,8 @@
-import { ALL_STEPS, type StepKey } from "../_lib/steps";
+import { type StepKey } from "../_lib/steps";
 
 interface Props {
   index: number;
+  steps: StepKey[];
 }
 
 const meta: Record<StepKey, { label: string; sub: string }> = {
@@ -13,11 +14,11 @@ const meta: Record<StepKey, { label: string; sub: string }> = {
   review: { label: "확인", sub: "입력 내용 검토" },
 };
 
-export function Stepper({ index }: Props) {
-  const last = ALL_STEPS.length - 1;
+export function Stepper({ index, steps }: Props) {
+  const last = steps.length - 1;
   return (
     <nav className="mt-11 flex flex-col">
-      {ALL_STEPS.map((key: StepKey, i: number) => {
+      {steps.map((key: StepKey, i: number) => {
         const active = i === index;
         const done = i < index;
         const m = meta[key];
