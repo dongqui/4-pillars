@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FunnelProvider, useFunnel, type FunnelData } from "./_context/FunnelContext";
 import { useFunnelNav } from "./_hooks/useFunnelNav";
-import { stepIndex, type StepKey } from "./_lib/steps";
+import { activeSteps, stepIndex, type StepKey } from "./_lib/steps";
 import { FunnelLayout } from "./_components/FunnelLayout";
 import { FunnelFooter } from "./_components/FunnelFooter";
 import { AnalyzingScreen } from "./_components/AnalyzingScreen";
@@ -12,6 +12,7 @@ import { NameStep } from "./_components/steps/NameStep";
 import { GenderStep } from "./_components/steps/GenderStep";
 import { BirthDateStep } from "./_components/steps/BirthDateStep";
 import { BirthTimeStep } from "./_components/steps/BirthTimeStep";
+import { BirthPlaceStep } from "./_components/steps/BirthPlaceStep";
 import { ReviewStep } from "./_components/steps/ReviewStep";
 
 function earliestAllowedStep(data: FunnelData): StepKey {
@@ -24,13 +25,15 @@ function earliestAllowedStep(data: FunnelData): StepKey {
 function FunnelInner() {
   const router = useRouter();
   const { data } = useFunnel();
-  const { step, index, total, goNext, goBack } = useFunnelNav();
+  const { step, steps, index, total, goNext, goBack } = useFunnelNav();
   const [analyzing, setAnalyzing] = useState(false);
 
-  // 가드: 현재 스텝이 데이터상 허용된 스텝보다 앞서 있으면(수동 URL 이동 등) 되돌린다
+  // 가드: 현재 스텝이 활성 목록에 없거나 허용 스텝보다 앞서면(수동 URL 이동 등) 되돌린다
   useEffect(() => {
+    const steps = activeSteps(data.timeKnown);
     const allowed = earliestAllowedStep(data);
-    if (stepIndex(step) > stepIndex(allowed)) {
+    const stepIdx = stepIndex(steps, step);
+    if (stepIdx === -1 || stepIdx > stepIndex(steps, allowed)) {
       router.replace(`/funnel?step=${allowed}`);
     }
   }, [step, data, router]);
@@ -76,12 +79,14 @@ function FunnelInner() {
     gender: <GenderStep />,
     birth: <BirthDateStep />,
     time: <BirthTimeStep />,
+    birthplace: <BirthPlaceStep />,
     review: <ReviewStep />,
   }[step];
 
   return (
     <FunnelLayout
       index={index}
+      steps={steps}
       total={total}
       onBack={goBack}
       showBack={index > 0}

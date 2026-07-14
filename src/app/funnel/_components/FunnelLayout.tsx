@@ -1,8 +1,10 @@
 import { Stepper } from "./Stepper";
 import { FunnelProgress } from "./FunnelProgress";
+import { type StepKey } from "../_lib/steps";
 
 interface Props {
   index: number;
+  steps: StepKey[];
   total: number;
   footer: React.ReactNode;
   children: React.ReactNode;
@@ -10,7 +12,7 @@ interface Props {
   showBack: boolean;
 }
 
-export function FunnelLayout({ index, total, footer, children, onBack, showBack }: Props) {
+export function FunnelLayout({ index, steps, total, footer, children, onBack, showBack }: Props) {
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* 데스크톱 좌측 레일 */}
@@ -32,7 +34,7 @@ export function FunnelLayout({ index, total, footer, children, onBack, showBack 
             정확한 출생 정보일수록 더 깊이 있는 리포트를 받아보실 수 있어요.
           </p>
         </div>
-        <Stepper index={index} />
+        <Stepper index={index} steps={steps} />
         <div className="mt-auto pt-8 flex items-center gap-2 text-[12.5px] text-slate-400">
           🔒 입력 정보는 안전하게 보관돼요
         </div>

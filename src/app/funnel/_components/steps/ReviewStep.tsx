@@ -3,6 +3,8 @@
 import { Toggle } from "@/components/Toggle";
 import { useFunnel } from "../../_context/FunnelContext";
 import { formatDate, formatTime } from "../../_lib/date";
+import { getLocale } from "../../_lib/locale";
+import { findRegion } from "../../_lib/regions";
 
 export function ReviewStep() {
   const { data, update } = useFunnel();
@@ -21,6 +23,16 @@ export function ReviewStep() {
       v: data.timeKnown ? (data.time ? formatTime(data.time) : "-") : "시간 모름",
     },
   ];
+
+  if (data.timeKnown) {
+    const bp = data.birthPlace;
+    let placeLabel = "출생지 모름";
+    if (bp) {
+      const r = findRegion(bp.country, bp.regionId);
+      if (r) placeLabel = getLocale() === "ja" ? r.ja : r.ko;
+    }
+    rows.push({ k: "출생지", v: placeLabel });
+  }
 
   return (
     <div>

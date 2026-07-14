@@ -1,29 +1,49 @@
 import { describe, it, expect } from "vitest";
-import { STEPS, stepIndex, nextStep, prevStep, isValidStep } from "./steps";
+import { activeSteps, stepIndex, nextStep, prevStep, isValidStep } from "./steps";
 
 describe("steps", () => {
-  it("정의된 순서를 가진다", () => {
-    expect(STEPS).toEqual(["name", "gender", "birth", "time", "review"]);
+  it("activeSteps는 timeKnown이면 birthplace를 포함한다", () => {
+    expect(activeSteps(true)).toEqual([
+      "name",
+      "gender",
+      "birth",
+      "time",
+      "birthplace",
+      "review",
+    ]);
   });
 
-  it("stepIndex는 0-based 인덱스를 반환한다", () => {
-    expect(stepIndex("name")).toBe(0);
-    expect(stepIndex("review")).toBe(4);
+  it("activeSteps는 timeKnown이 아니면 birthplace를 제외한다", () => {
+    expect(activeSteps(false)).toEqual(["name", "gender", "birth", "time", "review"]);
   });
 
-  it("nextStep은 다음 스텝, 마지막은 null", () => {
-    expect(nextStep("name")).toBe("gender");
-    expect(nextStep("time")).toBe("review");
-    expect(nextStep("review")).toBeNull();
+  it("stepIndex는 주어진 목록 기준 인덱스를 반환한다", () => {
+    const s = activeSteps(true);
+    expect(stepIndex(s, "name")).toBe(0);
+    expect(stepIndex(s, "birthplace")).toBe(4);
+    expect(stepIndex(s, "review")).toBe(5);
   });
 
-  it("prevStep은 이전 스텝, 처음은 null", () => {
-    expect(prevStep("gender")).toBe("name");
-    expect(prevStep("name")).toBeNull();
+  it("nextStep은 timeKnown이면 time 다음이 birthplace", () => {
+    const s = activeSteps(true);
+    expect(nextStep(s, "time")).toBe("birthplace");
+    expect(nextStep(s, "birthplace")).toBe("review");
+    expect(nextStep(s, "review")).toBeNull();
+  });
+
+  it("nextStep은 timeKnown이 아니면 time 다음이 review", () => {
+    const s = activeSteps(false);
+    expect(nextStep(s, "time")).toBe("review");
+  });
+
+  it("prevStep은 birthplace 이전이 time, 처음은 null", () => {
+    const s = activeSteps(true);
+    expect(prevStep(s, "birthplace")).toBe("time");
+    expect(prevStep(s, "name")).toBeNull();
   });
 
   it("isValidStep은 유효 키만 통과", () => {
-    expect(isValidStep("birth")).toBe(true);
+    expect(isValidStep("birthplace")).toBe(true);
     expect(isValidStep("nope")).toBe(false);
     expect(isValidStep(null)).toBe(false);
   });

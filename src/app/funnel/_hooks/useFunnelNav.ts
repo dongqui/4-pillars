@@ -3,17 +3,21 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import {
-  STEPS,
   type StepKey,
+  activeSteps,
   isValidStep,
   nextStep,
   prevStep,
   stepIndex,
 } from "../_lib/steps";
+import { useFunnel } from "../_context/FunnelContext";
 
 export function useFunnelNav() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data } = useFunnel();
+  const steps = activeSteps(data.timeKnown);
+
   const rawStep = searchParams.get("step");
   const step: StepKey = isValidStep(rawStep) ? rawStep : "name";
 
@@ -25,18 +29,19 @@ export function useFunnelNav() {
   );
 
   const goNext = useCallback(() => {
-    const n = nextStep(step);
+    const n = nextStep(steps, step);
     if (n) router.push(`/funnel?step=${n}`);
-  }, [router, step]);
+  }, [router, steps, step]);
 
   const goBack = useCallback(() => {
-    if (prevStep(step)) router.back();
-  }, [router, step]);
+    if (prevStep(steps, step)) router.back();
+  }, [router, steps, step]);
 
   return {
     step,
-    index: stepIndex(step),
-    total: STEPS.length,
+    steps,
+    index: stepIndex(steps, step),
+    total: steps.length,
     goTo,
     goNext,
     goBack,
