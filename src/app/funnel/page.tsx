@@ -12,6 +12,7 @@ import { NameStep } from "./_components/steps/NameStep";
 import { GenderStep } from "./_components/steps/GenderStep";
 import { BirthDateStep } from "./_components/steps/BirthDateStep";
 import { BirthTimeStep } from "./_components/steps/BirthTimeStep";
+import { BirthPlaceStep } from "./_components/steps/BirthPlaceStep";
 import { ReviewStep } from "./_components/steps/ReviewStep";
 
 function earliestAllowedStep(data: FunnelData): StepKey {
@@ -76,6 +77,7 @@ function FunnelInner() {
     gender: <GenderStep />,
     birth: <BirthDateStep />,
     time: <BirthTimeStep />,
+    birthplace: <BirthPlaceStep />,
     review: <ReviewStep />,
   }[step];
 
