@@ -1,9 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SegmentedControl } from "@/components/SegmentedControl";
-import { DateWheelPicker } from "@/components/DateWheelPicker";
 import { useFunnel, type Calendar } from "../../_context/FunnelContext";
+
+const CURRENT_YEAR = new Date().getFullYear();
+
+function daysInMonth(y: number, m: number): number {
+  return new Date(y, m, 0).getDate(); // m: 1..12
+}
+
+function clamp(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, n));
+}
+
+const inputCls =
+  "rounded-xl border border-slate-200 bg-white px-3 py-3.5 text-[17px] font-bold text-slate-900 text-center outline-none focus:border-accent placeholder:text-slate-300";
 
 export function BirthDateStep() {
   const { data, update } = useFunnel();
@@ -13,6 +25,24 @@ export function BirthDateStep() {
   }, [data.birth, update]);
 
   const birth = data.birth ?? { y: 1990, m: 1, d: 1 };
+  const [y, setY] = useState(String(birth.y));
+  const [m, setM] = useState(String(birth.m));
+  const [d, setD] = useState(String(birth.d));
+
+  function digitsOnly(raw: string, maxLen: number): string {
+    return raw.replace(/\D/g, "").slice(0, maxLen);
+  }
+
+  // 포커스가 벗어날 때 범위를 보정하고 컨텍스트에 반영
+  function commit() {
+    const yy = clamp(parseInt(y, 10) || 1990, 1930, CURRENT_YEAR);
+    const mm = clamp(parseInt(m, 10) || 1, 1, 12);
+    const dd = clamp(parseInt(d, 10) || 1, 1, daysInMonth(yy, mm));
+    setY(String(yy));
+    setM(String(mm));
+    setD(String(dd));
+    update({ birth: { y: yy, m: mm, d: dd } });
+  }
 
   return (
     <div>
@@ -29,7 +59,39 @@ export function BirthDateStep() {
         onChange={(calendar) => update({ calendar })}
         className="max-w-[240px] mb-6"
       />
-      <DateWheelPicker value={birth} onChange={(v) => update({ birth: v })} />
+      <div className="flex items-center gap-2">
+        <input
+          value={y}
+          onChange={(e) => setY(digitsOnly(e.target.value, 4))}
+          onBlur={commit}
+          inputMode="numeric"
+          placeholder="1990"
+          aria-label="년"
+          autoFocus
+          className={`w-[92px] ${inputCls}`}
+        />
+        <span className="text-slate-400">년</span>
+        <input
+          value={m}
+          onChange={(e) => setM(digitsOnly(e.target.value, 2))}
+          onBlur={commit}
+          inputMode="numeric"
+          placeholder="1"
+          aria-label="월"
+          className={`w-[64px] ${inputCls}`}
+        />
+        <span className="text-slate-400">월</span>
+        <input
+          value={d}
+          onChange={(e) => setD(digitsOnly(e.target.value, 2))}
+          onBlur={commit}
+          inputMode="numeric"
+          placeholder="1"
+          aria-label="일"
+          className={`w-[64px] ${inputCls}`}
+        />
+        <span className="text-slate-400">일</span>
+      </div>
     </div>
   );
 }
