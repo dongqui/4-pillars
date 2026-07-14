@@ -3,7 +3,7 @@
 import { Toggle } from "@/components/Toggle";
 import { useFunnel } from "../../_context/FunnelContext";
 import { formatDate, formatTime } from "../../_lib/date";
-import { getLocale, localeToCountry } from "../../_lib/locale";
+import { getLocale } from "../../_lib/locale";
 import { findRegion } from "../../_lib/regions";
 
 export function ReviewStep() {
