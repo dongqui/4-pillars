@@ -1,10 +1,10 @@
-import { LoginNotice } from "@/components/login/LoginNotice";
-import { LoginShell } from "@/components/login/LoginShell";
+import { LoginNotice } from "./_components/LoginNotice";
+import { LoginShell } from "./_components/LoginShell";
 import {
   SOCIAL_PROVIDERS,
   type SocialProvider,
-} from "@/components/login/providers";
-import { SocialLoginButton } from "@/components/login/SocialLoginButton";
+} from "./_components/providers";
+import { SocialLoginButton } from "./_components/SocialLoginButton";
 
 const DEFAULT_LAST_LOGIN_PROVIDER: SocialProvider = "kakao";
 
