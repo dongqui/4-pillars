@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  ::selection{background:#DBEAFE;}
+  a{color:#2563EB;text-decoration:none;}
+  a:hover{color:#1D4ED8;}
+</style>
+</helmet>
+
+<div style="background:#fff; min-height:100vh; font-family:'Pretendard','Pretendard Variable',-apple-system,system-ui,sans-serif; color:#0F172A; -webkit-font-smoothing:antialiased; line-height:1.5; word-break:keep-all; overflow-wrap:break-word;">
+
+  <!-- top bar -->
+  <header style="position:sticky; top:0; z-index:20; background:rgba(255,255,255,.92); backdrop-filter:blur(8px); border-bottom:1px solid #F1F5F9;">
+    <div style="max-width:720px; margin:0 auto; padding:14px clamp(20px,5vw,24px); display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div style="display:flex; align-items:center; gap:9px;">
+        <div style="width:26px; height:26px; border-radius:8px; background:#0F172A; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:13px;">사</div>
+        <span style="font-weight:700; font-size:15px; letter-spacing:-0.01em;">사주 리포트</span>
+      </div>
+      <button style="font-family:inherit; font-size:13px; font-weight:600; color:#334155; background:#fff; border:1px solid #E2E8F0; padding:8px 14px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:6px;" style-hover="background:#F8FAFC;">공유하기</button>
+    </div>
+  </header>
+
+  <main style="max-width:720px; margin:0 auto; padding:clamp(36px,7vw,64px) clamp(20px,5vw,24px) 96px;">
+
+    <!-- ===== 1 · 한 문장 ===== -->
+    <section style="text-align:center;">
+      <div style="font-size:13px; color:#94A3B8; font-family:'SF Mono',ui-monospace,Menlo,monospace;">홍길동 · 양력 1990.02.20 04:30 · 갑자일주</div>
+      <h1 style="font-size:clamp(26px,5.5vw,36px); font-weight:700; letter-spacing:-0.03em; line-height:1.35; margin:18px auto 0; max-width:560px; text-wrap:balance;">겉으로는 차분하지만, 자신만의 기준과 승부욕이 강한 사람</h1>
+      <p style="font-size:clamp(15px,2.5vw,16px); color:#64748B; margin:16px auto 0; max-width:440px; text-wrap:pretty;">사람들과 잘 어울리지만, 혼자 생각을 정리하는 시간이 꼭 필요한 타입이에요.</p>
+      <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:26px;">
+        <span style="font-size:13px; font-weight:600; color:#334155; background:#F1F5F9; padding:6px 13px; border-radius:999px;">신중한 관찰자</span>
+        <span style="font-size:13px; font-weight:600; color:#334155; background:#F1F5F9; padding:6px 13px; border-radius:999px;">독립적인 판단</span>
+        <span style="font-size:13px; font-weight:600; color:#334155; background:#F1F5F9; padding:6px 13px; border-radius:999px;">강한 책임감</span>
+        <span style="font-size:13px; font-weight:600; color:#334155; background:#F1F5F9; padding:6px 13px; border-radius:999px;">느린 속마음</span>
+        <span style="font-size:13px; font-weight:600; color:#334155; background:#F1F5F9; padding:6px 13px; border-radius:999px;">오래 밀고 나감</span>
+      </div>
+    </section>
+
+    <!-- ===== 2 · 핵심 성향 ===== -->
+    <section style="margin-top:72px;">
+      <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; color:#94A3B8; margin-bottom:8px;">01 · 핵심 성향</div>
+      <h2 style="font-size:clamp(20px,4vw,24px); font-weight:700; letter-spacing:-0.02em; margin:0 0 20px;">이렇게 보이는 데는 이유가 있어요</h2>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="border:1px solid #E2E8F0; border-radius:14px; padding:18px 20px;">
+          <div style="font-size:15px; font-weight:700; margin-bottom:4px;">신중한 관찰자</div>
+          <p style="font-size:14px; color:#475569; line-height:1.65; margin:0; text-wrap:pretty;">일간 갑목이 인월의 단단한 뿌리 위에 서 있어, 상황을 먼저 파악한 뒤 움직이는 힘이 강해요. 말보다 판단이 앞서는 이유예요.</p>
+        </div>
+        <div style="border:1px solid #E2E8F0; border-radius:14px; padding:18px 20px;">
+          <div style="font-size:15px; font-weight:700; margin-bottom:4px;">독립적인 판단</div>
+          <p style="font-size:14px; color:#475569; line-height:1.65; margin:0; text-wrap:pretty;">비견이 두 개로 자기 기준이 뚜렷해요. 남의 의견은 듣지만, 최종 결정은 스스로 내려야 마음이 편한 편이에요.</p>
+        </div>
+        <div style="border:1px solid #E2E8F0; border-radius:14px; padding:18px 20px;">
+          <div style="font-size:15px; font-weight:700; margin-bottom:4px;">한번 정하면 오래 밀고 나감</div>
+          <p style="font-size:14px; color:#475569; line-height:1.65; margin:0; text-wrap:pretty;">정인이 일간을 꾸준히 받쳐주는 구조라, 방향이 정해지면 쉽게 흔들리지 않아요. 다만 방향을 정하기까지가 오래 걸리죠.</p>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+
+      <button onClick="{{ toggleDetail }}" style="width:100%; font-family:inherit; text-align:left; display:flex; align-items:center; gap:12px; border:1px dashed #CBD5E1; background:#F8FAFC; border-radius:12px; padding:13px 16px; cursor:pointer;" style-hover="background:#F1F5F9; border-color:#94A3B8;">
+        <span style="flex:1; display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px;">
+          <span style="font-size:13.5px; font-weight:600; color:#475569;">내 사주의 근거 자세히 보기</span>
+          <span style="font-size:12px; color:#94A3B8;">원국 · 오행 · 십성 · 대운</span>
+        </span>
+        <span style="flex: none; width: 22px; height: 22px; border-radius: 999px; color: #94A3B8; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: transform .25s">▾</span>
+      </button>
+
+      <sc-if value="{{ detailOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="border:1px dashed #CBD5E1; border-top:none; border-radius:0 0 12px 12px; margin:-6px 0 0; padding:26px 18px 20px; background:#FCFDFE;">
+
+        <!-- 원국 -->
+        <div style="font-size:13px; font-weight:700; color:#334155; margin-bottom:14px;">사주 원국 · 四柱</div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
+          <div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:#94A3B8; margin-bottom:6px;">시주 時</div>
+            <div style="text-align:center; font-size:11px; color:#64748B; margin-bottom:5px;">식신</div>
+            <div style="background:#FCEAE7; border-radius:10px; padding:12px 0; text-align:center;"><div style="font-size:clamp(24px,5vw,32px); font-weight:700; color:#B23A2E; line-height:1;">丙</div><div style="font-size:11px; color:#B23A2E; margin-top:4px; font-weight:600;">병 · 火</div></div>
+            <div style="background:#E7F5EE; border-radius:10px; padding:12px 0; text-align:center; margin-top:6px;"><div style="font-size:clamp(24px,5vw,32px); font-weight:700; color:#1F7A52; line-height:1;">寅</div><div style="font-size:11px; color:#1F7A52; margin-top:4px; font-weight:600;">인 · 木</div></div>
+            <div style="text-align:center; font-size:11px; color:#64748B; margin-top:5px;">비견</div>
+          </div>
+          <div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:#2563EB; margin-bottom:6px;">일주 日</div>
+            <div style="text-align:center; font-size:11px; color:#2563EB; font-weight:600; margin-bottom:5px;">일간 · 我</div>
+            <div style="background:#E7F5EE; border-radius:10px; padding:12px 0; text-align:center; box-shadow:0 0 0 2px #2563EB;"><div style="font-size:clamp(24px,5vw,32px); font-weight:700; color:#1F7A52; line-height:1;">甲</div><div style="font-size:11px; color:#1F7A52; margin-top:4px; font-weight:600;">갑 · 木</div></div>
+            <div style="background:#E8EEF8; border-radius:10px; padding:12px 0; text-align:center; margin-top:6px;"><div style="font-size:clamp(24px,5vw,32px); font-weight:700; color:#2B5288; line-height:1;">子</div><div style="font-size:11px; color:#2B5288; margin-top:4px; font-weight:600;">자 · 水</div></div>
+            <div style="text-align:center; font-size:11px; color:#64748B; margin-top:5px;">정인</div>
+          </div>
+          <div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:#94A3B8; margin-bottom:6px;">월주 月</div>
+            <div style="text-align:center; font-size:11px; color:#64748B; margin-bottom:5px;">편재</div>
+            <div style="background:#F8EFD9; border-radius:10px; padding:12px 0; text-align:center;"><div style="font-size:clamp(24px,5vw,32px); font-weight:700; color:#9A7320; line-height:1;">戊</div><div style="font-size:11px; color:#9A7320; margin-top:4px; font-weight:600;">무 · 土</div></div>
+            <div style="background:#E7F5EE; border-radius:10px; padding:12px 0; text-align:center; margin-top:6px;"><div style="font-size:clamp(24px,5vw,32px); font-weight:700; color:#1F7A52; line-height:1;">寅</div><div style="font-size:11px; color:#1F7A52; margin-top:4px; font-weight:600;">인 · 木</div></div>
+            <div style="text-align:center; font-size:11px; color:#64748B; margin-top:5px;">비견</div>
+          </div>
+          <div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:#94A3B8; margin-bottom:6px;">년주 年</div>
+            <div style="text-align:center; font-size:11px; color:#64748B; margin-bottom:5px;">편관</div>
+            <div style="background:#EEF1F6; border-radius:10px; padding:12px 0; text-align:center;"><div style="font-size:clamp(24px,5vw,32px); font-weight:700; color:#4F5E73; line-height:1;">庚</div><div style="font-size:11px; color:#4F5E73; margin-top:4px; font-weight:600;">경 · 金</div></div>
+            <div style="background:#FCEAE7; border-radius:10px; padding:12px 0; text-align:center; margin-top:6px;"><div style="font-size:clamp(24px,5vw,32px); font-weight:700; color:#B23A2E; line-height:1;">午</div><div style="font-size:11px; color:#B23A2E; margin-top:4px; font-weight:600;">오 · 火</div></div>
+            <div style="text-align:center; font-size:11px; color:#64748B; margin-top:5px;">상관</div>
+          </div>
+        </div>
+
+        <!-- 오행 + 음양 -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-top:24px;">
+          <div style="border:1px solid #F1F5F9; border-radius:12px; padding:18px 20px;">
+            <div style="font-size:13px; font-weight:700; color:#334155; margin-bottom:14px;">오행 분포</div>
+            <div style="display:flex; flex-direction:column; gap:11px;">
+              <div style="display:flex; align-items:center; gap:10px;"><div style="width:40px; font-size:13px; font-weight:600; color:#1F7A52;">목 木</div><div style="flex:1; height:8px; background:#F1F5F9; border-radius:999px; overflow:hidden;"><div style="width:100%; height:100%; background:#2E9E6B;"></div></div><div style="width:14px; text-align:right; font-size:13px; font-weight:600;">3</div></div>
+              <div style="display:flex; align-items:center; gap:10px;"><div style="width:40px; font-size:13px; font-weight:600; color:#B23A2E;">화 火</div><div style="flex:1; height:8px; background:#F1F5F9; border-radius:999px; overflow:hidden;"><div style="width:66%; height:100%; background:#DC5A4B;"></div></div><div style="width:14px; text-align:right; font-size:13px; font-weight:600;">2</div></div>
+              <div style="display:flex; align-items:center; gap:10px;"><div style="width:40px; font-size:13px; font-weight:600; color:#9A7320;">토 土</div><div style="flex:1; height:8px; background:#F1F5F9; border-radius:999px; overflow:hidden;"><div style="width:33%; height:100%; background:#C99A3F;"></div></div><div style="width:14px; text-align:right; font-size:13px; font-weight:600;">1</div></div>
+              <div style="display:flex; align-items:center; gap:10px;"><div style="width:40px; font-size:13px; font-weight:600; color:#4F5E73;">금 金</div><div style="flex:1; height:8px; background:#F1F5F9; border-radius:999px; overflow:hidden;"><div style="width:33%; height:100%; background:#8492A6;"></div></div><div style="width:14px; text-align:right; font-size:13px; font-weight:600;">1</div></div>
+              <div style="display:flex; align-items:center; gap:10px;"><div style="width:40px; font-size:13px; font-weight:600; color:#2B5288;">수 水</div><div style="flex:1; height:8px; background:#F1F5F9; border-radius:999px; overflow:hidden;"><div style="width:33%; height:100%; background:#3E6FB0;"></div></div><div style="width:14px; text-align:right; font-size:13px; font-weight:600;">1</div></div>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div style="border:1px solid #F1F5F9; border-radius:12px; padding:18px 20px;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="font-size:13px; font-weight:700; color:#334155;">음양 비율</span><span style="font-size:12px; font-weight:600; color:#64748B;">양 5 · 음 3</span></div>
+              <div style="height:8px; border-radius:999px; overflow:hidden; display:flex;"><div style="width:62.5%; background:#F59E0B;"></div><div style="flex:1; background:#334155;"></div></div>
+              <div style="display:flex; justify-content:space-between; margin-top:6px;"><span style="font-size:11px; color:#B45309;">양陽</span><span style="font-size:11px; color:#64748B;">음陰</span></div>
+            </div>
+            <div style="border:1px solid #F1F5F9; border-radius:12px; padding:18px 20px;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="font-size:13px; font-weight:700; color:#334155;">일간 강약</span><span style="font-size:12px; font-weight:600; color:#1F7A52;">신강 62%</span></div>
+              <div style="height:8px; background:#F1F5F9; border-radius:999px; overflow:hidden;"><div style="width:62%; height:100%; background:linear-gradient(90deg,#94A3B8,#2E9E6B);"></div></div>
+              <div style="display:flex; justify-content:space-between; margin-top:6px;"><span style="font-size:11px; color:#CBD5E1;">신약</span><span style="font-size:11px; color:#CBD5E1;">신강</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 십성 · 신살 · 용신 -->
+        <div style="border:1px solid #F1F5F9; border-radius:12px; padding:18px 20px; margin-top:16px;">
+          <div style="font-size:13px; font-weight:700; color:#334155; margin-bottom:12px;">십성 · 신살 · 용신</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <span style="font-size:13px; font-weight:600; color:#334155; background:#F1F5F9; padding:5px 11px; border-radius:8px;">비견 ×2</span>
+            <span style="font-size:13px; font-weight:600; color:#334155; background:#F1F5F9; padding:5px 11px; border-radius:8px;">식신</span>
+            <span style="font-size:13px; font-weight:600; color:#334155; background:#F1F5F9; padding:5px 11px; border-radius:8px;">편재</span>
+            <span style="font-size:13px; font-weight:600; color:#334155; background:#F1F5F9; padding:5px 11px; border-radius:8px;">편관</span>
+            <span style="font-size:13px; font-weight:600; color:#334155; background:#F1F5F9; padding:5px 11px; border-radius:8px;">정인</span>
+            <span style="font-size:13px; font-weight:600; color:#334155; background:#F1F5F9; padding:5px 11px; border-radius:8px;">상관</span>
+            <span style="font-size:13px; font-weight:600; color:#4F5E73; background:#EEF1F6; padding:5px 11px; border-radius:8px;">용신 · 금 金</span>
+            <span style="font-size:13px; font-weight:600; color:#B23A2E; background:#FCEAE7; padding:5px 11px; border-radius:8px;">희신 · 화 火</span>
+            <span style="font-size:13px; font-weight:600; color:#2563EB; background:#EFF6FF; padding:5px 11px; border-radius:8px;">역마살</span>
+            <span style="font-size:13px; font-weight:600; color:#2563EB; background:#EFF6FF; padding:5px 11px; border-radius:8px;">화개살</span>
+          </div>
+        </div>
+
+        <!-- 대운 -->
+        <div style="border:1px solid #F1F5F9; border-radius:12px; padding:18px 20px 14px; margin-top:16px; overflow-x:auto;">
+          <div style="font-size:13px; font-weight:700; color:#334155; margin-bottom:12px;">대운 흐름 · 10년 주기</div>
+          <div style="display:flex; gap:6px; min-width:480px;">
+            <sc-for list="{{ daeun }}" as="d" hint-placeholder-count="6">
+              <div style="{{ d.cellStyle }}">
+                <div style="{{ d.ganStyle }}">{{ d.gan }}</div>
+                <div style="font-size:11px; color:#94A3B8; margin-top:4px;">{{ d.age }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background:#F8FAFC; border:1px solid #F1F5F9; border-radius:12px; padding:14px 18px; margin-top:16px;">
+          <p style="font-size:12.5px; color:#94A3B8; line-height:1.65; margin:0; text-wrap:pretty;">위 요소들은 개별 점수가 아니라 서로의 관계 속에서 종합적으로 해석되며, 이 리포트의 모든 결과는 이 원국 데이터를 근거로 작성되었습니다. 특정 오행이 적다는 것만으로 좋고 나쁨을 단정하지 않습니다.</p>
+        </div>
+
+      </div>
+      </sc-if>
+      </div>
+    </section>
+
+    <!-- ===== 3 · 겉 vs 내면 ===== -->
+    <section style="margin-top:72px;">
+      <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; color:#94A3B8; margin-bottom:8px;">02 · 겉과 속</div>
+      <h2 style="font-size:clamp(20px,4vw,24px); font-weight:700; letter-spacing:-0.02em; margin:0 0 20px;">남이 보는 나 vs 실제 내면</h2>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px;">
+        <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:16px; padding:22px;">
+          <div style="font-size:12px; font-weight:700; color:#94A3B8; letter-spacing:0.05em; margin-bottom:10px;">남에게 보이는 모습</div>
+          <p style="font-size:15px; color:#334155; line-height:1.7; margin:0; text-wrap:pretty;">침착하고 단단한 사람. 감정 기복이 적고, 맡은 일은 조용히 끝까지 해내는 믿음직한 인상을 줘요.</p>
+        </div>
+        <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:16px; padding:22px;">
+          <div style="font-size:12px; font-weight:700; color:#94A3B8; letter-spacing:0.05em; margin-bottom:10px;">실제 내면</div>
+          <p style="font-size:15px; color:#334155; line-height:1.7; margin:0; text-wrap:pretty;">관계와 선택을 오래 고민하는 편. 결정 전에 수많은 경우의 수를 혼자 돌려보느라, 겉보다 속이 훨씬 바빠요.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 4 · 강점 ===== -->
+    <section style="margin-top:72px;">
+      <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; color:#94A3B8; margin-bottom:8px;">03 · 타고난 강점</div>
+      <h2 style="font-size:clamp(20px,4vw,24px); font-weight:700; letter-spacing:-0.02em; margin:0 0 20px;">이런 순간에 빛나요</h2>
+      <div style="display:flex; flex-direction:column; gap:0; border:1px solid #E2E8F0; border-radius:16px; overflow:hidden;">
+        <div style="display:flex; gap:16px; padding:20px 22px; border-bottom:1px solid #F1F5F9;">
+          <div style="flex:none; width:32px; height:32px; border-radius:10px; background:#EFF6FF; color:#2563EB; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center;">1</div>
+          <div><div style="font-size:15px; font-weight:700;">복잡한 상황의 핵심을 빠르게 파악해요</div><p style="font-size:14px; color:#64748B; line-height:1.6; margin:4px 0 0; text-wrap:pretty;">회의가 산으로 갈 때 "그래서 결정할 건 이거죠"라고 정리하는 쪽이에요.</p></div>
+        </div>
+        <div style="display:flex; gap:16px; padding:20px 22px; border-bottom:1px solid #F1F5F9;">
+          <div style="flex:none; width:32px; height:32px; border-radius:10px; background:#EFF6FF; color:#2563EB; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center;">2</div>
+          <div><div style="font-size:15px; font-weight:700;">쉽게 흔들리지 않고 끝까지 책임져요</div><p style="font-size:14px; color:#64748B; line-height:1.6; margin:4px 0 0; text-wrap:pretty;">중간에 상황이 나빠져도 맡은 몫은 마무리하고 나오는 타입이에요.</p></div>
+        </div>
+        <div style="display:flex; gap:16px; padding:20px 22px;">
+          <div style="flex:none; width:32px; height:32px; border-radius:10px; background:#EFF6FF; color:#2563EB; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center;">3</div>
+          <div><div style="font-size:15px; font-weight:700;">사람의 분위기와 감정을 잘 읽어요</div><p style="font-size:14px; color:#64748B; line-height:1.6; margin:4px 0 0; text-wrap:pretty;">말하지 않아도 상대의 컨디션 변화를 먼저 알아차리는 경우가 많아요.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 5 · 약점 ===== -->
+    <section style="margin-top:72px;">
+      <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; color:#94A3B8; margin-bottom:8px;">04 · 주의할 패턴</div>
+      <h2 style="font-size:clamp(20px,4vw,24px); font-weight:700; letter-spacing:-0.02em; margin:0 0 20px;">나도 모르게 반복하는 것들</h2>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="border:1px solid #E2E8F0; border-radius:14px; padding:18px 20px;">
+          <p style="font-size:15px; color:#334155; line-height:1.7; margin:0; text-wrap:pretty;">충분히 잘하고 있어도 스스로 만족하지 못할 수 있어요. 기준이 늘 자기 자신이라, 남의 인정이 와도 잘 안 쌓여요.</p>
+        </div>
+        <div style="border:1px solid #E2E8F0; border-radius:14px; padding:18px 20px;">
+          <p style="font-size:15px; color:#334155; line-height:1.7; margin:0; text-wrap:pretty;">싫은 것을 바로 말하지 않고 참다가, 어느 순간 한 번에 거리를 두는 경향이 있어요. 상대는 이유를 모른 채 멀어졌다고 느낄 수 있어요.</p>
+        </div>
+        <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:14px; padding:18px 20px; display:flex; gap:12px; align-items:flex-start;">
+          <span style="flex:none; font-size:12px; font-weight:700; color:#16A34A; background:#F0FDF4; border:1px solid #BBF7D0; padding:4px 9px; border-radius:999px; margin-top:1px;">TIP</span>
+          <p style="font-size:14px; color:#475569; line-height:1.65; margin:0; text-wrap:pretty;">완벽하게 정리된 뒤 말하려 하기보다, 생각이 60%쯤 정리됐을 때 먼저 표현해 보세요. 관계도 일도 훨씬 가벼워져요.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 잠금 섹션 · 05+ ===== -->
+    <section style="margin-top:72px; display:flex; flex-direction:column; gap:12px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:16px; padding:20px 22px;">
+        <div>
+          <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; color:#94A3B8; margin-bottom:4px;">05 · 감정과 스트레스</div>
+          <div style="font-size:15.5px; font-weight:700; color:#334155;">힘들 때 이런 패턴이 나타나요</div>
+        </div>
+        <div style="flex:none; width:32px; height:32px; border-radius:999px; background:#fff; border:1px solid #E2E8F0; display:flex; align-items:center; justify-content:center; font-size:13px;">🔒</div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:16px; padding:20px 22px;">
+        <div>
+          <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; color:#94A3B8; margin-bottom:4px;">06 · 사람을 대하는 방식</div>
+          <div style="font-size:15.5px; font-weight:700; color:#334155;">관계에서의 나</div>
+        </div>
+        <div style="flex:none; width:32px; height:32px; border-radius:999px; background:#fff; border:1px solid #E2E8F0; display:flex; align-items:center; justify-content:center; font-size:13px;">🔒</div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:16px; padding:20px 22px;">
+        <div>
+          <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; color:#94A3B8; margin-bottom:4px;">07 · 잘 맞는 환경</div>
+          <div style="font-size:15.5px; font-weight:700; color:#334155;">능력이 잘 드러나는 조건</div>
+        </div>
+        <div style="flex:none; width:32px; height:32px; border-radius:999px; background:#fff; border:1px solid #E2E8F0; display:flex; align-items:center; justify-content:center; font-size:13px;">🔒</div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:16px; padding:20px 22px;">
+        <div>
+          <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; color:#94A3B8; margin-bottom:4px;">08 · 연애와 관계</div>
+          <div style="font-size:15.5px; font-weight:700; color:#334155;">연애할 때 반복되는 관계 패턴</div>
+        </div>
+        <div style="flex:none; width:32px; height:32px; border-radius:999px; background:#fff; border:1px solid #E2E8F0; display:flex; align-items:center; justify-content:center; font-size:13px;">🔒</div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:16px; padding:20px 22px;">
+        <div>
+          <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; color:#94A3B8; margin-bottom:4px;">09 · 궁합</div>
+          <div style="font-size:15.5px; font-weight:700; color:#334155;">당신과 잘 맞는 사람의 특징</div>
+        </div>
+        <div style="flex:none; width:32px; height:32px; border-radius:999px; background:#fff; border:1px solid #E2E8F0; display:flex; align-items:center; justify-content:center; font-size:13px;">🔒</div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:16px; padding:20px 22px;">
+        <div>
+          <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; color:#94A3B8; margin-bottom:4px;">10 · 재물</div>
+          <div style="font-size:15.5px; font-weight:700; color:#334155;">돈이 모이는 방식과 새어나가는 지점</div>
+        </div>
+        <div style="flex:none; width:32px; height:32px; border-radius:999px; background:#fff; border:1px solid #E2E8F0; display:flex; align-items:center; justify-content:center; font-size:13px;">🔒</div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:16px; padding:20px 22px;">
+        <div>
+          <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; color:#94A3B8; margin-bottom:4px;">11 · 올해의 운</div>
+          <div style="font-size:15.5px; font-weight:700; color:#334155;">지금부터 1년, 나의 운의 흐름</div>
+        </div>
+        <div style="flex:none; width:32px; height:32px; border-radius:999px; background:#fff; border:1px solid #E2E8F0; display:flex; align-items:center; justify-content:center; font-size:13px;">🔒</div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:16px; padding:20px 22px;">
+        <div>
+          <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; color:#94A3B8; margin-bottom:4px;">12 · 대운</div>
+          <div style="font-size:15.5px; font-weight:700; color:#334155;">앞으로 10년의 큰 운 흐름</div>
+        </div>
+        <div style="flex:none; width:32px; height:32px; border-radius:999px; background:#fff; border:1px solid #E2E8F0; display:flex; align-items:center; justify-content:center; font-size:13px;">🔒</div>
+      </div>
+
+      <!-- 잠금 해제 CTA -->
+      <div style="margin-top:20px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:14px;">
+        <p style="font-size:15px; color:#64748B; margin:0; text-wrap:pretty;">나머지 결과가 궁금하신가요?</p>
+        <a href="#" ref="{{ inlineCtaRef }}" style="display:block; width:100%; max-width:360px; font-size:16px; font-weight:600; color:#fff; background:#2563EB; padding:16px 0; border-radius:14px; box-shadow:0 8px 20px rgba(37,99,235,.28); text-align:center;" style-hover="background:#1D4ED8; color:#fff;">전체 결과 보기</a>
+      </div>
+    </section>
+  </main>
+
+  <!-- 스크롤 시 나타나는 하단 고정 CTA -->
+  <sc-if value="{{ showBar }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed; bottom:0; left:0; right:0; z-index:30; padding:28px clamp(20px,5vw,24px) 18px; background:linear-gradient(180deg,rgba(255,255,255,0),#fff 55%); pointer-events:none;">
+    <div style="max-width:720px; margin:0 auto; display:flex; justify-content:center;">
+      <a href="#" style="pointer-events:auto; display:block; width:100%; max-width:360px; font-size:16px; font-weight:600; color:#fff; background:#2563EB; padding:15px 0; border-radius:14px; box-shadow:0 8px 20px rgba(37,99,235,.32); text-align:center;" style-hover="background:#1D4ED8; color:#fff;">전체 결과 보기</a>
+    </div>
+  </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1280, &quot;height&quot;: 900 },
+  &quot;detailDefaultOpen&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot; }
+}">
+class Component extends DCLogic {
+  state = {};
+  inlineCtaRef = React.createRef();
+  componentDidMount() {
+    this._onScroll = () => {
+      let show = window.scrollY > 500;
+      const el = this.inlineCtaRef.current;
+      if (show && el) {
+        const r = el.getBoundingClientRect();
+        if (r.top < window.innerHeight) show = false; // inline CTA visible → hide fixed bar
+      }
+      if (show !== this.state.showBar) this.setState({ showBar: show });
+    };
+    window.addEventListener('scroll', this._onScroll, { passive: true });
+  }
+  componentWillUnmount() { window.removeEventListener('scroll', this._onScroll); }
+
+  renderVals() {
+    const envDefs = [
+      { left: '자유도 높은 환경', right: '체계적인 환경', pos: 24, lean: 'left' },
+      { left: '혼자 집중하는 일', right: '사람과 협력하는 일', pos: 38, lean: 'left' },
+      { left: '안정적인 반복', right: '빠른 변화', pos: 62, lean: 'right' },
+      { left: '앞에서 이끄는 역할', right: '뒤에서 설계하는 역할', pos: 72, lean: 'right' }
+    ];
+    const envRows = envDefs.map(d => ({
+      left: d.left, right: d.right, pos: d.pos + '%',
+      leftStyle: 'font-size:13.5px; font-weight:' + (d.lean === 'left' ? '700; color:#0F172A;' : '500; color:#94A3B8;'),
+      rightStyle: 'font-size:13.5px; text-align:right; font-weight:' + (d.lean === 'right' ? '700; color:#0F172A;' : '500; color:#94A3B8;')
+    }));
+
+    const daeunDefs = [
+      { gan: '甲申', age: '12–21' }, { gan: '乙酉', age: '22–31' },
+      { gan: '丙戌', age: '32–41', now: true }, { gan: '丁亥', age: '42–51' },
+      { gan: '戊子', age: '52–61' }, { gan: '己丑', age: '62–71' }
+    ];
+    const daeun = daeunDefs.map(d => ({
+      gan: d.gan, age: d.age + '세',
+      cellStyle: 'flex:1; text-align:center; padding:12px 4px; border-radius:10px;' + (d.now ? 'background:#EFF6FF; box-shadow:0 0 0 1.5px #2563EB;' : 'background:#F8FAFC;'),
+      ganStyle: 'font-size:17px; font-weight:700;' + (d.now ? 'color:#2563EB;' : 'color:#334155;')
+    }));
+
+    return {
+      envRows, daeun,
+      showBar: this.state.showBar ?? false,
+      inlineCtaRef: this.inlineCtaRef,
+      detailOpen: this.state.detailOpen ?? (this.props.detailDefaultOpen ?? false),
+      toggleDetail: () => this.setState(p => ({ detailOpen: !(p.detailOpen ?? (this.props.detailDefaultOpen ?? false)) })),
+      chevStyle: (this.state.detailOpen ?? (this.props.detailDefaultOpen ?? false)) ? 'transform:rotate(180deg);' : ''
+    };
+  }
+}
+</script>
+</body>
+</html>
