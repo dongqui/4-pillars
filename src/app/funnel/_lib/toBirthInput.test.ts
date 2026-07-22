@@ -7,6 +7,7 @@ function baseData(): FunnelData {
     name: "홍길동",
     gender: "male",
     calendar: "solar",
+    isLeapMonth: false,
     birth: { y: 1990, m: 5, d: 20 },
     timeKnown: true,
     time: { h: 8, m: 30 },
@@ -45,5 +46,16 @@ describe("toBirthInput", () => {
   it("trueSolar가 false면 보정을 끈다", () => {
     const input = toBirthInput({ ...baseData(), trueSolar: false });
     expect(input.applyTimeCorrection).toBe(false);
+  });
+
+  it("음력 윤달이면 isLeapMonth를 전달한다", () => {
+    const input = toBirthInput({ ...baseData(), calendar: "lunar", isLeapMonth: true });
+    expect(input.calendar).toBe("lunar");
+    expect(input.isLeapMonth).toBe(true);
+  });
+
+  it("양력이면 isLeapMonth는 undefined다", () => {
+    const input = toBirthInput({ ...baseData(), calendar: "solar", isLeapMonth: true });
+    expect(input.isLeapMonth).toBeUndefined();
   });
 });
