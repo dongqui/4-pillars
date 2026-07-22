@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { useFunnel, type Calendar } from "../../_context/FunnelContext";
+import { hasLeapMonth } from "@/lib/saju-core";
+import { Toggle } from "@/components/Toggle";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -41,7 +43,11 @@ export function BirthDateStep() {
     setY(String(yy));
     setM(String(mm));
     setD(String(dd));
-    update({ birth: { y: yy, m: mm, d: dd } });
+    const patch: Partial<typeof data> = { birth: { y: yy, m: mm, d: dd } };
+    if (data.calendar === "lunar" && !hasLeapMonth(yy, mm) && data.isLeapMonth) {
+      patch.isLeapMonth = false;
+    }
+    update(patch);
   }
 
   return (
@@ -56,7 +62,9 @@ export function BirthDateStep() {
           { value: "lunar", label: "음력" },
         ]}
         value={data.calendar}
-        onChange={(calendar) => update({ calendar })}
+        onChange={(calendar) =>
+          update({ calendar, ...(calendar === "solar" ? { isLeapMonth: false } : {}) })
+        }
         className="max-w-[240px] mb-6"
       />
       <div className="flex items-center gap-2">
@@ -92,6 +100,21 @@ export function BirthDateStep() {
         />
         <span className="text-slate-400">일</span>
       </div>
+      {data.calendar === "lunar" && hasLeapMonth(birth.y, birth.m) && (
+        <div className="mt-5 flex items-center justify-between rounded-[15px] border border-slate-200 bg-slate-50 px-[18px] py-4">
+          <span>
+            <span className="block text-sm font-semibold text-slate-700">윤달</span>
+            <span className="mt-0.5 block text-[12.5px] text-slate-400">
+              {birth.m}월에 윤달로 태어났다면 켜주세요
+            </span>
+          </span>
+          <Toggle
+            checked={data.isLeapMonth}
+            onChange={(v) => update({ isLeapMonth: v })}
+            label="윤달"
+          />
+        </div>
+      )}
     </div>
   );
 }

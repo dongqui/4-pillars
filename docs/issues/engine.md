@@ -23,7 +23,8 @@
 - 일간 강약 판정, 용신 분석, 대운 산출
 - 구현: `src/lib/saju-core/strength.ts`, `yongsin.ts`, `luck.ts`
 
-## ⬜ ISSUE-005. 음력 입력 지원 (F001 일부)
+## ✅ ISSUE-005. 음력 입력 지원 (F001 일부)
 
 - 음력 → 양력 변환 후 원국 계산 (`@fullstackfamily/manseryeok` 활용 검토)
 - 퍼널의 양력/음력 선택값이 실제 계산에 반영되는지 검증
+- 퍼널 윤달 토글 → `isLeapMonth` 전달 배선 완료 (`saju-core/leap.ts`, `BirthDateStep`)

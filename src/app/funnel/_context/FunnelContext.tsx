@@ -10,6 +10,7 @@ export interface FunnelData {
   name: string;
   gender: Gender | null;
   calendar: Calendar;
+  isLeapMonth: boolean;
   birth: { y: number; m: number; d: number } | null;
   timeKnown: boolean;
   time: { h: number; m: number } | null;
@@ -21,6 +22,7 @@ const initialData: FunnelData = {
   name: "",
   gender: null,
   calendar: "solar",
+  isLeapMonth: false,
   birth: null,
   timeKnown: true,
   time: null,

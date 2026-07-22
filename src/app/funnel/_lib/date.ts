@@ -17,3 +17,13 @@ export function formatDate(v: { y: number; m: number; d: number }): string {
 export function formatTime(v: { h: number; m: number }): string {
   return `${pad2(v.h)}:${pad2(v.m)}`;
 }
+
+export function formatCalendarLabel(
+  calendar: "solar" | "lunar",
+  isLeapMonth: boolean,
+  birth: { y: number; m: number; d: number } | null,
+): string {
+  const prefix =
+    calendar === "solar" ? "양력" : isLeapMonth ? "음력(윤달)" : "음력";
+  return `${prefix} ${birth ? formatDate(birth) : "-"}`;
+}

@@ -2,7 +2,7 @@
 
 import { Toggle } from "@/components/Toggle";
 import { useFunnel } from "../../_context/FunnelContext";
-import { formatDate, formatTime } from "../../_lib/date";
+import { formatCalendarLabel, formatTime } from "../../_lib/date";
 import { getLocale } from "../../_lib/locale";
 import { findRegion } from "../../_lib/regions";
 
@@ -14,9 +14,7 @@ export function ReviewStep() {
     { k: "성별", v: data.gender === "male" ? "남성" : data.gender === "female" ? "여성" : "-" },
     {
       k: "생년월일",
-      v: `${data.calendar === "solar" ? "양력 " : "음력 "}${
-        data.birth ? formatDate(data.birth) : "-"
-      }`,
+      v: formatCalendarLabel(data.calendar, data.isLeapMonth, data.birth),
     },
     {
       k: "태어난 시간",

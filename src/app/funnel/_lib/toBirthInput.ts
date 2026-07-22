@@ -24,6 +24,7 @@ export function toBirthInput(data: FunnelData): BirthInput {
     hour: hasTime ? data.time!.h : undefined,
     minute: hasTime ? data.time!.m : undefined,
     calendar: data.calendar,
+    isLeapMonth: data.calendar === "lunar" ? data.isLeapMonth : undefined,
     gender: data.gender,
     longitude: resolveLongitude(data.birthPlace, country),
     applyTimeCorrection: data.trueSolar,

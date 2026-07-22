@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { daysInMonth, clampDay, formatDate, formatTime } from "./date";
+import { daysInMonth, clampDay, formatDate, formatTime, formatCalendarLabel } from "./date";
 
 describe("date helpers", () => {
   it("daysInMonth: 평월/윤년 처리", () => {
@@ -21,5 +21,21 @@ describe("date helpers", () => {
   it("formatTime: 'HH:MM' zero-pad", () => {
     expect(formatTime({ h: 4, m: 30 })).toBe("04:30");
     expect(formatTime({ h: 14, m: 5 })).toBe("14:05");
+  });
+});
+
+describe("formatCalendarLabel", () => {
+  const birth = { y: 2020, m: 4, d: 1 };
+  it("양력이면 '양력' 접두사를 붙인다", () => {
+    expect(formatCalendarLabel("solar", false, birth)).toBe("양력 2020. 04. 01.");
+  });
+  it("음력 평달이면 '음력' 접두사를 붙인다", () => {
+    expect(formatCalendarLabel("lunar", false, birth)).toBe("음력 2020. 04. 01.");
+  });
+  it("음력 윤달이면 '음력(윤달)' 접두사를 붙인다", () => {
+    expect(formatCalendarLabel("lunar", true, birth)).toBe("음력(윤달) 2020. 04. 01.");
+  });
+  it("생년월일이 없으면 접두사 + '-'", () => {
+    expect(formatCalendarLabel("solar", false, null)).toBe("양력 -");
   });
 });
