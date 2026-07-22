@@ -23,4 +23,18 @@ describe("buildChart", () => {
     const c = buildChart({ year: 1990, month: 4, day: 21, calendar: "lunar", gender: "male" });
     expect(c.solar).toMatchObject({ year: 1990, month: 5, day: 15 });
   });
+
+  it("윤달 여부에 따라 다른 양력·원국으로 계산한다 (2020 음력 4월 1일)", () => {
+    const plain = buildChart({
+      year: 2020, month: 4, day: 1, calendar: "lunar", isLeapMonth: false, gender: "male",
+    });
+    expect(plain.solar).toMatchObject({ year: 2020, month: 4, day: 23 });
+    expect(plain.day.korean).toBe("병신");
+
+    const leap = buildChart({
+      year: 2020, month: 4, day: 1, calendar: "lunar", isLeapMonth: true, gender: "male",
+    });
+    expect(leap.solar).toMatchObject({ year: 2020, month: 5, day: 23 });
+    expect(leap.day.korean).toBe("병인");
+  });
 });
