@@ -1,4 +1,7 @@
-// 리포트 접근 권한. 지금은 쿼리 토글 stub — 향후 세션/결제 조회로 교체하는 유일한 지점.
+// 리포트 접근 권한. isLoggedIn은 실제 세션으로, isPaid는 결제 미구현이라 개발용 쿼리 토글 유지.
+// 향후 결제 조회가 붙는 지점.
+
+import type { SessionPayload } from "@/lib/auth/session";
 
 export interface ReportAccess {
   isLoggedIn: boolean;
@@ -11,10 +14,11 @@ function first(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
 }
 
-export function getReportAccess(searchParams: SearchParams): ReportAccess {
-  const paid = first(searchParams.paid) === "true";
-  const login = first(searchParams.login) === "true";
-  if (paid) return { isLoggedIn: true, isPaid: true };
-  if (login) return { isLoggedIn: true, isPaid: false };
-  return { isLoggedIn: false, isPaid: false };
+export function getReportAccess(
+  searchParams: SearchParams,
+  session: SessionPayload | null,
+): ReportAccess {
+  const isPaid = first(searchParams.paid) === "true";
+  const isLoggedIn = session !== null || isPaid;
+  return { isLoggedIn, isPaid };
 }
