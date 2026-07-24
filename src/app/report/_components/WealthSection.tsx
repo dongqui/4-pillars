@@ -1,12 +1,18 @@
 import { SectionHeading } from "./SectionHeading";
 import { CardGrid } from "./CardGrid";
 import { NoteCard } from "./NoteCard";
+import { EmphasizedText } from "./EmphasizedText";
 import type { LabeledText } from "../_lib/report-content";
 
-const EMPHASIS = "긴 호흡의 적립식";
-
-export function WealthSection({ points, summary }: { points: LabeledText[]; summary: string }) {
-  const [before, after] = summary.split(EMPHASIS);
+export function WealthSection({
+  points,
+  summary,
+  emphasis,
+}: {
+  points: LabeledText[];
+  summary: string;
+  emphasis: string;
+}) {
   return (
     <section className="mt-[72px]">
       <SectionHeading no="10" category="재물" title="돈이 모이는 방식과 새어나가는 지점" />
@@ -19,15 +25,7 @@ export function WealthSection({ points, summary }: { points: LabeledText[]; summ
         ))}
       </CardGrid>
       <NoteCard>
-        {after !== undefined ? (
-          <>
-            {before}
-            <strong className="text-slate-900">{EMPHASIS}</strong>
-            {after}
-          </>
-        ) : (
-          summary
-        )}
+        <EmphasizedText text={summary} emphasis={emphasis} />
       </NoteCard>
     </section>
   );

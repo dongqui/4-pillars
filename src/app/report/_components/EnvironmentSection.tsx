@@ -1,11 +1,17 @@
 import { SectionHeading } from "./SectionHeading";
 import { NoteCard } from "./NoteCard";
+import { EmphasizedText } from "./EmphasizedText";
 import type { AxisRow } from "../_lib/report-content";
 
-const EMPHASIS = "스스로 판단하고 개선할 여지가 있는 환경";
-
-export function EnvironmentSection({ axes, summary }: { axes: AxisRow[]; summary: string }) {
-  const [before, after] = summary.split(EMPHASIS);
+export function EnvironmentSection({
+  axes,
+  summary,
+  emphasis,
+}: {
+  axes: AxisRow[];
+  summary: string;
+  emphasis: string;
+}) {
   return (
     <section className="mt-[72px]">
       <SectionHeading no="07" category="잘 맞는 환경" title="능력이 잘 드러나는 조건" />
@@ -38,15 +44,7 @@ export function EnvironmentSection({ axes, summary }: { axes: AxisRow[]; summary
         ))}
       </div>
       <NoteCard>
-        {after !== undefined ? (
-          <>
-            {before}
-            <strong className="text-slate-900">{EMPHASIS}</strong>
-            {after}
-          </>
-        ) : (
-          summary
-        )}
+        <EmphasizedText text={summary} emphasis={emphasis} />
       </NoteCard>
     </section>
   );

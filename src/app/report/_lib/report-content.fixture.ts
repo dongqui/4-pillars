@@ -75,6 +75,7 @@ export const sampleReport: ReportContent = {
       { left: "앞에서 이끄는 역할", right: "뒤에서 설계하는 역할", pos: 72, lean: "right" },
     ],
     summary: "정해진 방식만 반복하는 환경보다, 스스로 판단하고 개선할 여지가 있는 환경에서 능력이 잘 드러나요.",
+    emphasis: "스스로 판단하고 개선할 여지가 있는 환경",
   },
   love: [
     { label: "관계가 시작될 때", body: "호감이 있어도 먼저 표현하지 않는 편. 상대가 다가와야 마음을 확인하고 움직여요." },
@@ -92,6 +93,7 @@ export const sampleReport: ReportContent = {
       { label: "새어나가는 지점", body: "평소엔 아끼다가 스트레스가 쌓였을 때 한 번에 크게 쓰는 패턴. 지출의 총량보다 타이밍이 문제예요." },
     ],
     summary: "투자는 단기 매매보다 긴 호흡의 적립식이 사주 구조와 잘 맞아요.",
+    emphasis: "긴 호흡의 적립식",
   },
   yearlyLuck: [
     { period: "8월", title: "정리", desc: "미뤄둔 결정을 끝내기 좋은 달. 벌이기보다 마무리가 유리해요." },
@@ -114,6 +116,7 @@ export const sampleReport: ReportContent = {
       { range: "그다음 대운 · 2039~", title: "확장과 안정의 10년", desc: "이룬 것을 넓히고 지키는 흐름. 재물운이 가장 안정적으로 자리 잡는 시기예요." },
     ],
     summary: "지금은 기반을 쌓는 구간의 후반부예요. 앞으로 2~3년의 선택이 다음 10년의 방향을 정해요.",
+    emphasis: "기반을 쌓는 구간의 후반부",
   },
 };
 

@@ -1,11 +1,17 @@
 import { SectionHeading } from "./SectionHeading";
 import { NoteCard } from "./NoteCard";
+import { EmphasizedText } from "./EmphasizedText";
 import type { DaeunRow } from "../_lib/report-content";
 
-const EMPHASIS = "기반을 쌓는 구간의 후반부";
-
-export function DaeunSection({ rows, summary }: { rows: DaeunRow[]; summary: string }) {
-  const [before, after] = summary.split(EMPHASIS);
+export function DaeunSection({
+  rows,
+  summary,
+  emphasis,
+}: {
+  rows: DaeunRow[];
+  summary: string;
+  emphasis: string;
+}) {
   return (
     <section className="mt-[72px]">
       <SectionHeading no="12" category="대운" title="앞으로 10년의 큰 운 흐름" />
@@ -33,15 +39,7 @@ export function DaeunSection({ rows, summary }: { rows: DaeunRow[]; summary: str
         })}
       </div>
       <NoteCard>
-        {after !== undefined ? (
-          <>
-            {before}
-            <strong className="text-slate-900">{EMPHASIS}</strong>
-            {after}
-          </>
-        ) : (
-          summary
-        )}
+        <EmphasizedText text={summary} emphasis={emphasis} />
       </NoteCard>
     </section>
   );

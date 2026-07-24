@@ -64,12 +64,12 @@ export interface ReportContent {
   cautionTip: string;               // 04 TIP
   emotion: LabeledText[];           // 05
   relating: KeyValue[];             // 06
-  environment: { axes: AxisRow[]; summary: string }; // 07
+  environment: { axes: AxisRow[]; summary: string; emphasis: string }; // 07
   love: LabeledText[];              // 08
   compatibility: { good: string[]; clash: string[] }; // 09
-  wealth: { points: LabeledText[]; summary: string };  // 10
+  wealth: { points: LabeledText[]; summary: string; emphasis: string };  // 10
   yearlyLuck: TimelineRow[];        // 11
-  daeunOutlook: { rows: DaeunRow[]; summary: string }; // 12
+  daeunOutlook: { rows: DaeunRow[]; summary: string; emphasis: string }; // 12
 }
 
 /** 무료 사용자에게 보이는 05–12 잠금 목록 항목 */
