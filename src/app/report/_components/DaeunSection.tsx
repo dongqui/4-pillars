@@ -17,7 +17,7 @@ export function DaeunSection({
       <SectionHeading no="12" category="대운" title="앞으로 10년의 큰 운 흐름" />
       <div className="border border-slate-200 rounded-2xl p-[22px] flex flex-col">
         {rows.map((row, i) => {
-          const isNow = i === 0;
+          const isNow = row.now === true;
           const isLast = i === rows.length - 1;
           return (
             <div key={row.range} className="flex gap-4">

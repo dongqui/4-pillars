@@ -94,6 +94,7 @@ export function ChartEvidence({ evidence }: { evidence: ChartEvidenceData }) {
           className={`flex-none w-[22px] h-[22px] rounded-full text-slate-400 flex items-center justify-center text-2xl transition-transform duration-[250ms] ${
             open ? "rotate-180" : ""
           }`}
+          aria-hidden="true"
         >
           ▾
         </span>
