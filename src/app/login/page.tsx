@@ -42,9 +42,9 @@ const PROVIDERS: { id: ProviderId; label: string; className: string; icon: React
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; error?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, error } = await searchParams;
   const lastProvider = (await cookies()).get("last_provider")?.value;
   const nextQuery = next ? `?next=${encodeURIComponent(next)}` : "";
 
@@ -72,6 +72,12 @@ export default async function LoginPage({
             <br />
             처음이라면 자동으로 가입돼요.
           </p>
+
+          {error === "oauth" && (
+            <p className="mb-4 rounded-lg bg-red-50 px-4 py-2 text-[13px] text-red-600">
+              로그인에 실패했어요. 다시 시도해 주세요.
+            </p>
+          )}
 
           <div className="flex flex-col gap-2.5">
             {PROVIDERS.map((p) => (

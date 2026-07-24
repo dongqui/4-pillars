@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ provider: s
   if (!provider) return new NextResponse("unknown provider", { status: 404 });
 
   const clientId = process.env[provider.clientIdEnv];
-  const origin = process.env.APP_ORIGIN;
+  const origin = process.env.APP_ORIGIN?.replace(/\/$/, "");
   if (!clientId || !origin) return new NextResponse("auth not configured", { status: 500 });
 
   const redirectUri = `${origin}/api/auth/callbacks/${provider.id}`;

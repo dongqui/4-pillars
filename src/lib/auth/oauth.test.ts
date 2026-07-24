@@ -87,16 +87,23 @@ describe("exchangeCode", () => {
 });
 
 describe("safeNext (오픈 리다이렉트 방어)", () => {
+  const origin = "http://localhost:3000";
   it("내부 경로는 통과", () => {
-    expect(safeNext("/report")).toBe("/report");
-    expect(safeNext("/report?paid=true")).toBe("/report?paid=true");
+    expect(safeNext("/report", origin)).toBe("/report");
+    expect(safeNext("/report?paid=true", origin)).toBe("/report?paid=true");
   });
   it("외부/프로토콜상대/역슬래시/빈값은 /로", () => {
-    expect(safeNext("https://evil.com")).toBe("/");
-    expect(safeNext("//evil.com")).toBe("/");
-    expect(safeNext("/\\evil.com")).toBe("/");
-    expect(safeNext(null)).toBe("/");
-    expect(safeNext(undefined)).toBe("/");
-    expect(safeNext("report")).toBe("/");
+    expect(safeNext("https://evil.com", origin)).toBe("/");
+    expect(safeNext("//evil.com", origin)).toBe("/");
+    expect(safeNext("/\\evil.com", origin)).toBe("/");
+    expect(safeNext(null, origin)).toBe("/");
+    expect(safeNext(undefined, origin)).toBe("/");
+    // "report"(슬래시 없는 상대경로)는 new URL(next, origin)이 origin 루트 기준으로 해석해
+    // "/report"가 되지만, origin은 그대로 앱 origin이므로 오픈 리다이렉트는 아님.
+    expect(safeNext("report", origin)).toBe("/report");
+  });
+  it("개행 등으로 우회 시도해도 외부 origin으로 파싱되지 않음", () => {
+    expect(new URL(safeNext("/\n/evil.com", origin), origin).origin).toBe(origin);
+    expect(safeNext("https://evil.com", origin)).toBe("/");
   });
 });

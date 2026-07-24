@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS users (
   id                bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  provider          text NOT NULL,
+  provider          text NOT NULL CHECK (provider IN ('google', 'line', 'kakao')),
   provider_user_id  text NOT NULL,
   email             text,
   display_name      text,

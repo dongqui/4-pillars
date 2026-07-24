@@ -17,6 +17,7 @@ export interface CallbackDeps {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
+  origin: string;
 }
 
 export interface CallbackResult {
@@ -58,5 +59,5 @@ export async function completeOAuth(
   });
 
   const sessionToken = await encodeSession({ userId: user.id, provider: p.id });
-  return { redirectTo: safeNext(params.next), sessionToken, provider: p.id };
+  return { redirectTo: safeNext(params.next, deps.origin), sessionToken, provider: p.id };
 }

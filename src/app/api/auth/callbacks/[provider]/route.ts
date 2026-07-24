@@ -13,7 +13,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ provider: s
 
   const clientId = process.env[provider.clientIdEnv];
   const clientSecret = process.env[provider.clientSecretEnv] ?? "";
-  const origin = process.env.APP_ORIGIN;
+  const origin = process.env.APP_ORIGIN?.replace(/\/$/, "");
   if (!clientId || !origin) return new NextResponse("auth not configured", { status: 500 });
 
   const redirectUri = `${origin}/api/auth/callbacks/${provider.id}`;
@@ -32,6 +32,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ provider: s
       clientId,
       clientSecret,
       redirectUri,
+      origin,
     });
     const res = NextResponse.redirect(new URL(result.redirectTo, origin));
     res.cookies.set(SESSION_COOKIE, result.sessionToken, sessionCookieOptions());
@@ -47,7 +48,11 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ provider: s
     res.cookies.delete("oauth_next");
     return res;
   } catch (e) {
-    console.error("[oauth callback]", e);
-    return NextResponse.redirect(new URL("/login?error=oauth", origin));
+    console.error("[oauth callback]", e instanceof Error ? e.message : e);
+    const res = NextResponse.redirect(new URL("/login?error=oauth", origin));
+    res.cookies.delete("oauth_state");
+    res.cookies.delete("oauth_verifier");
+    res.cookies.delete("oauth_next");
+    return res;
   }
 }

@@ -63,11 +63,14 @@ export async function exchangeCode(
   return (await res.json()) as TokenResponse;
 }
 
-/** next는 내부 절대경로만 허용(오픈 리다이렉트 방어). 그 외엔 "/". */
-export function safeNext(next: string | null | undefined): string {
+/** next는 앱 origin 내부 경로만 허용(오픈 리다이렉트 방어). 그 외엔 "/". */
+export function safeNext(next: string | null | undefined, origin: string): string {
   if (!next) return "/";
-  if (!next.startsWith("/")) return "/";
-  if (next.startsWith("//")) return "/";
-  if (next.startsWith("/\\")) return "/";
-  return next;
+  try {
+    const u = new URL(next, origin);
+    if (u.origin !== origin) return "/";
+    return u.pathname + u.search + u.hash;
+  } catch {
+    return "/";
+  }
 }

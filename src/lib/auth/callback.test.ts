@@ -41,6 +41,7 @@ function deps(fetchImpl: FetchLike) {
       clientId: "cid",
       clientSecret: "sec",
       redirectUri: "http://localhost:3000/api/auth/callbacks/google",
+      origin: "http://localhost:3000",
     },
   };
 }
