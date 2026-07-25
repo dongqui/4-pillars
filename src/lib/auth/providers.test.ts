@@ -33,7 +33,7 @@ describe("fetchProfile", () => {
   it("kakao: kakao_account 중첩을 정규화", async () => {
     const fetchImpl = fakeFetch({ id: 12345, kakao_account: { email: "k@k.com", profile: { nickname: "카톡", profile_image_url: "http://img/k" } } });
     const p = await PROVIDERS.kakao.fetchProfile({ access_token: "t" }, fetchImpl);
-    expect(p).toEqual({ providerUserId: "12345", email: "k@k.com", displayName: "카톡", avatarUrl: "http://img/k" });
+    expect(p).toEqual({ providerUserId: "12345", displayName: "카톡", avatarUrl: "http://img/k" });
   });
   it("line: id_token 클레임을 정규화", async () => {
     const id_token = makeJwt({ sub: "l-9", name: "라인", email: "l@l.com", picture: "http://img/l" });

@@ -78,7 +78,7 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     id: "kakao",
     authorizeUrl: "https://kauth.kakao.com/oauth/authorize",
     tokenUrl: "https://kauth.kakao.com/oauth/token",
-    scope: "profile_nickname account_email",
+    scope: "profile_nickname",
     clientIdEnv: "KAKAO_CLIENT_ID",
     clientSecretEnv: "KAKAO_CLIENT_SECRET",
     async fetchProfile(token, fetchImpl) {
@@ -91,7 +91,6 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
       const prof = (acc.profile ?? {}) as Record<string, unknown>;
       return {
         providerUserId: String(d.id),
-        email: str(acc.email),
         displayName: str(prof.nickname),
         avatarUrl: str(prof.profile_image_url),
       };
