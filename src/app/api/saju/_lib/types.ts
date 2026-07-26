@@ -21,6 +21,23 @@ export interface Interpretation {
   relationships: Section;
 }
 
+/**
+ * 섹션 키 = Interpretation의 최상위 키. DB에는 이 키마다 한 행으로 저장된다
+ * (saju_interpretation_sections). Record<keyof Interpretation, true>이므로
+ * Interpretation에 필드를 추가하면 여기서 컴파일 에러가 난다.
+ */
+const SECTION_KEY_SET: Record<keyof Interpretation, true> = {
+  ilgan: true,
+  strengths: true,
+  weaknesses: true,
+  relationships: true,
+};
+
+export type SectionKey = keyof Interpretation;
+
+/** 캐시 적중으로 인정하려면 모두 있어야 하는 섹션 목록 */
+export const SECTION_KEYS = Object.keys(SECTION_KEY_SET) as SectionKey[];
+
 /** API 에러 응답 본문 */
 export interface ErrorResponse {
   error: string;
