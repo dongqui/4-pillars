@@ -1,42 +1,8 @@
 import type { SajuAnalysis } from "@/lib/saju-core";
+import type { Interpretation, SectionKey } from "./sections";
 
-/** 제목 + 본문 형태의 해석 섹션 */
-export interface Section {
-  title: string;
-  body: string;
-}
-
-/**
- * 구조화 해석 (무료 범위). 유료 섹션은 추후 확장:
- * personality / career / wealth / love / marriage / yongsin / daeun ...
- */
-export interface Interpretation {
-  /** 일간 성향 */
-  ilgan: Section;
-  /** 강점 */
-  strengths: string[];
-  /** 약점 */
-  weaknesses: string[];
-  /** 인간관계 특징 */
-  relationships: Section;
-}
-
-/**
- * 섹션 키 = Interpretation의 최상위 키. DB에는 이 키마다 한 행으로 저장된다
- * (saju_interpretation_sections). Record<keyof Interpretation, true>이므로
- * Interpretation에 필드를 추가하면 여기서 컴파일 에러가 난다.
- */
-const SECTION_KEY_SET: Record<keyof Interpretation, true> = {
-  ilgan: true,
-  strengths: true,
-  weaknesses: true,
-  relationships: true,
-};
-
-export type SectionKey = keyof Interpretation;
-
-/** 캐시 적중으로 인정하려면 모두 있어야 하는 섹션 목록 */
-export const SECTION_KEYS = Object.keys(SECTION_KEY_SET) as SectionKey[];
+// 해석의 shape 은 전부 ./sections 레지스트리가 정의한다. 여기서 다시 선언하지 않는다.
+export type { Interpretation, SectionKey } from "./sections";
 
 /** API 에러 응답 본문 */
 export interface ErrorResponse {
@@ -48,21 +14,27 @@ export interface SajuResponse {
   /** 요청받은 이름 (해석엔 미반영, echo용) */
   name: string;
   analysis: SajuAnalysis;
-  interpretation: Interpretation;
-  /** 캐시 적중 여부 */
+  /** 요청한 섹션 중 확보된 것만. 실패·미생성 섹션은 빠진다. */
+  interpretation: Partial<Interpretation>;
+  /** 요청한 섹션이 전부 캐시에 있었는지 */
   cached: boolean;
 }
 
 /**
  * 해석 생성기 (LLM 어댑터). 지금은 stub, 나중에 실제 LLM으로 교체.
  *
- * ⚠️ 캐시 주의: 해석은 (4기둥 + 성별)로만 캐시된다(chartKey 참조). 따라서
- * generate()는 원국(4기둥)·성별에서 파생되는 사실만 사용해야 한다.
- * analysis.daeun 처럼 정확한 생시에 의존하는 값을 해석에 반영하려면
- * 캐시 키(chartKey)를 그 입력까지 포함하도록 넓혀야 한다.
+ * 섹션 단위로 받는 이유: 한 섹션이 스키마 검증에 실패해도 나머지는 살리고,
+ * 캐시에 없는 섹션만 골라 다시 뽑기 위해서다.
+ *
+ * ⚠️ 캐시 주의: storage="chart" 섹션은 (4기둥 + 성별)로만 캐시된다(chartKey 참조).
+ * 따라서 그 섹션들은 원국·성별에서 파생되는 사실만 사용해야 한다.
+ * 생시에 의존하는 서술은 storage="luck" 섹션에만 넣는다.
  */
 export interface InterpretationGenerator {
   /** 생성 모델 식별자 (DB에 기록) */
   readonly model: string;
-  generate(analysis: SajuAnalysis): Promise<Interpretation>;
+  generateSections(
+    analysis: SajuAnalysis,
+    keys: SectionKey[],
+  ): Promise<Partial<Interpretation>>;
 }

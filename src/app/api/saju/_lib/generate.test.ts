@@ -1,33 +1,29 @@
 import { describe, it, expect } from "vitest";
-import { analyze, type BirthInput } from "@/lib/saju-core";
+import { analyze } from "@/lib/saju-core";
 import { StubGenerator } from "./generate";
+import { SECTION_KEYS, parseSectionContent, type SectionKey } from "./sections";
 
-const analysis = analyze({
-  year: 1990,
-  month: 5,
-  day: 15,
-  hour: 10,
-  gender: "male",
-  calendar: "solar",
-} satisfies BirthInput);
+const analysis = analyze({ year: 1990, month: 5, day: 15, hour: 10, gender: "male" });
 
 describe("StubGenerator", () => {
-  it("model이 stub", () => {
+  it("요청한 키만 채운다", async () => {
+    const keys: SectionKey[] = ["overview", "personality"];
+    const out = await new StubGenerator().generateSections(analysis, keys);
+    expect(Object.keys(out).sort()).toEqual([...keys].sort());
+  });
+
+  it("모든 섹션의 출력이 자기 스키마를 통과한다", async () => {
+    const out = await new StubGenerator().generateSections(analysis, SECTION_KEYS);
+    for (const key of SECTION_KEYS) {
+      expect(parseSectionContent(key, out[key]), key).not.toBeNull();
+    }
+  });
+
+  it("키가 비면 빈 객체", async () => {
+    expect(await new StubGenerator().generateSections(analysis, [])).toEqual({});
+  });
+
+  it("model 을 노출한다", () => {
     expect(new StubGenerator().model).toBe("stub");
-  });
-
-  it("Interpretation 스키마를 채워 반환한다", async () => {
-    const result = await new StubGenerator().generate(analysis);
-    expect(result.ilgan.title).toBeTruthy();
-    expect(result.ilgan.body).toContain(analysis.chart.dayMaster);
-    expect(Array.isArray(result.strengths)).toBe(true);
-    expect(result.strengths.length).toBeGreaterThan(0);
-    expect(Array.isArray(result.weaknesses)).toBe(true);
-    expect(result.relationships.body).toBeTruthy();
-  });
-
-  it("같은 원국이면 같은 결과(결정적)", async () => {
-    const g = new StubGenerator();
-    expect(await g.generate(analysis)).toEqual(await g.generate(analysis));
   });
 });
