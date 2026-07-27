@@ -10,6 +10,20 @@
 
 **Spec:** `docs/superpowers/specs/2026-07-27-section-content-schema-design.md`
 
+> **구현 후 정정됨 (2026-07-28).** 이 계획을 실행하는 동안 리뷰가 아래 코드 블록들에서
+> 버그를 찾아냈고, 여기 실린 코드는 실제로 머지된 구현에 맞춰 고쳐 두었다. 원래 무엇이
+> 잘못됐고 왜 그렇게 고쳤는지는 실행 렛저에 남아 있다:
+>
+> | 고친 곳 | 무엇이 잘못됐었나 |
+> | --- | --- |
+> | Task 3 `llmInputSchemaWithRows` | 키가 아니라 JSON Schema 모양으로 대상을 골라, 배열인 다른 5개 섹션의 min/max 를 덮어썼다 |
+> | Task 3 `assign` 헬퍼 | 없었다. Task 4·5 가 각각 TS2322 를 캐스트로 우회하다 공유 헬퍼로 정리됐다 |
+> | Task 6 `putSections` | `DO NOTHING` 이라 `schema_version` 을 올려도 옛 행을 못 덮어썼다 — 매 요청 재생성이 무한 반복된다 |
+> | Task 7 `luckKey` | 대운 회차 수가 빠져 회차가 다른 분석끼리 캐시가 충돌했다 |
+> | Task 8 `handleSaju` | 생성 결과를 검증 없이 응답·저장에 썼고, 요청하지 않은 키까지 응답에 섞였다 |
+> | Task 9·10 `age` | 만 나이로 비교했으나 `luck.ts` 의 `startAge` 는 세는 나이 기준이다 — 경계 연도에 대운이 하나씩 밀렸다 |
+> | Task 10 `report-content.ts` | 재수출만으로는 같은 파일 안에서 이름을 쓸 수 없어 `import type` 이 필요했다 |
+
 ## Global Constraints
 
 - **zod 는 `^4` 이어야 한다.** `z.toJSONSchema()` 는 v4에서 추가됐다. v3 로는 이 계획이 성립하지 않는다.
@@ -462,6 +476,7 @@ git commit -m "feat(saju): 해석 섹션 레지스트리 12개 정의"
   - `function llmInputSchema(key: SectionKey): Record<string, unknown>`
   - `function llmInputSchemaWithRows(key: SectionKey, rows: number): Record<string, unknown>`
   - `function parseSectionContent<K extends SectionKey>(key: K, raw: unknown): SectionContent<K> | null`
+  - `function assign<T, K extends keyof T>(target: Partial<T>, key: K, value: T[K]): void` — 유니온 키로 매핑 타입에 쓸 때 나는 TS2322 를 피하는 공유 헬퍼. Task 4·5 가 쓴다
   - `index.ts` 가 `primitives` / `registry` / `derive` 를 재수출한다
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
@@ -617,9 +632,13 @@ export function sectionStorage(key: SectionKey): SectionStorage {
  * 전부 { content: ... } 한 겹으로 감싼다. 응답에서 .content 를 벗겨 검증한다.
  */
 export function llmInputSchema(key: SectionKey): Record<string, unknown> {
+  const content = z.toJSONSchema(spec(key).schema, { io: "output" }) as Record<string, unknown>;
+  // $schema 는 최상위 문서에나 의미가 있다. properties.content 밑에 얹혀 있어봤자
+  // 아무도 안 읽는 죽은 값이라 지운다.
+  delete content.$schema;
   return {
     type: "object",
-    properties: { content: z.toJSONSchema(spec(key).schema) },
+    properties: { content },
     required: ["content"],
     additionalProperties: false,
   };
@@ -629,6 +648,10 @@ export function llmInputSchema(key: SectionKey): Record<string, unknown> {
  * 세운·대운은 LLM 서술을 계산된 기간과 인덱스로 짝짓는다. 개수가 어긋나면
  * 조립 단계에서 통째로 버려지므로, 요청할 때만 개수를 못박아 넘긴다.
  *
+ * luck 저장소인 이 둘 말고는 손대면 안 된다 — personality 등 다른 배열 섹션까지
+ * "최상위가 배열이면" 식으로 건드리면 그 섹션 고유의 min/max 를 덮어써버린다.
+ * 그래서 스키마 모양이 아니라 키로 직접 분기한다.
+ *
  * 저장·조회 검증에는 쓰지 않는다 — getCached 는 chartKey 밖 입력인 rows 를 모른다.
  */
 export function llmInputSchemaWithRows(
@@ -637,11 +660,12 @@ export function llmInputSchemaWithRows(
 ): Record<string, unknown> {
   const schema = llmInputSchema(key);
   const content = (schema.properties as { content: Record<string, unknown> }).content;
-  // 배열 섹션(yearlyLuck)은 content 자신이, 객체 섹션(daeunOutlook)은 rows 가 대상이다.
-  const target =
-    content.type === "array"
+  const target: Record<string, unknown> | undefined =
+    key === "yearlyLuck"
       ? content
-      : (content.properties as Record<string, Record<string, unknown>> | undefined)?.rows;
+      : key === "daeunOutlook"
+        ? (content.properties as Record<string, Record<string, unknown>>).rows
+        : undefined;
   if (target) {
     target.minItems = rows;
     target.maxItems = rows;
@@ -656,6 +680,19 @@ export function parseSectionContent<K extends SectionKey>(
 ): SectionContent<K> | null {
   const result = spec(key).schema.safeParse(raw);
   return result.success ? (result.data as SectionContent<K>) : null;
+}
+
+/**
+ * `target[key] = value` 를 대신한다. key 가 (제네릭이 아니라) 이미 좁혀진
+ * SectionKey 공용체인 상태로 인덱스 대입을 하면, TS 가 각 케이스를 값과
+ * 상관관계로 엮지 못해 "union 은 intersection 에 대입 불가" 오류를 낸다
+ * (microsoft/TypeScript#30581). 호출부에서 K 를 제네릭으로 다시 잡아주면
+ * 그 인스턴스에서는 key 와 value 가 짝지어져 타입 체크를 통과한다 —
+ * 런타임 동작은 직접 대입과 동일하다. 나중에 "그냥 대입으로 바꿔도 되지
+ * 않나" 하고 단순화하지 말 것.
+ */
+export function assign<T, K extends keyof T>(target: Partial<T>, key: K, value: T[K]): void {
+  target[key] = value;
 }
 ```
 
@@ -796,7 +833,7 @@ export interface InterpretationGenerator {
 
 ```ts
 import type { SajuAnalysis } from "@/lib/saju-core";
-import type { Interpretation, SectionKey } from "./sections";
+import { assign, type Interpretation, type SectionKey } from "./sections";
 import type { InterpretationGenerator } from "./types";
 
 /**
@@ -874,7 +911,7 @@ export class StubGenerator implements InterpretationGenerator {
     };
 
     const out: Partial<Interpretation> = {};
-    for (const key of keys) out[key] = all[key];
+    for (const key of keys) assign(out, key, all[key]);
     return out;
   }
 }
@@ -1014,6 +1051,7 @@ Expected: FAIL — `getCached` 가 `Interpretation | null` 을 준다
 import { sql as neonSql } from "@/lib/db";
 import type { Gender } from "@/lib/saju-core";
 import {
+  assign,
   isSectionKey,
   parseSectionContent,
   sectionVersion,
@@ -1058,7 +1096,7 @@ export function decodeSections(
     if (row.schema_version !== sectionVersion(key)) continue;
     const content = parseSectionContent(key, row.content);
     if (content === null) continue;
-    have[key] = content;
+    assign(have, key, content);
   }
 
   return { have, missing: keys.filter((k) => !(k in have)) };
@@ -1169,7 +1207,6 @@ describe("putSections", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].sql).toContain("INSERT INTO saju_interpretation_sections");
     expect(calls[0].sql).toContain("UNNEST");
-    expect(calls[0].sql).toContain("ON CONFLICT (chart_key, section_key) DO NOTHING");
     expect(calls[0].values).toContainEqual(["overview", "outerVsInner"]);
     expect(calls[0].values).toContainEqual([1, 1]);
   });
@@ -1178,6 +1215,22 @@ describe("putSections", () => {
     const { client, calls } = fakeClient([]);
     await putSections("k", [], "stub", client);
     expect(calls).toHaveLength(0);
+  });
+
+  it("schema_version 이 다른 옛 행은 덮어쓴다 (DO NOTHING 이면 영원히 재생성 루프에 빠진다)", async () => {
+    // 진짜 DB가 있어야 WHERE 절이 실제로 갱신을 걸러내는지 끝까지 검증할 수 있다.
+    // 여기 fake SqlClient 는 SQL 문자열만 받아 그대로 돌려주므로, 우리가 확인할 수 있는
+    // 건 "쓰기 쿼리가 갱신형(conditional DO UPDATE) 인가" 까지다.
+    const { client, calls } = fakeClient([]);
+    await putSections("k", toSectionWrites({ overview }), "stub", client);
+    expect(calls[0].sql).toContain("ON CONFLICT (chart_key, section_key) DO UPDATE");
+    expect(calls[0].sql).toContain("SET content = EXCLUDED.content");
+    expect(calls[0].sql).toContain("schema_version = EXCLUDED.schema_version");
+    // 같은 버전끼리는 갱신하지 않아 동시 요청의 선착순 결과가 유지된다 —
+    // 그 보증이 이 WHERE 절에 있다.
+    expect(calls[0].sql).toContain(
+      "WHERE saju_interpretation_sections.schema_version <> EXCLUDED.schema_version",
+    );
   });
 });
 
@@ -1263,9 +1316,17 @@ export function toSectionWrites(interpretation: Partial<Interpretation>): Sectio
 }
 
 /**
- * 섹션들을 한 번에 삽입(선착순, 기존 값 유지).
+ * 섹션들을 한 번에 삽입.
  * jsonb_each 대신 UNNEST 를 쓰는 이유: 섹션마다 schema_version 이 달라야 한다.
  * content 를 text[] 로 보내고 행마다 jsonb 로 캐스팅한다 (jsonb[] 파라미터는 드라이버가 까다롭다).
+ *
+ * ON CONFLICT 는 조건부 DO UPDATE 다 (DO NOTHING 이 아니다):
+ *  - 저장된 schema_version 이 들어오는 값과 같으면 → 같은 버전으로 이미 누가 썼다는 뜻이라
+ *    WHERE 가 걸려 갱신하지 않는다. 동시에 같은 버전을 생성한 두 요청 중 선착순만 남는다.
+ *  - 저장된 schema_version 이 다르면 → 레지스트리 버전이 올라간 뒤 재생성된 값이므로
+ *    옛 행을 덮어쓴다. 이걸 DO NOTHING 으로 두면 decodeSections 가 매 요청마다 그 옛 행을
+ *    "없는 섹션"으로 보고 재생성 → 저장 시도 → DO NOTHING 으로 다시 실패, 를 영원히
+ *    반복해 매 요청 LLM 호출 비용만 나가고 캐시가 절대 회복되지 않는다.
  */
 export async function putSections(
   chartKey: string,
@@ -1281,7 +1342,12 @@ export async function putSections(
     INSERT INTO saju_interpretation_sections (chart_key, section_key, content, model, schema_version)
     SELECT ${chartKey}, t.k, t.c::jsonb, ${model}, t.v
     FROM UNNEST(${keys}::text[], ${contents}::text[], ${versions}::int[]) AS t(k, c, v)
-    ON CONFLICT (chart_key, section_key) DO NOTHING
+    ON CONFLICT (chart_key, section_key) DO UPDATE
+    SET content = EXCLUDED.content,
+        model = EXCLUDED.model,
+        schema_version = EXCLUDED.schema_version,
+        updated_at = now()
+    WHERE saju_interpretation_sections.schema_version <> EXCLUDED.schema_version
   `;
 }
 
@@ -1507,14 +1573,19 @@ Expected: FAIL — "Failed to resolve import ./store-luck", `luckKey is not a fu
 ```ts
 /**
  * 생시 의존 해석(세운·대운)의 캐시 키.
- * chartKey + 대운 기산값(방향·대운수·기준 절기) + 기준 연도.
+ * chartKey + 대운 기산값(방향·대운수·기준 절기) + 기준 연도 + 대운 회차 수.
  *
  * 연도를 넣는 이유: 세운은 해마다 바뀌고, 대운도 "지금 어디"가 해마다 옮겨간다.
  * chartKey 를 넓히지 않고 따로 두는 이유: 원국 해석 캐시의 적중률을 지키려고.
+ * 회차 수(periods.length)를 넣는 이유: daeunOutlook·yearlyLuck 서술은 대운 회차마다
+ * 하나씩 생성되므로, 회차 수가 다르면 캐시된 서술의 행 개수도 달라져 같은 키를
+ * 쓸 수 없다.
  */
 export function luckKey(analysis: SajuAnalysis, year: number): string {
-  const { direction, daeunSu, basisTerm } = analysis.daeun;
-  return [chartKey(analysis.chart), direction, daeunSu, basisTerm, year].join("|");
+  const { direction, daeunSu, basisTerm, periods } = analysis.daeun;
+  return [chartKey(analysis.chart), direction, daeunSu, basisTerm, year, periods.length].join(
+    "|",
+  );
 }
 ```
 
@@ -1757,7 +1828,14 @@ import { analyze } from "@/lib/saju-core";
 import { parseRequest, ValidationError } from "./input";
 import { chartKey, luckKey, pillarsJson } from "./key";
 import { toSectionWrites, type CachedSections, type CacheRecord, type SectionWrite } from "./store";
-import { sectionStorage, type Interpretation, type SectionKey } from "./sections";
+import {
+  assign,
+  isSectionKey,
+  parseSectionContent,
+  sectionStorage,
+  type Interpretation,
+  type SectionKey,
+} from "./sections";
 import type { ErrorResponse, InterpretationGenerator, SajuResponse } from "./types";
 
 export interface HandlerDeps {
@@ -1832,14 +1910,30 @@ export async function handleSaju(raw: unknown, deps: HandlerDeps): Promise<Handl
   } catch {
     return { status: 502, body: { error: "해석 생성에 실패했습니다" } };
   }
-  Object.assign(interpretation, generated);
+  // 생성기가 반환한 값은 무엇이든 여기서 한 번 걸러야 한다 — 이 결과가 응답과
+  // 저장 양쪽에 그대로 쓰이므로, 한쪽에서만 검증하면 다른 쪽은 새는 채로 남는다.
+  //  - missing 에 없는 키는 버린다: 요청하지 않은 섹션이 응답에 섞이거나
+  //    이미 검증된 캐시 값을 덮어쓰지 않게 한다.
+  //  - 자기 스키마에 안 맞는 값은 버리고 warn: 첫 실제 LLM 어댑터도 결국
+  //    unknown JSON 을 다루므로, 어댑터의 규율에 기대지 않고 여기서 막는다.
+  //    떨어진 섹션은 missing 으로 남아 다음 요청에서 다시 시도된다.
+  const validated: Partial<Interpretation> = {};
+  for (const key of missing) {
+    const raw = generated[key];
+    if (raw === undefined) continue;
+    const parsed = parseSectionContent(key, raw);
+    if (parsed === null) {
+      console.warn(`[handleSaju] 섹션 검증 실패, 건너뜀: ${key}`);
+      continue;
+    }
+    assign(validated, key, parsed);
+  }
+  Object.assign(interpretation, validated);
 
-  // 5. 저장 (멱등) — 생성에 성공한 것만, 저장소별로 나눠서
-  const produced = splitByStorage(Object.keys(generated).filter((k): k is SectionKey =>
-    missing.includes(k as SectionKey),
-  ));
+  // 5. 저장 (멱등) — 검증까지 통과한 것만, 저장소별로 나눠서
+  const produced = splitByStorage(Object.keys(validated).filter(isSectionKey));
   const chartProduced = Object.fromEntries(
-    produced.chart.map((k) => [k, generated[k]]),
+    produced.chart.map((k) => [k, validated[k]]),
   ) as Partial<Interpretation>;
 
   if (produced.chart.length > 0) {
@@ -2147,7 +2241,10 @@ export function toChartEvidence(analysis: SajuAnalysis, year: number): ChartEvid
     })),
   ];
 
-  const age = year - chart.solar.year;
+  // daeun.periods[].startAge 는 세는 나이 기준(luck.ts 주석 참고: "세는 나이 기준 대운수 …").
+  // 만 나이(year - solar.year)로 비교하면 경계에서 대운이 하나씩 밀려 잘못 표시된다.
+  // 세는 나이는 "태어난 해를 1살로 센다" → 해당 연도 - 출생 연도 + 1.
+  const age = year - chart.solar.year + 1;
   const daeunStrip = daeun.periods.map((p) => ({
     gan: p.pillarHanja,
     age: `${p.startAge}–${p.startAge + 9}세`,
@@ -2201,6 +2298,8 @@ git commit -m "feat(report): 계산값에서 근거 패널을 조립"
 ```ts
 // 잎 타입은 해석 스키마(sections/primitives)가 원본이다. 여기서 다시 선언하면
 // LLM 이 받는 구조와 화면이 읽는 타입이 갈라진다.
+// (재수출만으로는 이 파일 안에서 이름을 쓸 수 없어 import type 도 함께 둔다.)
+import type { TitledText, LabeledText, KeyValue } from "@/app/api/saju/_lib/sections";
 export type { TitledText, LabeledText, KeyValue } from "@/app/api/saju/_lib/sections";
 ```
 
@@ -2356,8 +2455,8 @@ import type { DaeunRow, ReportContent, TimelineRow } from "./report-content";
 
 /**
  * LLM 서술 배열에 계산된 기간을 인덱스로 붙인다.
- * 서술이 더 많으면 자르고, 모자라면 null — 인덱스가 어긋난 채로 붙이면
- * 엉뚱한 연령대에 엉뚱한 설명이 달린다.
+ * 서술이 더 많으면 자르고, 모자라면 배열 전체를 undefined 로 — 인덱스가 어긋난 채로
+ * 붙이면 엉뚱한 연령대에 엉뚱한 설명이 달린다.
  */
 function zipTimeline<T>(
   notes: { title: string; desc: string }[] | undefined,
@@ -2375,7 +2474,10 @@ export function toReportContent(
   year: number,
 ): ReportContent {
   const { overview, cautions, daeunOutlook, yearlyLuck, wealth } = interpretation;
-  const age = year - analysis.chart.solar.year;
+  // daeun.periods[].startAge 는 세는 나이 기준(luck.ts 주석 참고: "세는 나이 기준 대운수 …").
+  // 만 나이(year - solar.year)로 비교하면 경계에서 대운이 하나씩 밀려 잘못 표시된다.
+  // 세는 나이는 "태어난 해를 1살로 센다" → 해당 연도 - 출생 연도 + 1. (evidence.ts 와 동일한 규칙)
+  const age = year - analysis.chart.solar.year + 1;
 
   const daeunLabels = analysis.daeun.periods.map((p) => `${p.startAge}–${p.startAge + 9}세`);
   const daeunRows = zipTimeline<DaeunRow>(
