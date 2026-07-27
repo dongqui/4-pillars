@@ -55,6 +55,12 @@ describe("luckKey", () => {
     const b = analyze({ ...base, hour: 23 });
     expect(luckKey(a, 2026)).not.toBe(luckKey(b, 2026));
   });
+
+  it("대운 개수가 다르면 키가 다르다 (개수만큼 회차별 서술이 늘어난다)", () => {
+    const three = analyze({ ...base, hour: 10 }, { daeunCount: 3 });
+    const nine = analyze({ ...base, hour: 10 }, { daeunCount: 9 });
+    expect(luckKey(three, 2026)).not.toBe(luckKey(nine, 2026));
+  });
 });
 
 describe("pillarsJson", () => {
