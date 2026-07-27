@@ -8,8 +8,8 @@ import type { DaeunRow, ReportContent, TimelineRow } from "./report-content";
 
 /**
  * LLM 서술 배열에 계산된 기간을 인덱스로 붙인다.
- * 서술이 더 많으면 자르고, 모자라면 null — 인덱스가 어긋난 채로 붙이면
- * 엉뚱한 연령대에 엉뚱한 설명이 달린다.
+ * 서술이 더 많으면 자르고, 모자라면 배열 전체를 undefined 로 — 인덱스가 어긋난 채로
+ * 붙이면 엉뚱한 연령대에 엉뚱한 설명이 달린다.
  */
 function zipTimeline<T>(
   notes: { title: string; desc: string }[] | undefined,
