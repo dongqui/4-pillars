@@ -1,5 +1,5 @@
 import type { SajuAnalysis } from "@/lib/saju-core";
-import type { Interpretation, SectionKey } from "./sections";
+import { assign, type Interpretation, type SectionKey } from "./sections";
 import type { InterpretationGenerator } from "./types";
 
 /**
@@ -77,10 +77,7 @@ export class StubGenerator implements InterpretationGenerator {
     };
 
     const out: Partial<Interpretation> = {};
-    // key: SectionKey (합집합)라 out[key] = all[key] 는 TS가 각 케이스를 대응시키지
-    // 못해 타입 에러가 난다(microsoft/TypeScript#30581). 런타임엔 항상 같은 key로
-    // 읽고 쓰므로 안전하다.
-    for (const key of keys) (out as Record<SectionKey, unknown>)[key] = all[key];
+    for (const key of keys) assign(out, key, all[key]);
     return out;
   }
 }

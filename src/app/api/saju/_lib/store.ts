@@ -1,6 +1,7 @@
 import { sql as neonSql } from "@/lib/db";
 import type { Gender } from "@/lib/saju-core";
 import {
+  assign,
   isSectionKey,
   parseSectionContent,
   sectionVersion,
@@ -60,7 +61,7 @@ export function decodeSections(
     if (row.schema_version !== sectionVersion(key)) continue;
     const content = parseSectionContent(key, row.content);
     if (content === null) continue;
-    have[key] = content;
+    assign(have, key, content);
   }
 
   return { have, missing: keys.filter((k) => !(k in have)) };

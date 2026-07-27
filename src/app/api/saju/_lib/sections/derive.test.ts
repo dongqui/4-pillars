@@ -5,12 +5,14 @@ import {
   LUCK_SECTION_KEYS,
   PAID_SECTION_KEYS,
   SECTION_KEYS,
+  assign,
   isSectionKey,
   llmInputSchema,
   llmInputSchemaWithRows,
   parseSectionContent,
   sectionStorage,
   sectionVersion,
+  type Interpretation,
 } from "./derive";
 
 describe("키 목록", () => {
@@ -87,6 +89,23 @@ describe("llmInputSchemaWithRows", () => {
 
   it("저장·조회 검증 스키마는 개수를 강제하지 않는다 (n 은 chartKey 밖 입력)", () => {
     expect(parseSectionContent("yearlyLuck", [{ title: "t", desc: "d" }])).not.toBeNull();
+  });
+});
+
+describe("assign", () => {
+  it("target[key] = value 와 런타임 동작이 같다 (제네릭 우회는 컴파일 타임에만 영향)", () => {
+    const target: Partial<Interpretation> = {};
+    const outerVsInner = { outward: "겉", inner: "속" };
+    assign(target, "outerVsInner", outerVsInner);
+    expect(target).toEqual({ outerVsInner });
+    expect(target.overview).toBeUndefined();
+  });
+
+  it("기존 키를 덮어쓴다 (재대입도 직접 대입과 동일)", () => {
+    const target: Partial<Interpretation> = { overview: { headline: "old", summary: "s", keywords: ["a", "b", "c"] } };
+    const next = { headline: "new", summary: "s2", keywords: ["x", "y", "z"] };
+    assign(target, "overview", next);
+    expect(target.overview).toEqual(next);
   });
 });
 

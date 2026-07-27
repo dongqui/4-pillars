@@ -88,3 +88,16 @@ export function parseSectionContent<K extends SectionKey>(
   const result = spec(key).schema.safeParse(raw);
   return result.success ? (result.data as SectionContent<K>) : null;
 }
+
+/**
+ * `target[key] = value` 를 대신한다. key 가 (제네릭이 아니라) 이미 좁혀진
+ * SectionKey 공용체인 상태로 인덱스 대입을 하면, TS 가 각 케이스를 값과
+ * 상관관계로 엮지 못해 "union 은 intersection 에 대입 불가" 오류를 낸다
+ * (microsoft/TypeScript#30581). 호출부에서 K 를 제네릭으로 다시 잡아주면
+ * 그 인스턴스에서는 key 와 value 가 짝지어져 타입 체크를 통과한다 —
+ * 런타임 동작은 직접 대입과 동일하다. 나중에 "그냥 대입으로 바꿔도 되지
+ * 않나" 하고 단순화하지 말 것.
+ */
+export function assign<T, K extends keyof T>(target: Partial<T>, key: K, value: T[K]): void {
+  target[key] = value;
+}
