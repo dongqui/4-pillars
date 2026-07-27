@@ -29,14 +29,37 @@ export function ReportView({ content, access }: { content: ReportContent; access
         <CautionsSection cautions={content.cautions} tip={content.cautionTip} />
         {access.isPaid ? (
           <>
-            <EmotionSection items={content.emotion} />
-            <RelatingSection rows={content.relating} />
-            <EnvironmentSection axes={content.environment.axes} summary={content.environment.summary} emphasis={content.environment.emphasis} />
-            <LoveSection items={content.love} />
-            <CompatibilitySection good={content.compatibility.good} clash={content.compatibility.clash} />
-            <WealthSection points={content.wealth.points} summary={content.wealth.summary} emphasis={content.wealth.emphasis} />
-            <YearlyLuckSection rows={content.yearlyLuck} />
-            <DaeunSection rows={content.daeunOutlook.rows} summary={content.daeunOutlook.summary} emphasis={content.daeunOutlook.emphasis} />
+            {content.emotion && <EmotionSection items={content.emotion} />}
+            {content.relating && <RelatingSection rows={content.relating} />}
+            {content.environment && (
+              <EnvironmentSection
+                axes={content.environment.axes}
+                summary={content.environment.summary}
+                emphasis={content.environment.emphasis}
+              />
+            )}
+            {content.love && <LoveSection items={content.love} />}
+            {content.compatibility && (
+              <CompatibilitySection
+                good={content.compatibility.good}
+                clash={content.compatibility.clash}
+              />
+            )}
+            {content.wealth && (
+              <WealthSection
+                points={content.wealth.points}
+                summary={content.wealth.summary}
+                emphasis={content.wealth.emphasis}
+              />
+            )}
+            {content.yearlyLuck && <YearlyLuckSection rows={content.yearlyLuck} />}
+            {content.daeunOutlook && (
+              <DaeunSection
+                rows={content.daeunOutlook.rows}
+                summary={content.daeunOutlook.summary}
+                emphasis={content.daeunOutlook.emphasis}
+              />
+            )}
           </>
         ) : (
           <LockedSections sections={lockedSections} />

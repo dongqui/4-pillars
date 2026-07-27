@@ -3,9 +3,11 @@
 
 export type ElementKey = "wood" | "fire" | "earth" | "metal" | "water";
 
-export interface LabeledText { label: string; body: string }
-export interface TitledText { title: string; body: string }
-export interface KeyValue { label: string; value: string }
+// 잎 타입은 해석 스키마(sections/primitives)가 원본이다. 여기서 다시 선언하면
+// LLM 이 받는 구조와 화면이 읽는 타입이 갈라진다.
+// (재수출만으로는 이 파일 안에서 이름을 쓸 수 없어 import type 도 함께 둔다.)
+import type { TitledText, LabeledText, KeyValue } from "@/app/api/saju/_lib/sections";
+export type { TitledText, LabeledText, KeyValue } from "@/app/api/saju/_lib/sections";
 
 export interface AxisRow {
   left: string;
@@ -62,14 +64,16 @@ export interface ReportContent {
   strengths: TitledText[];          // 03
   cautions: string[];               // 04
   cautionTip: string;               // 04 TIP
-  emotion: LabeledText[];           // 05
-  relating: KeyValue[];             // 06
-  environment: { axes: AxisRow[]; summary: string; emphasis: string }; // 07
-  love: LabeledText[];              // 08
-  compatibility: { good: string[]; clash: string[] }; // 09
-  wealth: { points: LabeledText[]; summary: string; emphasis: string };  // 10
-  yearlyLuck: TimelineRow[];        // 11
-  daeunOutlook: { rows: DaeunRow[]; summary: string; emphasis: string }; // 12
+  // 아래는 유료 섹션 — 생성되지 않았거나 권한이 없으면 없다.
+  emotion?: LabeledText[];          // 05
+  relating?: KeyValue[];            // 06
+  /** 07 — UI 재검토 중이라 아직 해석 스키마가 없다. 픽스처에서만 채워진다. */
+  environment?: { axes: AxisRow[]; summary: string; emphasis: string };
+  love?: LabeledText[];             // 08
+  compatibility?: { good: string[]; clash: string[] }; // 09
+  wealth?: { points: LabeledText[]; summary: string; emphasis: string };  // 10
+  yearlyLuck?: TimelineRow[];       // 11
+  daeunOutlook?: { rows: DaeunRow[]; summary: string; emphasis: string }; // 12
 }
 
 /** 무료 사용자에게 보이는 05–12 잠금 목록 항목 */
