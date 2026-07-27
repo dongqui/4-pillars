@@ -2,9 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const getCached = vi.fn();
 const putCached = vi.fn();
-vi.mock("./_lib/store", () => ({
+const getLuckCached = vi.fn();
+const putLuckSections = vi.fn();
+vi.mock("./_lib/store", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./_lib/store")>()),
   getCached: (...a: unknown[]) => getCached(...a),
   putCached: (...a: unknown[]) => putCached(...a),
+}));
+vi.mock("./_lib/store-luck", () => ({
+  getLuckCached: (...a: unknown[]) => getLuckCached(...a),
+  putLuckSections: (...a: unknown[]) => putLuckSections(...a),
 }));
 
 import { POST } from "./route";
@@ -31,17 +38,19 @@ describe("POST /api/saju", () => {
   beforeEach(() => {
     getCached.mockReset();
     putCached.mockReset();
+    getLuckCached.mockReset().mockResolvedValue({ have: {}, missing: [] });
+    putLuckSections.mockReset().mockResolvedValue(undefined);
   });
 
   it("캐시 MISS 시 200 + cached:false", async () => {
-    getCached.mockResolvedValue(null);
+    getCached.mockResolvedValue({ have: {}, missing: ["overview"] });
     putCached.mockResolvedValue(undefined);
     const res = await POST(post(validBody));
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.cached).toBe(false);
     expect(json.name).toBe("홍길동");
-    expect(json.interpretation.ilgan.title).toBeTruthy();
+    expect(json.interpretation.overview.headline).toBeTruthy();
   });
 
   it("본문이 JSON이 아니면 400", async () => {
@@ -60,7 +69,7 @@ describe("POST /api/saju", () => {
   });
 
   it("putCached 실패도 500으로 감싼다", async () => {
-    getCached.mockResolvedValue(null);
+    getCached.mockResolvedValue({ have: {}, missing: ["overview"] });
     putCached.mockRejectedValue(new Error("db write fail"));
     const res = await POST(post(validBody));
     expect(res.status).toBe(500);
