@@ -93,10 +93,10 @@ export function jdToCalendar(jd: number): CalendarTime {
   const year = month > 2 ? C - 4716 : C - 4715;
 
   // 시·분 (초 반올림 후 자리올림 정규화)
-  let totalMinutes = Math.round((dayWithFrac - day) * 24 * 60);
+  const totalMinutes = Math.round((dayWithFrac - day) * 24 * 60);
   let d = day;
   let hour = Math.floor(totalMinutes / 60);
-  let minute = totalMinutes % 60;
+  const minute = totalMinutes % 60;
   if (hour >= 24) {
     hour -= 24;
     d += 1;
