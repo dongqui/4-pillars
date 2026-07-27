@@ -6,6 +6,7 @@ import {
   parseSectionContent,
   sectionVersion,
   type Interpretation,
+  type SectionContent,
   type SectionKey,
 } from "./sections";
 import type { PillarsJson } from "./key";
@@ -23,13 +24,6 @@ export interface CacheRecord {
   gender: Gender;
   pillars: PillarsJson;
   interpretation: Partial<Interpretation>;
-  model: string;
-}
-
-export interface SectionRecord {
-  chartKey: string;
-  sectionKey: SectionKey;
-  content: Interpretation[SectionKey];
   model: string;
 }
 
@@ -86,6 +80,57 @@ export async function getCached(
 }
 
 /**
+ * 섹션 하나의 쓰기 단위. 매핑 타입으로 만들어 sectionKey 와 content 가 짝지어진다.
+ * { sectionKey: "personality", content: { title, body } } 는 컴파일 에러 —
+ * personality 는 배열이다.
+ */
+export type SectionWrite = {
+  [K in SectionKey]: { sectionKey: K; content: SectionContent<K> };
+}[SectionKey];
+
+export type SectionRecord = {
+  [K in SectionKey]: {
+    chartKey: string;
+    sectionKey: K;
+    content: SectionContent<K>;
+    model: string;
+  };
+}[SectionKey];
+
+/** Partial<Interpretation> 을 쓰기 목록으로 편다. 값이 없는 섹션은 건너뛴다. */
+export function toSectionWrites(interpretation: Partial<Interpretation>): SectionWrite[] {
+  const writes: SectionWrite[] = [];
+  for (const [key, content] of Object.entries(interpretation)) {
+    if (content === undefined || !isSectionKey(key)) continue;
+    writes.push({ sectionKey: key, content } as SectionWrite);
+  }
+  return writes;
+}
+
+/**
+ * 섹션들을 한 번에 삽입(선착순, 기존 값 유지).
+ * jsonb_each 대신 UNNEST 를 쓰는 이유: 섹션마다 schema_version 이 달라야 한다.
+ * content 를 text[] 로 보내고 행마다 jsonb 로 캐스팅한다 (jsonb[] 파라미터는 드라이버가 까다롭다).
+ */
+export async function putSections(
+  chartKey: string,
+  sections: SectionWrite[],
+  model: string,
+  client: SqlClient = sql,
+): Promise<void> {
+  if (sections.length === 0) return;
+  const keys = sections.map((s) => s.sectionKey);
+  const contents = sections.map((s) => JSON.stringify(s.content));
+  const versions = sections.map((s) => sectionVersion(s.sectionKey));
+  await client`
+    INSERT INTO saju_interpretation_sections (chart_key, section_key, content, model, schema_version)
+    SELECT ${chartKey}, t.k, t.c::jsonb, ${model}, t.v
+    FROM UNNEST(${keys}::text[], ${contents}::text[], ${versions}::int[]) AS t(k, c, v)
+    ON CONFLICT (chart_key, section_key) DO NOTHING
+  `;
+}
+
+/**
  * 해석을 멱등 저장(동일 키 동시 삽입은 선착순, 나머지 무시).
  * 부모 행 → 섹션 행 순서로 넣는다(섹션의 FK가 부모를 참조).
  */
@@ -100,12 +145,7 @@ export async function putCached(record: CacheRecord, client: SqlClient = sql): P
     )
     ON CONFLICT (chart_key) DO NOTHING
   `;
-  await client`
-    INSERT INTO saju_interpretation_sections (chart_key, section_key, content, model)
-    SELECT ${record.chartKey}, e.key, e.value, ${record.model}
-    FROM jsonb_each(${JSON.stringify(record.interpretation)}::jsonb) AS e
-    ON CONFLICT (chart_key, section_key) DO NOTHING
-  `;
+  await putSections(record.chartKey, toSectionWrites(record.interpretation), record.model, client);
 }
 
 /**
@@ -117,14 +157,18 @@ export async function putSection(
   client: SqlClient = sql,
 ): Promise<void> {
   await client`
-    INSERT INTO saju_interpretation_sections (chart_key, section_key, content, model)
+    INSERT INTO saju_interpretation_sections (chart_key, section_key, content, model, schema_version)
     VALUES (
       ${record.chartKey},
       ${record.sectionKey},
       ${JSON.stringify(record.content)}::jsonb,
-      ${record.model}
+      ${record.model},
+      ${sectionVersion(record.sectionKey)}
     )
     ON CONFLICT (chart_key, section_key) DO UPDATE
-    SET content = EXCLUDED.content, model = EXCLUDED.model, updated_at = now()
+    SET content = EXCLUDED.content,
+        model = EXCLUDED.model,
+        schema_version = EXCLUDED.schema_version,
+        updated_at = now()
   `;
 }
