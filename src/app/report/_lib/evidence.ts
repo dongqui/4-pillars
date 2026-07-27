@@ -92,7 +92,10 @@ export function toChartEvidence(analysis: SajuAnalysis, year: number): ChartEvid
     })),
   ];
 
-  const age = year - chart.solar.year;
+  // daeun.periods[].startAge 는 세는 나이 기준(luck.ts 주석 참고: "세는 나이 기준 대운수 …").
+  // 만 나이(year - solar.year)로 비교하면 경계에서 대운이 하나씩 밀려 잘못 표시된다.
+  // 세는 나이는 "태어난 해를 1살로 센다" → 해당 연도 - 출생 연도 + 1.
+  const age = year - chart.solar.year + 1;
   const daeunStrip = daeun.periods.map((p) => ({
     gan: p.pillarHanja,
     age: `${p.startAge}–${p.startAge + 9}세`,

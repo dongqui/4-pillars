@@ -66,6 +66,39 @@ describe("toChartEvidence", () => {
     expect(evidence.daeunStrip.filter((d) => d.now).length).toBeLessThanOrEqual(1);
   });
 
+  // luck.ts 의 startAge 는 "세는 나이" 기준이다. year 를 세는 나이로 정확히 환산하지 않으면
+  // 경계에서 엉뚱한 대운이 now 로 잡히거나(혹은 아예 안 잡히는) 오프바이원 버그가 생긴다.
+  // 실제 두 번째 대운(index 2) 구간을 기준으로 "안쪽/첫 해/마지막 해" 세 지점을 검증한다.
+  describe("대운 now 판정 — 세는 나이 경계", () => {
+    const targetPeriod = analysis.daeun.periods[1]; // 두 번째 대운
+    const birthYear = analysis.chart.solar.year;
+    // 세는 나이 = 해당 연도 - 출생 연도 + 1 → 역으로 연도 = 출생 연도 + 세는나이 - 1
+    const firstYear = birthYear + targetPeriod.startAge - 1;
+    const lastYear = firstYear + 9; // 대운 1개는 10년
+
+    it("구간 안쪽 연도는 해당 대운만 now 로 표시한다", () => {
+      const midYear = firstYear + 5;
+      const strip = toChartEvidence(analysis, midYear).daeunStrip;
+      const flagged = strip.filter((d) => d.now);
+      expect(flagged).toHaveLength(1);
+      expect(flagged[0].gan).toBe(targetPeriod.pillarHanja);
+    });
+
+    it("구간 첫 세는 나이 해는 해당 대운만 now 로 표시한다", () => {
+      const strip = toChartEvidence(analysis, firstYear).daeunStrip;
+      const flagged = strip.filter((d) => d.now);
+      expect(flagged).toHaveLength(1);
+      expect(flagged[0].gan).toBe(targetPeriod.pillarHanja);
+    });
+
+    it("구간 마지막 세는 나이 해는 해당 대운만 now 로 표시하고 다음 대운으로 넘어가지 않는다", () => {
+      const strip = toChartEvidence(analysis, lastYear).daeunStrip;
+      const flagged = strip.filter((d) => d.now);
+      expect(flagged).toHaveLength(1);
+      expect(flagged[0].gan).toBe(targetPeriod.pillarHanja);
+    });
+  });
+
   it("면책 문구가 붙는다", () => {
     expect(evidence.disclaimer.length).toBeGreaterThan(0);
   });
