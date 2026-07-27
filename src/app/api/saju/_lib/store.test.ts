@@ -124,7 +124,6 @@ describe("putSections", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].sql).toContain("INSERT INTO saju_interpretation_sections");
     expect(calls[0].sql).toContain("UNNEST");
-    expect(calls[0].sql).toContain("ON CONFLICT (chart_key, section_key) DO NOTHING");
     expect(calls[0].values).toContainEqual(["overview", "outerVsInner"]);
     expect(calls[0].values).toContainEqual([1, 1]);
   });
@@ -133,6 +132,22 @@ describe("putSections", () => {
     const { client, calls } = fakeClient([]);
     await putSections("k", [], "stub", client);
     expect(calls).toHaveLength(0);
+  });
+
+  it("schema_version 이 다른 옛 행은 덮어쓴다 (DO NOTHING 이면 영원히 재생성 루프에 빠진다)", async () => {
+    // 진짜 DB가 있어야 WHERE 절이 실제로 갱신을 걸러내는지 끝까지 검증할 수 있다.
+    // 여기 fake SqlClient 는 SQL 문자열만 받아 그대로 돌려주므로, 우리가 확인할 수 있는
+    // 건 "쓰기 쿼리가 갱신형(conditional DO UPDATE) 인가" 까지다.
+    const { client, calls } = fakeClient([]);
+    await putSections("k", toSectionWrites({ overview }), "stub", client);
+    expect(calls[0].sql).toContain("ON CONFLICT (chart_key, section_key) DO UPDATE");
+    expect(calls[0].sql).toContain("SET content = EXCLUDED.content");
+    expect(calls[0].sql).toContain("schema_version = EXCLUDED.schema_version");
+    // 같은 버전끼리는 갱신하지 않아 동시 요청의 선착순 결과가 유지된다 —
+    // 그 보증이 이 WHERE 절에 있다.
+    expect(calls[0].sql).toContain(
+      "WHERE saju_interpretation_sections.schema_version <> EXCLUDED.schema_version",
+    );
   });
 });
 

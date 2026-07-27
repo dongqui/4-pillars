@@ -108,9 +108,17 @@ export function toSectionWrites(interpretation: Partial<Interpretation>): Sectio
 }
 
 /**
- * 섹션들을 한 번에 삽입(선착순, 기존 값 유지).
+ * 섹션들을 한 번에 삽입.
  * jsonb_each 대신 UNNEST 를 쓰는 이유: 섹션마다 schema_version 이 달라야 한다.
  * content 를 text[] 로 보내고 행마다 jsonb 로 캐스팅한다 (jsonb[] 파라미터는 드라이버가 까다롭다).
+ *
+ * ON CONFLICT 는 조건부 DO UPDATE 다 (DO NOTHING 이 아니다):
+ *  - 저장된 schema_version 이 들어오는 값과 같으면 → 같은 버전으로 이미 누가 썼다는 뜻이라
+ *    WHERE 가 걸려 갱신하지 않는다. 동시에 같은 버전을 생성한 두 요청 중 선착순만 남는다.
+ *  - 저장된 schema_version 이 다르면 → 레지스트리 버전이 올라간 뒤 재생성된 값이므로
+ *    옛 행을 덮어쓴다. 이걸 DO NOTHING 으로 두면 decodeSections 가 매 요청마다 그 옛 행을
+ *    "없는 섹션"으로 보고 재생성 → 저장 시도 → DO NOTHING 으로 다시 실패, 를 영원히
+ *    반복해 매 요청 LLM 호출 비용만 나가고 캐시가 절대 회복되지 않는다.
  */
 export async function putSections(
   chartKey: string,
@@ -126,7 +134,12 @@ export async function putSections(
     INSERT INTO saju_interpretation_sections (chart_key, section_key, content, model, schema_version)
     SELECT ${chartKey}, t.k, t.c::jsonb, ${model}, t.v
     FROM UNNEST(${keys}::text[], ${contents}::text[], ${versions}::int[]) AS t(k, c, v)
-    ON CONFLICT (chart_key, section_key) DO NOTHING
+    ON CONFLICT (chart_key, section_key) DO UPDATE
+    SET content = EXCLUDED.content,
+        model = EXCLUDED.model,
+        schema_version = EXCLUDED.schema_version,
+        updated_at = now()
+    WHERE saju_interpretation_sections.schema_version <> EXCLUDED.schema_version
   `;
 }
 
