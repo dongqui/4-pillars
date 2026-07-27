@@ -24,9 +24,9 @@ export async function getLuckCached(
 }
 
 /**
- * chart 쪽 putSections 와 달리 DO UPDATE 다.
- * luck_key 에 연도가 들어가 있어 같은 키로 다시 쓰는 일은 재생성뿐이고,
- * 그때는 새 값이 맞다.
+ * chart 쪽 putSections 는 조건부 DO UPDATE (schema_version 다를 때만 갱신)이지만,
+ * luck_key 에 연도와 대운 기간이 들어가 있어 같은 키로 다시 쓰는 일은 항상 재생성이므로
+ * 무조건 DO UPDATE 한다.
  */
 export async function putLuckSections(
   luckKey: string,
