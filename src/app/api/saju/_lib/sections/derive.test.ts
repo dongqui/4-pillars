@@ -78,8 +78,11 @@ describe("llmInputSchemaWithRows", () => {
     expect(s.properties.content.properties.rows.maxItems).toBe(6);
   });
 
-  it("기간이 없는 섹션은 그대로 둔다", () => {
-    expect(llmInputSchemaWithRows("overview", 6)).toEqual(llmInputSchema("overview"));
+  it("luck 이 아닌 섹션은 그대로 둔다 — 배열 섹션(personality 등)이라도 자기 자신의 min/max 를 건드리면 안 된다", () => {
+    for (const key of SECTION_KEYS) {
+      if (sectionStorage(key) === "luck") continue; // yearlyLuck·daeunOutlook 은 별도 테스트로 검증
+      expect(llmInputSchemaWithRows(key, 6), key).toEqual(llmInputSchema(key));
+    }
   });
 
   it("저장·조회 검증 스키마는 개수를 강제하지 않는다 (n 은 chartKey 밖 입력)", () => {

@@ -39,9 +39,13 @@ export function sectionStorage(key: SectionKey): SectionStorage {
  * 전부 { content: ... } 한 겹으로 감싼다. 응답에서 .content 를 벗겨 검증한다.
  */
 export function llmInputSchema(key: SectionKey): Record<string, unknown> {
+  const content = z.toJSONSchema(spec(key).schema, { io: "output" }) as Record<string, unknown>;
+  // $schema 는 최상위 문서에나 의미가 있다. properties.content 밑에 얹혀 있어봤자
+  // 아무도 안 읽는 죽은 값이라 지운다.
+  delete content.$schema;
   return {
     type: "object",
-    properties: { content: z.toJSONSchema(spec(key).schema, { io: "output" }) },
+    properties: { content },
     required: ["content"],
     additionalProperties: false,
   };
@@ -51,6 +55,10 @@ export function llmInputSchema(key: SectionKey): Record<string, unknown> {
  * 세운·대운은 LLM 서술을 계산된 기간과 인덱스로 짝짓는다. 개수가 어긋나면
  * 조립 단계에서 통째로 버려지므로, 요청할 때만 개수를 못박아 넘긴다.
  *
+ * luck 저장소인 이 둘 말고는 손대면 안 된다 — personality 등 다른 배열 섹션까지
+ * "최상위가 배열이면" 식으로 건드리면 그 섹션 고유의 min/max 를 덮어써버린다.
+ * 그래서 스키마 모양이 아니라 키로 직접 분기한다.
+ *
  * 저장·조회 검증에는 쓰지 않는다 — getCached 는 chartKey 밖 입력인 rows 를 모른다.
  */
 export function llmInputSchemaWithRows(
@@ -59,11 +67,12 @@ export function llmInputSchemaWithRows(
 ): Record<string, unknown> {
   const schema = llmInputSchema(key);
   const content = (schema.properties as { content: Record<string, unknown> }).content;
-  // 배열 섹션(yearlyLuck)은 content 자신이, 객체 섹션(daeunOutlook)은 rows 가 대상이다.
-  const target =
-    content.type === "array"
+  const target: Record<string, unknown> | undefined =
+    key === "yearlyLuck"
       ? content
-      : (content.properties as Record<string, Record<string, unknown>> | undefined)?.rows;
+      : key === "daeunOutlook"
+        ? (content.properties as Record<string, Record<string, unknown>>).rows
+        : undefined;
   if (target) {
     target.minItems = rows;
     target.maxItems = rows;
