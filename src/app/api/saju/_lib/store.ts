@@ -1,6 +1,12 @@
 import { sql as neonSql } from "@/lib/db";
 import type { Gender } from "@/lib/saju-core";
-import { SECTION_KEYS, type Interpretation, type SectionKey } from "./types";
+import {
+  isSectionKey,
+  parseSectionContent,
+  sectionVersion,
+  type Interpretation,
+  type SectionKey,
+} from "./sections";
 import type { PillarsJson } from "./key";
 
 /** 태그드 템플릿 SQL 클라이언트(주입 가능). 기본은 공유 neon 클라이언트. */
@@ -15,7 +21,7 @@ export interface CacheRecord {
   chartKey: string;
   gender: Gender;
   pillars: PillarsJson;
-  interpretation: Interpretation;
+  interpretation: Partial<Interpretation>;
   model: string;
 }
 
@@ -26,24 +32,56 @@ export interface SectionRecord {
   model: string;
 }
 
+/** 조회 결과. missing 은 재생성 대상이다. */
+export interface CachedSections {
+  have: Partial<Interpretation>;
+  missing: SectionKey[];
+}
+
 /**
- * 원국 키로 캐시된 해석을 조회. 섹션 행들을 Interpretation으로 조립한다.
- * 섹션이 하나라도 빠졌으면(부분 생성 중이거나 스키마가 늘어난 경우) null을
- * 반환해 재생성시킨다.
+ * 섹션 행 배열을 have/missing 으로 가른다. 테이블 이름과 무관해서
+ * chart 캐시와 luck 캐시가 같이 쓴다.
+ *
+ * 행을 버리는 두 경우:
+ *  - schema_version 불일치: 스키마가 바뀌었으니 옛 값은 못 쓴다
+ *  - 파싱 실패: 버전은 맞는데 손상됐다
+ * 둘 다 "없는 섹션"으로 만들어 그 섹션만 다시 뽑게 한다.
+ */
+export function decodeSections(
+  rows: Record<string, unknown>[],
+  keys: SectionKey[],
+): CachedSections {
+  const wanted = new Set<string>(keys);
+  const have: Partial<Interpretation> = {};
+
+  for (const row of rows) {
+    const key = row.section_key;
+    if (!isSectionKey(key) || !wanted.has(key)) continue;
+    if (row.schema_version !== sectionVersion(key)) continue;
+    const content = parseSectionContent(key, row.content);
+    if (content === null) continue;
+    have[key] = content;
+  }
+
+  return { have, missing: keys.filter((k) => !(k in have)) };
+}
+
+/**
+ * 요청한 섹션들을 캐시에서 읽는다. 전부 있어야 한다고 요구하지 않는 이유:
+ * 무료 사용자는 유료 섹션이 아예 없으므로, 전부를 요구하면 영원히 캐시 미스가 난다.
  */
 export async function getCached(
   chartKey: string,
+  keys: SectionKey[],
   client: SqlClient = sql,
-): Promise<Interpretation | null> {
+): Promise<CachedSections> {
+  if (keys.length === 0) return { have: {}, missing: [] };
   const rows = await client`
-    SELECT section_key, content FROM saju_interpretation_sections WHERE chart_key = ${chartKey}
+    SELECT section_key, content, schema_version
+    FROM saju_interpretation_sections
+    WHERE chart_key = ${chartKey} AND section_key = ANY(${keys}::text[])
   `;
-  const bySection = new Map(rows.map((r) => [r.section_key as string, r.content]));
-  if (!SECTION_KEYS.every((k) => bySection.has(k))) return null;
-
-  const interpretation = {} as Record<SectionKey, unknown>;
-  for (const key of SECTION_KEYS) interpretation[key] = bySection.get(key);
-  return interpretation as unknown as Interpretation;
+  return decodeSections(rows, keys);
 }
 
 /**

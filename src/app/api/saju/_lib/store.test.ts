@@ -1,21 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { getCached, putCached, putSection, type SqlClient, type CacheRecord } from "./store";
-import type { Interpretation } from "./types";
-
-const interpretation: Interpretation = {
-  ilgan: { title: "일간 갑", body: "본문" },
-  strengths: ["강점"],
-  weaknesses: ["약점"],
-  relationships: { title: "인간관계", body: "본문" },
-};
-
-/** getCached가 조립할 섹션 행들 */
-const sectionRows = [
-  { section_key: "ilgan", content: interpretation.ilgan },
-  { section_key: "strengths", content: interpretation.strengths },
-  { section_key: "weaknesses", content: interpretation.weaknesses },
-  { section_key: "relationships", content: interpretation.relationships },
-];
+import { getCached, decodeSections, type SqlClient } from "./store";
+import type { SectionKey } from "./sections";
 
 function fakeClient(rows: Record<string, unknown>[]) {
   const calls: { sql: string; values: unknown[] }[] = [];
@@ -26,36 +11,76 @@ function fakeClient(rows: Record<string, unknown>[]) {
   return { client, calls };
 }
 
-const record: CacheRecord = {
-  chartKey: "경오|신사|정묘|을사|male",
-  gender: "male",
-  pillars: { year: "경오", month: "신사", day: "정묘", hour: "을사" },
-  interpretation,
-  model: "stub",
-};
+const keys: SectionKey[] = ["overview", "outerVsInner"];
+
+const row = (section_key: string, content: unknown, schema_version = 1) => ({
+  section_key,
+  content,
+  schema_version,
+});
+
+const overview = { headline: "h", summary: "s", keywords: ["a", "b", "c"] };
+const outerVsInner = { outward: "겉", inner: "속" };
 
 describe("getCached", () => {
-  it("모든 섹션 행이 있으면 Interpretation으로 조립한다", async () => {
-    const { client } = fakeClient(sectionRows);
-    expect(await getCached("k", client)).toEqual(interpretation);
+  it("요청한 섹션이 다 있으면 have 에 담고 missing 은 빈다", async () => {
+    const { client } = fakeClient([
+      row("overview", overview),
+      row("outerVsInner", outerVsInner),
+    ]);
+    expect(await getCached("k", keys, client)).toEqual({
+      have: { overview, outerVsInner },
+      missing: [],
+    });
   });
 
-  it("섹션이 일부만 있으면 null (불완전 캐시는 miss로 취급)", async () => {
-    const { client } = fakeClient(sectionRows.slice(0, 2));
-    expect(await getCached("k", client)).toBeNull();
+  it("없는 섹션은 missing 으로 (일부만 재생성하려고)", async () => {
+    const { client } = fakeClient([row("overview", overview)]);
+    const res = await getCached("k", keys, client);
+    expect(res.have).toEqual({ overview });
+    expect(res.missing).toEqual(["outerVsInner"]);
   });
 
-  it("행이 없으면 null", async () => {
+  it("schema_version 이 다르면 없는 것으로 취급한다", async () => {
+    const { client } = fakeClient([row("overview", overview, 99)]);
+    const res = await getCached("k", ["overview"], client);
+    expect(res.have).toEqual({});
+    expect(res.missing).toEqual(["overview"]);
+  });
+
+  it("스키마 검증에 실패한 행도 없는 것으로 취급한다 (손상된 캐시)", async () => {
+    const { client } = fakeClient([row("overview", { headline: "h" })]);
+    const res = await getCached("k", ["overview"], client);
+    expect(res.missing).toEqual(["overview"]);
+  });
+
+  it("요청하지 않은 섹션 행은 무시한다", async () => {
+    const { client } = fakeClient([row("overview", overview), row("wealth", {})]);
+    const res = await getCached("k", ["overview"], client);
+    expect(Object.keys(res.have)).toEqual(["overview"]);
+  });
+
+  it("행이 없으면 전부 missing", async () => {
     const { client } = fakeClient([]);
-    expect(await getCached("k", client)).toBeNull();
+    expect(await getCached("k", keys, client)).toEqual({ have: {}, missing: keys });
   });
 
-  it("섹션 테이블을 chart_key로 조회한다", async () => {
-    const { client, calls } = fakeClient(sectionRows);
-    await getCached("k", client);
+  it("섹션 테이블을 chart_key + 키 목록으로 조회한다", async () => {
+    const { client, calls } = fakeClient([]);
+    await getCached("k", keys, client);
     expect(calls).toHaveLength(1);
     expect(calls[0].sql).toContain("FROM saju_interpretation_sections");
     expect(calls[0].values).toContain("k");
+    expect(calls[0].values).toContainEqual(keys);
+  });
+});
+
+describe("decodeSections", () => {
+  it("행 배열을 have/missing 으로 가른다 (테이블과 무관한 순수 함수)", () => {
+    expect(decodeSections([row("overview", overview)], keys)).toEqual({
+      have: { overview },
+      missing: ["outerVsInner"],
+    });
   });
 });
 
