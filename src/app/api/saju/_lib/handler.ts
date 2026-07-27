@@ -2,7 +2,14 @@ import { analyze } from "@/lib/saju-core";
 import { parseRequest, ValidationError } from "./input";
 import { chartKey, luckKey, pillarsJson } from "./key";
 import { toSectionWrites, type CachedSections, type CacheRecord, type SectionWrite } from "./store";
-import { sectionStorage, type Interpretation, type SectionKey } from "./sections";
+import {
+  assign,
+  isSectionKey,
+  parseSectionContent,
+  sectionStorage,
+  type Interpretation,
+  type SectionKey,
+} from "./sections";
 import type { ErrorResponse, InterpretationGenerator, SajuResponse } from "./types";
 
 export interface HandlerDeps {
@@ -77,14 +84,31 @@ export async function handleSaju(raw: unknown, deps: HandlerDeps): Promise<Handl
   } catch {
     return { status: 502, body: { error: "해석 생성에 실패했습니다" } };
   }
-  Object.assign(interpretation, generated);
 
-  // 5. 저장 (멱등) — 생성에 성공한 것만, 저장소별로 나눠서
-  const produced = splitByStorage(Object.keys(generated).filter((k): k is SectionKey =>
-    missing.includes(k as SectionKey),
-  ));
+  // 생성기가 반환한 값은 무엇이든 여기서 한 번 걸러야 한다 — 이 결과가 응답과
+  // 저장 양쪽에 그대로 쓰이므로, 한쪽에서만 검증하면 다른 쪽은 새는 채로 남는다.
+  //  - missing 에 없는 키는 버린다: 요청하지 않은 섹션이 응답에 섞이거나
+  //    이미 검증된 캐시 값을 덮어쓰지 않게 한다.
+  //  - 자기 스키마에 안 맞는 값은 버리고 warn: 첫 실제 LLM 어댑터도 결국
+  //    unknown JSON 을 다루므로, 어댑터의 규율에 기대지 않고 여기서 막는다.
+  //    떨어진 섹션은 missing 으로 남아 다음 요청에서 다시 시도된다.
+  const validated: Partial<Interpretation> = {};
+  for (const key of missing) {
+    const raw = generated[key];
+    if (raw === undefined) continue;
+    const parsed = parseSectionContent(key, raw);
+    if (parsed === null) {
+      console.warn(`[handleSaju] 섹션 검증 실패, 건너뜀: ${key}`);
+      continue;
+    }
+    assign(validated, key, parsed);
+  }
+  Object.assign(interpretation, validated);
+
+  // 5. 저장 (멱등) — 검증까지 통과한 것만, 저장소별로 나눠서
+  const produced = splitByStorage(Object.keys(validated).filter(isSectionKey));
   const chartProduced = Object.fromEntries(
-    produced.chart.map((k) => [k, generated[k]]),
+    produced.chart.map((k) => [k, validated[k]]),
   ) as Partial<Interpretation>;
 
   if (produced.chart.length > 0) {
@@ -99,7 +123,7 @@ export async function handleSaju(raw: unknown, deps: HandlerDeps): Promise<Handl
   if (produced.luck.length > 0) {
     await deps.putLuckSections(
       lKey,
-      toSectionWrites(Object.fromEntries(produced.luck.map((k) => [k, generated[k]]))),
+      toSectionWrites(Object.fromEntries(produced.luck.map((k) => [k, validated[k]]))),
       deps.generator.model,
     );
   }

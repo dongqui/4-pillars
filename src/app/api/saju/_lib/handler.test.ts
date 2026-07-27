@@ -110,6 +110,86 @@ describe("handleSaju", () => {
     expect(Object.keys((res.body as SajuResponse).interpretation)).toEqual(["overview"]);
   });
 
+  it("생성기가 스키마에 안 맞는 섹션을 주면 응답에서도 저장에서도 빠진다", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const d = deps({
+      sectionKeys: ["overview"],
+      getCached: vi.fn().mockResolvedValue({ have: {}, missing: ["overview"] }),
+      generator: {
+        model: "stub",
+        // keywords 가 빠져 overview 스키마를 통과하지 못한다.
+        generateSections: vi.fn().mockResolvedValue({ overview: { headline: "h", summary: "s" } }),
+      },
+    });
+    const res = await handleSaju(validBody, d);
+    expect(res.status).toBe(200);
+    expect((res.body as SajuResponse).interpretation).toEqual({});
+    expect(d.putCached).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("overview"));
+    warn.mockRestore();
+  });
+
+  it("일부는 유효하고 일부는 스키마 불통과면 유효한 것만 응답·저장된다", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const d = deps({
+      sectionKeys: ["overview", "personality"],
+      getCached: vi.fn().mockResolvedValue({ have: {}, missing: ["overview", "personality"] }),
+      generator: {
+        model: "stub",
+        generateSections: vi.fn().mockResolvedValue({
+          overview: { headline: "h", summary: "s", keywords: ["a", "b", "c"] },
+          // personality 는 TitledText[] 여야 하는데 객체를 줬다.
+          personality: { title: "t", body: "b" },
+        }),
+      },
+    });
+    const res = await handleSaju(validBody, d);
+    const body = res.body as SajuResponse;
+    expect(Object.keys(body.interpretation)).toEqual(["overview"]);
+    expect(d.putCached).toHaveBeenCalledOnce();
+    const putArg = vi.mocked(d.putCached).mock.calls[0][0];
+    expect(Object.keys(putArg.interpretation)).toEqual(["overview"]);
+    vi.restoreAllMocks();
+  });
+
+  it("유효한 섹션은 그대로 응답·저장된다", async () => {
+    const d = deps({
+      sectionKeys: ["overview"],
+      getCached: vi.fn().mockResolvedValue({ have: {}, missing: ["overview"] }),
+      generator: {
+        model: "stub",
+        generateSections: vi
+          .fn()
+          .mockResolvedValue({ overview: { headline: "h", summary: "s", keywords: ["a", "b", "c"] } }),
+      },
+    });
+    const res = await handleSaju(validBody, d);
+    expect((res.body as SajuResponse).interpretation).toEqual({
+      overview: { headline: "h", summary: "s", keywords: ["a", "b", "c"] },
+    });
+    expect(d.putCached).toHaveBeenCalledOnce();
+  });
+
+  it("요청하지 않은 섹션을 생성기가 반환해도 응답·저장에 섞이지 않는다", async () => {
+    const d = deps({
+      sectionKeys: ["overview"],
+      getCached: vi.fn().mockResolvedValue({ have: {}, missing: ["overview"] }),
+      generator: {
+        model: "stub",
+        generateSections: vi.fn().mockResolvedValue({
+          overview: { headline: "h", summary: "s", keywords: ["a", "b", "c"] },
+          // personality 는 요청(sectionKeys/missing)에 없었다.
+          personality: [{ title: "t", body: "b" }],
+        }),
+      },
+    });
+    const res = await handleSaju(validBody, d);
+    const body = res.body as SajuResponse;
+    expect(Object.keys(body.interpretation)).toEqual(["overview"]);
+    const putArg = vi.mocked(d.putCached).mock.calls[0][0];
+    expect(Object.keys(putArg.interpretation)).toEqual(["overview"]);
+  });
+
   it("잘못된 입력 → 400", async () => {
     const res = await handleSaju({ ...validBody, gender: "x" }, deps());
     expect(res.status).toBe(400);
