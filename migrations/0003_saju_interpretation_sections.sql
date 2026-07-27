@@ -5,8 +5,11 @@
 CREATE TABLE IF NOT EXISTS saju_interpretation_sections (
   chart_key       text NOT NULL REFERENCES saju_interpretations(chart_key) ON DELETE CASCADE,
   section_key     text NOT NULL,
+  -- shape 은 src/app/api/saju/_lib/sections/registry.ts 의 SECTIONS[section_key].schema 가 정의한다.
+  -- SQL 에 CHECK 를 걸지 않는 이유: 섹션이 늘 때마다 마이그레이션을 쓰지 않으려고.
   content         jsonb NOT NULL,
   model           text,
+  -- SECTIONS[section_key].version. 조회 시 값이 다르면 캐시 미스로 취급해 그 섹션만 재생성한다.
   schema_version  int NOT NULL DEFAULT 1,
   created_at      timestamptz NOT NULL DEFAULT now(),
   updated_at      timestamptz NOT NULL DEFAULT now(),
