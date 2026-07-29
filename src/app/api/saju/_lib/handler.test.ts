@@ -60,7 +60,11 @@ describe("handleSaju", () => {
       generator: gen,
     });
     await handleSaju(validBody, d);
-    expect(gen.generateSections).toHaveBeenCalledWith(expect.anything(), ["personality"]);
+    expect(gen.generateSections).toHaveBeenCalledWith(
+      expect.anything(),
+      ["personality"],
+      { year: 2026 },
+    );
   });
 
   it("캐시에 있던 섹션과 새로 생성한 섹션을 합쳐 응답한다", async () => {

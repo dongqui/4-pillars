@@ -30,11 +30,20 @@ export interface SajuResponse {
  * 따라서 그 섹션들은 원국·성별에서 파생되는 사실만 사용해야 한다.
  * 생시에 의존하는 서술은 storage="luck" 섹션에만 넣는다.
  */
+export interface GenerationContext {
+  /**
+   * 세운·대운의 기준 연도. SajuAnalysis 는 출생 시점만 담고 있어서
+   * "언제부터의 흐름인가"를 모른다 — 호출자(handler)가 따로 넘긴다.
+   */
+  year: number;
+}
+
 export interface InterpretationGenerator {
   /** 생성 모델 식별자 (DB에 기록) */
   readonly model: string;
   generateSections(
     analysis: SajuAnalysis,
     keys: SectionKey[],
+    ctx: GenerationContext,
   ): Promise<Partial<Interpretation>>;
 }

@@ -26,6 +26,20 @@ describe("SECTIONS", () => {
     }
   });
 
+  it("모든 섹션의 톤 예시가 파싱 가능한 JSON 이다", () => {
+    for (const [key, spec] of entries) {
+      expect(() => JSON.parse(spec.example), key).not.toThrow();
+    }
+  });
+
+  // 예시는 규칙보다 세다. 숫자가 든 예시를 두면 "숫자를 쓰지 마라"는 지시가
+  // 무력해지고, 화면이 붙이는 계산값과 어긋난 서술이 나온다.
+  it("톤 예시에 숫자가 없다", () => {
+    for (const [key, spec] of entries) {
+      expect(spec.example, key).not.toMatch(/\d/);
+    }
+  });
+
   it("생시에 의존하는 섹션만 storage=luck", () => {
     const luck = entries.filter(([, s]) => s.storage === "luck").map(([k]) => k);
     expect(luck.sort()).toEqual(["daeunOutlook", "yearlyLuck"]);

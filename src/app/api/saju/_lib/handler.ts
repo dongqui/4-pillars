@@ -80,7 +80,7 @@ export async function handleSaju(raw: unknown, deps: HandlerDeps): Promise<Handl
   //    (섹션 단위 실패는 다음 요청에서 missing 으로 다시 잡힌다).
   let generated: Partial<Interpretation>;
   try {
-    generated = await deps.generator.generateSections(analysis, missing);
+    generated = await deps.generator.generateSections(analysis, missing, { year: deps.year });
   } catch {
     return { status: 502, body: { error: "해석 생성에 실패했습니다" } };
   }

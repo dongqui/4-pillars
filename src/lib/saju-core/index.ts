@@ -33,6 +33,7 @@ export {
   type DaeunPeriod,
   type LuckDirection,
 } from "./luck";
+export { sewunPillars, type SewunYear } from "./sewun";
 
 // 데이터·관계 (콘텐츠/리포트 엔진에서 재사용)
 export {
