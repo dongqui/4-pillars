@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# neon (워크스페이스별 org/project/branch 링크 — 로컬 컨텍스트)
+.neon
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
