@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "demo": "tsx src/lib/saju-core/demo.ts",
+    "dump": "tsx --env-file=.env.local scripts/dump-sections.mts",
     "db:migrate": "tsx --env-file=.env.local scripts/migrate.mts"
   },
   "dependencies": {

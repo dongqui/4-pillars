@@ -15,13 +15,13 @@
 
 ## 지켜야 할 제약 (코드에 이미 박혀 있음)
 
-| 제약 | 근거 |
-| --- | --- |
+| 제약                                                      | 근거                                                                                                                   |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | chart 섹션 프롬프트에 이름·생년월일·시각을 넣으면 안 된다 | `chartKey()` 가 4기둥+성별로만 캐시한다. 그 밖의 정보로 쓴 서술은 같은 원국을 가진 **다른 사람에게 그대로 재사용된다** |
-| 숫자·연도·나이·퍼센트를 서술에 쓰면 안 된다 | 계산값은 `evidence.ts` 와 `to-report-content.ts` 가 붙인다. LLM 이 지어내면 화면 값과 어긋난다 |
-| `emphasis` 는 `summary` 의 정확한 부분 문자열이어야 한다 | `EmphasizedText` 가 `indexOf` 로 찾고, 못 찾으면 강조를 통째로 버린다 |
-| 세운·대운 서술은 계산된 목록과 **같은 개수·같은 순서** | `zipTimeline` 이 개수가 모자라면 섹션 전체를 `undefined` 로 버린다 |
-| 길흉 단정 금지 | `EVIDENCE_DISCLAIMER` 가 화면에서 같은 태도를 공표한다 |
+| 숫자·연도·나이·퍼센트를 서술에 쓰면 안 된다               | 계산값은 `evidence.ts` 와 `to-report-content.ts` 가 붙인다. LLM 이 지어내면 화면 값과 어긋난다                         |
+| `emphasis` 는 `summary` 의 정확한 부분 문자열이어야 한다  | `EmphasizedText` 가 `indexOf` 로 찾고, 못 찾으면 강조를 통째로 버린다                                                  |
+| 세운·대운 서술은 계산된 목록과 **같은 개수·같은 순서**    | `zipTimeline` 이 개수가 모자라면 섹션 전체를 `undefined` 로 버린다                                                     |
+| 길흉 단정 금지                                            | `EVIDENCE_DISCLAIMER` 가 화면에서 같은 태도를 공표한다                                                                 |
 
 ## 구조
 
@@ -39,8 +39,8 @@ export interface SectionRequest {
   key: SectionKey;
   system: string;
   user: string;
-  toolName: string;                       // 응답을 tool 호출로 강제
-  inputSchema: Record<string, unknown>;   // llmInputSchema(WithRows)
+  toolName: string; // 응답을 tool 호출로 강제
+  inputSchema: Record<string, unknown>; // llmInputSchema(WithRows)
 }
 export type SectionTransport = (req: SectionRequest) => Promise<unknown>;
 ```
@@ -51,22 +51,22 @@ export type SectionTransport = (req: SectionRequest) => Promise<unknown>;
 
 **새로 만드는 것**
 
-| 파일 | 책임 |
-| --- | --- |
-| `src/lib/saju-core/sewun.ts` | `sewunPillars(startYear, count)` — 연도별 세운 간지 |
-| `src/app/api/saju/_lib/prompt/system.ts` | `SYSTEM_PROMPT` |
-| `src/app/api/saju/_lib/prompt/facts.ts` | `chartFacts(analysis)` / `luckFacts(analysis, year, years)` |
-| `src/app/api/saju/_lib/prompt/index.ts` | `buildSectionRequest(analysis, key, ctx)` |
-| `src/app/api/saju/_lib/prompted.ts` | `PromptedGenerator` |
+| 파일                                     | 책임                                                        |
+| ---------------------------------------- | ----------------------------------------------------------- |
+| `src/lib/saju-core/sewun.ts`             | `sewunPillars(startYear, count)` — 연도별 세운 간지         |
+| `src/app/api/saju/_lib/prompt/system.ts` | `SYSTEM_PROMPT`                                             |
+| `src/app/api/saju/_lib/prompt/facts.ts`  | `chartFacts(analysis)` / `luckFacts(analysis, year, years)` |
+| `src/app/api/saju/_lib/prompt/index.ts`  | `buildSectionRequest(analysis, key, ctx)`                   |
+| `src/app/api/saju/_lib/prompted.ts`      | `PromptedGenerator`                                         |
 
 **고치는 것**
 
-| 파일 | 무엇을 |
-| --- | --- |
+| 파일                   | 무엇을                                                              |
+| ---------------------- | ------------------------------------------------------------------- |
 | `sections/registry.ts` | `SectionSpec.example` 추가 — 톤 예시는 섹션 정의와 같은 자리에 둔다 |
-| `_lib/types.ts` | `generateSections(analysis, keys, ctx: { year })` |
-| `_lib/handler.ts` | `deps.year` 를 생성기에 넘긴다 |
-| `_lib/generate.ts` | `StubGenerator` 시그니처 맞춤 |
+| `_lib/types.ts`        | `generateSections(analysis, keys, ctx: { year })`                   |
+| `_lib/handler.ts`      | `deps.year` 를 생성기에 넘긴다                                      |
+| `_lib/generate.ts`     | `StubGenerator` 시그니처 맞춤                                       |
 
 `route.ts` 는 그대로 `StubGenerator` 를 쓴다. 실제 LLM 은 `PromptedGenerator` 에 transport 하나를 꽂아 교체한다.
 

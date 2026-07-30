@@ -23,7 +23,21 @@ vi.mock("./_lib/store-luck", () => ({
   putLuckSections: (...a: unknown[]) => putLuckSections(...a),
 }));
 
-import { POST } from "./route";
+// 실제 생성기는 DEEP_SEEK_API_KEY 를 요구하고 네트워크를 탄다. 라우트 테스트가
+// 검증할 것은 배선이지 LLM 이 아니므로, 조립 모듈만 stub 으로 갈아끼운다.
+const createGenerator = vi.fn();
+vi.mock("./_lib/generator", async () => {
+  const { StubGenerator } = await import("./_lib/generate");
+  return {
+    MODEL: "stub",
+    createGenerator: () => {
+      createGenerator();
+      return new StubGenerator();
+    },
+  };
+});
+
+import { POST, maxDuration } from "./route";
 
 function post(body: unknown) {
   return new Request("http://localhost/api/saju", {
@@ -49,6 +63,20 @@ describe("POST /api/saju", () => {
     putCached.mockReset();
     getLuckCached.mockReset().mockResolvedValue({ have: {}, missing: [] });
     putLuckSections.mockReset().mockResolvedValue(undefined);
+  });
+
+  // 생성기를 모듈 안에서 new 하면 테스트가 실제 LLM 을 때린다. 조립은 밖에 있어야 한다.
+  it("생성기를 조립 모듈에서 받아 쓴다", async () => {
+    getCached.mockResolvedValue({ have: {}, missing: ["overview"] });
+    putCached.mockResolvedValue(undefined);
+    await POST(post(validBody));
+    expect(createGenerator).toHaveBeenCalled();
+  });
+
+  // 무료 5섹션이 병렬로 10초 안팎이다. 기본 타임아웃에 걸리면 캐시 미스 요청이
+  // 통째로 죽으므로 여유를 둔다.
+  it("maxDuration 을 넉넉히 잡는다", () => {
+    expect(maxDuration).toBeGreaterThanOrEqual(30);
   });
 
   it("캐시 MISS 시 200 + cached:false", async () => {
