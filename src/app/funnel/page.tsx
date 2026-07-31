@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FunnelProvider, useFunnel, type FunnelData } from "./_context/FunnelContext";
 import { useFunnelNav } from "./_hooks/useFunnelNav";
@@ -41,12 +41,23 @@ function FunnelInner() {
 
   // 분석 완료 → 프로필 저장 후 리포트로.
   // 저장에 실패해도 사용자를 막지 않는다 — 리포트는 입력만으로 볼 수 있다.
+  const submitted = useRef(false);
   useEffect(() => {
-    if (!analyzing) return;
+    // Strict Mode는 개발 모드에서 effect를 mount → cleanup → 재-mount로 두 번 실행한다.
+    // cancelled 플래그는 언마운트 이후 router.push만 막을 뿐 fetch 자체를 막지 못해서,
+    // 두 번째 실행도 그대로 POST를 보낸다 — AbortController로도 못 막는다(서버가 이미
+    // 행을 커밋한 뒤에 abort 신호가 도착할 수 있다). ref는 컴포넌트 인스턴스에 붙어 있어
+    // 재-mount에도 값이 살아남으므로, 두 번째 실행을 여기서 조기 종료시킨다.
+    if (!analyzing || submitted.current) return;
+    submitted.current = true;
+
     let cancelled = false;
 
     // 응답이 빨리 와도 분석 화면이 번쩍이지 않게 최소 노출 시간을 둔다.
-    const minDelay = new Promise((r) => setTimeout(r, 2200));
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const minDelay = new Promise<void>((resolve) => {
+      timeoutId = setTimeout(resolve, 2200);
+    });
 
     void (async () => {
       let dest = "/report";
@@ -62,10 +73,13 @@ function FunnelInner() {
         } else if (res.status === 409) {
           // 프로필 한도 초과 — 목록에서 정리하게 돌려보낸다.
           dest = "/home";
+        } else if (res.status !== 401) {
+          // 401(비로그인)은 의도된 무저장 경로. 그 밖의 실패는 프로필이 조용히
+          // 사라지는 것이므로 최소한 로그로는 남긴다.
+          console.error(`[POST /api/profiles] unexpected status ${res.status}`);
         }
-        // 401(비로그인)과 그 밖의 오류는 저장 없이 리포트만 보여준다.
       } catch {
-        // 네트워크 오류도 마찬가지.
+        // 네트워크 오류도 저장 없이 리포트만 보여준다.
       }
       await minDelay;
       if (!cancelled) router.push(dest);
@@ -73,6 +87,7 @@ function FunnelInner() {
 
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
     };
   }, [analyzing, data, router]);
 

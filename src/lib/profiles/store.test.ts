@@ -106,6 +106,10 @@ describe("countProfiles", () => {
     const { client, calls } = fakeClient([{ n: 2 }]);
     expect(await countProfiles("7", client)).toBe(2);
     expect(calls[0].sql).toContain("FROM profiles");
+    // WHERE user_id 가 빠지면 전체 유저의 프로필을 세게 되어 5개 한도가
+    // 계정별이 아니라 전역이 되어버린다 — 그 회귀를 여기서 잡는다.
+    expect(calls[0].sql).toContain("WHERE user_id");
+    expect(calls[0].values).toEqual(["7"]);
   });
 });
 
@@ -115,9 +119,29 @@ describe("createProfile", () => {
     expect(await createProfile("7", newProfile, client)).toEqual({ id: "42" });
 
     expect(calls[1].sql).toContain("INSERT INTO profiles");
-    // 시간을 모르는 프로필은 시각 컬럼이 null 로 들어간다
-    expect(calls[1].values).toContain(null);
-    expect(calls[1].values[1]).toBe("이정숙");
+    // 14개 위치 바인딩 전부를 컬럼 순서대로 고정한다 — toContain(null)처럼 위치를
+    // 안 가리면 birth_hour/birth_country 같은 컬럼이 뒤바뀌어도 테스트가 안 잡는다.
+    // 순서는 store.ts의 INSERT 컬럼 목록과 동일하다:
+    // user_id, name, gender, calendar, is_leap_month,
+    // birth_year, birth_month, birth_day,
+    // time_known, birth_hour, birth_minute,
+    // birth_country, birth_region_id, true_solar
+    expect(calls[1].values).toEqual([
+      "7",
+      "이정숙",
+      "female",
+      "lunar",
+      true,
+      1963,
+      4,
+      12,
+      false,
+      null,
+      null,
+      null,
+      null,
+      true,
+    ]);
   });
 
   it("한도에 도달하면 ProfileLimitError 를 던지고 INSERT 하지 않는다", async () => {

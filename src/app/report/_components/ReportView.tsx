@@ -17,10 +17,18 @@ import { WealthSection } from "./WealthSection";
 import { YearlyLuckSection } from "./YearlyLuckSection";
 import { DaeunSection } from "./DaeunSection";
 
-export function ReportView({ content, access }: { content: ReportContent; access: ReportAccess }) {
+export function ReportView({
+  content,
+  access,
+  showHomeLink,
+}: {
+  content: ReportContent;
+  access: ReportAccess;
+  showHomeLink: boolean;
+}) {
   return (
     <div className="bg-white min-h-screen text-slate-900 leading-normal break-keep [overflow-wrap:break-word]">
-      <ReportHeader />
+      <ReportHeader showHomeLink={showHomeLink} />
       <main className="max-w-[720px] mx-auto px-[clamp(20px,5vw,24px)] pt-[clamp(36px,7vw,64px)] pb-24">
         <ReportHero meta={content.meta} headline={content.headline} summary={content.summary} keywords={content.keywords} />
         <PersonalitySection items={content.personality} evidence={content.evidence} />
