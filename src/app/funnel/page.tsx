@@ -8,6 +8,7 @@ import { activeSteps, stepIndex, type StepKey } from "./_lib/steps";
 import { FunnelLayout } from "./_components/FunnelLayout";
 import { FunnelFooter } from "./_components/FunnelFooter";
 import { AnalyzingScreen } from "./_components/AnalyzingScreen";
+import { toProfileBody } from "./_lib/toProfileBody";
 import { NameStep } from "./_components/steps/NameStep";
 import { GenderStep } from "./_components/steps/GenderStep";
 import { BirthDateStep } from "./_components/steps/BirthDateStep";
@@ -38,12 +39,42 @@ function FunnelInner() {
     }
   }, [step, data, router]);
 
-  // 분석 완료 → 리포트 stub
+  // 분석 완료 → 프로필 저장 후 리포트로.
+  // 저장에 실패해도 사용자를 막지 않는다 — 리포트는 입력만으로 볼 수 있다.
   useEffect(() => {
     if (!analyzing) return;
-    const t = setTimeout(() => router.push("/report"), 2200);
-    return () => clearTimeout(t);
-  }, [analyzing, router]);
+    let cancelled = false;
+
+    // 응답이 빨리 와도 분석 화면이 번쩍이지 않게 최소 노출 시간을 둔다.
+    const minDelay = new Promise((r) => setTimeout(r, 2200));
+
+    void (async () => {
+      let dest = "/report";
+      try {
+        const res = await fetch("/api/profiles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(toProfileBody(data)),
+        });
+        if (res.status === 201) {
+          const { id } = (await res.json()) as { id: string };
+          dest = `/report?profile=${id}`;
+        } else if (res.status === 409) {
+          // 프로필 한도 초과 — 목록에서 정리하게 돌려보낸다.
+          dest = "/home";
+        }
+        // 401(비로그인)과 그 밖의 오류는 저장 없이 리포트만 보여준다.
+      } catch {
+        // 네트워크 오류도 마찬가지.
+      }
+      await minDelay;
+      if (!cancelled) router.push(dest);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [analyzing, data, router]);
 
   if (analyzing) return <AnalyzingScreen name={data.name} />;
 
