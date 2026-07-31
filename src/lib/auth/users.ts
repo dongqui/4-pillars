@@ -42,3 +42,25 @@ export async function upsertUser(
   if (!row) throw new Error("upsertUser: no row returned");
   return { id: String(row.id) };
 }
+
+export interface UserProfile {
+  id: string;
+  /** 소셜 제공자가 이름을 안 줄 수 있어 null 을 허용한다. */
+  displayName: string | null;
+}
+
+/** 헤더에 표시할 최소 정보만 읽는다. 세션에는 userId 밖에 없다. */
+export async function getUser(
+  id: string,
+  client: SqlClient = sql,
+): Promise<UserProfile | null> {
+  const rows = await client`
+    SELECT id, display_name FROM users WHERE id = ${id}::bigint
+  `;
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: String(row.id),
+    displayName: typeof row.display_name === "string" ? row.display_name : null,
+  };
+}
