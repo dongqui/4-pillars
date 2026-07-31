@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  a{color:#4F46E5; text-decoration:none;}
+  a:hover{color:#4338CA;}
+  ::selection{background:#E0E1FB;}
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#F9FAFB; font-family:'Pretendard','Pretendard Variable',-apple-system,system-ui,sans-serif; color:#111827; -webkit-font-smoothing:antialiased; line-height:1.5; --accent:{{ accent }}; --accent-soft:{{ accentSoft }};">
+
+  <header style="position:sticky; top:0; z-index:50; background:rgba(255,255,255,.82); backdrop-filter:blur(14px); border-bottom:1px solid #F3F4F6;">
+    <div style="max-width:880px; margin:0 auto; padding:0 24px; height:64px; display:flex; align-items:center; justify-content:space-between; gap:16px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:28px; height:28px; border-radius:9px; background:#111827; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:600; font-size:14px;">사</div>
+        <span style="font-weight:600; font-size:15.5px; letter-spacing:-0.02em;">사주</span>
+      </div>
+      <button style="display:flex; align-items:center; gap:8px; font-family:inherit; font-size:14px; font-weight:600; color:#111827; background:#fff; border:1px solid #E5E7EB; padding:5px 13px 5px 5px; border-radius:999px; cursor:pointer; white-space:nowrap;" style-hover="background:#F9FAFB;">
+        <span style="width:26px; height:26px; border-radius:999px; background:var(--accent-soft,rgba(79,70,229,.1)); color:var(--accent,#4F46E5); display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:700;">동</span>김동진님
+      </button>
+    </div>
+  </header>
+
+  <main style="max-width:880px; margin:0 auto; padding:clamp(36px,6vw,64px) 24px 96px;">
+
+    <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:28px;">
+      <div>
+        <h1 style="font-size:clamp(26px,4vw,34px); font-weight:700; letter-spacing:-0.035em; margin:0 0 8px;">저장된 프로필</h1>
+        <p style="font-size:15px; color:#9CA3AF; margin:0;">{{ countCaption }}</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:#9CA3AF;">
+        <span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:999px; background:var(--accent,#4F46E5);"></span>전체 리포트</span>
+        <span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:999px; background:#D1D5DB;"></span>무료 리포트</span>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:14px;">
+
+      <sc-for list="{{ profiles }}" as="p" hint-placeholder-count="2">
+        <div style="{{ p.cardStyle }}">
+          <div style="{{ p.stripeStyle }}"></div>
+          <div style="padding:22px 24px; display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
+
+            <div style="{{ p.avatarStyle }}">{{ p.initial }}</div>
+
+            <div style="flex:1; min-width:190px;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:5px;">
+                <span style="{{ p.relStyle }}">{{ p.relation }}</span>
+                <span style="{{ p.statusStyle }}">{{ p.statusLabel }}</span>
+              </div>
+              <div style="font-size:19px; font-weight:700; letter-spacing:-0.02em; line-height:1.25;">{{ p.name }}</div>
+              <div style="font-size:14px; color:#9CA3AF; margin-top:3px;">{{ p.birth }}</div>
+
+              <div style="display:flex; align-items:center; gap:10px; margin-top:12px; max-width:280px;">
+                <div style="flex:1; height:5px; border-radius:999px; background:#F0F1F3; overflow:hidden;">
+                  <div style="{{ p.barStyle }}"></div>
+                </div>
+                <span style="{{ p.metaStyle }}">{{ p.meta }}</span>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:8px; align-items:stretch; min-width:150px;">
+              <button style="{{ p.ctaStyle }}" style-hover="opacity:.9;">{{ p.ctaLabel }}</button>
+              <sc-if value="{{ p.showUpsell }}" hint-placeholder-val="{{ false }}">
+                <button style="font-family:inherit; font-size:13.5px; font-weight:600; color:var(--accent,#4F46E5); background:none; border:none; padding:2px; cursor:pointer; white-space:nowrap;" style-hover="text-decoration:underline;">전체 리포트 열기 · ₩9,900</button>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+
+      <button style="font-family:inherit; display:flex; align-items:center; justify-content:center; gap:10px; width:100%; background:#fff; border:1.5px dashed #D9DCE1; border-radius:20px; padding:22px; cursor:pointer; color:#6B7280; font-size:15px; font-weight:600;" style-hover="border-color:var(--accent,#4F46E5); color:var(--accent,#4F46E5); background:#fff;">
+        <span style="width:26px; height:26px; border-radius:999px; border:1.5px solid currentColor; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:400; line-height:1;">+</span>
+        새 프로필 추가
+      </button>
+    </div>
+
+    <p style="font-size:13px; color:#9CA3AF; margin:22px 0 0; text-wrap:pretty;">프로필은 최대 5개까지 저장할 수 있어요. 결제한 리포트는 계정에 계속 보관됩니다.</p>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#4F46E5&quot;,&quot;options&quot;:[&quot;#4F46E5&quot;,&quot;#111827&quot;,&quot;#0F766E&quot;,&quot;#B45309&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#4F46E5';
+    const soft = (hex, a) => {
+      const h = hex.replace('#', '');
+      return 'rgba(' + parseInt(h.slice(0,2),16) + ',' + parseInt(h.slice(2,4),16) + ',' + parseInt(h.slice(4,6),16) + ',' + a + ')';
+    };
+    const accentSoft = soft(accent, 0.1);
+
+    const defs = [
+      { relation: '나', name: '김동진', birth: '1990.10.25 · 오후 3시 20분', initial: '동', paid: true, self: true },
+      { relation: '어머니', name: '이정숙', birth: '1963.04.12 · 시간 모름', initial: '이', paid: false, self: false },
+      { relation: '친구', name: '박서연', birth: '1991.07.03 · 오전 6시 40분', initial: '박', paid: true, self: false }
+    ];
+
+    const profiles = defs.map(d => {
+      const paid = d.paid;
+      return {
+        relation: d.relation,
+        name: d.name,
+        birth: d.birth,
+        initial: d.initial,
+        showUpsell: !paid,
+        lockedChips: [
+          { label: '연애와 관계', hasLock: true },
+          { label: '궁합', hasLock: true },
+          { label: '재물', hasLock: true },
+          { label: '올해의 운', hasLock: true },
+          { label: '대운', hasLock: true },
+          { label: '+3개 더', hasLock: false }
+        ],
+        statusLabel: paid ? '전체 리포트' : '무료 리포트',
+        meta: paid ? '12개 섹션 전체' : '12개 중 4개 열림',
+        ctaLabel: paid ? '리포트 보기' : '무료 리포트 보기',
+        cardStyle: 'position:relative; overflow:hidden; background:#fff; border-radius:20px; border:1px solid ' + (paid ? soft(accent, 0.22) : '#EDEFF2') + '; box-shadow:' + (paid ? '0 10px 26px -18px ' + soft(accent, 0.5) : '0 1px 3px rgba(17,24,39,.04)') + ';',
+        stripeStyle: 'position:absolute; left:0; top:0; bottom:0; width:4px; background:' + (paid ? accent : '#E5E7EB') + ';',
+        avatarStyle: 'width:52px; height:52px; flex:none; border-radius:999px; display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:700; margin-left:6px; ' + (paid ? 'background:' + accentSoft + '; color:' + accent + ';' : 'background:#F3F4F6; color:#9CA3AF;'),
+        relStyle: 'font-size:12.5px; font-weight:700; padding:3px 9px; border-radius:999px; ' + (d.self ? 'background:#111827; color:#fff;' : 'background:#F3F4F6; color:#6B7280;'),
+        statusStyle: 'display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:700; padding:3px 9px; border-radius:999px; ' + (paid ? 'background:' + accentSoft + '; color:' + accent + ';' : 'background:#fff; color:#9CA3AF; border:1px solid #E5E7EB;'),
+        barStyle: 'height:100%; border-radius:999px; width:' + (paid ? '100%' : '33%') + '; background:' + (paid ? accent : '#C6CAD1') + ';',
+        metaStyle: 'font-size:12.5px; font-weight:600; white-space:nowrap; color:' + (paid ? accent : '#9CA3AF') + ';',
+        ctaStyle: 'font-family:inherit; font-size:14.5px; font-weight:600; padding:11px 20px; border-radius:12px; cursor:pointer; white-space:nowrap; ' + (paid ? 'color:#fff; background:' + accent + '; border:none;' : 'color:#374151; background:#fff; border:1px solid #E5E7EB;')
+      };
+    });
+
+    const paidCount = defs.filter(d => d.paid).length;
+    return {
+      accent,
+      accentSoft,
+      profiles,
+      countCaption: defs.length + '개 · 전체 리포트 ' + paidCount + '개'
+    };
+  }
+}
+</script>
+</body>
+</html>
