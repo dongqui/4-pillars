@@ -57,11 +57,13 @@ export default async function HomePage() {
           <AddProfileButton disabled={isFull} />
         </div>
 
-        <p className="mt-[22px] text-[13px] text-slate-400 [text-wrap:pretty]">
-          {isFull
-            ? `프로필 ${MAX_PROFILES}개를 모두 사용했어요. 결제한 리포트는 계정에 계속 보관됩니다.`
-            : `프로필은 최대 ${MAX_PROFILES}개까지 저장할 수 있어요. 결제한 리포트는 계정에 계속 보관됩니다.`}
-        </p>
+        {cards.length > 0 && (
+          <p className="mt-[22px] text-[13px] text-slate-400 [text-wrap:pretty]">
+            {isFull
+              ? `프로필 ${MAX_PROFILES}개를 모두 사용했어요. 결제한 리포트는 계정에 계속 보관됩니다.`
+              : `프로필은 최대 ${MAX_PROFILES}개까지 저장할 수 있어요. 결제한 리포트는 계정에 계속 보관됩니다.`}
+          </p>
+        )}
       </main>
     </div>
   );
