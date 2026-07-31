@@ -63,14 +63,17 @@ export async function exchangeCode(
   return (await res.json()) as TokenResponse;
 }
 
-/** next는 앱 origin 내부 경로만 허용(오픈 리다이렉트 방어). 그 외엔 "/". */
+/** 로그인 후 기본 행선. 로그인한 사용자에게는 랜딩이 아니라 프로필 목록이 맞다. */
+const DEFAULT_NEXT = "/home";
+
+/** next는 앱 origin 내부 경로만 허용(오픈 리다이렉트 방어). 그 외엔 DEFAULT_NEXT. */
 export function safeNext(next: string | null | undefined, origin: string): string {
-  if (!next) return "/";
+  if (!next) return DEFAULT_NEXT;
   try {
     const u = new URL(next, origin);
-    if (u.origin !== origin) return "/";
+    if (u.origin !== origin) return DEFAULT_NEXT;
     return u.pathname + u.search + u.hash;
   } catch {
-    return "/";
+    return DEFAULT_NEXT;
   }
 }

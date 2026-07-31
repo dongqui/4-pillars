@@ -87,23 +87,29 @@ describe("exchangeCode", () => {
 });
 
 describe("safeNext (오픈 리다이렉트 방어)", () => {
-  const origin = "http://localhost:3000";
-  it("내부 경로는 통과", () => {
+  const origin = "https://app.example.com";
+
+  it("내부 경로는 그대로 통과", () => {
     expect(safeNext("/report", origin)).toBe("/report");
     expect(safeNext("/report?paid=true", origin)).toBe("/report?paid=true");
   });
-  it("외부/프로토콜상대/역슬래시/빈값은 /로", () => {
-    expect(safeNext("https://evil.com", origin)).toBe("/");
-    expect(safeNext("//evil.com", origin)).toBe("/");
-    expect(safeNext("/\\evil.com", origin)).toBe("/");
-    expect(safeNext(null, origin)).toBe("/");
-    expect(safeNext(undefined, origin)).toBe("/");
-    // "report"(슬래시 없는 상대경로)는 new URL(next, origin)이 origin 루트 기준으로 해석해
-    // "/report"가 되지만, origin은 그대로 앱 origin이므로 오픈 리다이렉트는 아님.
+
+  it("외부 origin 은 기본 행선으로 떨군다", () => {
+    expect(safeNext("https://evil.com", origin)).toBe("/home");
+    expect(safeNext("//evil.com", origin)).toBe("/home");
+    expect(safeNext("/\\evil.com", origin)).toBe("/home");
+  });
+
+  it("next 가 없으면 로그인 홈으로 보낸다", () => {
+    expect(safeNext(null, origin)).toBe("/home");
+    expect(safeNext(undefined, origin)).toBe("/home");
+  });
+
+  it("상대 경로는 앞에 슬래시를 붙여 통과", () => {
     expect(safeNext("report", origin)).toBe("/report");
   });
-  it("개행 등으로 우회 시도해도 외부 origin으로 파싱되지 않음", () => {
+
+  it("개행이 섞여도 origin 을 벗어나지 않는다", () => {
     expect(new URL(safeNext("/\n/evil.com", origin), origin).origin).toBe(origin);
-    expect(safeNext("https://evil.com", origin)).toBe("/");
   });
 });

@@ -63,9 +63,9 @@ describe("completeOAuth", () => {
     const { deps: d } = deps(googleFetch());
     await expect(completeOAuth(PROVIDERS.google, { ...baseParams, code: null }, d)).rejects.toThrow();
   });
-  it("외부 next는 /로 정규화", async () => {
+  it("외부 next는 /home으로 정규화", async () => {
     const { deps: d } = deps(googleFetch());
     const result = await completeOAuth(PROVIDERS.google, { ...baseParams, next: "https://evil.com" }, d);
-    expect(result.redirectTo).toBe("/");
+    expect(result.redirectTo).toBe("/home");
   });
 });
