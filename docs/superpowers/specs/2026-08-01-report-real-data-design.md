@@ -59,8 +59,14 @@
 `/report`가 `handleSaju(raw: unknown, deps)`를 부르려면 이미 검증된 `ProfileRow`를 다시 요청 본문 모양으로 되말아야 한다. 대신 **캐시 조회 → 없는 것만 생성 → 검증 → 저장** 부분을 함수로 뽑는다.
 
 ```ts
-/** 생성기(LLM) 호출 실패. DB 오류와 구분해야 호출자가 다르게 대응한다. */
-export class GenerationError extends Error {}
+/**
+ * 생성기(LLM) 호출 실패. DB 오류와 구분해야 호출자가 다르게 대응한다.
+ * partial 은 실패 직전 캐시에서 읽어둔 섹션들 — 이게 없으면 /report 가
+ * "캐시에 있던 것만이라도 보여준다"를 할 수 없다(§7).
+ */
+export class GenerationError extends Error {
+  constructor(cause: unknown, readonly partial: Partial<Interpretation>) { ... }
+}
 
 export interface ProduceDeps {
   generator: InterpretationGenerator;
@@ -123,9 +129,15 @@ WHERE p.id = ${id}::bigint AND p.user_id = ${userId}::bigint
 검증은 `src/app/report/_lib/access.ts`에 순수 함수로 둔다 — 이미 `searchParams`를 읽는 유일한 자리다(`getReportAccess`, `first`).
 
 ```ts
-/** ?profile 이 순번 id 형태일 때만 문자열로, 아니면 null. */
-export function parseProfileId(searchParams: SearchParams): string | null;
+export type ProfileParam =
+  | { kind: "absent" }   // 파라미터 없음 → 픽스처 데모
+  | { kind: "invalid" }  // 있지만 순번 id 형태가 아님 → notFound
+  | { kind: "id"; id: string };
+
+export function parseProfileParam(searchParams: SearchParams): ProfileParam;
 ```
+
+세 갈래인 이유: "파라미터 없음"과 "형식이 틀림"의 행선지가 다르다. 잘못된 `?profile=abc`를 픽스처 데모로 떨어뜨리면 사용자는 남의 리포트를 보고 있다고 오해한다.
 
 ## 6. 뷰 조립 — `src/app/report/_lib/`
 
@@ -152,9 +164,10 @@ export function toReportMeta(profile: ProfileRow, chart: Chart): { name: string;
 `birthLine` 포맷은 픽스처를 따른다: `"양력 1990.02.20 04:30 · 갑자일주"`.
 
 - 달력 표기 — `profile.calendar`에서 (`"양력"` / `"음력"`).
-- 날짜·시각 — `chart.solar` (음력 입력이면 환산된 양력이 들어 있다).
-- 시간 모름 — 시각 부분을 뺀다: `"양력 1990.02.20 · 갑자일주"`.
-- 일주 — `chart.day.korean + "일주"`.
+- 날짜·시각 — **`profile.birth` / `profile.time`, 즉 사용자가 입력한 그대로.** `chart.solar`를 쓰면 안 된다 — 음력 입력은 거기서 양력으로 환산돼 있어서 `"음력"` 라벨에 환산된 양력 날짜가 붙는다. `/home` 카드도 입력값을 그대로 보여주므로 두 화면이 같은 날짜를 말하게 된다.
+- 윤달 — 음력이고 `isLeapMonth`면 `"음력 1963.04.12 윤달"`.
+- 시간 모름 — 시각 부분을 뺀다: `"양력 1990.02.20 · 갑자일주"`. `00:00`으로 적으면 자시 출생으로 읽힌다.
+- 일주 — `chart.day.korean + "일주"`. `chart`를 받는 이유는 이것 하나다.
 
 ### `regions.ts` 이동
 
@@ -221,12 +234,20 @@ export const maxDuration = 60;
 
 `year`는 `new Date().getFullYear()` — `/api/saju/route.ts`와 같다.
 
+### `loading.tsx`를 만들지 않는다
+
+fallback이 `profile.name`을 써야 하는데 `loading.tsx`는 그 값을 받을 수 없다. 그래서 인라인 `<Suspense>`를 쓴다.
+
+부수 효과가 하나 더 있다. `/report`는 쿠키와 `searchParams`를 읽어 **동적 페이지**이고, Next 16은 동적 페이지를 **`loading.js`가 있을 때만** 프리페치한다(`node_modules/next/dist/docs/01-app/02-guides/prefetching.md`). 만들지 않으면 `/home`의 `<Link>`에 마우스를 올리는 것만으로 LLM 생성이 도는 일이 없다. 클릭 시에는 셸을 먼저 보내고 나머지를 스트리밍한다 — 우리가 원하는 동작 그대로다.
+
+`unstable_instant`는 `cacheComponents`를 켠 프로젝트용이다. `next.config.ts`가 비어 있으므로 해당 없다.
+
 ## 10. 테스트
 
 | 대상 | 확인 내용 |
 | --- | --- |
 | `store.test.ts` (profiles) | `getProfile`이 `user_id`를 쿼리에 포함하는지 — 남의 id로 조회 시 `null` (백로그 경고 회귀 테스트) |
-| `access.test.ts` | `parseProfileId` — `"abc"`, `"1 OR 1=1"`, `""`, 배열 파라미터 → `null`. `"12"` → `"12"` |
+| `access.test.ts` | `parseProfileParam` — 없음 → `absent`, `"abc"`/`"1 OR 1=1"`/`""`/`"-1"` → `invalid`, `"12"` → `{kind:"id",id:"12"}` |
 | `to-birth-input.test.ts` | `birthPlace` 유/무(경도 `undefined` 확인), 음력+윤달, 시간 모름(`hour`/`minute` `undefined`), `trueSolar` 전달 |
 | `to-meta.test.ts` | 양력/음력 표기, 시간 모름일 때 시각 생략, 일주 표기, 음력 입력이 양력으로 환산되는지 |
 | `produce.test.ts` | 캐시 히트/미스, 생성기 실패 시 `GenerationError`, DB 오류는 전파 |
@@ -251,13 +272,15 @@ src/app/funnel/_context/FunnelContext.tsx           (수정: import 경로)
 src/app/funnel/_components/steps/ReviewStep.tsx     (수정: import 경로)
 src/app/funnel/_components/steps/BirthPlaceStep.tsx (수정: import 경로)
 src/app/report/page.tsx                             (수정: 실데이터 배선)
-src/app/report/_lib/access.ts                       (수정: parseProfileId 추가)
+src/app/report/_lib/access.ts                       (수정: parseProfileParam 추가)
 src/app/report/_lib/access.test.ts                  (수정)
 src/app/report/_lib/to-birth-input.ts               (신규)
 src/app/report/_lib/to-birth-input.test.ts          (신규)
 src/app/report/_lib/to-meta.ts                      (신규)
 src/app/report/_lib/to-meta.test.ts                 (신규)
-src/app/report/_components/ReportView.tsx           (수정: ReportShell + ReportBody 로 분해)
+src/app/report/_components/ReportShell.tsx          (신규, ReportView.tsx 에서 분해)
+src/app/report/_components/ReportBody.tsx           (신규, ReportView.tsx 에서 분해)
+src/app/report/_components/ReportView.tsx           (삭제)
 src/app/report/_components/AnalyzingReport.tsx      (신규)
 src/app/report/_components/ReportError.tsx          (신규)
 docs/issues/backlog.md                              (수정: 해결 항목 정리)
