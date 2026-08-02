@@ -124,6 +124,25 @@ export const SECTIONS = {
       '[{"label":"처음 만날 때","value":"거리를 두고 관찰부터. 먼저 다가가기보다 상대를 파악한 뒤 마음을 열어요."}]',
   },
 
+  environment: {
+    version: 1,
+    tier: "paid",
+    storage: "chart",
+    schema: z
+      .object({
+        energizing: shortList(3, 4),
+        draining: shortList(3, 4),
+        summary: z.string().min(1),
+        emphasis: z.string().min(1),
+      })
+      .strict(),
+    prompt:
+      "능력이 잘 드러나는 조건을 두 갈래로 나눠라. energizing 은 힘이 나는 조건, draining 은 기운이 빠지는 조건을 각각 3~4개, 한 문장 이내의 짧은 구절로 쓴다. 성격 묘사가 아니라 일하는 방식·조직 문화·일정처럼 밖에서 알아볼 수 있는 조건으로 써라. 이어서 전체 요약(summary)과 한 줄 강조(emphasis)를 덧붙여라.",
+    // emphasis 가 summary 안에 그대로 들어 있는 예시다 — 화면이 부분 문자열로 찾는다.
+    example:
+      '{"energizing":["방법은 맡기고 결과로 평가하는 팀"],"draining":["과정을 자주 보고해야 하는 관리 방식"],"summary":"정해진 방식만 반복하는 환경보다, 스스로 판단하고 개선할 여지가 있는 환경에서 능력이 잘 드러나요.","emphasis":"스스로 판단하고 개선할 여지가 있는 환경"}',
+  },
+
   love: {
     version: 1,
     tier: "paid",

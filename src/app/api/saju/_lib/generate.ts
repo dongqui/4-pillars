@@ -52,6 +52,20 @@ export class StubGenerator implements InterpretationGenerator {
         { label: "거리 두기", value: "자리표시자" },
         { label: "갈등 대응", value: "자리표시자" },
       ],
+      environment: {
+        energizing: [
+          "힘이 나는 조건 1 (자리표시자)",
+          "힘이 나는 조건 2 (자리표시자)",
+          "힘이 나는 조건 3 (자리표시자)",
+        ],
+        draining: [
+          "기운이 빠지는 조건 1 (자리표시자)",
+          "기운이 빠지는 조건 2 (자리표시자)",
+          "기운이 빠지는 조건 3 (자리표시자)",
+        ],
+        summary: "환경 요약 자리표시자입니다.",
+        emphasis: "환경 요약 자리표시자",
+      },
       love: [
         { label: "끌리는 유형", body: "자리표시자 본문입니다." },
         { label: "관계 유지", body: "자리표시자 본문입니다." },

@@ -1,48 +1,59 @@
 import { SectionHeading } from "./SectionHeading";
+import { CardGrid } from "./CardGrid";
 import { NoteCard } from "./NoteCard";
 import { EmphasizedText } from "./EmphasizedText";
-import type { AxisRow } from "../_lib/report-content";
+
+/** 조건 한 줄. 힘이 나는 쪽은 파란 체크, 빠지는 쪽은 회색 마이너스. */
+function ConditionItem({ text, tone }: { text: string; tone: "good" | "bad" }) {
+  return (
+    <div className="flex gap-2.5 items-start">
+      <span
+        className={`flex-none w-[18px] h-[18px] mt-0.5 rounded-full font-bold flex items-center justify-center ${
+          tone === "good"
+            ? "bg-accent text-white text-[10px]"
+            : "bg-slate-100 text-slate-400 text-[11px]"
+        }`}
+        aria-hidden
+      >
+        {tone === "good" ? "✓" : "−"}
+      </span>
+      <span className="text-sm text-slate-700 leading-[1.6] [text-wrap:pretty]">{text}</span>
+    </div>
+  );
+}
 
 export function EnvironmentSection({
-  axes,
+  energizing,
+  draining,
   summary,
   emphasis,
 }: {
-  axes: AxisRow[];
+  energizing: string[];
+  draining: string[];
   summary: string;
   emphasis: string;
 }) {
   return (
     <section className="mt-[72px]">
       <SectionHeading no="07" category="잘 맞는 환경" title="능력이 잘 드러나는 조건" />
-      <div className="border border-slate-200 rounded-2xl px-[22px] pt-[22px] pb-2 flex flex-col">
-        {axes.map((axis) => (
-          <div key={`${axis.left}-${axis.right}`} className="pb-[22px]">
-            <div className="flex justify-between gap-3 mb-2">
-              <span
-                className={`text-[13.5px] ${
-                  axis.lean === "left" ? "font-bold text-slate-900" : "font-medium text-slate-400"
-                }`}
-              >
-                {axis.left}
-              </span>
-              <span
-                className={`text-[13.5px] text-right ${
-                  axis.lean === "right" ? "font-bold text-slate-900" : "font-medium text-slate-400"
-                }`}
-              >
-                {axis.right}
-              </span>
-            </div>
-            <div className="h-1.5 bg-slate-100 rounded-full relative">
-              <div
-                className="absolute top-1/2 w-4 h-4 rounded-full bg-accent -translate-x-1/2 -translate-y-1/2 shadow-[0_0_0_3px_#fff,0_0_0_4px_var(--color-accent-200)]"
-                style={{ left: `${axis.pos}%` }}
-              />
-            </div>
+      <CardGrid>
+        <div className="border border-accent-200 bg-accent-50 rounded-2xl px-[22px] py-5">
+          <div className="text-[13px] font-bold text-accent mb-3.5">힘이 나는 조건</div>
+          <div className="flex flex-col gap-[11px]">
+            {energizing.map((item, i) => (
+              <ConditionItem key={`${item}-${i}`} text={item} tone="good" />
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+        <div className="border border-slate-200 rounded-2xl px-[22px] py-5">
+          <div className="text-[13px] font-bold text-slate-400 mb-3.5">기운이 빠지는 조건</div>
+          <div className="flex flex-col gap-[11px]">
+            {draining.map((item, i) => (
+              <ConditionItem key={`${item}-${i}`} text={item} tone="bad" />
+            ))}
+          </div>
+        </div>
+      </CardGrid>
       <NoteCard>
         <EmphasizedText text={summary} emphasis={emphasis} />
       </NoteCard>

@@ -64,7 +64,7 @@ export function toReportContent(
     cautionTip: cautions?.tip ?? "",
     emotion: interpretation.emotion,
     relating: interpretation.relating,
-    // environment(07)는 아직 해석 스키마가 없다 — UI 재검토 후 레지스트리에 추가한다.
+    environment: interpretation.environment,
     love: interpretation.love,
     compatibility: interpretation.compatibility,
     wealth,

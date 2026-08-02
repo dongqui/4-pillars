@@ -28,7 +28,8 @@ describe("키 목록", () => {
 
   it("isSectionKey 는 모르는 키를 거른다", () => {
     expect(isSectionKey("overview")).toBe(true);
-    expect(isSectionKey("environment")).toBe(false);
+    expect(isSectionKey("environment")).toBe(true);
+    expect(isSectionKey("careerFortune")).toBe(false);
     expect(isSectionKey(null)).toBe(false);
   });
 

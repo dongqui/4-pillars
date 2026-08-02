@@ -9,15 +9,6 @@ export type ElementKey = "wood" | "fire" | "earth" | "metal" | "water";
 import type { TitledText, LabeledText, KeyValue } from "@/app/api/saju/_lib/sections";
 export type { TitledText, LabeledText, KeyValue } from "@/app/api/saju/_lib/sections";
 
-export interface AxisRow {
-  left: string;
-  right: string;
-  /** 0–100, 점 위치(%) */
-  pos: number;
-  /** 강조 방향 */
-  lean: "left" | "right";
-}
-
 export interface TimelineRow { period: string; title: string; desc: string }
 export interface DaeunRow { range: string; title: string; desc: string; now?: boolean }
 
@@ -67,8 +58,7 @@ export interface ReportContent {
   // 아래는 유료 섹션 — 생성되지 않았거나 권한이 없으면 없다.
   emotion?: LabeledText[];          // 05
   relating?: KeyValue[];            // 06
-  /** 07 — UI 재검토 중이라 아직 해석 스키마가 없다. 픽스처에서만 채워진다. */
-  environment?: { axes: AxisRow[]; summary: string; emphasis: string };
+  environment?: { energizing: string[]; draining: string[]; summary: string; emphasis: string }; // 07
   love?: LabeledText[];             // 08
   compatibility?: { good: string[]; clash: string[] }; // 09
   wealth?: { points: LabeledText[]; summary: string; emphasis: string };  // 10

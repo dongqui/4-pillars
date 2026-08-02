@@ -4,12 +4,9 @@ import { SECTIONS, type SectionSpec } from "./registry";
 const entries = Object.entries(SECTIONS) as [string, SectionSpec][];
 
 describe("SECTIONS", () => {
-  it("섹션 12개", () => {
-    expect(entries).toHaveLength(12);
-  });
-
-  it("환경(07)은 UI 재검토 중이라 아직 없다", () => {
-    expect(SECTIONS).not.toHaveProperty("environment");
+  // 상단 히어로(overview) + 화면 01~12. 이 수가 곧 /home 의 "N개 중 M개 열림"이다.
+  it("섹션 13개", () => {
+    expect(entries).toHaveLength(13);
   });
 
   it("모든 섹션이 version >= 1", () => {
@@ -63,6 +60,14 @@ describe("SECTIONS", () => {
     expect(SECTIONS.personality.schema.safeParse([item, item]).success).toBe(true);
     expect(SECTIONS.personality.schema.safeParse([item]).success).toBe(false);
     expect(SECTIONS.personality.schema.safeParse([{ label: "t", body: "b" }]).success).toBe(false);
+  });
+
+  it("environment 는 양쪽 조건을 각각 3~4개 요구한다", () => {
+    const three = ["a", "b", "c"];
+    const ok = { energizing: three, draining: three, summary: "s", emphasis: "e" };
+    expect(SECTIONS.environment.schema.safeParse(ok).success).toBe(true);
+    expect(SECTIONS.environment.schema.safeParse({ ...ok, draining: ["a", "b"] }).success).toBe(false);
+    expect(SECTIONS.environment.schema.safeParse({ ...ok, energizing: [...three, "d", "e"] }).success).toBe(false);
   });
 
   it("daeunOutlook 은 rows/summary/emphasis 를 요구한다", () => {

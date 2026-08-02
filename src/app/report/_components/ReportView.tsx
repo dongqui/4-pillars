@@ -41,7 +41,8 @@ export function ReportView({
             {content.relating && <RelatingSection rows={content.relating} />}
             {content.environment && (
               <EnvironmentSection
-                axes={content.environment.axes}
+                energizing={content.environment.energizing}
+                draining={content.environment.draining}
                 summary={content.environment.summary}
                 emphasis={content.environment.emphasis}
               />
