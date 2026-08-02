@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  a{color:#4F46E5; text-decoration:none;}
+  a:hover{color:#4338CA;}
+  ::selection{background:#E0E1FB;}
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#F9FAFB; font-family:'Noto Sans JP',-apple-system,'Hiragino Sans',system-ui,sans-serif; color:#111827; -webkit-font-smoothing:antialiased; line-height:1.6;">
+
+  <header style="background:rgba(255,255,255,.86); backdrop-filter:blur(14px); border-bottom:1px solid #F3F4F6;">
+    <div style="max-width:1040px; margin:0 auto; padding:0 24px; height:64px; display:flex; align-items:center; justify-content:space-between; gap:16px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:28px; height:28px; border-radius:9px; background:#111827; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:600; font-size:14px;">四</div>
+        <span style="font-weight:600; font-size:15.5px; letter-spacing:-0.01em;">四柱推命</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:7px; font-size:13px; font-weight:600; color:#6B7280;">
+        <span style="width:13px; height:15px; border-radius:2px; border:1.5px solid #9CA3AF; border-top-left-radius:7px; border-top-right-radius:7px; display:inline-block;"></span>安全なお支払い
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width:1040px; margin:0 auto; padding:clamp(32px,5vw,56px) 24px 120px;">
+
+    <div style="margin-bottom:32px;">
+      <a href="#" style="font-size:13.5px; font-weight:600; color:#9CA3AF; display:inline-block; margin-bottom:14px;">← レポートに戻る</a>
+      <h1 style="font-size:clamp(25px,4vw,33px); font-weight:700; letter-spacing:-0.02em; margin:0 0 8px;">お支払い</h1>
+      <p style="font-size:15px; color:#9CA3AF; margin:0;">決済完了後、ロックされた8つのセクションがすぐに開きます。</p>
+    </div>
+
+    <div style="display:grid; grid-template-columns:{{ gridCols }}; gap:20px; align-items:start;">
+
+      <div style="display:flex; flex-direction:column; gap:20px;">
+
+        <section style="background:#fff; border:1px solid #EDEFF2; border-radius:20px; padding:24px; box-shadow:0 1px 3px rgba(17,24,39,.04);">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:18px;">
+            <h2 style="font-size:17px; font-weight:700; letter-spacing:-0.01em; margin:0;">お支払い方法</h2>
+            <span style="font-size:12.5px; color:#B6BAC1;">JPY 決済</span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <sc-for list="{{ methods }}" as="m" hint-placeholder-count="2">
+              <div style="{{ m.rowStyle }}" onClick="{{ m.select }}">
+                <div style="display:flex; align-items:center; gap:14px; padding:16px 18px;">
+                  <span style="{{ m.radioStyle }}"><span style="{{ m.dotStyle }}"></span></span>
+                  <span style="{{ m.logoStyle }}">{{ m.logo }}</span>
+                  <span style="flex:1; min-width:0;">
+                    <span style="display:block; font-size:15px; font-weight:600; letter-spacing:-0.01em;">{{ m.name }}</span>
+                    <span style="display:block; font-size:13px; color:#9CA3AF; margin-top:2px;">{{ m.desc }}</span>
+                  </span>
+                  <sc-if value="{{ m.badge }}" hint-placeholder-val="{{ false }}">
+                    <span style="flex:none; font-size:11.5px; font-weight:700; color:#4F46E5; background:rgba(79,70,229,.1); padding:4px 9px; border-radius:999px; white-space:nowrap;">{{ m.badge }}</span>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ showCardFields }}" hint-placeholder-val="{{ true }}">
+            <div style="margin-top:16px; border-top:1px solid #F3F4F6; padding-top:20px; display:flex; flex-direction:column; gap:14px;">
+              <div>
+                <label style="display:block; font-size:13px; font-weight:600; color:#6B7280; margin-bottom:7px;">カード番号</label>
+                <div style="display:flex; align-items:center; gap:10px; border:1px solid #E5E7EB; border-radius:12px; padding:0 14px; background:#fff;">
+                  <input placeholder="1234 5678 9012 3456" style="flex:1; font-family:inherit; font-size:15px; color:#111827; border:none; outline:none; padding:13px 0; background:transparent; letter-spacing:0.02em;">
+                  <span style="display:flex; gap:4px; flex:none;">
+                    <span style="width:22px; height:14px; border-radius:3px; background:#1A1F71;"></span>
+                    <span style="width:22px; height:14px; border-radius:3px; background:#EB001B;"></span>
+                    <span style="width:22px; height:14px; border-radius:3px; background:#016FD0;"></span>
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label style="display:block; font-size:13px; font-weight:600; color:#6B7280; margin-bottom:7px;">カード名義（ローマ字）</label>
+                <input placeholder="TARO YAMADA" style="width:100%; font-family:inherit; font-size:15px; color:#111827; border:1px solid #E5E7EB; border-radius:12px; outline:none; padding:13px 14px; background:#fff; letter-spacing:0.04em;">
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                  <label style="display:block; font-size:13px; font-weight:600; color:#6B7280; margin-bottom:7px;">有効期限</label>
+                  <input placeholder="MM / YY" style="width:100%; font-family:inherit; font-size:15px; color:#111827; border:1px solid #E5E7EB; border-radius:12px; outline:none; padding:13px 14px; background:#fff;">
+                </div>
+                <div>
+                  <label style="display:block; font-size:13px; font-weight:600; color:#6B7280; margin-bottom:7px;">セキュリティコード</label>
+                  <input placeholder="•••" style="width:100%; font-family:inherit; font-size:15px; color:#111827; border:1px solid #E5E7EB; border-radius:12px; outline:none; padding:13px 14px; background:#fff;">
+                </div>
+              </div>
+              <div style="display:flex; align-items:flex-start; gap:9px; background:#F9FAFB; border:1px solid #F0F1F3; border-radius:12px; padding:13px 15px;">
+                <span style="flex:none; width:16px; height:16px; border-radius:999px; background:#C6CAD1; color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:2px;">i</span>
+                <p style="font-size:12.5px; color:#6B7280; margin:0; line-height:1.6; text-wrap:pretty;">3Dセキュア（本人認証）対応カードの場合、カード会社の認証画面に移動します。</p>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ showRedirectNote }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:16px; background:#F9FAFB; border:1px solid #F0F1F3; border-radius:14px; padding:15px 17px; font-size:13.5px; color:#6B7280; line-height:1.7; text-wrap:pretty;">「お支払いへ進む」を押すとPayPayの認証画面が開きます。認証が完了するとこの画面に戻ります。</div>
+          </sc-if>
+        </section>
+
+        <section style="background:#fff; border:1px solid #EDEFF2; border-radius:20px; padding:24px; box-shadow:0 1px 3px rgba(17,24,39,.04);">
+          <h2 style="font-size:17px; font-weight:700; letter-spacing:-0.01em; margin:0 0 16px;">領収書の送付先</h2>
+          <label style="display:block; font-size:13px; font-weight:600; color:#6B7280; margin-bottom:7px;">メールアドレス</label>
+          <input value="taro.yamada@example.jp" style="width:100%; font-family:inherit; font-size:15px; color:#111827; border:1px solid #E5E7EB; border-radius:12px; outline:none; padding:13px 14px; background:#fff;">
+          <p style="font-size:12.5px; color:#B6BAC1; margin:9px 0 0;">領収書とレポートのリンクをこのアドレスにお送りします。</p>
+        </section>
+      </div>
+
+      <aside style="{{ asideStyle }}">
+        <div style="background:#fff; border:1px solid #EDEFF2; border-radius:20px; overflow:hidden; box-shadow:0 1px 3px rgba(17,24,39,.04);">
+          <div style="padding:22px 24px 20px;">
+            <h2 style="font-size:15px; font-weight:700; letter-spacing:-0.01em; margin:0 0 16px;">ご注文内容</h2>
+
+            <div style="display:flex; align-items:center; gap:13px; padding-bottom:18px; border-bottom:1px solid #F3F4F6;">
+              <span style="width:44px; height:44px; flex:none; border-radius:12px; background:rgba(79,70,229,.1); color:#4F46E5; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700;">母</span>
+              <span style="flex:1; min-width:0;">
+                <span style="display:block; font-size:15px; font-weight:600; letter-spacing:-0.01em;">四柱推命 フルレポート</span>
+                <span style="display:block; font-size:13px; color:#9CA3AF; margin-top:2px;">母 · 山田花子（1963.04.12）</span>
+              </span>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:10px; padding:18px 0; border-bottom:1px solid #F3F4F6;">
+              <div style="display:flex; justify-content:space-between; font-size:14px;"><span style="color:#6B7280;">全12セクション</span><span style="font-weight:600;">¥2,400</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:14px;"><span style="color:#6B7280;">初回レポート割引</span><span style="font-weight:600; color:#DC2626;">−¥1,200</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; color:#9CA3AF;"><span>消費税（内税10%）</span><span>¥109</span></div>
+            </div>
+
+            <div style="display:flex; align-items:baseline; justify-content:space-between; padding-top:18px;">
+              <span style="font-size:15px; font-weight:700;">お支払い金額</span>
+              <span style="font-size:24px; font-weight:700; letter-spacing:-0.02em;">¥1,200</span>
+            </div>
+          </div>
+
+          <div style="padding:0 24px 24px;">
+            <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; margin-bottom:14px;">
+              <span style="{{ checkStyle }}" onClick="{{ toggleAgree }}">{{ checkMark }}</span>
+              <span style="font-size:13px; color:#6B7280; line-height:1.6; text-wrap:pretty;"><a href="#">利用規約</a>および<a href="#">特定商取引法に基づく表記</a>に同意します。</span>
+            </label>
+
+            <button style="{{ payBtnStyle }}" style-hover="opacity:.92;">{{ payLabel }}</button>
+
+            <div style="display:flex; align-items:center; justify-content:center; gap:7px; margin-top:14px; font-size:12px; color:#B6BAC1;">
+              <span style="width:11px; height:12px; border:1.5px solid #C6CAD1; border-radius:2px; border-top-left-radius:6px; border-top-right-radius:6px; display:inline-block;"></span>
+              PortOne 安全決済 · KGイニシス
+            </div>
+          </div>
+        </div>
+
+        <p style="font-size:12.5px; color:#B6BAC1; margin:14px 4px 0; line-height:1.7; text-wrap:pretty;">デジタルコンテンツのため、レポート閲覧後の返金はできません。未閲覧の場合は7日以内に全額返金いたします。</p>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { method: 'card', agreed: true };
+
+  renderVals() {
+    const ACCENT = '#4F46E5';
+    const defs = [
+      { id: 'card', name: 'クレジットカード', desc: 'KGイニシス 日本決済', logo: 'CARD', logoBg: '#F3F4F6', logoColor: '#6B7280' },
+      { id: 'paypay', name: 'PayPay', desc: 'PayPayアプリで支払う', logo: 'Pay', logoBg: '#FF0033', logoColor: '#fff', badge: 'ポイント付与' }
+    ];
+
+    const sel = this.state.method;
+    const methods = defs.map(d => {
+      const on = d.id === sel;
+      return {
+        name: d.name, desc: d.desc, logo: d.logo, badge: d.badge || '',
+        select: () => this.setState({ method: d.id }),
+        rowStyle: 'cursor:pointer; border-radius:14px; transition:border-color .12s; border:1.5px solid ' + (on ? ACCENT : '#EDEFF2') + '; background:' + (on ? 'rgba(79,70,229,.04)' : '#fff') + ';',
+        radioStyle: 'flex:none; width:19px; height:19px; border-radius:999px; display:flex; align-items:center; justify-content:center; border:1.5px solid ' + (on ? ACCENT : '#D1D5DB') + '; background:' + (on ? ACCENT : '#fff') + ';',
+        dotStyle: on ? 'width:6px; height:6px; border-radius:999px; background:#fff; display:block;' : 'display:none;',
+        logoStyle: 'flex:none; width:46px; height:28px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; letter-spacing:-0.01em; background:' + d.logoBg + '; color:' + d.logoColor + ';'
+      };
+    });
+
+    const narrow = typeof window !== 'undefined' && window.innerWidth < 900;
+    const agreed = this.state.agreed;
+    return {
+      methods,
+      showCardFields: sel === 'card',
+      showRedirectNote: sel === 'paypay',
+      payLabel: sel === 'paypay' ? 'お支払いへ進む' : '¥1,200 を支払う',
+      gridCols: narrow ? '1fr' : 'minmax(0,1fr) 348px',
+      asideStyle: narrow ? '' : 'position:sticky; top:24px;',
+      toggleAgree: () => this.setState(s => ({ agreed: !s.agreed })),
+      checkStyle: 'flex:none; width:20px; height:20px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; margin-top:2px; border:1.5px solid ' + (agreed ? ACCENT : '#D1D5DB') + '; background:' + (agreed ? ACCENT : '#fff') + ';',
+      checkMark: agreed ? '✓' : '',
+      payBtnStyle: 'font-family:inherit; width:100%; font-size:16px; font-weight:700; padding:16px; border-radius:14px; border:none; letter-spacing:-0.01em; ' + (agreed
+        ? 'cursor:pointer; color:#fff; background:' + ACCENT + '; box-shadow:0 12px 24px -12px rgba(79,70,229,.7);'
+        : 'cursor:not-allowed; color:#9CA3AF; background:#F0F1F3;')
+    };
+  }
+
+  componentDidMount() {
+    this._r = () => this.forceUpdate();
+    window.addEventListener('resize', this._r);
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this._r); }
+}
+</script>
+</body>
+</html>
