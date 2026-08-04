@@ -16,9 +16,10 @@
 - `purchases.profile_id`가 `ON DELETE CASCADE`다. 프로필 삭제가 생기면 결제 내역이 같이 지워진다 — 환불·분쟁·회계 때문에 결제 기록은 대상보다 오래 살아야 한다. `ON DELETE SET NULL`로 바꾸는 새 마이그레이션이 필요하다 (0007을 고치면 이미 적용된 DB에는 반영되지 않는다).
 - `purchases_paid_unique`는 `profile_id IS NULL` 행을 제약하지 못한다 (SQL은 NULL을 서로 다르게 본다). 프로필 단위가 아닌 상품(구독 등)은 `(user_id, product)` 기준 제약을 따로 걸어야 한다.
 
-**`/report` 실데이터 배선 때 처리**
+**~~`/report` 실데이터 배선 때 처리~~ — 2026-08-04 해소**
 
-- `reportHref`가 순번 bigint를 URL에 노출한다. `/report`가 이 id로 실제 조회를 시작하면 **반드시 `session.userId`로도 필터해야 한다** — id만으로 찾으면 쿼리 파라미터를 증가시켜 남의 생년월일을 읽을 수 있다.
+`getProfile(userId, id)`가 `user_id`로 함께 필터해(`src/lib/profiles/store.ts`) id만으로는 남의 프로필을 조회할 수 없고, `parseProfileParam`이 `?profile`을 `/^\d+$/`로 검증해(`src/app/report/_lib/access.ts`) 형식이 다른 값은 DB에 닿기 전에 걸러낸다. 없는 프로필과 남의 프로필을 구분하지 않고 둘 다 `notFound()`.
+
 - ~~섹션 수 모델이 두 벌이다.~~ 2026-08-02 해소. `environment`(화면 07)를 레지스트리에 넣어 총 13개(히어로 `overview` + 화면 01–12)가 됐고, 유료 8개가 잠금 목록 05–12와 1:1로 맞는다.
 
 **UX 다듬기**
@@ -34,13 +35,12 @@
 
 이미 되는 것(참고): `handleSaju`가 `missing` 섹션만 생성해 캐시분과 합치고, 캐시는 프로필·유저가 아니라 원국 단위(`chartKey` = 4기둥+성별, `luckKey` = +대운 기산값·기준 연도)로 잡힌다. 그래서 무료로 뽑아둔 섹션은 로그인·결제 여부와 무관하게 그대로 재사용된다.
 
-**1. `/report` ↔ 생성 파이프라인 배선 — 설계 있음, 구현 전**
+**1. ~~`/report` ↔ 생성 파이프라인 배선~~ — 2026-08-04 해소**
 
-`POST /api/saju`는 완성돼 있지만 앱 어디서도 호출하지 않는다. `/report`는 `?profile`을 무시하고 `sampleReport` 픽스처만 렌더한다(`src/app/report/page.tsx`). 설계·계획 문서는 나와 있고 코드만 없다.
+`/report`가 `?profile=<id>`를 실제 조회로 이어 원국을 계산하고(`analyze`), `produceSections`로 해석을 생성·캐시해 렌더한다(`src/app/report/page.tsx`). 셸을 먼저 보내고 본문은 `<Suspense>`로 스트리밍한다.
 
 - 설계: `docs/superpowers/specs/2026-08-01-report-real-data-design.md`
 - 계획: `docs/superpowers/plans/2026-08-01-report-real-data.md`
-- 위 "`/report` 실데이터 배선 때 처리"의 `session.userId` 필터 항목이 이 작업에 딸려 있다.
 - 콜백은 승격 후 지금 `/home?saved=1`로 보낸다(리포트가 아직 픽스처라 `/report?profile=<id>`로 보내도 로그인 결과가 안 보이기 때문). 이 배선이 붙으면 승격 갈래의 행선지를 리포트로, §3(결제)이 붙으면 체크아웃으로 옮긴다.
 
 **2. ~~익명 사용자의 입력값 보존~~ — 2026-08-04 해소**
@@ -55,6 +55,6 @@
 유료 요청 경로 자체가 아직 없다.
 
 - `src/app/api/saju/route.ts`가 `FREE_SECTION_KEYS`를 하드코딩한다(결제 전이라 의도된 상태). 유료는 `SECTION_KEYS` 전체를 넘기면 무료 5개는 캐시 히트로 빠지고 유료 8개만 LLM을 탄다 — 핸들러는 이미 그렇게 갈라진다.
-- `/report`의 `isPaid`는 `?paid=true` 개발용 쿼리 토글이다(`src/app/report/_lib/access.ts`). 실제 판정은 `purchases` 조인(`listProfiles`)으로 옮겨야 한다.
+- `/report`의 `getReportAccess().isPaid`는 여전히 `?paid=true` 개발용 쿼리 토글이지만(`src/app/report/_lib/access.ts`), 프로필이 있는 요청은 `access.isPaid || profile.isPaid`로 OR해(`src/app/report/page.tsx`) `getProfile`의 `purchases` 조인 결과도 함께 읽는다(`src/lib/profiles/store.ts`). 남은 것: 실제 결제 요청 경로 — `purchases`에 행을 넣는 코드가 아직 없어 `profile.isPaid`는 항상 false다.
 - 유료 12섹션을 열면 `maxDuration = 60`을 다시 봐야 한다. `daeunOutlook`이 가장 느리다.
 - 위 "결제 붙이기 전에 처리" 두 항목(`purchases` CASCADE, `purchases_paid_unique`)이 같이 걸린다.
