@@ -7,7 +7,10 @@
  */
 export function ReportError({ retryHref }: { retryHref: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-[clamp(80px,20vw,160px)] text-center">
+    <div
+      role="alert"
+      className="flex flex-col items-center justify-center py-[clamp(80px,20vw,160px)] text-center"
+    >
       <div className="text-[22px] font-bold tracking-tight">리포트를 만들지 못했어요</div>
       <p className="text-[15px] text-slate-500 mt-3 max-w-[380px]">
         해석을 쓰는 중에 문제가 생겼어요. 잠시 뒤 다시 시도해 주세요.

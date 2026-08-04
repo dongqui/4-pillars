@@ -205,7 +205,7 @@ export async function promoteDraft(
 나란히 뒀다.
 
 **Task 10 으로 바뀜.** 승격 갈래의 행선지가 `/report?profile=<id>`로 옮겨가면서 `saved=1`을 세우는
-자리가 코드베이스에서 사라졌다. 도달 불가능해진 `/home`의 `saved` 분기와 배너는 크루프트라 같이
+자리가 코드베이스에서 사라졌다. 도달 불가능해진 `/home`의 `saved` 분기와 배너는 크러프트라 같이
 지웠다(`src/app/home/page.tsx`) — 로그인의 결과는 이제 `/home` 배너가 아니라 리포트 화면 자체로
 보여준다. `error=limit` 배너는 그대로 살아 있다.
 

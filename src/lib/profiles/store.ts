@@ -29,7 +29,8 @@ export interface ProfileRow {
   timeKnown: boolean;
   /** timeKnown 이 false 면 항상 null */
   time: { hour: number; minute: number } | null;
-  /** 출생지를 건너뛰면 null (국가 기본 경도를 쓴다) */
+  /** 출생지를 건너뛰면 null. toBirthInput 이 이 경우 longitude 를 넘기지 않아
+   *  saju-core 기본값 127(서울)이 쓰인다 — 국가 기본 경도로 물러서지 않는다. */
   birthPlace: { country: string; regionId: string } | null;
   trueSolar: boolean;
   createdAt: string;
