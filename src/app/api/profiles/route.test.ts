@@ -15,9 +15,11 @@ vi.mock("@/lib/profiles/store", async (importOriginal) => ({
 }));
 
 const putDraft = vi.fn();
+const deleteDraft = vi.fn();
 vi.mock("@/lib/drafts/store", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/drafts/store")>()),
   putDraft: (...a: unknown[]) => putDraft(...a),
+  deleteDraft: (...a: unknown[]) => deleteDraft(...a),
 }));
 
 import { POST } from "./route";
@@ -50,6 +52,8 @@ describe("POST /api/profiles", () => {
     createProfile.mockReset();
     putDraft.mockReset();
     putDraft.mockResolvedValue(undefined);
+    deleteDraft.mockReset();
+    deleteDraft.mockResolvedValue(undefined);
   });
 
   // 이 한 줄(session?.userId ?? null)이 profiles 테이블 전체의 테넌트 경계다 —
@@ -82,11 +86,11 @@ describe("POST /api/profiles", () => {
     getSession.mockResolvedValue(null);
 
     // 쿠키 값은 HTTP 헤더라 ByteString(Latin-1)만 허용된다 — 실제 토큰(UUID)도
-    // 언제나 ASCII이므로 테스트 값도 ASCII로 둔다.
-    const res = await POST(post(validBody, "draft=prev-token"));
+    // 언제나 ASCII이므로 테스트 값도 ASCII로 둔다. 재사용되려면 형식도 UUID여야 한다.
+    const res = await POST(post(validBody, "draft=b3b1c9b0-6f2e-4c3a-9b3e-2a1f0c8d7e6f"));
 
-    expect(res.cookies.get("draft")?.value).toBe("prev-token");
-    expect(putDraft.mock.calls[0][0]).toBe("prev-token");
+    expect(res.cookies.get("draft")?.value).toBe("b3b1c9b0-6f2e-4c3a-9b3e-2a1f0c8d7e6f");
+    expect(putDraft.mock.calls[0][0]).toBe("b3b1c9b0-6f2e-4c3a-9b3e-2a1f0c8d7e6f");
   });
 
   it("로그인 상태면 draft 쿠키를 굽지 않는다", async () => {
@@ -114,6 +118,19 @@ describe("POST /api/profiles", () => {
     const res = await POST(post(validBody));
 
     expect(res.status).toBe(500);
+  });
+
+  // limit 으로 남겨둔 드래프트가 있는 채로 프로필을 다시 저장하면, 지우지 않는 경우
+  // 다음 로그인에 한 번 더 승격돼 중복 프로필이 생긴다.
+  it("201 응답이고 요청에 draft 쿠키가 있었으면 그 쿠키를 지운다", async () => {
+    getSession.mockResolvedValue({ userId: "7", provider: "google" });
+    createProfile.mockResolvedValue({ id: "42" });
+
+    const res = await POST(post(validBody, "draft=prev-token"));
+
+    expect(res.status).toBe(201);
+    expect(deleteDraft).toHaveBeenCalledWith("prev-token");
+    expect(res.cookies.get("draft")?.value).toBe("");
   });
 
   it("putDraft 가 실패하면 500 이고 쿠키를 굽지 않는다", async () => {

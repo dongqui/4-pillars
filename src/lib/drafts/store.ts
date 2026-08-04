@@ -30,6 +30,18 @@ export function generateDraftToken(): string {
   return crypto.randomUUID();
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * 쿠키에서 온 토큰을 Redis 키(`draft:<token>`)로 쓰기 전에 형식을 확인한다.
+ * 프리픽스가 고정이라 키스페이스를 벗어날 수는 없지만, 검증 없이 쓰면 형식이
+ * 깨진 값도 그대로 새 키가 되어 쓰레기가 쌓인다. `generateDraftToken`이 만드는
+ * 모양(UUID)과 같은지만 본다.
+ */
+export function isValidDraftToken(token: string): boolean {
+  return UUID_RE.test(token);
+}
+
 export async function putDraft(
   token: string,
   body: CreateProfileBody,

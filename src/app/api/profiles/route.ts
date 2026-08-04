@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { createProfile } from "@/lib/profiles/store";
 import {
   DRAFT_COOKIE,
+  deleteDraft,
   draftCookieOptions,
   generateDraftToken,
   putDraft,
@@ -28,12 +29,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       saveDraft: putDraft,
       newToken: generateDraftToken,
       existingToken: request.cookies.get(DRAFT_COOKIE)?.value ?? null,
+      dropDraft: deleteDraft,
     });
 
     const res = NextResponse.json(result.body, { status: result.status });
-    // 핸들러는 쿠키를 모른다 — 토큰만 받아 여기서 굽는다.
+    // 핸들러는 쿠키를 모른다 — 토큰만 받아 여기서 굽거나 지운다.
     if (result.draftToken) {
       res.cookies.set(DRAFT_COOKIE, result.draftToken, draftCookieOptions());
+    }
+    if (result.clearDraftCookie) {
+      res.cookies.delete(DRAFT_COOKIE);
     }
     return res;
   } catch (e) {

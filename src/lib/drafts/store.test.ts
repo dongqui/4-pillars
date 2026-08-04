@@ -3,6 +3,7 @@ import {
   deleteDraft,
   generateDraftToken,
   getDraft,
+  isValidDraftToken,
   putDraft,
   type DraftClient,
 } from "./store";
@@ -77,5 +78,15 @@ describe("드래프트 저장소", () => {
 
   it("토큰은 호출마다 다르다", () => {
     expect(generateDraftToken()).not.toBe(generateDraftToken());
+  });
+
+  it("generateDraftToken 이 만든 토큰은 형식 검증을 통과한다", () => {
+    expect(isValidDraftToken(generateDraftToken())).toBe(true);
+  });
+
+  it("UUID 형식이 아니면 false", () => {
+    expect(isValidDraftToken("이전토큰")).toBe(false);
+    expect(isValidDraftToken("not-a-uuid")).toBe(false);
+    expect(isValidDraftToken("")).toBe(false);
   });
 });
