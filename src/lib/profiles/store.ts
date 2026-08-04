@@ -10,7 +10,7 @@ export type SqlClient = (
 const sql = neonSql as unknown as SqlClient;
 
 /** 한 계정이 저장할 수 있는 프로필 수. 화면 문구와 같이 움직인다. */
-export const MAX_PROFILES = 5;
+export const MAX_PROFILES = 20;
 
 export class ProfileLimitError extends Error {
   constructor() {
@@ -110,7 +110,8 @@ export async function countProfiles(
 
 /**
  * 프로필 생성. 한도 검사는 앱 레벨이라 동시 요청에서는 한 개쯤 더 들어갈 수 있다.
- * 트랜잭션을 걸지 않는 이유: 5개 제한은 UX 가드일 뿐 정합성 요건이 아니다.
+ * 트랜잭션을 걸지 않는 이유: 개수 한도는 UX 가드일 뿐 정합성 요건이 아니다.
+ * 실제 비용 방어는 개수가 아니라 LLM 생성 호출에 걸어야 한다.
  */
 export async function createProfile(
   userId: string,

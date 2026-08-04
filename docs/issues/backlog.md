@@ -23,7 +23,6 @@
 
 **UX 다듬기**
 
-- 프로필 한도 초과(409)로 퍼널에서 `/home`으로 돌려보낼 때 아무 설명이 없다. `?error=limit` + 배너.
 - 빈 상태에서 "0개 · 전체 리포트 0개" 캡션이 "아직 저장된 프로필이 없어요" 바로 위에 중복으로 뜬다.
 - `AddProfileButton`의 비활성 상태가 `role` 없는 `div`라 보조기술에 전달되지 않는다.
 - `ProfileRow.createdAt`이 `String(Date)`라 로케일 문자열이 된다. 지금은 아무도 읽지 않지만 첫 소비자가 걸린다.
@@ -42,17 +41,14 @@
 - 설계: `docs/superpowers/specs/2026-08-01-report-real-data-design.md`
 - 계획: `docs/superpowers/plans/2026-08-01-report-real-data.md`
 - 위 "`/report` 실데이터 배선 때 처리"의 `session.userId` 필터 항목이 이 작업에 딸려 있다.
+- 콜백이 승격 후 `/report?profile=<id>`로 보내므로, 이 배선이 붙기 전까지 승격된 사용자도 픽스처를 본다.
 
-**2. 익명 사용자의 입력값 보존 — 미설계. 여기가 실제 갈림길이다**
+**2. ~~익명 사용자의 입력값 보존~~ — 2026-08-04 해소**
 
-"무료 리포트 먼저, 로그인 나중" 순서를 지원하려면 이게 선행돼야 하는데, 위 설계 문서 §2가 익명 실데이터를 명시적으로 비범위로 뺐다(`?profile` 없으면 픽스처). 그래서 지금 코드의 순서는 **반대**다 — 퍼널 완료 시점에 *이미 로그인돼 있어야* `POST /api/profiles`로 저장되고, 비로그인이면 401을 받고 그냥 넘어간다(`src/app/funnel/page.tsx`, `src/app/api/profiles/_lib/handler.ts`).
+`POST /api/profiles`가 세션 유무로 갈린다 — 없으면 Upstash Redis 드래프트 + `draft` 쿠키(202), OAuth 콜백이 그 손잡이로 프로필을 만들고 `/report?profile=<id>`로 보낸다. `/report`의 "전체 결과 보기"가 비로그인일 때 `/login?next=/report`로 가는 입구다.
 
-막히는 지점 두 개:
-
-- 퍼널 입력값이 `FunnelContext` 메모리에만 있다. 쿠키·localStorage 어디에도 안 남아서 `/report`로 넘어가는 순간 소실되고, 로그인 후 저장할 것이 남지 않는다.
-- DB에 남는 건 해석 텍스트뿐이라 `chart_key`(4기둥+성별)로는 원국을 역산할 수 없다. 익명 리포트를 다시 그리려면 생년월일을 어딘가 새로 남겨야 한다.
-
-결정할 것: 익명 입력을 어디에 남길지(서명 쿠키 / 임시 테이블+토큰), 로그인 시 그것을 프로필로 승격시키는 지점(OAuth 콜백 / `/report` 재방문), 익명 경로가 열리면 필요해지는 LLM 호출 레이트리밋.
+- 설계: `docs/superpowers/specs/2026-08-04-anonymous-draft-design.md`
+- 남은 것: 익명 LLM 호출 레이트리밋. 아래 3번과 §1이 익명 생성 경로를 열 때 필요해진다.
 
 **3. 결제 연동과 `sectionKeys` 확장**
 

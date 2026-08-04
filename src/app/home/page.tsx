@@ -8,7 +8,12 @@ import { ProfileCard } from "./_components/ProfileCard";
 import { AddProfileButton } from "./_components/AddProfileButton";
 import { EmptyState } from "./_components/EmptyState";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
   const session = await getSession();
   if (!session) redirect("/login?next=/home");
 
@@ -26,6 +31,13 @@ export default async function HomePage() {
       <HomeHeader displayName={displayName} />
 
       <main className="mx-auto max-w-[880px] px-6 pb-24 pt-[clamp(36px,6vw,64px)]">
+        {error === "limit" && (
+          // 퍼널의 409 와 로그인 시 드래프트 승격 실패가 둘 다 여기로 온다.
+          // 설명 없이 목록만 보여주면 사용자는 왜 돌아왔는지 모른다.
+          <p className="mb-5 rounded-xl bg-amber-50 px-4 py-3 text-[13.5px] text-amber-700">
+            프로필이 가득 찼어요. 하나를 지우면 새로 저장할 수 있어요.
+          </p>
+        )}
         <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
           <div>
             <h1 className="mb-2 text-[clamp(26px,4vw,34px)] font-bold tracking-[-0.035em]">

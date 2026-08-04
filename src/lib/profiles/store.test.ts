@@ -106,7 +106,7 @@ describe("countProfiles", () => {
     const { client, calls } = fakeClient([{ n: 2 }]);
     expect(await countProfiles("7", client)).toBe(2);
     expect(calls[0].sql).toContain("FROM profiles");
-    // WHERE user_id 가 빠지면 전체 유저의 프로필을 세게 되어 5개 한도가
+    // WHERE user_id 가 빠지면 전체 유저의 프로필을 세게 되어 개수 한도가
     // 계정별이 아니라 전역이 되어버린다 — 그 회귀를 여기서 잡는다.
     expect(calls[0].sql).toContain("WHERE user_id");
     expect(calls[0].values).toEqual(["7"]);
