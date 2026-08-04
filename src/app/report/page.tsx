@@ -1,6 +1,7 @@
 import { getReportAccess } from "./_lib/access";
 import { sampleReport } from "./_lib/report-content.fixture";
-import { ReportView } from "./_components/ReportView";
+import { ReportShell } from "./_components/ReportShell";
+import { ReportBody } from "./_components/ReportBody";
 import { getSession } from "@/lib/auth/session";
 
 export default async function ReportPage({
@@ -12,5 +13,9 @@ export default async function ReportPage({
   const session = await getSession();
   const access = getReportAccess(sp, session);
   // 세션이 있을 때만 "내 프로필" 링크를 보여준다 — 비로그인 방문자는 목록 자체가 없다.
-  return <ReportView content={sampleReport} access={access} showHomeLink={session !== null} />;
+  return (
+    <ReportShell showHomeLink={session !== null}>
+      <ReportBody content={sampleReport} access={access} />
+    </ReportShell>
+  );
 }
