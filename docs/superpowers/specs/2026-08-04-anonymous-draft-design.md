@@ -58,20 +58,23 @@ Redis는 서버 쪽 저장소라 키가 있어야 값을 되찾는다. 로그인
 [익명] /report 에서 "로그인하고 전체 결과 보기"
   └ /login?next=%2Freport → OAuth 왕복
       └ 콜백: upsertUser → promoteDraft
-               ├ promoted → 드래프트·쿠키 삭제 → /home?saved=1   ← §1·§3이 붙으면 리포트/체크아웃으로
+               ├ promoted → 드래프트·쿠키 삭제 → /report?profile=<id>   ← §1 해소로 옮김(아래 문단 참고). §3이 붙으면 체크아웃으로
                ├ limit    → 드래프트·쿠키 유지 → /home?error=limit
                ├ none     → 쿠키 삭제 → 원래 next
                └ failed   → 쿠키 유지 → 원래 next
 ```
 
-`promoted` 가 `/report?profile=<id>` 가 아니라 `/home?saved=1` 인 이유: `/report`가 아직 `?profile`을 무시하고
-`sampleReport` 픽스처만 렌더한다(백로그 §1 미구현). 지금 리포트로 보내면 로그인 전후로 화면이 글자
-하나 안 바뀌어 로그인의 결과가 보이지 않는다. §1(실데이터 배선)·§3(결제)이 붙으면 이 갈래를
-체크아웃/리포트로 옮긴다.
+**(2026-08-04 작성 당시)** `promoted` 가 `/report?profile=<id>` 가 아니라 `/home?saved=1` 이었던 이유:
+`/report`가 그때는 `?profile`을 무시하고 `sampleReport` 픽스처만 렌더했다(백로그 §1 미구현). 그
+상태로 리포트로 보내면 로그인 전후로 화면이 글자 하나 안 바뀌어 로그인의 결과가 보이지 않았다.
+
+**§1 해소로 바뀜.** `/report?profile=<id>`가 실데이터를 렌더하게 됐으므로(`docs/superpowers/plans/2026-08-01-report-real-data.md`), 그 이유가 사라졌다. 승격되면 이제 방금 만든 프로필의
+`/report?profile=<id>`로 곧장 보낸다 — 로그인의 결과가 그 자리에서 보인다. §3(결제)이 붙으면
+이 갈래가 체크아웃으로 바뀔 수 있다.
 
 **401은 사라진다.** 세션 유무를 아는 유일한 쪽(서버)이 한 번만 판단하고, 퍼널은 상태코드로 행선지만 읽는다.
 
-`next`는 로그인 *전에* 정해지는데 프로필 id는 로그인 *순간에* 생긴다. 그래서 `next=/report?profile=7`을 미리 넣을 수 없고, **최종 행선지는 콜백이 정한다.** 승격이 일어나면 `next`가 무엇이었든 항상 `/home?saved=1`로 보낸다 — 규칙이 하나라 분기가 없다(위 67-70줄 참고: 리포트가 아직 픽스처라서 그렇다).
+`next`는 로그인 *전에* 정해지는데 프로필 id는 로그인 *순간에* 생긴다. 그래서 `next=/report?profile=7`을 미리 넣을 수 없고, **최종 행선지는 콜백이 정한다.** 승격이 일어나면 `next`가 무엇이었든 항상 방금 만든 프로필의 `/report?profile=<id>`로 보낸다 — 규칙이 하나라 분기가 없다(위 문단 참고).
 
 ## 5. 저장소 — `src/lib/redis.ts`, `src/lib/drafts/store.ts` (신규)
 
@@ -161,7 +164,7 @@ export async function promoteDraft(
 
 | 결과 | 행선지 | 쿠키 | Redis |
 | --- | --- | --- | --- |
-| `promoted` | `/home?saved=1` | 삭제 | 삭제 |
+| `promoted` | `/report?profile=<id>`(2026-08-04 작성 당시엔 `/home?saved=1` — §1 해소로 옮김) | 삭제 | 삭제 |
 | `limit` | `/home?error=limit` | 유지 | 유지 |
 | `none` | 원래 `next` | 삭제 | — |
 | `failed` | 원래 `next` | 유지 | 유지 |
@@ -210,7 +213,11 @@ export async function promoteDraft(
 | 이미 로그인한 사람이 또 로그인 | 드래프트가 있으면 승격된다. 의도된 동작 |
 | 콜백이 동시에 두 번 (탭 두 개) | 프로필이 둘 생길 수 있다. 현행 퍼널도 중복을 막지 않으므로 새로 생기는 문제가 아니다 — 그대로 둔다 |
 
-**레이트리밋은 이번 범위 밖이다.** 익명 LLM 경로가 열리지 않으므로(`/report`는 여전히 픽스처) 비싼 호출이 늘지 않는다. 드래프트 쓰기는 값이 작고 TTL이 있다. 방어가 필요한 자리는 생성 호출이고, 백로그에 이미 있다.
+**레이트리밋은 이번 범위 밖이다.** 익명 사용자는 여전히 로그인 없이는 실데이터 리포트를 받을 수 없다 —
+§1 해소 이후에도 `/report?profile=<id>`는 세션이 없으면 `/login?next=...`로 redirect하고, `?profile`이
+없으면 지금처럼 `sampleReport` 픽스처를 렌더한다(`src/app/report/page.tsx`). 즉 익명 LLM 경로는 이
+작업으로도 열리지 않았으므로 비싼 호출은 늘지 않는다. 드래프트 쓰기는 값이 작고 TTL이 있다. 방어가
+필요한 자리는 생성 호출이고, 백로그에 이미 있다.
 
 ## 10. 테스트
 
@@ -244,7 +251,8 @@ src/app/api/profiles/route.test.ts             (수정)
 src/app/api/auth/callbacks/[provider]/route.ts (수정: 승격 배선)
 src/app/funnel/page.tsx                        (수정: 202/409 분기)
 src/app/report/_components/LockedSections.tsx  (수정: CTA 분기)
-src/app/report/_components/ReportView.tsx      (수정: isLoggedIn 전달)
+src/app/report/_components/ReportView.tsx      (수정: isLoggedIn 전달) — 2026-08-04 §1 작업이
+                                                이 파일을 ReportShell.tsx + ReportBody.tsx 로 갈랐다
 src/app/home/page.tsx                          (수정: error=limit 배너)
 .env.example                                   (수정: UPSTASH 두 줄)
 docs/issues/backlog.md                         (수정)

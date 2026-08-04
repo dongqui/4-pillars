@@ -47,13 +47,13 @@ function ctx() {
 }
 
 describe("GET /api/auth/callbacks/[provider]", () => {
-  it("promoted: /home?saved=1 로 보내고 draft 쿠키를 지운다", async () => {
+  it("promoted: /report?profile=<id> 로 보내고 draft 쿠키를 지운다", async () => {
     completeOAuth.mockResolvedValue(baseCallbackResult);
     promoteDraft.mockResolvedValue({ kind: "promoted", id: "42" });
 
     const res = await GET(callbackRequest("draft=tok-1"), ctx());
 
-    expect(res.headers.get("location")).toBe("http://localhost:3000/home?saved=1");
+    expect(res.headers.get("location")).toBe("http://localhost:3000/report?profile=42");
     // NextResponse.cookies.delete() 는 value:"" 에 만료된 Set-Cookie 를 굽는다 — 실험으로 확인.
     expect(res.cookies.get("draft")?.value).toBe("");
   });

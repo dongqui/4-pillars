@@ -43,15 +43,12 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ provider: s
       { getDraft, createProfile, deleteDraft },
     );
 
-    // 프로필 id 는 지금 막 생겼으므로 next 에 미리 담을 수 없었다 — 행선지는 여기서 정한다.
-    // /report 는 아직 ?profile 을 무시하고 픽스처만 렌더한다(백로그 §1 미구현) — 지금
-    // /report?profile=<id> 로 보내면 로그인의 결과가 화면에 전혀 드러나지 않는다. 그래서
-    // 승격되면 일단 /home 에서 "저장됐다"는 것만 보여준다. §1(실데이터 배선)·§3(결제)이
-    // 붙으면 이 갈래를 체크아웃/리포트로 바꾼다. promoted.id 는 지금 당장 안 쓰이지만
-    // 로그·향후 확장을 위해 남겨둔다.
+    // 프로필 id 는 지금 막 생겼으므로 next 에 미리 담을 수 없었다 — 최종 행선지는 여기서 정한다.
+    // /report?profile=<id> 가 실데이터를 렌더하게 됐으므로(백로그 §1 해소), 승격 직후
+    // 방금 만든 프로필의 리포트로 곧장 보낸다. §3(결제)이 붙으면 이 갈래가 체크아웃으로 바뀔 수 있다.
     const redirectTo =
       promoted.kind === "promoted"
-        ? "/home?saved=1"
+        ? `/report?profile=${promoted.id}`
         : promoted.kind === "limit"
           ? "/home?error=limit"
           : result.redirectTo;
