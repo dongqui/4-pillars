@@ -28,6 +28,7 @@
 - `AddProfileButton`의 비활성 상태가 `role` 없는 `div`라 보조기술에 전달되지 않는다.
 - `ProfileRow.createdAt`이 `String(Date)`라 로케일 문자열이 된다. 지금은 아무도 읽지 않지만 첫 소비자가 걸린다.
 - 랜딩에서 `/login`으로 가는 링크가 없다. `/home`이 로그인 후 행선이 된 지금, 로그인은 URL을 직접 쳐야만 들어갈 수 있다.
+- 로그인 상태 퍼널에서 로딩 화면이 두 번 나온다. 퍼널의 `AnalyzingScreen`(최소 2.2초, "만세력 환산 · 오행 분석 중", `src/app/funnel/page.tsx`) → `/report?profile=<id>` → `AnalyzingReport`("리포트를 쓰고 있어요", LLM 생성이 끝날 때까지, `src/app/report/_components/AnalyzingReport.tsx`). 문구는 각각 정확하지만 사용자에겐 스피너가 두 번이다. 퍼널의 최소 노출 시간을 이 갈래에서만 걷어내는 것을 검토.
 
 ## 리포트 발행 흐름에 남은 고리
 
@@ -48,13 +49,42 @@
 `POST /api/profiles`가 세션 유무로 갈린다 — 없으면 Upstash Redis 드래프트 + `draft` 쿠키(202), OAuth 콜백이 그 손잡이로 프로필을 만들고 `/report?profile=<id>`로 보낸다(2026-08-04 §1 해소로 리포트가 실데이터를 렌더하게 되면서 행선지가 `/home?saved=1`에서 옮겨왔다). `/report`의 "전체 결과 보기"가 비로그인일 때 `/login?next=/report`로 가는 입구다.
 
 - 설계: `docs/superpowers/specs/2026-08-04-anonymous-draft-design.md`
-- 남은 것: 익명 LLM 호출 레이트리밋. 아래 3번과 §1이 익명 생성 경로를 열 때 필요해진다.
+- 남은 것: 익명 LLM 호출 레이트리밋. 아래 3번과 §1이 익명 생성 경로를 열 때 필요해진다. GET `/report`가 이제 생성 진입점이 됐다는 점도 같이 걸린다 — POST였던 퍼널 제출은 한 번뿐이었지만 GET 페이지는 새로고침·뒤로가기·재시도·복수 탭이 전부 트리거고, 같은 원국이 캐시 미스인 동안 in-flight 중복을 막을 장치가 없어(`src/app/report/page.tsx` → `produceSections`) 각각 온전한 생성이 돈다. 서버리스에서 응답이 끊기면 LLM 비용은 나가고 캐시는 못 채우는 조합도 가능하다.
 
 **3. 결제 연동과 `sectionKeys` 확장**
 
 유료 요청 경로 자체가 아직 없다.
 
 - `src/app/api/saju/route.ts`가 `FREE_SECTION_KEYS`를 하드코딩한다(결제 전이라 의도된 상태). 유료는 `SECTION_KEYS` 전체를 넘기면 무료 5개는 캐시 히트로 빠지고 유료 8개만 LLM을 탄다 — 핸들러는 이미 그렇게 갈라진다.
-- `/report`의 `getReportAccess().isPaid`는 여전히 `?paid=true` 개발용 쿼리 토글이지만(`src/app/report/_lib/access.ts`), 프로필이 있는 요청은 `access.isPaid || profile.isPaid`로 OR해(`src/app/report/page.tsx`) `getProfile`의 `purchases` 조인 결과도 함께 읽는다(`src/lib/profiles/store.ts`). 남은 것: 실제 결제 요청 경로 — `purchases`에 행을 넣는 코드가 아직 없어 `profile.isPaid`는 항상 false다.
+- `/report`의 `getReportAccess().isPaid`는 여전히 `?paid=true` 개발용 쿼리 토글이지만(`src/app/report/_lib/access.ts`), 이제 `NODE_ENV !== "production"`으로 감싸 프로덕션에서는 무시된다 — 픽스처만 있던 시절과 달리 지금은 붙이면 DeepSeek로 유료 8섹션을 실제 생성하고, 그 결과가 원국 단위 공유 캐시에 영구 저장돼 결제가 붙은 뒤에도 그 원국은 공짜가 되는 경로였기 때문이다. 프로필이 있는 요청은 `access.isPaid || profile.isPaid`로 OR해(`src/app/report/page.tsx`) `getProfile`의 `purchases` 조인 결과도 함께 읽는다(`src/lib/profiles/store.ts`). 남은 것: 실제 결제 요청 경로 — `purchases`에 행을 넣는 코드가 아직 없어 `profile.isPaid`는 항상 false다.
 - 유료 12섹션을 열면 `maxDuration = 60`을 다시 봐야 한다. `daeunOutlook`이 가장 느리다.
 - 위 "결제 붙이기 전에 처리" 두 항목(`purchases` CASCADE, `purchases_paid_unique`)이 같이 걸린다.
+
+**4. 유료인데 섹션이 빠지면 화면에 신호가 없다**
+
+`ReportBody`(`src/app/report/_components/ReportBody.tsx`)는 유료 갈래에서 `content.emotion && <EmotionSection/>` 식으로 섹션마다 존재 여부만 본다. `PromptedGenerator`(`src/app/api/saju/_lib/prompted.ts`)가 섹션별 생성 실패를 삼키고 나머지로 넘어가므로 이건 예외가 아니라 정상 경로고, `daeunOutlook`이 `maxDuration = 60`을 넘길 수 있다고 `page.tsx` 주석 자체가 인정한다. 그래서 유료 프로필의 한 섹션이 빠지면 잠금 카드도 에러도 없이 리포트가 04에서 그냥 끝나는데, 같은 순간 `/home` 카드는 `isPaid`만 보고 "전체 리포트"를 표시한다(`src/app/home/_lib/to-profile-card.ts`). 설계 §7의 "`overview`만 있으면 있는 것만 렌더" 규칙은 무료 5섹션 시절에 정한 것이라, 유료 화면에서 빠진 섹션을 사용자에게 알리는 문제는 아직 다루지 않는다.
+
+**5. `/report` 배선 자체에 테스트가 없다**
+
+조각들(`parseProfileParam`, `getProfile`, `toBirthInput`, `toReportMeta`, `produceSections`)은 각각 테스트가 있지만, 그것들을 잇는 `page.tsx`의 결정은 테스트되지 않는다: `sectionKeys` 선택(틀리면 조용히 유료 8섹션어치 LLM 비용이 나간다), absent/invalid/세션 없음 세 갈래, 리다이렉트 타깃, `overview` 부재 → `ReportError`. 리포 전체에 `*.test.tsx`가 하나도 없어(서버 컴포넌트 테스트 인프라 부재) 관행에는 맞는다. 최소한 `sectionKeys` 결정만이라도 순수 함수로 뽑으면 테스트할 수 있다.
+
+**6. `src/app/api/saju/_lib`가 이제 두 진입점의 공용 코어다**
+
+`/report/page.tsx`가 거기서 `generator`·`produce`·`store`·`store-luck`·`sections`·`types` 6개 모듈을 import한다. `_lib`는 관례상 "라우트 전용"을 뜻해 소유권이 흐려 보인다. `src/lib/saju/generation/` 같은 자리로 옮기는 것을 검토.
+
+**7. 퍼널과 리포트의 `toBirthInput`이 같은 프로필에 다른 경도를 줄 수 있다**
+
+퍼널의 `resolveLongitude`(`src/lib/regions.ts`)는 지역을 못 찾으면 국가 기본값(KR 서울 126.98 / JP 도쿄 139.69)으로 물러서는데, 리포트의 `toBirthInput`(`src/app/report/_lib/to-birth-input.ts`)은 지역을 못 찾으면 `longitude`를 아예 넘기지 않아 saju-core 기본값 127(서울 근사치)이 쓰인다. 지금은 `getLocale()`이 `"ko"` 고정(`src/app/funnel/_lib/locale.ts`)이라 퍼널이 저장하는 프로필은 항상 KR·유효한 regionId뿐이라 드러나지 않지만, region 목록이 개정돼 저장된 regionId가 빠지거나 JP 로케일이 열리면 `{country:"JP", regionId:<사라진 id>}` 같은 프로필에서 리포트가 도쿄가 아니라 서울 경도로 계산해 시주가 틀어질 수 있다.
+
+**8. `not-found.tsx`가 없어 `notFound()`가 Next 기본 영문 404로 떨어진다**
+
+이번 작업이 처음으로 `notFound()`를 사용자가 실제로 도달할 수 있는 자리(`/report?profile=` 형식 오류·없는 프로필·남의 프로필)에 놓았다. 오래된 북마크나 다른 계정으로 로그인해 들어온 평범한 경로에서 헤더 없는 `404 | This page could not be found.`가 나온다.
+
+**9. 코드 품질 소소한 것들**
+
+- `getProfile`의 `is_paid` LEFT JOIN이 `listProfiles`와 SQL이 그대로 중복된다(`src/lib/profiles/store.ts`) — 세 번째 호출자가 생기면 SQL 조각으로 뽑는다.
+- 502 응답 문구 `"해석 생성에 실패했습니다"`가 HTTP를 모르는 `produce.ts`의 `GenerationError` 생성자에 산다(`src/app/api/saju/_lib/produce.ts`) — `handler.ts`가 `e.message`를 그대로 응답에 싣는다. `GenerationError`엔 코드만 붙이고 문구는 호출자로 옮기는 편이 낫다.
+- `ReportError`의 "잠시 뒤 다시 시도"(`src/app/report/_components/ReportError.tsx`)가 원국 계산(`analyze`) 실패 갈래엔 안 맞는다 — 그 실패는 결정적이라 재시도해도 같은 결과다.
+- `page.tsx`의 `let analysis;`가 명시 타입 없이 추론에 기댄다.
+- `produce.test.ts`가 검증-드롭 경로(스키마 불통과 섹션)와 저장 페이로드를 직접 검사하지 않는다 — `handler.test.ts`가 지금은 같은 경로를 덮지만, `handleSaju`가 더 얇아지면 새는 자리가 된다.
+- `access.test.ts`의 `?paid=true` 두 케이스가 앰비언트 `NODE_ENV`에 기댄다 — `vi.stubEnv("NODE_ENV", "development")`로 명시하면 CI가 `NODE_ENV=production`을 내보낼 때도 오해할 여지가 없다.
