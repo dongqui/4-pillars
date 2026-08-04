@@ -4,7 +4,7 @@ import { Toggle } from "@/components/Toggle";
 import { useFunnel } from "../../_context/FunnelContext";
 import { formatCalendarLabel, formatTime } from "../../_lib/date";
 import { getLocale } from "../../_lib/locale";
-import { findRegion } from "../../_lib/regions";
+import { findRegion } from "@/lib/regions";
 
 export function ReviewStep() {
   const { data, update } = useFunnel();

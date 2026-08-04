@@ -1,7 +1,7 @@
 import type { BirthInput } from "@/lib/saju-core";
 import type { FunnelData } from "../_context/FunnelContext";
 import { getLocale, localeToCountry } from "./locale";
-import { resolveLongitude } from "./regions";
+import { resolveLongitude } from "@/lib/regions";
 
 /**
  * 퍼널 입력을 사주 API 입력으로 변환한다.

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
-import type { Country } from "../_lib/regions";
+import type { Country } from "@/lib/regions";
 
 export type Gender = "male" | "female";
 export type Calendar = "solar" | "lunar";

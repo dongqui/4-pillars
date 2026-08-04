@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useFunnel } from "../../_context/FunnelContext";
 import { getLocale, localeToCountry } from "../../_lib/locale";
-import { getRegions, DEFAULT_REGION_ID, type Region } from "../../_lib/regions";
+import { getRegions, DEFAULT_REGION_ID, type Region } from "@/lib/regions";
 
 export function BirthPlaceStep() {
   const { data, update } = useFunnel();

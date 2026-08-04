@@ -1,4 +1,4 @@
-import type { Country } from "./regions";
+import type { Country } from "@/lib/regions";
 
 export type Locale = "ko" | "ja";
 
