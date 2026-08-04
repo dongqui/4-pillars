@@ -21,7 +21,6 @@ export default async function HomePage({
 }) {
   const sp = await searchParams;
   const error = first(sp.error);
-  const saved = first(sp.saved);
   const session = await getSession();
   if (!session) redirect("/login?next=/home");
 
@@ -39,12 +38,6 @@ export default async function HomePage({
       <HomeHeader displayName={displayName} />
 
       <main className="mx-auto max-w-[880px] px-6 pb-24 pt-[clamp(36px,6vw,64px)]">
-        {saved === "1" && (
-          // 드래프트가 승격되면 여기로 온다 — 로그인의 결과가 눈에 보여야 한다.
-          <p className="mb-5 rounded-xl bg-emerald-50 px-4 py-3 text-[13.5px] text-emerald-700">
-            프로필이 저장됐어요. 언제든 다시 볼 수 있어요.
-          </p>
-        )}
         {error === "limit" && (
           // 퍼널의 409 와 로그인 시 드래프트 승격 실패가 둘 다 여기로 온다.
           // 설명 없이 목록만 보여주면 사용자는 왜 돌아왔는지 모른다.
