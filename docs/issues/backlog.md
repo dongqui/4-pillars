@@ -41,11 +41,11 @@
 - 설계: `docs/superpowers/specs/2026-08-01-report-real-data-design.md`
 - 계획: `docs/superpowers/plans/2026-08-01-report-real-data.md`
 - 위 "`/report` 실데이터 배선 때 처리"의 `session.userId` 필터 항목이 이 작업에 딸려 있다.
-- 콜백이 승격 후 `/report?profile=<id>`로 보내므로, 이 배선이 붙기 전까지 승격된 사용자도 픽스처를 본다.
+- 콜백은 승격 후 지금 `/home?saved=1`로 보낸다(리포트가 아직 픽스처라 `/report?profile=<id>`로 보내도 로그인 결과가 안 보이기 때문). 이 배선이 붙으면 승격 갈래의 행선지를 리포트로, §3(결제)이 붙으면 체크아웃으로 옮긴다.
 
 **2. ~~익명 사용자의 입력값 보존~~ — 2026-08-04 해소**
 
-`POST /api/profiles`가 세션 유무로 갈린다 — 없으면 Upstash Redis 드래프트 + `draft` 쿠키(202), OAuth 콜백이 그 손잡이로 프로필을 만들고 `/report?profile=<id>`로 보낸다. `/report`의 "전체 결과 보기"가 비로그인일 때 `/login?next=/report`로 가는 입구다.
+`POST /api/profiles`가 세션 유무로 갈린다 — 없으면 Upstash Redis 드래프트 + `draft` 쿠키(202), OAuth 콜백이 그 손잡이로 프로필을 만들고 `/home?saved=1`로 보낸다(리포트가 아직 픽스처라 `/report?profile=<id>`로는 결과가 안 보인다). `/report`의 "전체 결과 보기"가 비로그인일 때 `/login?next=/report`로 가는 입구다.
 
 - 설계: `docs/superpowers/specs/2026-08-04-anonymous-draft-design.md`
 - 남은 것: 익명 LLM 호출 레이트리밋. 아래 3번과 §1이 익명 생성 경로를 열 때 필요해진다.

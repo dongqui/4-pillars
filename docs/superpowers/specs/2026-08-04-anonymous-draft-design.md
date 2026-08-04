@@ -58,11 +58,16 @@ Redis는 서버 쪽 저장소라 키가 있어야 값을 되찾는다. 로그인
 [익명] /report 에서 "로그인하고 전체 결과 보기"
   └ /login?next=%2Freport → OAuth 왕복
       └ 콜백: upsertUser → promoteDraft
-               ├ promoted → 드래프트·쿠키 삭제 → /report?profile=<id>   ← 결제가 끼어들 자리
+               ├ promoted → 드래프트·쿠키 삭제 → /home?saved=1   ← §1·§3이 붙으면 리포트/체크아웃으로
                ├ limit    → 드래프트·쿠키 유지 → /home?error=limit
                ├ none     → 쿠키 삭제 → 원래 next
                └ failed   → 쿠키 유지 → 원래 next
 ```
+
+`promoted` 가 `/report?profile=<id>` 가 아니라 `/home?saved=1` 인 이유: `/report`가 아직 `?profile`을 무시하고
+`sampleReport` 픽스처만 렌더한다(백로그 §1 미구현). 지금 리포트로 보내면 로그인 전후로 화면이 글자
+하나 안 바뀌어 로그인의 결과가 보이지 않는다. §1(실데이터 배선)·§3(결제)이 붙으면 이 갈래를
+체크아웃/리포트로 옮긴다.
 
 **401은 사라진다.** 세션 유무를 아는 유일한 쪽(서버)이 한 번만 판단하고, 퍼널은 상태코드로 행선지만 읽는다.
 
@@ -156,7 +161,7 @@ export async function promoteDraft(
 
 | 결과 | 행선지 | 쿠키 | Redis |
 | --- | --- | --- | --- |
-| `promoted` | `/report?profile=<id>` | 삭제 | 삭제 |
+| `promoted` | `/home?saved=1` | 삭제 | 삭제 |
 | `limit` | `/home?error=limit` | 유지 | 유지 |
 | `none` | 원래 `next` | 삭제 | — |
 | `failed` | 원래 `next` | 유지 | 유지 |
@@ -189,6 +194,10 @@ export async function promoteDraft(
 ### `/home?error=limit` 배너
 
 퍼널의 409와 승격 실패가 둘 다 여기로 떨어지는데 지금은 아무 설명이 없다 — 백로그 UX 항목이다. "프로필이 가득 찼어요. 하나를 지우면 새로 저장할 수 있어요." 한 줄.
+
+### `/home?saved=1` 배너
+
+콜백에서 승격이 성공하면 여기로 온다. "프로필이 저장됐어요. 언제든 다시 볼 수 있어요." 한 줄 — 성격이 다르므로(성공 vs 경고) `error=limit` 배너와 색만 다르게(`emerald`) 나란히 둔다.
 
 ## 9. 실패·엣지
 
