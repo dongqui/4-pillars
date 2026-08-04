@@ -71,7 +71,7 @@ export function ReportView({
             )}
           </>
         ) : (
-          <LockedSections sections={lockedSections} />
+          <LockedSections sections={lockedSections} isLoggedIn={access.isLoggedIn} />
         )}
       </main>
     </div>

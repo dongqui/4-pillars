@@ -2,7 +2,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { LockedSectionMeta } from "../_lib/report-content";
 
-export function LockedSections({ sections }: { sections: LockedSectionMeta[] }) {
+export function LockedSections({
+  sections,
+  isLoggedIn,
+}: {
+  sections: LockedSectionMeta[];
+  isLoggedIn: boolean;
+}) {
   const inlineRef = useRef<HTMLAnchorElement>(null);
   const [showBar, setShowBar] = useState(false);
   useEffect(() => {
@@ -15,6 +21,11 @@ export function LockedSections({ sections }: { sections: LockedSectionMeta[] }) 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // 결제하려면 계정이 있어야 한다. 비로그인에게는 이 버튼의 첫 단계가 로그인이고,
+  // 로그인하는 순간 퍼널에서 맡겨둔 드래프트가 프로필로 승격된다.
+  const ctaHref = isLoggedIn ? "#" : `/login?next=${encodeURIComponent("/report")}`;
+  const ctaLabel = isLoggedIn ? "전체 결과 보기" : "로그인하고 전체 결과 보기";
 
   return (
     <>
@@ -30,13 +41,13 @@ export function LockedSections({ sections }: { sections: LockedSectionMeta[] }) 
         ))}
         <div className="mt-5 text-center flex flex-col items-center gap-3.5">
           <p className="text-[15px] text-slate-500 m-0 [text-wrap:pretty]">나머지 결과가 궁금하신가요?</p>
-          <a ref={inlineRef} href="#" className="block w-full max-w-[360px] text-base font-semibold text-white bg-accent py-4 rounded-[14px] shadow-[0_8px_20px_rgba(37,99,235,.28)] text-center hover:bg-accent-700">전체 결과 보기</a>
+          <a ref={inlineRef} href={ctaHref} className="block w-full max-w-[360px] text-base font-semibold text-white bg-accent py-4 rounded-[14px] shadow-[0_8px_20px_rgba(37,99,235,.28)] text-center hover:bg-accent-700">{ctaLabel}</a>
         </div>
       </section>
       {showBar && (
         <div className="fixed bottom-0 left-0 right-0 z-30 px-[clamp(20px,5vw,24px)] pt-7 pb-[18px] bg-gradient-to-b from-transparent to-white to-[55%] pointer-events-none">
           <div className="max-w-[720px] mx-auto flex justify-center">
-            <a href="#" className="pointer-events-auto block w-full max-w-[360px] text-base font-semibold text-white bg-accent py-[15px] rounded-[14px] shadow-[0_8px_20px_rgba(37,99,235,.32)] text-center hover:bg-accent-700">전체 결과 보기</a>
+            <a href={ctaHref} className="pointer-events-auto block w-full max-w-[360px] text-base font-semibold text-white bg-accent py-[15px] rounded-[14px] shadow-[0_8px_20px_rgba(37,99,235,.32)] text-center hover:bg-accent-700">{ctaLabel}</a>
           </div>
         </div>
       )}
