@@ -71,9 +71,7 @@ Redis는 서버 쪽 저장소라 키가 있어야 값을 되찾는다. 로그인
 
 **401은 사라진다.** 세션 유무를 아는 유일한 쪽(서버)이 한 번만 판단하고, 퍼널은 상태코드로 행선지만 읽는다.
 
-`next`는 로그인 *전에* 정해지는데 프로필 id는 로그인 *순간에* 생긴다. 그래서 `next=/report?profile=7`을 미리 넣을 수 없고, **최종 행선지는 콜백이 정한다.** 승격이 일어나면 `next`가 무엇이었든 항상 리포트로 보낸다 — 방금 만들어진 것을 보여주는 게 사용자가 기대하는 결과고, 규칙이 하나라 분기가 없다.
-
-결제가 붙는 날 저 한 줄이 `/checkout?profile=<id>&next=/report`로 바뀌면 로그인 → 결제 → 리포트가 그대로 이어진다.
+`next`는 로그인 *전에* 정해지는데 프로필 id는 로그인 *순간에* 생긴다. 그래서 `next=/report?profile=7`을 미리 넣을 수 없고, **최종 행선지는 콜백이 정한다.** 승격이 일어나면 `next`가 무엇이었든 항상 `/home?saved=1`로 보낸다 — 규칙이 하나라 분기가 없다(위 67-70줄 참고: 리포트가 아직 픽스처라서 그렇다).
 
 ## 5. 저장소 — `src/lib/redis.ts`, `src/lib/drafts/store.ts` (신규)
 
@@ -133,10 +131,12 @@ export interface HandlerResult {
 퍼널(`src/app/funnel/page.tsx`)은 이렇게 된다:
 
 ```ts
+let dest = "/report";
 if (res.status === 201) dest = `/report?profile=${id}`;
-else if (res.status === 202) dest = "/report";        // 드래프트로 보관됨
-else if (res.status === 409) dest = "/home?error=limit";
-else console.error(...);                               // 그 밖은 로그만, /report 로
+else if (res.status === 202) {
+  // 드래프트로 보관됨. dest 는 이미 "/report" 이므로 재대입하지 않는다.
+} else if (res.status === 409) dest = "/home?error=limit";
+else console.error(...);        // 그 밖은 로그만, dest 는 "/report" 그대로
 ```
 
 ## 7. 승격 — `src/lib/drafts/promote.ts` (신규)
