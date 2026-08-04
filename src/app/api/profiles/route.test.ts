@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
 
 const getSession = vi.fn();
 vi.mock("@/lib/auth/session", () => ({
@@ -11,6 +12,12 @@ const createProfile = vi.fn();
 vi.mock("@/lib/profiles/store", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/profiles/store")>()),
   createProfile: (...a: unknown[]) => createProfile(...a),
+}));
+
+const putDraft = vi.fn();
+vi.mock("@/lib/drafts/store", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/drafts/store")>()),
+  putDraft: (...a: unknown[]) => putDraft(...a),
 }));
 
 import { POST } from "./route";
@@ -27,10 +34,12 @@ const validBody = {
   trueSolar: true,
 };
 
-function post(body: unknown) {
-  return new Request("http://localhost/api/profiles", {
+function post(body: unknown, cookie?: string) {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (cookie) headers.cookie = cookie;
+  return new NextRequest("http://localhost/api/profiles", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers,
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
 }
@@ -39,6 +48,8 @@ describe("POST /api/profiles", () => {
   beforeEach(() => {
     getSession.mockReset();
     createProfile.mockReset();
+    putDraft.mockReset();
+    putDraft.mockResolvedValue(undefined);
   });
 
   // 이 한 줄(session?.userId ?? null)이 profiles 테이블 전체의 테넌트 경계다 —
@@ -54,13 +65,37 @@ describe("POST /api/profiles", () => {
     expect(createProfile).toHaveBeenCalledWith("7", expect.anything());
   });
 
-  it("세션이 없으면 401 이고 createProfile 을 부르지 않는다", async () => {
+  it("세션이 없으면 202 와 draft 쿠키를 굽고 createProfile 을 부르지 않는다", async () => {
     getSession.mockResolvedValue(null);
 
     const res = await POST(post(validBody));
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(202);
     expect(createProfile).not.toHaveBeenCalled();
+    const cookie = res.cookies.get("draft");
+    expect(cookie?.value).toBeTruthy();
+    expect(cookie?.httpOnly).toBe(true);
+    expect(putDraft).toHaveBeenCalledWith(cookie?.value, expect.objectContaining({ name: "김동진" }));
+  });
+
+  it("요청에 draft 쿠키가 있으면 그 토큰을 다시 쓴다", async () => {
+    getSession.mockResolvedValue(null);
+
+    // 쿠키 값은 HTTP 헤더라 ByteString(Latin-1)만 허용된다 — 실제 토큰(UUID)도
+    // 언제나 ASCII이므로 테스트 값도 ASCII로 둔다.
+    const res = await POST(post(validBody, "draft=prev-token"));
+
+    expect(res.cookies.get("draft")?.value).toBe("prev-token");
+    expect(putDraft.mock.calls[0][0]).toBe("prev-token");
+  });
+
+  it("로그인 상태면 draft 쿠키를 굽지 않는다", async () => {
+    getSession.mockResolvedValue({ userId: "7", provider: "google" });
+    createProfile.mockResolvedValue({ id: "42" });
+
+    const res = await POST(post(validBody));
+
+    expect(res.cookies.get("draft")).toBeUndefined();
   });
 
   it("본문이 JSON이 아니면 400", async () => {
@@ -79,5 +114,15 @@ describe("POST /api/profiles", () => {
     const res = await POST(post(validBody));
 
     expect(res.status).toBe(500);
+  });
+
+  it("putDraft 가 실패하면 500 이고 쿠키를 굽지 않는다", async () => {
+    getSession.mockResolvedValue(null);
+    putDraft.mockRejectedValue(new Error("redis down"));
+
+    const res = await POST(post(validBody));
+
+    expect(res.status).toBe(500);
+    expect(res.cookies.get("draft")).toBeUndefined();
   });
 });

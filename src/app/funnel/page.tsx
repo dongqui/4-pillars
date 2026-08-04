@@ -70,12 +70,14 @@ function FunnelInner() {
         if (res.status === 201) {
           const { id } = (await res.json()) as { id: string };
           dest = `/report?profile=${id}`;
+        } else if (res.status === 202) {
+          // 비로그인. 입력은 드래프트로 보관됐고 로그인하는 순간 프로필이 된다.
+          dest = "/report";
         } else if (res.status === 409) {
           // 프로필 한도 초과 — 목록에서 정리하게 돌려보낸다.
-          dest = "/home";
-        } else if (res.status !== 401) {
-          // 401(비로그인)은 의도된 무저장 경로. 그 밖의 실패는 프로필이 조용히
-          // 사라지는 것이므로 최소한 로그로는 남긴다.
+          dest = "/home?error=limit";
+        } else {
+          // 저장이 조용히 사라지는 것이므로 최소한 로그로는 남긴다.
           console.error(`[POST /api/profiles] unexpected status ${res.status}`);
         }
       } catch {
