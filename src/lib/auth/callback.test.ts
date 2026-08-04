@@ -54,6 +54,7 @@ describe("completeOAuth", () => {
     expect(result.redirectTo).toBe("/report");
     expect(upserts[0]).toEqual({ provider: "google", providerUserId: "g-1", email: "a@g.com", displayName: "지민", avatarUrl: undefined });
     expect(await decodeSession(result.sessionToken)).toEqual({ userId: "42", provider: "google" });
+    expect(result.userId).toBe("42");
   });
   it("state 불일치면 throw", async () => {
     const { deps: d } = deps(googleFetch());

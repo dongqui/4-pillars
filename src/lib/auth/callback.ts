@@ -24,6 +24,8 @@ export interface CallbackResult {
   redirectTo: string;
   sessionToken: string;
   provider: ProviderId;
+  /** 드래프트 승격에 필요하다 — 콜백 라우트가 이 id 로 프로필을 만든다 */
+  userId: string;
 }
 
 export async function completeOAuth(
@@ -59,5 +61,10 @@ export async function completeOAuth(
   });
 
   const sessionToken = await encodeSession({ userId: user.id, provider: p.id });
-  return { redirectTo: safeNext(params.next, deps.origin), sessionToken, provider: p.id };
+  return {
+    redirectTo: safeNext(params.next, deps.origin),
+    sessionToken,
+    provider: p.id,
+    userId: user.id,
+  };
 }
