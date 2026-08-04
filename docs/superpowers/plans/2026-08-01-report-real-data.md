@@ -22,6 +22,17 @@
   Claude-Session: https://claude.ai/code/session_012NsoCxUmhB3Lv5duP8kuep
   ```
 - 이번 작업의 **비범위**: 익명(비로그인) 실데이터, `environment`(07) 섹션 신설, 섹션 번호 체계 통일, 결제 연동. 손대지 않는다.
+- 위 커밋 트레일러 중 `Claude-Session` 줄은 이 계획을 쓴 세션의 것이다. 지금은 `Co-Authored-By` 한 줄만 붙인다.
+
+## 선행 작업 반영 (2026-08-04에 추가)
+
+이 계획은 2026-08-01에 쓰였고, 그 뒤 **익명 사용자 입력값 보존**(`docs/superpowers/plans/2026-08-04-anonymous-draft.md`)이 머지됐다. 겹치는 파일은 없지만 고리가 두 개 생겼다.
+
+1. **`LockedSections`에 `isLoggedIn`이 필수 prop으로 생겼다.** Task 7이 `ReportView`를 `ReportShell`/`ReportBody`로 쪼갤 때 이 prop 전달이 사라지면 안 된다 — 비로그인 CTA가 `/login?next=%2Freport`로 가는 것이 익명 → 로그인 → 프로필 승격 파이프의 **유일한 입구**다. Task 7의 코드에 반영해 뒀다.
+
+2. **이 작업이 끝나면 OAuth 콜백의 승격 행선지를 되돌려야 한다.** 지금 `src/app/api/auth/callbacks/[provider]/route.ts`는 승격 성공 시 `/home?saved=1`로 보낸다 — `/report`가 아직 픽스처를 렌더해서 로그인 전후로 화면이 안 바뀌기 때문이다. **이 계획이 `?profile=<id>`를 실제로 소비하게 되는 순간 그 이유가 사라진다.** 마지막 Task로 행선지를 `/report?profile=<id>`로 바꾸고, `docs/superpowers/specs/2026-08-04-anonymous-draft-design.md` §4·§7과 `docs/issues/backlog.md`의 해당 서술도 같이 고친다. 콜백 라우트 테스트(`route.test.ts`)의 `promoted` 갈래 기대값도 함께 바뀐다.
+
+`createProfileSchema`는 `src/app/api/profiles/_lib/input.ts`에서 **`src/lib/profiles/input.ts`로 옮겨졌다.** 이 계획은 그 파일을 건드리지 않지만, 경로를 기억해 두면 헤매지 않는다.
 
 ---
 
@@ -1088,7 +1099,9 @@ export function ReportBody({
           )}
         </>
       ) : (
-        <LockedSections sections={lockedSections} />
+        // isLoggedIn 은 2026-08-04 익명 드래프트 작업이 더한 필수 prop 이다.
+        // 비로그인이면 CTA 가 /login?next=%2Freport 로 간다 — 빠뜨리면 승격 입구가 닫힌다.
+        <LockedSections sections={lockedSections} isLoggedIn={access.isLoggedIn} />
       )}
     </>
   );
