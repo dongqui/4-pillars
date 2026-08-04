@@ -1,4 +1,4 @@
-import type { CreateProfileBody } from "@/app/api/profiles/_lib/input";
+import type { CreateProfileBody } from "@/lib/profiles/input";
 import type { FunnelData } from "../_context/FunnelContext";
 
 /**

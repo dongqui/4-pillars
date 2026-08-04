@@ -1,5 +1,5 @@
 import { ProfileLimitError, type CreateProfileInput } from "@/lib/profiles/store";
-import { createProfileSchema } from "./input";
+import { createProfileSchema } from "@/lib/profiles/input";
 
 export interface HandlerDeps {
   /** 세션이 없으면 null */
