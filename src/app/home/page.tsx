@@ -8,12 +8,20 @@ import { ProfileCard } from "./_components/ProfileCard";
 import { AddProfileButton } from "./_components/AddProfileButton";
 import { EmptyState } from "./_components/EmptyState";
 
+// report/_lib/access.ts 에 같은 이름의 헬퍼가 있지만 리포트 전용 파일이라 여기서
+// import 하지 않는다(레이어를 가로지른다) — 짧으니 그대로 복제한다.
+function first(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v;
+}
+
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; saved?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { error, saved } = await searchParams;
+  const sp = await searchParams;
+  const error = first(sp.error);
+  const saved = first(sp.saved);
   const session = await getSession();
   if (!session) redirect("/login?next=/home");
 

@@ -72,7 +72,8 @@ function FunnelInner() {
           dest = `/report?profile=${id}`;
         } else if (res.status === 202) {
           // 비로그인. 입력은 드래프트로 보관됐고 로그인하는 순간 프로필이 된다.
-          dest = "/report";
+          // dest 는 이미 "/report" — 재대입하지 않는다. 분기는 그대로 남긴다(안 두면
+          // 202 가 "그 밖" 갈래로 흘러 console.error 를 찍는다).
         } else if (res.status === 409) {
           // 프로필 한도 초과 — 목록에서 정리하게 돌려보낸다.
           dest = "/home?error=limit";

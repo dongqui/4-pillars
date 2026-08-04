@@ -83,7 +83,7 @@ Redis는 서버 쪽 저장소라 키가 있어야 값을 되찾는다. 로그인
 export const DRAFT_COOKIE = "draft";
 const TTL_SECONDS = 60 * 60 * 24 * 7;   // 7일 — 세션 만료(session.ts MAX_AGE)와 같은 리듬
 
-export function generateDraftToken(): string;              // 32바이트 base64url
+export function generateDraftToken(): string;              // crypto.randomUUID()
 export async function putDraft(token: string, body: CreateProfileBody, client?): Promise<void>;
 export async function getDraft(token: string, client?): Promise<CreateProfileBody | null>;
 export async function deleteDraft(token: string, client?): Promise<void>;
@@ -92,7 +92,7 @@ export function draftCookieOptions();                      // httpOnly, sameSite
 
 - Redis 키는 `draft:<token>`. 값은 `CreateProfileBody` JSON — `profiles` 컬럼과 같은 모양이라 승격이 매핑 없이 끝난다.
 - **읽을 때 `createProfileSchema`로 다시 검증한다.** 배포 사이에 스키마가 바뀌면 옛 레코드가 남아 있을 수 있고, 검증 없이 `createProfile`에 넣으면 그것이 DB까지 간다. 파싱 실패는 `null` — 드래프트가 없는 것과 같이 취급한다.
-- 토큰 생성은 `src/lib/auth/oauth.ts`의 `generateCodeVerifier`와 같은 방식(32바이트 `crypto.getRandomValues` → base64url).
+- 토큰 생성은 `crypto.randomUUID()`(계획 Task 1의 지시를 그대로 따름) — 122비트 CSPRNG 이고 추측 대상(사용자 식별자 등과 묶인 값)이 없어 충분하다.
 - `client?` 주입은 `profiles/store.ts`의 `SqlClient` 패턴 그대로. 테스트가 실제 Redis에 붙지 않는다.
 - 쿠키에는 토큰만 담는다. `sameSite: "lax"`라 OAuth 복귀(top-level GET)에 그대로 실려 온다 — `oauth_state`와 같은 조건이다.
 
