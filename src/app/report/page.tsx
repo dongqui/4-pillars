@@ -38,7 +38,10 @@ async function ProfileReport({
   profile: ProfileRow;
   access: ReportAccess;
 }) {
-  const retryHref = `/report?profile=${profile.id}${access.isPaid ? "&paid=true" : ""}`;
+  // ?paid=true를 다시 붙이지 않는다 — 유료 판정은 이제 profile.isPaid(purchases 조인)가
+  // 서버에서 내리므로 URL에 실을 이유가 없고, 프로덕션에서는 이 토글이 무시되니
+  // 붙여봤자 유료 프로필의 재시도가 무료 리포트로 떨어지는 결과만 낳는다.
+  const retryHref = `/report?profile=${profile.id}`;
 
   let analysis;
   try {
@@ -61,10 +64,17 @@ async function ProfileReport({
       year,
     }));
   } catch (e) {
-    // 생성 실패면 캐시에 있던 것만으로 계속한다. DB 오류는 전파해 Next 기본 처리에 맡긴다.
-    if (!(e instanceof GenerationError)) throw e;
-    console.error("[/report] 해석 생성 실패", e);
-    interpretation = e.partial;
+    if (e instanceof GenerationError) {
+      // 생성 실패면 캐시에 있던 것만으로 계속한다.
+      console.error("[/report] 해석 생성 실패", e);
+      interpretation = e.partial;
+    } else {
+      // DB 오류·DEEP_SEEK_API_KEY 누락(generator()) 등 그 외 예외는 여기서 삼킨다.
+      // ReportShell 이 이미 스트리밍돼 나간 뒤라 Next 가 대신 에러를 렌더할 방법이
+      // 없다(앱 전역 error.tsx 도 없다) — 던지면 사용자는 멈춘 스피너만 본다.
+      console.error("[/report] 해석 확보 실패", e);
+      return <ReportError retryHref={retryHref} />;
+    }
   }
 
   // overview 가 없으면 히어로가 통째로 비어 리포트라 부를 것이 없다.

@@ -190,9 +190,17 @@ src/app/funnel/_components/steps/BirthPlaceStep.tsx
 | --- | --- |
 | `analyze()` throw (저장된 값이 계산 불가) | 에러 화면 |
 | `GenerationError` 후 `overview` 없음 | 에러 화면 |
-| DB 오류 | 전파. `error.tsx`를 새로 만들지 않고 Next 기본 에러 처리에 맡긴다 |
+| DB 오류·`generator()`의 `DEEP_SEEK_API_KEY` 누락 등 그 외 예외 | 에러 화면 |
 | `overview`는 있고 일부 섹션만 빠짐 | 있는 것만 렌더 |
 | 07 `environment` | 항상 빈 칸 |
+
+**(2026-08-01 작성 당시) DB 오류는 전파해 `error.tsx`를 새로 만들지 않고 Next 기본 에러 처리에 맡긴다고
+적었다.** `<Suspense>` 도입 전 모델이다 — 셸이 아직 나가지 않았다면 throw가 Next의 최근접 에러
+바운더리까지 올라가 대신 렌더될 수 있다는 전제였다. §8~§9에서 `ReportShell`(헤더)을 `<Suspense>`
+밖으로 빼 먼저 스트리밍하기로 하면서 그 전제가 무효가 됐다: `ProfileReport`는 셸이 이미 flush된
+뒤에 실행되므로 여기서 던지면 받아 줄 곳이 없다(앱 전역 `error.tsx`도 없다) — 사용자는 멈춘
+스피너만 본다. 최종 리뷰에서 이 간극이 드러나 **catch를 넓혀 모든 예외에서 `<ReportError>`를
+반환**하는 것으로 바뀌었다(`console.error`는 남긴다). `error.tsx`는 여전히 만들지 않는다.
 
 **판정 기준은 `overview`의 유무 하나다.** `overview`가 없으면 히어로(헤드라인·요약·키워드)가 통째로 비어 리포트라 부를 것이 없다. 있으면 나머지가 얼마나 빠졌든 보여준다 — 빠진 섹션은 다음 방문에 `missing`으로 다시 잡혀 저절로 채워진다(`handleSaju`가 이미 그렇게 설계돼 있다).
 
