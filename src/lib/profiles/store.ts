@@ -98,6 +98,34 @@ export async function listProfiles(
   return rows.map(toProfileRow);
 }
 
+/**
+ * 내 프로필 하나. isPaid 파생은 listProfiles 와 같다.
+ *
+ * ⚠️ user_id 조건이 이 함수의 존재 이유다. profiles.id 는 순번 bigint 라
+ * URL(/report?profile=<id>)에 노출된다 — id 만으로 찾으면 파라미터를 증가시켜
+ * 남의 생년월일을 읽을 수 있다.
+ *
+ * id 는 호출자가 형식을 검증해 넘긴다(parseProfileParam). 검증 없이 오면
+ * ::bigint 캐스팅에서 DB 에러가 난다.
+ */
+export async function getProfile(
+  userId: string,
+  id: string,
+  client: SqlClient = sql,
+): Promise<ProfileRow | null> {
+  const rows = await client`
+    SELECT p.*, (pu.id IS NOT NULL) AS is_paid
+    FROM profiles p
+    LEFT JOIN purchases pu
+      ON pu.profile_id = p.id
+     AND pu.product = ${PRODUCT_FULL_REPORT}
+     AND pu.status = 'paid'
+    WHERE p.id = ${id}::bigint AND p.user_id = ${userId}::bigint
+  `;
+  const row = rows[0];
+  return row ? toProfileRow(row) : null;
+}
+
 export async function countProfiles(
   userId: string,
   client: SqlClient = sql,

@@ -4,6 +4,7 @@ import {
   ProfileLimitError,
   countProfiles,
   createProfile,
+  getProfile,
   listProfiles,
   toProfileRow,
   type CreateProfileInput,
@@ -148,5 +149,32 @@ describe("createProfile", () => {
     const { client, calls } = fakeClient([{ n: MAX_PROFILES }]);
     await expect(createProfile("7", newProfile, client)).rejects.toBeInstanceOf(ProfileLimitError);
     expect(calls).toHaveLength(1);
+  });
+});
+
+describe("getProfile", () => {
+  it("행이 있으면 ProfileRow 로 접는다", async () => {
+    const { client, calls } = fakeClient([{ ...dbRow, is_paid: true }]);
+    const row = await getProfile("7", "3", client);
+
+    expect(row?.id).toBe("3");
+    expect(row?.isPaid).toBe(true);
+    expect(calls[0].sql).toContain("LEFT JOIN purchases");
+  });
+
+  // id 만으로 찾으면 쿼리 파라미터를 증가시켜 남의 생년월일을 읽을 수 있다.
+  // 이 회귀를 여기서 잡는다.
+  it("user_id 를 함께 필터한다", async () => {
+    const { client, calls } = fakeClient([]);
+    await getProfile("7", "3", client);
+
+    expect(calls[0].sql).toContain("p.user_id");
+    // 바인딩 순서는 템플릿에 나타난 순서다 — product(JOIN 조건) → id → user_id.
+    expect(calls[0].values).toEqual(["full_report", "3", "7"]);
+  });
+
+  it("행이 없으면 null — 없는 프로필과 남의 프로필을 구분하지 않는다", async () => {
+    const { client } = fakeClient([]);
+    expect(await getProfile("7", "3", client)).toBeNull();
   });
 });
