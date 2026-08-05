@@ -1,4 +1,9 @@
+// /report 데모 화면이 그리는 샘플. 문구는 프롬프트(sections/registry.ts)가 뽑아낼
+// 결과와 같은 규칙을 따른다 — personality 와 evidence(근거 차트)에서만 사주 용어를 쓰고,
+// 나머지 섹션은 용어 없이 쉬운 말로 쓴다.
+
 import type { ReportContent } from "./report-content";
+import { EVIDENCE_DISCLAIMER } from "./evidence";
 
 export const sampleReport: ReportContent = {
   meta: { name: "홍길동", birthLine: "양력 1990.02.20 04:30 · 갑자일주" },
@@ -38,7 +43,8 @@ export const sampleReport: ReportContent = {
       { gan: "丙戌", age: "32–41세", now: true }, { gan: "丁亥", age: "42–51세" },
       { gan: "戊子", age: "52–61세" }, { gan: "己丑", age: "62–71세" },
     ],
-    disclaimer: "위 요소들은 개별 점수가 아니라 서로의 관계 속에서 종합적으로 해석되며, 이 리포트의 모든 결과는 이 원국 데이터를 근거로 작성되었습니다. 특정 오행이 적다는 것만으로 좋고 나쁨을 단정하지 않습니다.",
+    // 실제 화면과 같은 문구를 쓴다. 여기 문자열을 따로 두면 둘이 조용히 어긋난다.
+    disclaimer: EVIDENCE_DISCLAIMER,
   },
   outerVsInner: {
     outward: "침착하고 단단한 사람. 감정 기복이 적고, 맡은 일은 조용히 끝까지 해내는 믿음직한 인상을 줘요.",
@@ -53,7 +59,7 @@ export const sampleReport: ReportContent = {
     "충분히 잘하고 있어도 스스로 만족하지 못할 수 있어요. 기준이 늘 자기 자신이라, 남의 인정이 와도 잘 안 쌓여요.",
     "싫은 것을 바로 말하지 않고 참다가, 어느 순간 한 번에 거리를 두는 경향이 있어요. 상대는 이유를 모른 채 멀어졌다고 느낄 수 있어요.",
   ],
-  cautionTip: "완벽하게 정리된 뒤 말하려 하기보다, 생각이 60%쯤 정리됐을 때 먼저 표현해 보세요. 관계도 일도 훨씬 가벼워져요.",
+  cautionTip: "완벽하게 정리된 뒤 말하려 하기보다, 생각이 절반쯤 정리됐을 때 먼저 표현해 보세요. 관계도 일도 훨씬 가벼워져요.",
   emotion: [
     { label: "스트레스가 쌓이는 상황", body: "내 뜻대로 할 수 없는 상황이 계속될 때. 특히 결정권 없이 책임만 지는 구조에서 크게 소모돼요." },
     { label: "감정을 처리하는 방식", body: "즉시 표현하기보다 일단 안으로 접어두는 편. 정리가 끝난 뒤에야 담담하게 말로 꺼내요." },
@@ -98,7 +104,7 @@ export const sampleReport: ReportContent = {
       { label: "돈이 모이는 방식", body: "한 번에 크게 벌기보다 꾸준히 쌓는 구조가 맞아요. 전문성이 깊어질수록 수입이 계단식으로 올라가는 흐름이에요." },
       { label: "새어나가는 지점", body: "평소엔 아끼다가 스트레스가 쌓였을 때 한 번에 크게 쓰는 패턴. 지출의 총량보다 타이밍이 문제예요." },
     ],
-    summary: "투자는 단기 매매보다 긴 호흡의 적립식이 사주 구조와 잘 맞아요.",
+    summary: "투자는 단기 매매보다 긴 호흡의 적립식이 타고난 성향과 잘 맞아요.",
     emphasis: "긴 호흡의 적립식",
   },
   yearlyLuck: [
@@ -117,11 +123,13 @@ export const sampleReport: ReportContent = {
   ],
   daeunOutlook: {
     rows: [
-      { range: "현재 대운 · ~2028", title: "기반을 쌓는 10년", desc: "실력과 신뢰를 축적하는 구간이에요. 눈에 띄는 성과보다 토대가 만들어지는 시기예요.", now: true },
-      { range: "다음 대운 · 2029~2038", title: "쌓은 것이 드러나는 10년", desc: "축적된 역량이 인정과 성과로 전환돼요. 역할과 위치가 크게 바뀔 수 있는 구간이에요." },
-      { range: "그다음 대운 · 2039~", title: "확장과 안정의 10년", desc: "이룬 것을 넓히고 지키는 흐름. 재물운이 가장 안정적으로 자리 잡는 시기예요." },
+      // range 는 화면이 계산해 붙이는 라벨이다 (to-report-content.ts: `${startAge}–${startAge+9}세`).
+      // 위 daeunStrip 의 현재 구간(32–41세)과 같은 자리를 now 로 표시한다.
+      { range: "32–41세", title: "기반을 쌓는 시기", desc: "실력과 신뢰를 축적하는 구간이에요. 눈에 띄는 성과보다 토대가 만들어지는 시기예요.", now: true },
+      { range: "42–51세", title: "쌓은 것이 드러나는 시기", desc: "축적된 역량이 인정과 성과로 전환돼요. 역할과 위치가 크게 바뀔 수 있는 구간이에요." },
+      { range: "52–61세", title: "확장과 안정의 시기", desc: "이룬 것을 넓히고 지키는 흐름. 돈이 가장 안정적으로 자리 잡는 구간이에요." },
     ],
-    summary: "지금은 기반을 쌓는 구간의 후반부예요. 앞으로 2~3년의 선택이 다음 10년의 방향을 정해요.",
+    summary: "지금은 기반을 쌓는 구간의 후반부예요. 앞으로의 선택이 다음 구간의 방향을 정해요.",
     emphasis: "기반을 쌓는 구간의 후반부",
   },
 };
@@ -135,5 +143,5 @@ export const lockedSections: import("./report-content").LockedSectionMeta[] = [
   { no: "09", category: "궁합", title: "당신과 잘 맞는 사람의 특징" },
   { no: "10", category: "재물", title: "돈이 모이는 방식과 새어나가는 지점" },
   { no: "11", category: "올해의 운", title: "지금부터 1년, 나의 운의 흐름" },
-  { no: "12", category: "대운", title: "앞으로 10년의 큰 운 흐름" },
+  { no: "12", category: "10년 단위 흐름", title: "앞으로 10년의 큰 운 흐름" },
 ];
