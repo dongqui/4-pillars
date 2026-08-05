@@ -31,4 +31,14 @@ describe("primitives", () => {
     expect(TraitNote.safeParse({ ...ok, basis: "" }).success).toBe(false);
     expect(TraitNote.safeParse({ ...ok, extra: 1 }).success).toBe(false);
   });
+
+  // title 은 히어로의 rounded-full 칩으로도 그대로 렌더된다 — 문장형 제목이면
+  // 칩이 줄바꿈 레이아웃을 깨뜨린다. 20자를 상한으로 못박는다.
+  it("TraitNote 의 title 은 20자를 넘기지 못한다", () => {
+    const base = { body: "본문", basis: "근거" };
+    const twenty = "가".repeat(20);
+    const twentyOne = "가".repeat(21);
+    expect(TraitNote.safeParse({ ...base, title: twenty }).success).toBe(true);
+    expect(TraitNote.safeParse({ ...base, title: twentyOne }).success).toBe(false);
+  });
 });

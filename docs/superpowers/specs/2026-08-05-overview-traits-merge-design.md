@@ -151,3 +151,7 @@ personality: overview?.traits ?? [],
 
 - `design/project/*.dc.html` 목업은 `basis` 추가분만큼 화면과 어긋나게 된다. 이번 작업에서 맞추지 않는다.
 - 옛 `personality` 행 삭제 SQL.
+
+## 구현 중 변경
+
+전체 리뷰 픽스 웨이브(2026-08-05)에서 위 "구조" 절의 `keywords: overview?.traits.map(...)`, `personality: overview?.traits ?? []` 두 필드를 함께 두는 안을 뒤집었다. `ReportContent.keywords` 필드 자체를 지우고, 히어로 칩은 `ReportBody`가 `content.personality.map((t) => t.title)`로 렌더 시점에 뽑는다. `keywords`와 `personality`를 뷰모델에 나란히 두면 `report-content.fixture.ts`처럼 손으로 쓰는 자리에서 두 목록이 다시 갈라질 수 있다는 게 이유였다 — 애초에 이 설계가 고치려던 버그와 같은 모양이다. 사람이 승인했다.

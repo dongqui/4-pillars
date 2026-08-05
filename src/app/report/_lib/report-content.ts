@@ -48,8 +48,7 @@ export interface ReportContent {
   meta: { name: string; birthLine: string };
   headline: string;
   summary: string;
-  keywords: string[];
-  personality: TraitNote[];         // 01 — keywords 와 같은 traits 에서 나온다
+  personality: TraitNote[];         // 01 — 히어로 칩도 이 배열의 title 에서 렌더 시점에 뽑는다
   evidence: ChartEvidence;          // 01 근거
   outerVsInner: { outward: string; inner: string }; // 02
   strengths: TitledText[];          // 03

@@ -27,13 +27,9 @@ describe("toReportContent", () => {
     expect(c.summary).toBe("요약");
   });
 
-  // 이 테스트가 병합의 목적 그 자체다. 칩과 카드 제목이 갈라지면 여기서 깨진다.
-  it("히어로 키워드는 traits 의 제목과 원소·순서까지 같다", () => {
-    const c = toReportContent(analysis, free, meta, 2026);
-    expect(c.keywords).toEqual(["t1", "t2", "t3", "t4"]);
-    expect(c.keywords).toEqual(c.personality.map((p) => p.title));
-  });
-
+  // 이 테스트가 병합의 목적 그 자체다. personality 가 곧 traits 그대로이므로, 히어로
+  // 칩(ReportBody 가 personality.map(t => t.title) 로 뽑는다)과 01 카드는 렌더 시점에
+  // 같은 배열에서 나와 갈라질 수 없다.
   it("01 카드는 traits 를 basis 까지 그대로 쓴다", () => {
     const c = toReportContent(analysis, free, meta, 2026);
     expect(c.personality).toEqual(traits);
@@ -61,7 +57,6 @@ describe("toReportContent", () => {
   it("해석이 아예 비어도 무료 필드는 빈 값으로 성립한다", () => {
     const c = toReportContent(analysis, {}, meta, 2026);
     expect(c.headline).toBe("");
-    expect(c.keywords).toEqual([]);
     expect(c.personality).toEqual([]);
     expect(c.evidence.pillars.length).toBeGreaterThan(0);
   });

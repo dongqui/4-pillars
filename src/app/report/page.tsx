@@ -21,7 +21,7 @@ import { ReportError } from "./_components/ReportError";
 
 /**
  * 캐시 미스면 섹션마다 LLM 을 병렬로 부른다 — /api/saju/route.ts 와 같은 값.
- * 유료 13섹션(무료 5 + 유료 8, ?paid=true)은 daeunOutlook 이 느려 이 값을 넘길 수 있다.
+ * 유료 12섹션(무료 4 + 유료 8, ?paid=true)은 daeunOutlook 이 느려 이 값을 넘길 수 있다.
  * 결제를 붙일 때 다시 본다.
  */
 export const maxDuration = 60;

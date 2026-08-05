@@ -9,7 +9,6 @@ export const sampleReport: ReportContent = {
   meta: { name: "홍길동", birthLine: "양력 1990.02.20 04:30 · 갑자일주" },
   headline: "겉으로는 차분하지만, 자신만의 기준과 승부욕이 강한 사람",
   summary: "사람들과 잘 어울리지만, 혼자 생각을 정리하는 시간이 꼭 필요한 타입이에요.",
-  keywords: ["신중한 관찰자", "독립적인 판단", "오래 밀고 나감", "느린 속마음"],
   personality: [
     {
       title: "신중한 관찰자",

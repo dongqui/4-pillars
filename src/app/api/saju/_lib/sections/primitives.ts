@@ -20,7 +20,9 @@ export type TitledText = z.infer<typeof TitledText>;
  */
 export const TraitNote = z
   .object({
-    title: z.string().min(1),
+    // 히어로에서는 rounded-full 칩, 01 카드에서는 제목으로 쓰인다 — 두 레이아웃
+    // 모두 문장형 제목을 못 견딘다. 20자로 막아 칩이 문장처럼 늘어지지 않게 한다.
+    title: z.string().min(1).max(20),
     body: z.string().min(1),
     basis: z.string().min(1),
   })
