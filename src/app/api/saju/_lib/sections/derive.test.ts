@@ -34,7 +34,7 @@ describe("키 목록", () => {
   });
 
   it("sectionVersion / sectionStorage", () => {
-    expect(sectionVersion("overview")).toBe(1);
+    expect(sectionVersion("overview")).toBe(2);
     expect(sectionStorage("daeunOutlook")).toBe("luck");
     expect(sectionStorage("overview")).toBe("chart");
   });
@@ -61,6 +61,14 @@ describe("llmInputSchema", () => {
     };
     expect(s.properties.content.additionalProperties).toBe(false);
     expect(s.properties.content.required.sort()).toEqual(["inner", "outward"]);
+  });
+
+  it("overview 의 traits 개수가 tool 스키마에 실린다", () => {
+    const s = llmInputSchema("overview") as {
+      properties: { content: { properties: { traits: { minItems: number; maxItems: number } } } };
+    };
+    expect(s.properties.content.properties.traits.minItems).toBe(4);
+    expect(s.properties.content.properties.traits.maxItems).toBe(4);
   });
 });
 
@@ -103,8 +111,12 @@ describe("assign", () => {
   });
 
   it("기존 키를 덮어쓴다 (재대입도 직접 대입과 동일)", () => {
-    const target: Partial<Interpretation> = { overview: { headline: "old", summary: "s", keywords: ["a", "b", "c"] } };
-    const next = { headline: "new", summary: "s2", keywords: ["x", "y", "z"] };
+    const trait = { title: "t", body: "b", basis: "근거" };
+    const four = [trait, trait, trait, trait];
+    const target: Partial<Interpretation> = {
+      overview: { headline: "old", summary: "s", traits: four },
+    };
+    const next = { headline: "new", summary: "s2", traits: four };
     assign(target, "overview", next);
     expect(target.overview).toEqual(next);
   });

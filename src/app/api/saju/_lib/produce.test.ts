@@ -7,7 +7,8 @@ const analysis = analyze({
   year: 1990, month: 5, day: 15, hour: 10, gender: "male",
 });
 
-const overview = { headline: "캐시", summary: "캐시된 요약", keywords: ["a", "b", "c"] };
+const trait = { title: "t", body: "b", basis: "근거" };
+const overview = { headline: "캐시", summary: "캐시된 요약", traits: [trait, trait, trait, trait] };
 const empty = { have: {}, missing: [] as never[] };
 
 function deps(over: Partial<ProduceDeps> = {}): ProduceDeps {

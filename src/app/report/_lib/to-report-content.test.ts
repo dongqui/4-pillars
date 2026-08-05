@@ -7,9 +7,14 @@ import { toChartEvidence } from "./evidence";
 const analysis = analyze({ year: 1990, month: 2, day: 20, hour: 4, minute: 30, gender: "male" });
 const meta = { name: "홍길동", birthLine: "양력 1990.02.20 04:30" };
 
+const traits = [1, 2, 3, 4].map((n) => ({
+  title: `t${n}`,
+  body: `b${n}`,
+  basis: `근거${n}`,
+}));
+
 const free: Partial<Interpretation> = {
-  overview: { headline: "헤드라인", summary: "요약", keywords: ["a", "b", "c"] },
-  personality: [{ title: "t", body: "b" }, { title: "t2", body: "b2" }],
+  overview: { headline: "헤드라인", summary: "요약", traits },
   outerVsInner: { outward: "겉", inner: "속" },
   strengths: [{ title: "s", body: "b" }, { title: "s2", body: "b2" }],
   cautions: { items: ["주의1", "주의2"], tip: "팁" },
@@ -20,7 +25,18 @@ describe("toReportContent", () => {
     const c = toReportContent(analysis, free, meta, 2026);
     expect(c.headline).toBe("헤드라인");
     expect(c.summary).toBe("요약");
-    expect(c.keywords).toEqual(["a", "b", "c"]);
+  });
+
+  // 이 테스트가 병합의 목적 그 자체다. 칩과 카드 제목이 갈라지면 여기서 깨진다.
+  it("히어로 키워드는 traits 의 제목과 원소·순서까지 같다", () => {
+    const c = toReportContent(analysis, free, meta, 2026);
+    expect(c.keywords).toEqual(["t1", "t2", "t3", "t4"]);
+    expect(c.keywords).toEqual(c.personality.map((p) => p.title));
+  });
+
+  it("01 카드는 traits 를 basis 까지 그대로 쓴다", () => {
+    const c = toReportContent(analysis, free, meta, 2026);
+    expect(c.personality).toEqual(traits);
   });
 
   it("cautions 를 목록과 팁으로 나눈다", () => {
@@ -45,6 +61,7 @@ describe("toReportContent", () => {
   it("해석이 아예 비어도 무료 필드는 빈 값으로 성립한다", () => {
     const c = toReportContent(analysis, {}, meta, 2026);
     expect(c.headline).toBe("");
+    expect(c.keywords).toEqual([]);
     expect(c.personality).toEqual([]);
     expect(c.evidence.pillars.length).toBeGreaterThan(0);
   });

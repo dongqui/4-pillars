@@ -55,8 +55,9 @@ export function toReportContent(
     meta,
     headline: overview?.headline ?? "",
     summary: overview?.summary ?? "",
-    keywords: overview?.keywords ?? [],
-    personality: interpretation.personality ?? [],
+    // 칩과 카드가 같은 배열에서 나온다 — 두 값이 갈라질 수 없다.
+    keywords: overview?.traits.map((t) => t.title) ?? [],
+    personality: overview?.traits ?? [],
     evidence: toChartEvidence(analysis, year),
     outerVsInner: interpretation.outerVsInner ?? { outward: "", inner: "" },
     strengths: interpretation.strengths ?? [],

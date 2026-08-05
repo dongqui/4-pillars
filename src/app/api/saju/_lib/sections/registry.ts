@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { KeyValue, LabeledText, TimelineNote, TitledText } from "./primitives";
+import { KeyValue, LabeledText, TimelineNote, TitledText, TraitNote } from "./primitives";
 
 /** 무료 노출 여부. 어떤 키를 실제로 요청할지는 호출자가 정한다. */
 export type SectionTier = "free" | "paid";
@@ -39,20 +39,29 @@ const shortList = (min: number, max: number) => z.array(z.string().min(1)).min(m
  */
 export const SECTIONS = {
   overview: {
-    version: 1,
+    version: 2,
     tier: "free",
     storage: "chart",
+    // traits 하나가 히어로 키워드 칩과 01 카드 양쪽을 채운다. 두 섹션으로
+    // 나뉘어 있던 시절엔 호출이 따로 나가 칩과 카드가 어긋났다.
     schema: z
       .object({
         headline: z.string().min(1),
         summary: z.string().min(1),
-        keywords: shortList(3, 6),
+        traits: z.array(TraitNote).length(4),
       })
       .strict(),
-    prompt:
-      "타고난 기질 전체를 한 줄 헤드라인과 3~4문장 요약으로 정리하고, 성향을 대표하는 키워드를 3~6개 뽑아라. 키워드도 사주 용어가 아니라 성격을 그대로 알아볼 수 있는 말로 쓴다.",
+    // basis 는 사주 용어를 쓰는 유일한 자리다. 시스템 프롬프트의 "용어 금지"에
+    // 대한 명시적 예외라, 이 지시문을 지우면 리포트 전체에서 용어가 사라진다.
+    prompt: [
+      "타고난 기질 전체를 한 줄 헤드라인(headline)과 3~4문장 요약(summary)으로 정리하고,",
+      "성향을 대표하는 서로 겹치지 않는 관점 4개를 traits 로 써라. 각 trait 은 세 부분이다.",
+      "- title: 그 관점을 한눈에 보여주는 짧은 말. 그대로 키워드로 노출되므로 사주 용어를 쓰지 말고, 성격을 바로 알아볼 수 있는 말로 짧게 쓴다.",
+      "- body: 그 성향이 일상에서 어떻게 드러나는지 2~3문장. 여기서도 사주 용어를 쓰지 마라.",
+      '- basis: 그 성향의 사주 근거 한 문장. 이 필드에서만 사주 용어를 써도 된다 — 일간·십성·오행을 자연스럽게 녹이되 나열하거나 강의하지 마라. body 뒤에 이어붙여 읽어도 말이 되도록 "~해서 그래요", "~라 그래요" 처럼 앞 문장을 받는 종결로 쓴다.',
+    ].join("\n"),
     example:
-      '{"headline":"겉으로는 차분하지만, 자신만의 기준과 승부욕이 강한 사람","summary":"사람들과 잘 어울리지만, 혼자 생각을 정리하는 시간이 꼭 필요한 타입이에요.","keywords":["신중한 관찰자","독립적인 판단","강한 책임감"]}',
+      '{"headline":"겉으로는 차분하지만, 자신만의 기준과 승부욕이 강한 사람","summary":"사람들과 잘 어울리지만, 혼자 생각을 정리하는 시간이 꼭 필요한 타입이에요.","traits":[{"title":"신중한 관찰자","body":"상황을 먼저 파악한 뒤 움직여요. 말보다 판단이 앞서는 이유예요.","basis":"일간 갑목이 인월의 단단한 뿌리 위에 서 있어서 그래요."}]}',
   },
 
   personality: {

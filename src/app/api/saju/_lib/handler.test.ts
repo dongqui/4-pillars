@@ -13,7 +13,8 @@ const validBody = {
   hour: 10,
 };
 
-const overview = { headline: "캐시", summary: "캐시된 요약", keywords: ["a", "b", "c"] };
+const trait = { title: "t", body: "b", basis: "근거" };
+const overview = { headline: "캐시", summary: "캐시된 요약", traits: [trait, trait, trait, trait] };
 const yearlyLuck = [{ title: "t", desc: "d" }];
 
 const empty = { have: {}, missing: [] as never[] };
@@ -121,7 +122,7 @@ describe("handleSaju", () => {
       getCached: vi.fn().mockResolvedValue({ have: {}, missing: ["overview"] }),
       generator: {
         model: "stub",
-        // keywords 가 빠져 overview 스키마를 통과하지 못한다.
+        // traits 가 빠져 overview 스키마를 통과하지 못한다.
         generateSections: vi.fn().mockResolvedValue({ overview: { headline: "h", summary: "s" } }),
       },
     });
@@ -141,7 +142,7 @@ describe("handleSaju", () => {
       generator: {
         model: "stub",
         generateSections: vi.fn().mockResolvedValue({
-          overview: { headline: "h", summary: "s", keywords: ["a", "b", "c"] },
+          overview: { headline: "h", summary: "s", traits: [trait, trait, trait, trait] },
           // personality 는 TitledText[] 여야 하는데 객체를 줬다.
           personality: { title: "t", body: "b" },
         }),
@@ -164,12 +165,12 @@ describe("handleSaju", () => {
         model: "stub",
         generateSections: vi
           .fn()
-          .mockResolvedValue({ overview: { headline: "h", summary: "s", keywords: ["a", "b", "c"] } }),
+          .mockResolvedValue({ overview: { headline: "h", summary: "s", traits: [trait, trait, trait, trait] } }),
       },
     });
     const res = await handleSaju(validBody, d);
     expect((res.body as SajuResponse).interpretation).toEqual({
-      overview: { headline: "h", summary: "s", keywords: ["a", "b", "c"] },
+      overview: { headline: "h", summary: "s", traits: [trait, trait, trait, trait] },
     });
     expect(d.putCached).toHaveBeenCalledOnce();
   });
@@ -181,7 +182,7 @@ describe("handleSaju", () => {
       generator: {
         model: "stub",
         generateSections: vi.fn().mockResolvedValue({
-          overview: { headline: "h", summary: "s", keywords: ["a", "b", "c"] },
+          overview: { headline: "h", summary: "s", traits: [trait, trait, trait, trait] },
           // personality 는 요청(sectionKeys/missing)에 없었다.
           personality: [{ title: "t", body: "b" }],
         }),

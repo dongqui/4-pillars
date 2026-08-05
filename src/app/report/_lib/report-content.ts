@@ -6,8 +6,8 @@ export type ElementKey = "wood" | "fire" | "earth" | "metal" | "water";
 // 잎 타입은 해석 스키마(sections/primitives)가 원본이다. 여기서 다시 선언하면
 // LLM 이 받는 구조와 화면이 읽는 타입이 갈라진다.
 // (재수출만으로는 이 파일 안에서 이름을 쓸 수 없어 import type 도 함께 둔다.)
-import type { TitledText, LabeledText, KeyValue } from "@/app/api/saju/_lib/sections";
-export type { TitledText, LabeledText, KeyValue } from "@/app/api/saju/_lib/sections";
+import type { TitledText, LabeledText, KeyValue, TraitNote } from "@/app/api/saju/_lib/sections";
+export type { TitledText, LabeledText, KeyValue, TraitNote } from "@/app/api/saju/_lib/sections";
 
 export interface TimelineRow { period: string; title: string; desc: string }
 export interface DaeunRow { range: string; title: string; desc: string; now?: boolean }
@@ -49,7 +49,7 @@ export interface ReportContent {
   headline: string;
   summary: string;
   keywords: string[];
-  personality: TitledText[];       // 01
+  personality: TraitNote[];         // 01 — keywords 와 같은 traits 에서 나온다
   evidence: ChartEvidence;          // 01 근거
   outerVsInner: { outward: string; inner: string }; // 02
   strengths: TitledText[];          // 03

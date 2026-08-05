@@ -49,10 +49,21 @@ describe("SECTIONS", () => {
     );
   });
 
-  it("overview 는 키워드 3~6개를 요구한다", () => {
-    const ok = { headline: "h", summary: "s", keywords: ["a", "b", "c"] };
+  it("overview 는 traits 를 정확히 4개 요구한다", () => {
+    const trait = { title: "t", body: "b", basis: "근거" };
+    const four = [trait, trait, trait, trait];
+    const ok = { headline: "h", summary: "s", traits: four };
     expect(SECTIONS.overview.schema.safeParse(ok).success).toBe(true);
-    expect(SECTIONS.overview.schema.safeParse({ ...ok, keywords: ["a", "b"] }).success).toBe(false);
+    expect(SECTIONS.overview.schema.safeParse({ ...ok, traits: four.slice(1) }).success).toBe(false);
+    expect(SECTIONS.overview.schema.safeParse({ ...ok, traits: [...four, trait] }).success).toBe(false);
+  });
+
+  // basis 가 없으면 "쉬운 말 → 사주 근거" 흐름이 무너진 채로 통과해버린다.
+  it("overview 의 trait 은 basis 없이는 통과하지 않는다", () => {
+    const trait = { title: "t", body: "b", basis: "근거" };
+    const noBasis = { title: "t", body: "b" };
+    const bad = { headline: "h", summary: "s", traits: [noBasis, trait, trait, trait] };
+    expect(SECTIONS.overview.schema.safeParse(bad).success).toBe(false);
   });
 
   it("personality 는 TitledText 배열", () => {

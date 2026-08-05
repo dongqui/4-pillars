@@ -28,7 +28,11 @@ export class StubGenerator implements InterpretationGenerator {
       overview: {
         headline: `일간 ${dm} — 자리표시자 헤드라인`,
         summary: `일간이 ${dm}인 사주입니다. 실제 LLM 연동 전 자리표시자 요약입니다.`,
-        keywords: [`${dm} 일간`, "자리표시자", "샘플"],
+        traits: [1, 2, 3, 4].map((n) => ({
+          title: `${dm} 성향 ${n}`,
+          body: "자리표시자 본문입니다.",
+          basis: "자리표시자 근거입니다.",
+        })),
       },
       personality: [
         { title: `${dm}의 성향 1`, body: "자리표시자 본문입니다." },
