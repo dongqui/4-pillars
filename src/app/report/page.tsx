@@ -87,7 +87,7 @@ async function ProfileReport({
     toReportMeta(profile, analysis.chart),
     year,
   );
-  return <ReportBody content={content} access={access} />;
+  return <ReportBody content={content} access={access} profileId={profile.id} />;
 }
 
 export default async function ReportPage({

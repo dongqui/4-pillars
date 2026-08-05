@@ -5,9 +5,12 @@ import type { LockedSectionMeta } from "../_lib/report-content";
 export function LockedSections({
   sections,
   isLoggedIn,
+  profileId,
 }: {
   sections: LockedSectionMeta[];
   isLoggedIn: boolean;
+  /** 픽스처 데모에는 없다. 없으면 결제로 보낼 대상이 없어 CTA 가 제자리에 머문다. */
+  profileId?: string;
 }) {
   const inlineRef = useRef<HTMLAnchorElement>(null);
   const [showBar, setShowBar] = useState(false);
@@ -24,7 +27,12 @@ export function LockedSections({
 
   // 결제하려면 계정이 있어야 한다. 비로그인에게는 이 버튼의 첫 단계가 로그인이고,
   // 로그인하는 순간 퍼널에서 맡겨둔 드래프트가 프로필로 승격된다.
-  const ctaHref = isLoggedIn ? "#" : `/login?next=${encodeURIComponent("/report")}`;
+  // 로그인했는데 profileId 가 없는 경우는 픽스처 데모뿐이다 — 살 대상이 없으니 그대로 둔다.
+  const ctaHref = !isLoggedIn
+    ? `/login?next=${encodeURIComponent("/report")}`
+    : profileId
+      ? `/checkout?profile=${profileId}`
+      : "#";
   const ctaLabel = isLoggedIn ? "전체 결과 보기" : "로그인하고 전체 결과 보기";
 
   return (

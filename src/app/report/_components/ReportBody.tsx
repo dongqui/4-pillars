@@ -19,9 +19,12 @@ import { DaeunSection } from "./DaeunSection";
 export function ReportBody({
   content,
   access,
+  profileId,
 }: {
   content: ReportContent;
   access: ReportAccess;
+  /** 잠긴 섹션의 CTA 를 결제로 보내는 데 쓴다. 픽스처 데모에는 없다. */
+  profileId?: string;
 }) {
   return (
     <>
@@ -66,7 +69,7 @@ export function ReportBody({
           )}
         </>
       ) : (
-        <LockedSections sections={lockedSections} isLoggedIn={access.isLoggedIn} />
+        <LockedSections sections={lockedSections} isLoggedIn={access.isLoggedIn} profileId={profileId} />
       )}
     </>
   );
