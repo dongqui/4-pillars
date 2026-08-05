@@ -3,7 +3,7 @@ import { createDeepSeekTransport, DEEPSEEK_URL } from "./deepseek";
 import type { SectionRequest } from "./prompt";
 
 const req: SectionRequest = {
-  key: "personality",
+  key: "strengths",
   system: "너는 작성자다",
   user: "[사실 · 원국]\n일간: 계",
   toolName: "emit_section",
@@ -144,6 +144,6 @@ describe("createDeepSeekTransport", () => {
     const onUsage = vi.fn();
     const usage = { prompt_cache_hit_tokens: 832, prompt_cache_miss_tokens: 668 };
     await transportWith(async () => reply({ content: [] }, usage), { onUsage })(req);
-    expect(onUsage).toHaveBeenCalledWith("personality", usage);
+    expect(onUsage).toHaveBeenCalledWith("strengths", usage);
   });
 });

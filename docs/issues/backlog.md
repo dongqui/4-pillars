@@ -55,14 +55,14 @@
 
 유료 요청 경로 자체가 아직 없다.
 
-- `src/app/api/saju/route.ts`가 `FREE_SECTION_KEYS`를 하드코딩한다(결제 전이라 의도된 상태). 유료는 `SECTION_KEYS` 전체를 넘기면 무료 5개는 캐시 히트로 빠지고 유료 8개만 LLM을 탄다 — 핸들러는 이미 그렇게 갈라진다.
+- `src/app/api/saju/route.ts`가 `FREE_SECTION_KEYS`를 하드코딩한다(결제 전이라 의도된 상태). 유료는 `SECTION_KEYS` 전체를 넘기면 무료 4개는 캐시 히트로 빠지고 유료 8개만 LLM을 탄다 — 핸들러는 이미 그렇게 갈라진다.
 - `/report`의 `getReportAccess().isPaid`는 여전히 `?paid=true` 개발용 쿼리 토글이지만(`src/app/report/_lib/access.ts`), 이제 `NODE_ENV !== "production"`으로 감싸 프로덕션에서는 무시된다 — 픽스처만 있던 시절과 달리 지금은 붙이면 DeepSeek로 유료 8섹션을 실제 생성하고, 그 결과가 원국 단위 공유 캐시에 영구 저장돼 결제가 붙은 뒤에도 그 원국은 공짜가 되는 경로였기 때문이다. 프로필이 있는 요청은 `access.isPaid || profile.isPaid`로 OR해(`src/app/report/page.tsx`) `getProfile`의 `purchases` 조인 결과도 함께 읽는다(`src/lib/profiles/store.ts`). 남은 것: 실제 결제 요청 경로 — `purchases`에 행을 넣는 코드가 아직 없어 `profile.isPaid`는 항상 false다.
 - 유료 12섹션을 열면 `maxDuration = 60`을 다시 봐야 한다. `daeunOutlook`이 가장 느리다.
 - 위 "결제 붙이기 전에 처리" 두 항목(`purchases` CASCADE, `purchases_paid_unique`)이 같이 걸린다.
 
 **4. 유료인데 섹션이 빠지면 화면에 신호가 없다**
 
-`ReportBody`(`src/app/report/_components/ReportBody.tsx`)는 유료 갈래에서 `content.emotion && <EmotionSection/>` 식으로 섹션마다 존재 여부만 본다. `PromptedGenerator`(`src/app/api/saju/_lib/prompted.ts`)가 섹션별 생성 실패를 삼키고 나머지로 넘어가므로 이건 예외가 아니라 정상 경로고, `daeunOutlook`이 `maxDuration = 60`을 넘길 수 있다고 `page.tsx` 주석 자체가 인정한다. 그래서 유료 프로필의 한 섹션이 빠지면 잠금 카드도 에러도 없이 리포트가 04에서 그냥 끝나는데, 같은 순간 `/home` 카드는 `isPaid`만 보고 "전체 리포트"를 표시한다(`src/app/home/_lib/to-profile-card.ts`). 설계 §7의 "`overview`만 있으면 있는 것만 렌더" 규칙은 무료 5섹션 시절에 정한 것이라, 유료 화면에서 빠진 섹션을 사용자에게 알리는 문제는 아직 다루지 않는다.
+`ReportBody`(`src/app/report/_components/ReportBody.tsx`)는 유료 갈래에서 `content.emotion && <EmotionSection/>` 식으로 섹션마다 존재 여부만 본다. `PromptedGenerator`(`src/app/api/saju/_lib/prompted.ts`)가 섹션별 생성 실패를 삼키고 나머지로 넘어가므로 이건 예외가 아니라 정상 경로고, `daeunOutlook`이 `maxDuration = 60`을 넘길 수 있다고 `page.tsx` 주석 자체가 인정한다. 그래서 유료 프로필의 한 섹션이 빠지면 잠금 카드도 에러도 없이 리포트가 04에서 그냥 끝나는데, 같은 순간 `/home` 카드는 `isPaid`만 보고 "전체 리포트"를 표시한다(`src/app/home/_lib/to-profile-card.ts`). 설계 §7의 "`overview`만 있으면 있는 것만 렌더" 규칙은 무료 4섹션 시절에 정한 것이라, 유료 화면에서 빠진 섹션을 사용자에게 알리는 문제는 아직 다루지 않는다.
 
 **5. `/report` 배선 자체에 테스트가 없다**
 
@@ -88,3 +88,11 @@
 - `page.tsx`의 `let analysis;`가 명시 타입 없이 추론에 기댄다.
 - `produce.test.ts`가 검증-드롭 경로(스키마 불통과 섹션)와 저장 페이로드를 직접 검사하지 않는다 — `handler.test.ts`가 지금은 같은 경로를 덮지만, `handleSaju`가 더 얇아지면 새는 자리가 된다.
 - `access.test.ts`의 `?paid=true` 두 케이스가 앰비언트 `NODE_ENV`에 기댄다 — `vi.stubEnv("NODE_ENV", "development")`로 명시하면 CI가 `NODE_ENV=production`을 내보낼 때도 오해할 여지가 없다.
+
+**10. `overview`가 무관용(zero-tolerance) 스키마다**
+
+`overview`는 이제 `.length(4)`인 `traits` 배열에 `headline`·`summary`까지 한 번의 tool 호출로 모두 담아야 통과한다. 옛 `overview`는 `keywords`가 3~6개 범위였어서 개수가 조금 흔들려도 통과했는데, 지금은 정확히 4개가 아니면(trait 하나만 필드가 비어도) 객체 전체가 실패한다. 실패는 `produce.ts`에서 `console.warn`만 하고 조용히 넘어가고, `page.tsx`는 `overview`가 없으면 리포트 전체를 `ReportError`로 떨어뜨린다 — 성향 카드 하나의 흠이 리포트 전체를 막는 경로다. 흔들림이 실제로 관측되면 두 방향을 검토: `.min(3).max(4)`로 완화(히어로 그리드도 01 카드 목록도 3개까지는 레이아웃이 버틴다), 또는 사용자에게 보이는 신호 추가. 위 4번 항목(유료 섹션 누락에 신호가 없다)과 같은 종류의 문제다.
+
+**11. `registry.ts`의 `overview.example`이 trait 을 1개만 보여준다**
+
+다른 섹션들(`strengths`, `emotion` 등)도 예시에 min 미만의 조각만 보이는 관례를 따르지만, 그 관례는 범위 제약(`min`~`max`)을 위해 정한 것이다. `overview`는 개수가 정확히 4개로 고정돼 있고 하나라도 부족하면 위 10번처럼 섹션 전체가 실패하는 유일한 자리라, 예시가 "몇 개를 보여줄지"가 아니라 "정확히 몇 개가 필요한지"를 흐릴 수 있다. 예시를 4개로 채우는 게 나을지는 실제 생성 결과에서 개수 누락이 보이면 다시 본다.

@@ -4,9 +4,9 @@ import { SECTIONS, type SectionSpec } from "./registry";
 const entries = Object.entries(SECTIONS) as [string, SectionSpec][];
 
 describe("SECTIONS", () => {
-  // 상단 히어로(overview) + 화면 01~12. 이 수가 곧 /home 의 "N개 중 M개 열림"이다.
-  it("섹션 13개", () => {
-    expect(entries).toHaveLength(13);
+  // 상단 히어로 + 01 은 overview 하나가 겸한다. 이 수가 곧 /home 의 "N개 중 M개 열림"이다.
+  it("섹션 12개", () => {
+    expect(entries).toHaveLength(12);
   });
 
   it("모든 섹션이 version >= 1", () => {
@@ -42,24 +42,26 @@ describe("SECTIONS", () => {
     expect(luck.sort()).toEqual(["daeunOutlook", "yearlyLuck"]);
   });
 
-  it("무료는 5개 (상단 + 01~04)", () => {
+  it("무료는 4개 (히어로+01 겸용 overview, 02~04)", () => {
     const free = entries.filter(([, s]) => s.tier === "free").map(([k]) => k);
-    expect(free.sort()).toEqual(
-      ["cautions", "outerVsInner", "overview", "personality", "strengths"],
-    );
+    expect(free.sort()).toEqual(["cautions", "outerVsInner", "overview", "strengths"]);
   });
 
-  it("overview 는 키워드 3~6개를 요구한다", () => {
-    const ok = { headline: "h", summary: "s", keywords: ["a", "b", "c"] };
+  it("overview 는 traits 를 정확히 4개 요구한다", () => {
+    const trait = { title: "t", body: "b", basis: "근거" };
+    const four = [trait, trait, trait, trait];
+    const ok = { headline: "h", summary: "s", traits: four };
     expect(SECTIONS.overview.schema.safeParse(ok).success).toBe(true);
-    expect(SECTIONS.overview.schema.safeParse({ ...ok, keywords: ["a", "b"] }).success).toBe(false);
+    expect(SECTIONS.overview.schema.safeParse({ ...ok, traits: four.slice(1) }).success).toBe(false);
+    expect(SECTIONS.overview.schema.safeParse({ ...ok, traits: [...four, trait] }).success).toBe(false);
   });
 
-  it("personality 는 TitledText 배열", () => {
-    const item = { title: "t", body: "b" };
-    expect(SECTIONS.personality.schema.safeParse([item, item]).success).toBe(true);
-    expect(SECTIONS.personality.schema.safeParse([item]).success).toBe(false);
-    expect(SECTIONS.personality.schema.safeParse([{ label: "t", body: "b" }]).success).toBe(false);
+  // basis 가 없으면 "쉬운 말 → 사주 근거" 흐름이 무너진 채로 통과해버린다.
+  it("overview 의 trait 은 basis 없이는 통과하지 않는다", () => {
+    const trait = { title: "t", body: "b", basis: "근거" };
+    const noBasis = { title: "t", body: "b" };
+    const bad = { headline: "h", summary: "s", traits: [noBasis, trait, trait, trait] };
+    expect(SECTIONS.overview.schema.safeParse(bad).success).toBe(false);
   });
 
   it("environment 는 양쪽 조건을 각각 3~4개 요구한다", () => {

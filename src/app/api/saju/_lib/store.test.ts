@@ -10,7 +10,7 @@ import {
   type CacheRecord,
   type SectionWrite,
 } from "./store";
-import type { SectionKey } from "./sections";
+import { isSectionKey, sectionVersion, type SectionKey } from "./sections";
 
 function fakeClient(rows: Record<string, unknown>[]) {
   const calls: { sql: string; values: unknown[] }[] = [];
@@ -23,13 +23,20 @@ function fakeClient(rows: Record<string, unknown>[]) {
 
 const keys: SectionKey[] = ["overview", "outerVsInner"];
 
-const row = (section_key: string, content: unknown, schema_version = 1) => ({
+// schema_version 기본값은 레지스트리에서 가져온다 — 여기 1 을 박아 두면
+// 어떤 섹션의 version 이 올라갈 때마다 무관한 테스트가 무더기로 깨진다.
+const row = (
+  section_key: string,
+  content: unknown,
+  schema_version = isSectionKey(section_key) ? sectionVersion(section_key) : 1,
+) => ({
   section_key,
   content,
   schema_version,
 });
 
-const overview = { headline: "h", summary: "s", keywords: ["a", "b", "c"] };
+const trait = { title: "t", body: "b", basis: "근거" };
+const overview = { headline: "h", summary: "s", traits: [trait, trait, trait, trait] };
 const outerVsInner = { outward: "겉", inner: "속" };
 
 const record: CacheRecord = {
@@ -125,7 +132,7 @@ describe("putSections", () => {
     expect(calls[0].sql).toContain("INSERT INTO saju_interpretation_sections");
     expect(calls[0].sql).toContain("UNNEST");
     expect(calls[0].values).toContainEqual(["overview", "outerVsInner"]);
-    expect(calls[0].values).toContainEqual([1, 1]);
+    expect(calls[0].values).toContainEqual([sectionVersion("overview"), sectionVersion("outerVsInner")]);
   });
 
   it("빈 목록이면 쿼리를 보내지 않는다", async () => {
@@ -189,14 +196,14 @@ describe("putSection", () => {
     expect(calls[0].values).toContain("overview");
     expect(calls[0].values).toContain("llm-v2");
     expect(calls[0].values).toContain(JSON.stringify(overview));
-    expect(calls[0].values).toContain(1);
+    expect(calls[0].values).toContain(sectionVersion("overview"));
   });
 });
 
 describe("SectionWrite 타입", () => {
   it("잘못된 짝은 컴파일되지 않는다 (@ts-expect-error 가 지워지면 이 테스트가 깨진다)", () => {
-    // @ts-expect-error personality 의 content 는 TitledText[] 이지 객체가 아니다
-    const bad: SectionWrite = { sectionKey: "personality", content: { title: "t", body: "b" } };
+    // @ts-expect-error strengths 의 content 는 TitledText[] 이지 객체가 아니다
+    const bad: SectionWrite = { sectionKey: "strengths", content: { title: "t", body: "b" } };
     expect(bad).toBeDefined();
   });
 });

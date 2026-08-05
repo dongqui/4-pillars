@@ -6,7 +6,7 @@ import { FREE_SECTION_KEYS } from "./_lib/sections";
 import type { ErrorResponse, InterpretationGenerator } from "./_lib/types";
 
 /**
- * 캐시 미스면 섹션마다 LLM 을 병렬로 부른다 — 무료 5섹션 기준 10초 안팎이라
+ * 캐시 미스면 섹션마다 LLM 을 병렬로 부른다 — 무료 4섹션 기준 10초 안팎이라
  * 기본 타임아웃에 걸리면 요청이 통째로 죽는다. 유료 섹션(daeunOutlook 이 가장
  * 느리다)까지 열면 이 값을 다시 본다.
  */

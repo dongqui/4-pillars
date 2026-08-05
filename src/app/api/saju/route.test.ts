@@ -73,7 +73,7 @@ describe("POST /api/saju", () => {
     expect(createGenerator).toHaveBeenCalled();
   });
 
-  // 무료 5섹션이 병렬로 10초 안팎이다. 기본 타임아웃에 걸리면 캐시 미스 요청이
+  // 무료 4섹션이 병렬로 10초 안팎이다. 기본 타임아웃에 걸리면 캐시 미스 요청이
   // 통째로 죽으므로 여유를 둔다.
   it("maxDuration 을 넉넉히 잡는다", () => {
     expect(maxDuration).toBeGreaterThanOrEqual(30);

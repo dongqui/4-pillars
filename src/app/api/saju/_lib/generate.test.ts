@@ -7,7 +7,7 @@ const analysis = analyze({ year: 1990, month: 5, day: 15, hour: 10, gender: "mal
 
 describe("StubGenerator", () => {
   it("요청한 키만 채운다", async () => {
-    const keys: SectionKey[] = ["overview", "personality"];
+    const keys: SectionKey[] = ["overview", "strengths"];
     const out = await new StubGenerator().generateSections(analysis, keys);
     expect(Object.keys(out).sort()).toEqual([...keys].sort());
   });

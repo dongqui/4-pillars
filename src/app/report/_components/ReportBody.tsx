@@ -28,7 +28,9 @@ export function ReportBody({
 }) {
   return (
     <>
-      <ReportHero meta={content.meta} headline={content.headline} summary={content.summary} keywords={content.keywords} />
+      {/* 칩과 카드 제목이 같은 배열(personality)에서 렌더 시점에 나오므로 뷰모델이
+          둘을 따로 들고 있을 이유가 없다 — 따로 들면 픽스처가 어긋날 수 있다. */}
+      <ReportHero meta={content.meta} headline={content.headline} summary={content.summary} keywords={content.personality.map((t) => t.title)} />
       <PersonalitySection items={content.personality} evidence={content.evidence} />
       <OuterInnerSection data={content.outerVsInner} />
       <StrengthsSection items={content.strengths} />

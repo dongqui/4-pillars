@@ -13,7 +13,8 @@ const validBody = {
   hour: 10,
 };
 
-const overview = { headline: "캐시", summary: "캐시된 요약", keywords: ["a", "b", "c"] };
+const trait = { title: "t", body: "b", basis: "근거" };
+const overview = { headline: "캐시", summary: "캐시된 요약", traits: [trait, trait, trait, trait] };
 const yearlyLuck = [{ title: "t", desc: "d" }];
 
 const empty = { have: {}, missing: [] as never[] };
@@ -55,26 +56,26 @@ describe("handleSaju", () => {
   it("일부만 캐시에 있으면 나머지만 생성기에 요청한다", async () => {
     const gen = { model: "stub", generateSections: vi.fn().mockResolvedValue({}) };
     const d = deps({
-      sectionKeys: ["overview", "personality"],
-      getCached: vi.fn().mockResolvedValue({ have: { overview }, missing: ["personality"] }),
+      sectionKeys: ["overview", "strengths"],
+      getCached: vi.fn().mockResolvedValue({ have: { overview }, missing: ["strengths"] }),
       generator: gen,
     });
     await handleSaju(validBody, d);
     expect(gen.generateSections).toHaveBeenCalledWith(
       expect.anything(),
-      ["personality"],
+      ["strengths"],
       { year: 2026 },
     );
   });
 
   it("캐시에 있던 섹션과 새로 생성한 섹션을 합쳐 응답한다", async () => {
     const d = deps({
-      sectionKeys: ["overview", "personality"],
-      getCached: vi.fn().mockResolvedValue({ have: { overview }, missing: ["personality"] }),
+      sectionKeys: ["overview", "strengths"],
+      getCached: vi.fn().mockResolvedValue({ have: { overview }, missing: ["strengths"] }),
     });
     const res = await handleSaju(validBody, d);
     const body = res.body as SajuResponse;
-    expect(Object.keys(body.interpretation).sort()).toEqual(["overview", "personality"]);
+    expect(Object.keys(body.interpretation).sort()).toEqual(["overview", "strengths"]);
   });
 
   it("luck 섹션은 luck 저장소로 간다", async () => {
@@ -102,8 +103,8 @@ describe("handleSaju", () => {
 
   it("생성기가 일부 섹션을 빠뜨려도 나머지로 200 을 준다", async () => {
     const d = deps({
-      sectionKeys: ["overview", "personality"],
-      getCached: vi.fn().mockResolvedValue({ have: {}, missing: ["overview", "personality"] }),
+      sectionKeys: ["overview", "strengths"],
+      getCached: vi.fn().mockResolvedValue({ have: {}, missing: ["overview", "strengths"] }),
       generator: {
         model: "stub",
         generateSections: vi.fn().mockResolvedValue({ overview }),
@@ -121,7 +122,7 @@ describe("handleSaju", () => {
       getCached: vi.fn().mockResolvedValue({ have: {}, missing: ["overview"] }),
       generator: {
         model: "stub",
-        // keywords 가 빠져 overview 스키마를 통과하지 못한다.
+        // traits 가 빠져 overview 스키마를 통과하지 못한다.
         generateSections: vi.fn().mockResolvedValue({ overview: { headline: "h", summary: "s" } }),
       },
     });
@@ -136,14 +137,14 @@ describe("handleSaju", () => {
   it("일부는 유효하고 일부는 스키마 불통과면 유효한 것만 응답·저장된다", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const d = deps({
-      sectionKeys: ["overview", "personality"],
-      getCached: vi.fn().mockResolvedValue({ have: {}, missing: ["overview", "personality"] }),
+      sectionKeys: ["overview", "strengths"],
+      getCached: vi.fn().mockResolvedValue({ have: {}, missing: ["overview", "strengths"] }),
       generator: {
         model: "stub",
         generateSections: vi.fn().mockResolvedValue({
-          overview: { headline: "h", summary: "s", keywords: ["a", "b", "c"] },
-          // personality 는 TitledText[] 여야 하는데 객체를 줬다.
-          personality: { title: "t", body: "b" },
+          overview: { headline: "h", summary: "s", traits: [trait, trait, trait, trait] },
+          // strengths 는 TitledText[] 여야 하는데 객체를 줬다.
+          strengths: { title: "t", body: "b" },
         }),
       },
     });
@@ -164,12 +165,12 @@ describe("handleSaju", () => {
         model: "stub",
         generateSections: vi
           .fn()
-          .mockResolvedValue({ overview: { headline: "h", summary: "s", keywords: ["a", "b", "c"] } }),
+          .mockResolvedValue({ overview: { headline: "h", summary: "s", traits: [trait, trait, trait, trait] } }),
       },
     });
     const res = await handleSaju(validBody, d);
     expect((res.body as SajuResponse).interpretation).toEqual({
-      overview: { headline: "h", summary: "s", keywords: ["a", "b", "c"] },
+      overview: { headline: "h", summary: "s", traits: [trait, trait, trait, trait] },
     });
     expect(d.putCached).toHaveBeenCalledOnce();
   });
@@ -181,9 +182,9 @@ describe("handleSaju", () => {
       generator: {
         model: "stub",
         generateSections: vi.fn().mockResolvedValue({
-          overview: { headline: "h", summary: "s", keywords: ["a", "b", "c"] },
-          // personality 는 요청(sectionKeys/missing)에 없었다.
-          personality: [{ title: "t", body: "b" }],
+          overview: { headline: "h", summary: "s", traits: [trait, trait, trait, trait] },
+          // strengths 는 요청(sectionKeys/missing)에 없었다.
+          strengths: [{ title: "t", body: "b" }],
         }),
       },
     });

@@ -34,7 +34,7 @@ describe("키 목록", () => {
   });
 
   it("sectionVersion / sectionStorage", () => {
-    expect(sectionVersion("overview")).toBe(1);
+    expect(sectionVersion("overview")).toBe(2);
     expect(sectionStorage("daeunOutlook")).toBe("luck");
     expect(sectionStorage("overview")).toBe("chart");
   });
@@ -51,7 +51,7 @@ describe("llmInputSchema", () => {
   });
 
   it("배열 섹션도 content 한 겹으로 감싸진다", () => {
-    const s = llmInputSchema("personality") as { properties: { content: { type: string } } };
+    const s = llmInputSchema("strengths") as { properties: { content: { type: string } } };
     expect(s.properties.content.type).toBe("array");
   });
 
@@ -61,6 +61,14 @@ describe("llmInputSchema", () => {
     };
     expect(s.properties.content.additionalProperties).toBe(false);
     expect(s.properties.content.required.sort()).toEqual(["inner", "outward"]);
+  });
+
+  it("overview 의 traits 개수가 tool 스키마에 실린다", () => {
+    const s = llmInputSchema("overview") as {
+      properties: { content: { properties: { traits: { minItems: number; maxItems: number } } } };
+    };
+    expect(s.properties.content.properties.traits.minItems).toBe(4);
+    expect(s.properties.content.properties.traits.maxItems).toBe(4);
   });
 });
 
@@ -81,7 +89,7 @@ describe("llmInputSchemaWithRows", () => {
     expect(s.properties.content.properties.rows.maxItems).toBe(6);
   });
 
-  it("luck 이 아닌 섹션은 그대로 둔다 — 배열 섹션(personality 등)이라도 자기 자신의 min/max 를 건드리면 안 된다", () => {
+  it("luck 이 아닌 섹션은 그대로 둔다 — 배열 섹션(strengths 등)이라도 자기 자신의 min/max 를 건드리면 안 된다", () => {
     for (const key of SECTION_KEYS) {
       if (sectionStorage(key) === "luck") continue; // yearlyLuck·daeunOutlook 은 별도 테스트로 검증
       expect(llmInputSchemaWithRows(key, 6), key).toEqual(llmInputSchema(key));
@@ -103,8 +111,12 @@ describe("assign", () => {
   });
 
   it("기존 키를 덮어쓴다 (재대입도 직접 대입과 동일)", () => {
-    const target: Partial<Interpretation> = { overview: { headline: "old", summary: "s", keywords: ["a", "b", "c"] } };
-    const next = { headline: "new", summary: "s2", keywords: ["x", "y", "z"] };
+    const trait = { title: "t", body: "b", basis: "근거" };
+    const four = [trait, trait, trait, trait];
+    const target: Partial<Interpretation> = {
+      overview: { headline: "old", summary: "s", traits: four },
+    };
+    const next = { headline: "new", summary: "s2", traits: four };
     assign(target, "overview", next);
     expect(target.overview).toEqual(next);
   });
@@ -115,6 +127,6 @@ describe("parseSectionContent", () => {
     expect(parseSectionContent("outerVsInner", { outward: "겉", inner: "속" }))
       .toEqual({ outward: "겉", inner: "속" });
     expect(parseSectionContent("outerVsInner", { outward: "겉" })).toBeNull();
-    expect(parseSectionContent("personality", "문자열")).toBeNull();
+    expect(parseSectionContent("strengths", "문자열")).toBeNull();
   });
 });
