@@ -1,12 +1,12 @@
 import { SectionHeading } from "./SectionHeading";
 import { ChartEvidence } from "./ChartEvidence";
-import type { TitledText, ChartEvidence as ChartEvidenceData } from "../_lib/report-content";
+import type { TraitNote, ChartEvidence as ChartEvidenceData } from "../_lib/report-content";
 
 export function PersonalitySection({
   items,
   evidence,
 }: {
-  items: TitledText[];
+  items: TraitNote[];
   evidence: ChartEvidenceData;
 }) {
   return (
@@ -17,6 +17,9 @@ export function PersonalitySection({
           <div key={item.title} className="border border-slate-200 rounded-[14px] px-5 py-[18px]">
             <div className="text-[15px] font-bold mb-1">{item.title}</div>
             <p className="text-sm text-slate-600 leading-[1.65] m-0 break-keep [text-wrap:pretty]">{item.body}</p>
+            {/* 쉬운 말(body) 다음에 근거 한 줄. 아래 ChartEvidence 패널로 이어지는 다리라
+                본문보다 한 단계 옅게 둔다. */}
+            <p className="text-[13px] text-slate-400 leading-[1.6] mt-2 mb-0 break-keep [text-wrap:pretty]">{item.basis}</p>
           </div>
         ))}
       </div>
