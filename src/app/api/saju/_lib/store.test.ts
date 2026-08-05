@@ -202,8 +202,8 @@ describe("putSection", () => {
 
 describe("SectionWrite 타입", () => {
   it("잘못된 짝은 컴파일되지 않는다 (@ts-expect-error 가 지워지면 이 테스트가 깨진다)", () => {
-    // @ts-expect-error personality 의 content 는 TitledText[] 이지 객체가 아니다
-    const bad: SectionWrite = { sectionKey: "personality", content: { title: "t", body: "b" } };
+    // @ts-expect-error strengths 의 content 는 TitledText[] 이지 객체가 아니다
+    const bad: SectionWrite = { sectionKey: "strengths", content: { title: "t", body: "b" } };
     expect(bad).toBeDefined();
   });
 });

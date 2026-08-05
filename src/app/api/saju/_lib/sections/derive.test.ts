@@ -51,7 +51,7 @@ describe("llmInputSchema", () => {
   });
 
   it("배열 섹션도 content 한 겹으로 감싸진다", () => {
-    const s = llmInputSchema("personality") as { properties: { content: { type: string } } };
+    const s = llmInputSchema("strengths") as { properties: { content: { type: string } } };
     expect(s.properties.content.type).toBe("array");
   });
 
@@ -89,7 +89,7 @@ describe("llmInputSchemaWithRows", () => {
     expect(s.properties.content.properties.rows.maxItems).toBe(6);
   });
 
-  it("luck 이 아닌 섹션은 그대로 둔다 — 배열 섹션(personality 등)이라도 자기 자신의 min/max 를 건드리면 안 된다", () => {
+  it("luck 이 아닌 섹션은 그대로 둔다 — 배열 섹션(strengths 등)이라도 자기 자신의 min/max 를 건드리면 안 된다", () => {
     for (const key of SECTION_KEYS) {
       if (sectionStorage(key) === "luck") continue; // yearlyLuck·daeunOutlook 은 별도 테스트로 검증
       expect(llmInputSchemaWithRows(key, 6), key).toEqual(llmInputSchema(key));
@@ -127,6 +127,6 @@ describe("parseSectionContent", () => {
     expect(parseSectionContent("outerVsInner", { outward: "겉", inner: "속" }))
       .toEqual({ outward: "겉", inner: "속" });
     expect(parseSectionContent("outerVsInner", { outward: "겉" })).toBeNull();
-    expect(parseSectionContent("personality", "문자열")).toBeNull();
+    expect(parseSectionContent("strengths", "문자열")).toBeNull();
   });
 });

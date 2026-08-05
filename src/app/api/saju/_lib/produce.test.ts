@@ -61,8 +61,8 @@ describe("produceSections", () => {
   // /report 가 "캐시에 있던 것만이라도 보여준다"를 하려면 실패 시점의 캐시가 필요하다.
   it("생성기가 실패하면 GenerationError 를 던지고, 캐시에서 읽은 섹션을 partial 로 싣는다", async () => {
     const d = deps({
-      sectionKeys: ["overview", "personality"],
-      getCached: vi.fn().mockResolvedValue({ have: { overview }, missing: ["personality"] }),
+      sectionKeys: ["overview", "strengths"],
+      getCached: vi.fn().mockResolvedValue({ have: { overview }, missing: ["strengths"] }),
       generator: {
         model: "stub",
         generateSections: vi.fn().mockRejectedValue(new Error("LLM down")),

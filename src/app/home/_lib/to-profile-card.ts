@@ -3,7 +3,7 @@ import type { ProfileRow } from "@/lib/profiles/store";
 
 /**
  * 화면 문구의 숫자는 섹션 레지스트리에서 파생한다 — 섹션을 추가하거나 티어를
- * 바꿔도 "12개 중 5개 열림"이 저절로 따라간다.
+ * 바꿔도 "12개 중 4개 열림"이 저절로 따라간다.
  */
 export const TOTAL_SECTIONS = SECTION_KEYS.length;
 export const FREE_SECTIONS = FREE_SECTION_KEYS.length;

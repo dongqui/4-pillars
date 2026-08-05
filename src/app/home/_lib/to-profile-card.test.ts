@@ -25,9 +25,9 @@ const base: ProfileRow = {
 describe("섹션 개수", () => {
   // 레지스트리에서 파생되므로 하드코딩이 아니다. 이 테스트는 티어가 실수로
   // 바뀌었을 때(무료 섹션을 유료로 돌리는 등) 알아채기 위한 핀이다.
-  it("현재 레지스트리는 총 13개 / 무료 5개", () => {
-    expect(TOTAL_SECTIONS).toBe(13);
-    expect(FREE_SECTIONS).toBe(5);
+  it("현재 레지스트리는 총 12개 / 무료 4개", () => {
+    expect(TOTAL_SECTIONS).toBe(12);
+    expect(FREE_SECTIONS).toBe(4);
   });
 });
 

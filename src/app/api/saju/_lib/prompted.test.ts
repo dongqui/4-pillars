@@ -11,7 +11,7 @@ const ok: SectionTransport = async () => ({ content: [{ title: "t", body: "b" }]
 describe("PromptedGenerator", () => {
   it("요청한 섹션마다 transport 를 한 번씩 부른다", async () => {
     const transport = vi.fn(ok);
-    const keys: SectionKey[] = ["personality", "strengths"];
+    const keys: SectionKey[] = ["strengths", "cautions"];
     await new PromptedGenerator("test", transport).generateSections(analysis, keys, ctx);
     expect(transport).toHaveBeenCalledTimes(2);
     expect(transport.mock.calls.map(([req]) => req.key).sort()).toEqual([...keys].sort());
@@ -20,24 +20,24 @@ describe("PromptedGenerator", () => {
   it("content 를 벗겨서 돌려준다", async () => {
     const out = await new PromptedGenerator("test", ok).generateSections(
       analysis,
-      ["personality"],
+      ["strengths"],
       ctx,
     );
-    expect(out.personality).toEqual([{ title: "t", body: "b" }]);
+    expect(out.strengths).toEqual([{ title: "t", body: "b" }]);
   });
 
   it("한 섹션이 실패해도 나머지는 살린다", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const transport: SectionTransport = async (req) => {
-      if (req.key === "strengths") throw new Error("boom");
+      if (req.key === "cautions") throw new Error("boom");
       return { content: [{ title: "t", body: "b" }] };
     };
     const out = await new PromptedGenerator("test", transport).generateSections(
       analysis,
-      ["personality", "strengths"],
+      ["strengths", "cautions"],
       ctx,
     );
-    expect(Object.keys(out)).toEqual(["personality"]);
+    expect(Object.keys(out)).toEqual(["strengths"]);
     warn.mockRestore();
   });
 
@@ -47,7 +47,7 @@ describe("PromptedGenerator", () => {
     const transport: SectionTransport = async () => [{ title: "t", body: "b" }];
     const out = await new PromptedGenerator("test", transport).generateSections(
       analysis,
-      ["personality"],
+      ["strengths"],
       ctx,
     );
     expect(out).toEqual({});

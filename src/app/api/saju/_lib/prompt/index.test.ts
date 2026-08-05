@@ -21,9 +21,9 @@ describe("buildSectionRequest", () => {
   });
 
   it("user 프롬프트에 사실 블록 · 지시문 · 문체 예시가 다 들어간다", () => {
-    const req = buildSectionRequest(analysis, "personality", ctx);
+    const req = buildSectionRequest(analysis, "strengths", ctx);
     expect(req.user).toContain("[사실 · 원국]");
-    expect(req.user).toContain("[요청 · personality]");
+    expect(req.user).toContain("[요청 · strengths]");
     expect(req.user).toContain("[문체 예시]");
   });
 
@@ -63,7 +63,7 @@ describe("buildSectionRequest", () => {
 
   // 배열 섹션 전부의 min/max 를 덮어쓴 적이 있다 (derive.ts:llmInputSchemaWithRows 주석).
   it("개수 고정은 세운·대운에만 적용된다", () => {
-    const req = buildSectionRequest(analysis, "personality", ctx);
+    const req = buildSectionRequest(analysis, "strengths", ctx);
     expect(contentSchema(req).minItems).toBe(2);
     expect(contentSchema(req).maxItems).toBe(4);
     expect(req.user).not.toContain("항목은 정확히");

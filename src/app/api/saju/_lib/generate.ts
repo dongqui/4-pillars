@@ -34,10 +34,6 @@ export class StubGenerator implements InterpretationGenerator {
           basis: "자리표시자 근거입니다.",
         })),
       },
-      personality: [
-        { title: `${dm}의 성향 1`, body: "자리표시자 본문입니다." },
-        { title: `${dm}의 성향 2`, body: "자리표시자 본문입니다." },
-      ],
       outerVsInner: { outward: "겉모습 자리표시자.", inner: "속마음 자리표시자." },
       strengths: [
         { title: `${dm} 일간의 강점 1`, body: "자리표시자 본문입니다." },

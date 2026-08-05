@@ -55,7 +55,7 @@ export function llmInputSchema(key: SectionKey): Record<string, unknown> {
  * 세운·대운은 LLM 서술을 계산된 기간과 인덱스로 짝짓는다. 개수가 어긋나면
  * 조립 단계에서 통째로 버려지므로, 요청할 때만 개수를 못박아 넘긴다.
  *
- * luck 저장소인 이 둘 말고는 손대면 안 된다 — personality 등 다른 배열 섹션까지
+ * luck 저장소인 이 둘 말고는 손대면 안 된다 — strengths 등 다른 배열 섹션까지
  * "최상위가 배열이면" 식으로 건드리면 그 섹션 고유의 min/max 를 덮어써버린다.
  * 그래서 스키마 모양이 아니라 키로 직접 분기한다.
  *

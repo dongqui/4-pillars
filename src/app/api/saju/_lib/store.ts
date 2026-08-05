@@ -81,8 +81,8 @@ export async function getCached(
 
 /**
  * 섹션 하나의 쓰기 단위. 매핑 타입으로 만들어 sectionKey 와 content 가 짝지어진다.
- * { sectionKey: "personality", content: { title, body } } 는 컴파일 에러 —
- * personality 는 배열이다.
+ * { sectionKey: "strengths", content: { title, body } } 는 컴파일 에러 —
+ * strengths 는 배열이다.
  */
 export type SectionWrite = {
   [K in SectionKey]: { sectionKey: K; content: SectionContent<K> };
