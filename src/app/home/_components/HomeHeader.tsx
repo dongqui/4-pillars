@@ -1,5 +1,7 @@
+import { displayInitial } from "@/lib/auth/display-name";
+
 export function HomeHeader({ displayName }: { displayName: string }) {
-  const initial = [...displayName][0] ?? "?";
+  const initial = displayInitial(displayName);
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/[0.82] backdrop-blur-[14px]">

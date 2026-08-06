@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getUser } from "@/lib/auth/users";
+import { resolveDisplayName } from "@/lib/auth/display-name";
 import { MAX_PROFILES, listProfiles } from "@/lib/profiles/store";
 import { countCaption, toProfileCard } from "./_lib/to-profile-card";
 import { HomeHeader } from "./_components/HomeHeader";
@@ -30,8 +31,7 @@ export default async function HomePage({
   ]);
   const cards = rows.map(toProfileCard);
   const isFull = cards.length >= MAX_PROFILES;
-  // 소셜 제공자가 이름을 주지 않는 경우가 있다.
-  const displayName = user?.displayName?.trim() || "회원";
+  const displayName = resolveDisplayName(user);
 
   return (
     <div className="min-h-screen flex-1 bg-slate-50">
