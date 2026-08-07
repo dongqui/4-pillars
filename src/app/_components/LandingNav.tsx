@@ -17,7 +17,8 @@ export function LandingNav({ displayName }: LandingNavProps) {
   return (
     <header className="sticky top-0 z-50 bg-white/[.78] backdrop-blur-md border-b border-slate-100">
       <div className="max-w-[1120px] mx-auto px-8 h-[68px] flex items-center justify-between">
-        <AppBrand />
+        {/* 로그인했으면 로고도 /home 으로 — 랜딩에서는 그대로 맨 위로 돌아간다. */}
+        <AppBrand href={displayName === null ? "/" : "/home"} />
         <nav className="flex items-center gap-1.5">
           {/* 모바일에서는 섹션 앵커를 접는다 — 로그인 진입점과 CTA 가 먼저다. */}
           <div className="hidden items-center gap-1.5 sm:flex">

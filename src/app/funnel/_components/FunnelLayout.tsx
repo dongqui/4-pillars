@@ -1,4 +1,4 @@
-import { AppBrand } from "@/components/AppBrand";
+import { FunnelBrand } from "./FunnelBrand";
 import { Stepper } from "./Stepper";
 import { FunnelProgress } from "./FunnelProgress";
 import { type StepKey } from "../_lib/steps";
@@ -18,10 +18,7 @@ export function FunnelLayout({ index, steps, total, footer, children, onBack, sh
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* 데스크톱 좌측 레일 */}
       <aside className="hidden md:flex flex-none w-[400px] bg-slate-50 border-r border-slate-200 px-11 py-11 flex-col">
-        <AppBrand
-          iconClassName="w-[34px] h-[34px] rounded-[10px] bg-slate-900 text-base font-bold"
-          textClassName="font-bold text-lg tracking-tight"
-        />
+        <FunnelBrand />
         <div className="mt-11">
           <div className="text-[13px] font-semibold text-accent mb-2.5">사주 정보 입력</div>
           <h2 className="text-[26px] font-bold tracking-tight leading-tight">
