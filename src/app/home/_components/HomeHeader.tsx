@@ -1,3 +1,4 @@
+import { AppBrand } from "@/components/AppBrand";
 import { displayInitial } from "@/lib/auth/display-name";
 
 export function HomeHeader({ displayName }: { displayName: string }) {
@@ -6,12 +7,11 @@ export function HomeHeader({ displayName }: { displayName: string }) {
   return (
     <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/[0.82] backdrop-blur-[14px]">
       <div className="mx-auto flex h-16 max-w-[880px] items-center justify-between gap-4 px-6">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-slate-900 text-sm font-semibold text-white">
-            사
-          </div>
-          <span className="text-[15.5px] font-semibold tracking-[-0.02em]">사주</span>
-        </div>
+        <AppBrand
+          href="/home"
+          iconClassName="h-7 w-7 rounded-[9px] bg-slate-900 text-sm"
+          textClassName="text-[15.5px] font-semibold tracking-[-0.02em]"
+        />
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 whitespace-nowrap rounded-full border border-slate-200 bg-white py-[5px] pl-[5px] pr-[13px] text-sm font-semibold text-slate-900">
