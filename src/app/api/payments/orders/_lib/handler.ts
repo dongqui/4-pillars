@@ -1,12 +1,12 @@
 import { z } from "zod";
-import {
-  PAYMENT_METHOD_IDS,
-  type PaymentChannel,
-  type PaymentMethodId,
-  type PortOnePayMethod,
-} from "@/lib/payments/config";
+import { PAYMENT_METHOD_IDS, type PaymentChannel, type PaymentMethodId } from "@/lib/payments/config";
 import { FULL_REPORT_ORDER_NAME, FULL_REPORT_PRICE } from "@/lib/payments/pricing";
+import type { OrderResponse } from "@/lib/payments/order";
 import { parseProfileParam } from "@/lib/profiles/param";
+
+// 타입은 src/lib/payments/order.ts 가 소유한다 — 여기서는 재수출만 해서
+// 기존 import 경로(`_lib/handler`)를 깨지 않는다.
+export type { OrderResponse };
 
 // 금액을 받는 필드가 없는 것이 이 스키마의 요점이다 — 청구 금액은 서버 상수에서만 온다.
 // method 는 config 의 배열을 그대로 받는다: 수단이 늘면 스키마도 같이 넓어진다.
@@ -14,19 +14,6 @@ const createOrderSchema = z.object({
   profileId: z.string(),
   method: z.enum(PAYMENT_METHOD_IDS),
 });
-
-/** 브라우저가 requestPayment 에 그대로 펼쳐 넣는 값들. */
-export interface OrderResponse {
-  paymentId: string;
-  storeId: string;
-  channelKey: string;
-  payMethod: PortOnePayMethod;
-  orderName: string;
-  totalAmount: number;
-  /** 포트원 요청용 통화 코드. 조회 응답의 "KRW" 와 문자열이 다르다. */
-  currency: "CURRENCY_KRW";
-  redirectUrl: string;
-}
 
 export interface CreateOrderDeps {
   /** 세션이 없으면 null */

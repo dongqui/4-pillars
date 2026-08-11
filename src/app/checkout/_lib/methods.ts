@@ -46,5 +46,3 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
     note: "결제하기를 누르면 카카오페이 QR·앱 인증 창이 열립니다. 인증을 완료하면 이 화면으로 돌아옵니다.",
   },
 ];
-
-export const DEFAULT_PAYMENT_METHOD: PaymentMethodId = "card";

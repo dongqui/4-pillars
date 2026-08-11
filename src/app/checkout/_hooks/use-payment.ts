@@ -3,19 +3,9 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import * as PortOne from "@portone/browser-sdk/v2";
 import type { PaymentMethodId } from "../_lib/methods";
+import type { OrderResponse } from "@/lib/payments/order";
 
 export type PaymentStatus = "idle" | "pending";
-
-interface OrderResponse {
-  paymentId: string;
-  storeId: string;
-  channelKey: string;
-  payMethod: string;
-  orderName: string;
-  totalAmount: number;
-  currency: string;
-  redirectUrl: string;
-}
 
 async function postJson(url: string, body: unknown): Promise<unknown> {
   const res = await fetch(url, {
@@ -58,10 +48,10 @@ export function usePayment(profileId: string) {
           paymentId: order.paymentId,
           orderName: order.orderName,
           totalAmount: order.totalAmount,
-          // 주문 생성 응답은 string 이지만 실제 값은 서버(src/lib/payments/config.ts)가
-          // PortOne 이 받는 코드 집합 안에서만 만든다 — SDK 의 유니온 타입으로 캐스팅한다.
-          currency: order.currency as PortOne.PaymentCurrency,
-          payMethod: order.payMethod as PortOne.PaymentPayMethod,
+          // OrderResponse(src/lib/payments/order.ts)의 currency·payMethod 가 이미
+          // PortOne SDK 가 받는 리터럴 집합의 부분집합이라 캐스팅이 필요 없다.
+          currency: order.currency,
+          payMethod: order.payMethod,
           redirectUrl: order.redirectUrl,
         });
 
