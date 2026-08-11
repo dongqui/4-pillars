@@ -31,6 +31,8 @@ for (const file of files) {
   }
   const text = await readFile(join(dir, file), "utf8");
   console.log(`applying ${file}`);
+  // 파일 전체를 한 번의 prepared statement 로 보낸다 — Neon HTTP 드라이버는 한 쿼리에
+  // 문장을 여러 개 담는 걸 거부한다. 그래서 마이그레이션 파일 하나에 SQL 문장은 하나만 담는다.
   await sql.query(text);
   await sql.query("INSERT INTO schema_migrations (filename) VALUES ($1)", [file]);
   applied.add(file);
