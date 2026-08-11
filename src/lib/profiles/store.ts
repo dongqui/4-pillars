@@ -31,7 +31,7 @@ export interface ProfileRow {
   birthPlace: { country: string; regionId: string } | null;
   trueSolar: boolean;
   createdAt: string;
-  /** purchases 조인에서 파생. 결제 미구현이라 현재는 항상 false. */
+  /** purchases 조인에서 파생 — 해당 프로필에 status='paid' 행이 있으면 true. */
   isPaid: boolean;
 }
 

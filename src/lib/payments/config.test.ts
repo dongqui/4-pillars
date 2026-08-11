@@ -3,6 +3,7 @@ import { availableMethods, getChannel, getStoreId } from "./config";
 
 const full = {
   PORTONE_STORE_ID: "store-1",
+  PORTONE_API_SECRET: "secret-1",
   PORTONE_CHANNEL_KEY_CARD: "ch-card",
   PORTONE_CHANNEL_KEY_NAVERPAY: "ch-naver",
   PORTONE_CHANNEL_KEY_KAKAOPAY: "ch-kakao",
@@ -39,6 +40,10 @@ describe("availableMethods", () => {
 
   it("storeId 가 없으면 채널이 다 있어도 빈 배열 — 상점 없이는 결제창이 열리지 않는다", () => {
     expect(availableMethods({ ...full, PORTONE_STORE_ID: "" })).toEqual([]);
+  });
+
+  it("API 시크릿이 없으면 채널이 다 있어도 빈 배열 — 확정 못 할 결제를 열 수는 없다", () => {
+    expect(availableMethods({ ...full, PORTONE_API_SECRET: "" })).toEqual([]);
   });
 });
 

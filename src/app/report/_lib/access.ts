@@ -1,5 +1,7 @@
-// 리포트 접근 권한. isLoggedIn은 실제 세션으로, isPaid는 결제 미구현이라 개발용 쿼리 토글 유지.
-// 향후 결제 조회가 붙는 지점.
+// 리포트 접근 권한. isLoggedIn은 실제 세션으로 정해진다. isPaid는 여기서는 여전히
+// ?paid=true 개발용 쿼리 토글이고(프로덕션에서는 무시, 아래 참고) — 실제 결제 여부는
+// page.tsx 가 이 값에 profile.isPaid(purchases 조인, src/lib/profiles/store.ts)를
+// OR 해서 최종 판단한다.
 //
 // ?profile 해석은 /checkout 과 공유하므로 @/lib/profiles/param 에 있다.
 // 기존 import 경로를 살려 두려고 여기서 다시 내보낸다.

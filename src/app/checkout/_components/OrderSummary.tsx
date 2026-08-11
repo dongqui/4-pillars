@@ -7,12 +7,16 @@ import { PayButton } from "./PayButton";
 export function OrderSummary({
   target,
   agreed,
+  canPay,
   pending,
   onToggleAgree,
   onPay,
 }: {
   target: OrderTarget;
+  /** 체크박스가 그대로 반영하는 값. 결제수단이 0개여도 동의 자체는 눈에 보여야 한다. */
   agreed: boolean;
+  /** 결제 버튼 활성화 조건 — agreed && ready. 체크박스에는 쓰지 않는다. */
+  canPay: boolean;
   pending: boolean;
   onToggleAgree: () => void;
   onPay: () => void;
@@ -79,7 +83,7 @@ export function OrderSummary({
 
         {/* 모바일에서는 하단 고정 바가 같은 역할을 한다 — 버튼이 둘 보이지 않게 여기서 숨긴다. */}
         <PayButton
-          agreed={agreed}
+          agreed={canPay}
           pending={pending}
           onPay={onPay}
           label={`${formatKrw(FULL_REPORT_PRICE.total)} 결제하기`}

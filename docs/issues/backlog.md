@@ -106,3 +106,31 @@
 **1. 금액 불일치 결제 자동 취소**
 
 `confirmPayment` 는 포트원 조회 금액이 주문 금액과 다르면 `purchases` 를 `failed` 로 내리고 로그만 남긴다 — 돈은 받은 상태다. 포트원 취소 API 를 붙여 자동 환불해야 한다. 현재는 콘솔에서 수동 처리.
+
+**2. `Transaction.Cancelled` 웹훅 처리**
+
+지금은 `Transaction.Paid` 가 아닌 이벤트를 전부 200 으로 흘려보낸다(`src/app/api/payments/webhook/_lib/handler.ts`) — 콘솔에서 환불해도 DB 에 반영되지 않는다.
+
+**3. 이중 결제 시 `purchases_paid_unique` 위반 처리**
+
+같은 프로필에 pending 주문 두 개가 생겨 둘 다 결제되면(409 가드는 `isPaid` 만 본다) 두 번째 확정이 `purchases_paid_unique` 위반으로 SQLSTATE 23505 를 던진다. 완료 API 는 500, 웹훅은 무한 재시도가 된다. 23505 를 잡아 행을 `failed` 로 내리고 수동 환불 대상임을 로그로 남겨야 한다.
+
+**4. 미결제 상태로 굳은 주문을 자동 정산하는 스크립트**
+
+`docs/issues/payment.md` 의 리컨실리에이션 조회를 정기적으로 돌려, 걸린 각 건에 `confirmPayment` 를 다시 실행한다.
+
+**5. 웹훅·주문·완료 라우트에 테스트가 없다**
+
+핸들러(`_lib/handler.ts`)에는 있지만 라우트 자체엔 없다. 포트원 SDK 목이 필요해 미뤘다.
+
+**6. `use-payment.ts` 가 주문 응답을 런타임 검증하지 않는다**
+
+`as OrderResponse` 로 단언만 하고 넘어간다.
+
+**7. 결제 화면 컴포넌트 테스트가 없다**
+
+jsdom/RTL 이 설치돼 있지 않다. 수단 0개일 때 버튼 잠김과 이중 제출 가드가 우선 대상.
+
+**8. `/report` 의 `maxDuration = 60` 재검토**
+
+결제가 붙은 뒤 다시 보기로 했던 값인데 미뤄졌다(`src/app/report/page.tsx`). 유료 12섹션 경로가 가장 느린데, 결제 직후 첫 렌더가 바로 그 경로를 탄다.

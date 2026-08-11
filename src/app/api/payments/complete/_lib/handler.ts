@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ConfirmResult } from "@/lib/payments/confirm";
+import type { ConfirmFailure, ConfirmResult } from "@/lib/payments/confirm";
 import type { PendingOrder } from "@/lib/payments/store";
 
 const completeSchema = z.object({ paymentId: z.string().min(1) });
@@ -16,8 +16,10 @@ export interface CompleteResult {
   body: { profileId: string } | { error: string; kind?: string };
 }
 
-/** 확정 실패 사유 → 상태코드. not_found 만 404 고 나머지는 결제 자체의 문제(402)다. */
-const FAILURE_STATUS: Record<string, number> = {
+// ConfirmFailure 로 키를 두는 이유: confirm.ts 에 kind 가 하나 추가됐는데 여기를
+// 안 고치면, Record<string, number> 였을 때는 ?? 402 로 조용히 넘어갔다.
+// 여기서도 컴파일이 깨지게 해 confirm.ts 의 never 전수 검사와 같은 효과를 낸다.
+const FAILURE_STATUS: Record<ConfirmFailure, number> = {
   not_found: 404,
   not_paid: 402,
   amount_mismatch: 402,
@@ -42,7 +44,7 @@ export async function handleComplete(raw: unknown, d: CompleteDeps): Promise<Com
   if (result.ok) return { status: 200, body: { profileId: result.profileId } };
 
   return {
-    status: FAILURE_STATUS[result.kind] ?? 402,
+    status: FAILURE_STATUS[result.kind],
     body: { error: "결제를 확인하지 못했습니다", kind: result.kind },
   };
 }

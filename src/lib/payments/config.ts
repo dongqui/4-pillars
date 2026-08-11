@@ -73,8 +73,16 @@ export function getChannel(
   return channelKey ? { channelKey, payMethod: spec.payMethod } : null;
 }
 
-/** 실제로 결제를 걸 수 있는 수단만. 상점 ID 가 없으면 채널이 다 있어도 아무것도 못 한다. */
+/**
+ * 실제로 결제를 걸 수 있는 수단만. 상점 ID 가 없으면 채널이 다 있어도 아무것도 못 한다.
+ *
+ * API 시크릿도 같이 본다 — storeId·채널키만으로는 결제창을 열고 돈을 받을 수는
+ * 있지만, confirmPayment 가 getPayment 를 부를 때 시크릿이 없으면 거기서
+ * PortOneNotConfiguredError 로 막힌다. 결제창은 열렸는데 확정할 수 없는 상태로
+ * 화면을 켜 두면 고객 돈은 잡히고 완료 API 는 503, 행은 pending 에 갇힌다.
+ * 확정 자격이 없으면 애초에 결제창을 열지 않는다.
+ */
 export function availableMethods(env: NodeJS.ProcessEnv = process.env): PaymentMethodId[] {
-  if (!getStoreId(env)) return [];
+  if (!getStoreId(env) || !getApiSecret(env)) return [];
   return PAYMENT_METHOD_IDS.filter((id) => getChannel(id, env) !== null);
 }

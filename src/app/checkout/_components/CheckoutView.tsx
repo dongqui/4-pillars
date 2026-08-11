@@ -68,7 +68,8 @@ export function CheckoutView({
           <aside className="min-[900px]:sticky min-[900px]:top-6">
             <OrderSummary
               target={target}
-              agreed={agreed && ready}
+              agreed={agreed}
+              canPay={agreed && ready}
               pending={pending}
               onToggleAgree={() => setAgreed((v) => !v)}
               onPay={() => pay(method)}
