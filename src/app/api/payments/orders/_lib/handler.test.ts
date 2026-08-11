@@ -54,6 +54,7 @@ describe("handleCreateOrder", () => {
   it("없는/남의 프로필은 404", async () => {
     const d = deps({ getProfile: vi.fn(async () => null) });
     expect((await handleCreateOrder(body, d)).status).toBe(404);
+    expect(d.createPending).not.toHaveBeenCalled();
   });
 
   it("이미 결제한 프로필은 409 — 이중 결제를 결제창 열기 전에 막는다", async () => {
@@ -80,10 +81,16 @@ describe("handleCreateOrder", () => {
   it("채널키가 없으면 503 — 장애가 아니라 미설정이다", async () => {
     const d = deps({ getChannel: () => null });
     expect((await handleCreateOrder(body, d)).status).toBe(503);
+    expect(d.createPending).not.toHaveBeenCalled();
   });
 
   it("상점 ID 나 APP_ORIGIN 이 없어도 503", async () => {
-    expect((await handleCreateOrder(body, deps({ getStoreId: () => null }))).status).toBe(503);
-    expect((await handleCreateOrder(body, deps({ getAppOrigin: () => null }))).status).toBe(503);
+    const noStoreId = deps({ getStoreId: () => null });
+    expect((await handleCreateOrder(body, noStoreId)).status).toBe(503);
+    expect(noStoreId.createPending).not.toHaveBeenCalled();
+
+    const noAppOrigin = deps({ getAppOrigin: () => null });
+    expect((await handleCreateOrder(body, noAppOrigin)).status).toBe(503);
+    expect(noAppOrigin.createPending).not.toHaveBeenCalled();
   });
 });
