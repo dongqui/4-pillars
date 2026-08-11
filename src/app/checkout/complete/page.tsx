@@ -31,7 +31,10 @@ export default async function CheckoutCompletePage({
   if (code) redirect(withErrorMarker(backTo));
 
   const paymentId = first(params.paymentId);
-  if (!paymentId) redirect(withErrorMarker(backTo));
+  // 포트원은 정상적으로 돌아올 때 code(실패) 아니면 paymentId(진행) 를 반드시
+  // 싣는다 — 둘 다 없이 여기 닿는 건 결제를 시도한 적 없는 방문(주소 직접 입력·
+  // 북마크)뿐이다. 시도하지 않은 사용자에게 오류 배너를 띄우지 않는다.
+  if (!paymentId) redirect(backTo);
 
   const session = await getSession();
   if (session === null) redirect(`/login?next=${encodeURIComponent(backTo)}`);
