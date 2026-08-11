@@ -62,8 +62,15 @@ export async function handleWebhook(
   try {
     const result = await d.confirm(paymentId);
     if (result.ok) return { status: 200, body: { ok: true } };
-    // 재시도해도 결과가 같은 사유들이다. 200 으로 닫아 재시도 폭주를 막고 로그로 남긴다.
-    console.error(`[webhook] 확정 실패 paymentId=${paymentId} kind=${result.kind}`);
+    // not_paid 는 가상계좌 발급·결제 대기 같은 정상 경로에서도 나온다(confirmPayment 의
+    // waiting 갈래) — error 로 찍으면 평상시에도 로그가 쌓여 진짜 이상 신호인
+    // amount_mismatch/currency_mismatch 가 묻힌다. 재시도해도 결과가 같다는 점은 같으므로
+    // 200 으로 닫는 것은 공통이고, 로그 레벨만 가른다.
+    if (result.kind === "not_paid") {
+      console.warn(`[webhook] 아직 결제 전 paymentId=${paymentId}`);
+    } else {
+      console.error(`[webhook] 확정 실패 paymentId=${paymentId} kind=${result.kind}`);
+    }
     return { status: 200, body: { ok: false, reason: result.kind } };
   } catch (e) {
     // 조회 장애·DB 장애. 다시 보내달라는 뜻으로 5xx 를 준다.
