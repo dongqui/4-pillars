@@ -1,11 +1,8 @@
-import { sql as neonSql } from "@/lib/db";
+import { sql as neonSql, type SqlClient } from "@/lib/db";
 import { PRODUCT_FULL_REPORT } from "./products";
 
-/** 태그드 템플릿 SQL 클라이언트(주입 가능). 기본은 공유 neon 클라이언트. */
-export type SqlClient = (
-  strings: TemplateStringsArray,
-  ...values: unknown[]
-) => Promise<Record<string, unknown>[]>;
+// 재수출 — store.test.ts 를 비롯한 기존 import 경로를 깨지 않는다.
+export type { SqlClient };
 
 const sql = neonSql as unknown as SqlClient;
 
