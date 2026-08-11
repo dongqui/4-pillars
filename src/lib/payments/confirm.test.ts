@@ -56,8 +56,12 @@ describe("confirmPayment", () => {
     expect(d.markPaid).toHaveBeenCalledWith({ paymentId: "saju-abc", transactionId: "tx-1" });
   });
 
-  it("markPaid 가 false 면 실패가 아니라 already — 그 사이 다른 경로가 먼저 확정했다", async () => {
-    const d = deps({ markPaid: vi.fn(async () => false) });
+  it("markPaid 가 false 면 다시 읽어 확인한다 — 그 사이 다른 경로가 먼저 확정했으면 already", async () => {
+    const findOrder = vi
+      .fn<ConfirmDeps["findOrder"]>()
+      .mockResolvedValueOnce(order)
+      .mockResolvedValueOnce({ ...order, status: "paid" });
+    const d = deps({ findOrder, markPaid: vi.fn(async () => false) });
     expect(await confirmPayment("saju-abc", d)).toEqual({
       ok: true,
       kind: "already",
@@ -66,11 +70,32 @@ describe("confirmPayment", () => {
     expect(d.markFailed).not.toHaveBeenCalled();
   });
 
-  it("FAILED / CANCELLED 는 not_paid 이고 행을 내린다", async () => {
-    for (const status of ["FAILED", "CANCELLED"] as const) {
+  it("markPaid 가 false 이고 다시 읽은 행이 failed/refunded 면 already 가 아니라 not_paid", async () => {
+    for (const status of ["failed", "refunded"] as const) {
+      const findOrder = vi
+        .fn<ConfirmDeps["findOrder"]>()
+        .mockResolvedValueOnce(order)
+        .mockResolvedValueOnce({ ...order, status });
+      const d = deps({ findOrder, markPaid: vi.fn(async () => false) });
+      expect(await confirmPayment("saju-abc", d)).toEqual({ ok: false, kind: "not_paid" });
+    }
+  });
+
+  it("markPaid 가 false 이고 다시 읽었더니 행이 사라졌으면 not_paid", async () => {
+    const findOrder = vi
+      .fn<ConfirmDeps["findOrder"]>()
+      .mockResolvedValueOnce(order)
+      .mockResolvedValueOnce(null);
+    const d = deps({ findOrder, markPaid: vi.fn(async () => false) });
+    expect(await confirmPayment("saju-abc", d)).toEqual({ ok: false, kind: "not_paid" });
+  });
+
+  it("FAILED / CANCELLED / PARTIALLY_CANCELLED 는 not_paid 이고 행을 내린다", async () => {
+    for (const status of ["FAILED", "CANCELLED", "PARTIALLY_CANCELLED"] as const) {
       const d = deps({ lookupPayment: vi.fn(async () => ({ ...paid, status })) });
       expect(await confirmPayment("saju-abc", d)).toEqual({ ok: false, kind: "not_paid" });
       expect(d.markFailed).toHaveBeenCalledWith("saju-abc");
+      expect(d.markPaid).not.toHaveBeenCalled();
     }
   });
 
@@ -94,6 +119,15 @@ describe("confirmPayment", () => {
     const d = deps({ lookupPayment: vi.fn(async () => ({ ...paid, currency: "JPY" })) });
     expect(await confirmPayment("saju-abc", d)).toEqual({ ok: false, kind: "currency_mismatch" });
     expect(d.markPaid).not.toHaveBeenCalled();
+    expect(d.markFailed).toHaveBeenCalledWith("saju-abc");
+  });
+
+  it("transactionId 가 없으면 markPaid 에 null 로 넘긴다", async () => {
+    const d = deps({
+      lookupPayment: vi.fn(async () => ({ ...paid, transactionId: undefined })),
+    });
+    await confirmPayment("saju-abc", d);
+    expect(d.markPaid).toHaveBeenCalledWith({ paymentId: "saju-abc", transactionId: null });
   });
 
   it("포트원 조회가 던지면 그대로 올린다 — 일시 장애를 미결제로 접지 않는다", async () => {

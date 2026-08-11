@@ -15,8 +15,38 @@ export interface ConfirmDeps {
   markFailed(paymentId: string): Promise<void>;
 }
 
-/** 더 이상 결제가 될 수 없는 상태. 행을 내린다. */
-const DEAD: ReadonlySet<PortOnePayment["status"]> = new Set(["FAILED", "CANCELLED"]);
+type StatusClass = "paid" | "dead" | "waiting";
+
+/**
+ * 포트원 결제 상태를 세 갈래로 접는다.
+ *
+ * switch + never 로 쓰는 이유: 포트원이 status 를 하나 추가하면 여기서 컴파일이
+ * 깨진다. 모르는 상태가 조용히 "아직 결제 전"으로 흘러가 행을 영원히 pending 으로
+ * 남기는 것보다, 빌드가 멈춰서 사람이 판단하는 편이 낫다.
+ */
+function classify(status: PortOnePayment["status"]): StatusClass {
+  switch (status) {
+    case "PAID":
+      return "paid";
+    case "FAILED":
+    case "CANCELLED":
+    // 부분 취소는 돈이 잡혔다가 일부 돌아간 상태다. 단건 디지털 상품에 이 상태가
+    // 나왔다면 정상 결제가 아니므로 행을 내린다 — 그대로 두면 아무도 확정하지 않아
+    // 행이 영원히 pending 으로 남는다.
+    case "PARTIALLY_CANCELLED":
+      return "dead";
+    // 아직 결제가 아니지만 죽지도 않았다. 행을 건드리지 않고 물러난다 —
+    // 웹훅이 뒤이어 도착하면 그때 확정된다.
+    case "READY":
+    case "PENDING":
+    case "VIRTUAL_ACCOUNT_ISSUED":
+      return "waiting";
+    default: {
+      const exhaustive: never = status;
+      return exhaustive;
+    }
+  }
+}
 
 /**
  * 결제 확정. 완료 API 와 웹훅이 공유하는 유일한 경로다.
@@ -42,14 +72,12 @@ export async function confirmPayment(
   // 리포트는 안 열린 채 조용히 끝난다 — 호출자가 5xx 로 올려 재시도를 유도해야 한다.
   const payment = await d.lookupPayment(paymentId);
 
-  if (DEAD.has(payment.status)) {
+  const statusClass = classify(payment.status);
+  if (statusClass === "dead") {
     await d.markFailed(paymentId);
     return { ok: false, kind: "not_paid" };
   }
-
-  // READY/PENDING/VIRTUAL_ACCOUNT_ISSUED 는 아직 결제가 아니지만 죽지도 않았다.
-  // 행을 건드리지 않고 물러난다 — 웹훅이 뒤이어 도착하면 그때 확정된다.
-  if (payment.status !== "PAID") return { ok: false, kind: "not_paid" };
+  if (statusClass === "waiting") return { ok: false, kind: "not_paid" };
 
   if (payment.currency !== "KRW") {
     await d.markFailed(paymentId);
@@ -70,7 +98,14 @@ export async function confirmPayment(
     paymentId,
     transactionId: payment.transactionId ?? null,
   });
-  // false 는 실패가 아니다 — 그 사이 다른 경로가 먼저 UPDATE 를 이겼다는 뜻이다.
-  // 이 한 줄이 완료 API 와 웹훅의 동시 도착을 멱등하게 만든다.
-  return { ok: true, kind: flipped ? "confirmed" : "already", profileId: order.profileId };
+  if (flipped) return { ok: true, kind: "confirmed", profileId: order.profileId };
+
+  // false 는 "pending 이 아니었다"만 뜻한다 — paid 일 수도, refunded/failed 일 수도 있다.
+  // 다시 읽어 확인한다: 다른 경로가 먼저 확정했으면 already 지만, 환불되거나 실패로
+  // 내려간 행을 already 로 돌려주면 결제되지 않은 주문이 리포트를 연다.
+  const after = await d.findOrder(paymentId);
+  if (after?.status === "paid") {
+    return { ok: true, kind: "already", profileId: after.profileId };
+  }
+  return { ok: false, kind: "not_paid" };
 }
