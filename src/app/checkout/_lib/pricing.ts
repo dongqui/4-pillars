@@ -1,19 +1,8 @@
-/**
- * 전체 리포트 가격. 결제(PG)가 붙으면 서버가 이 값으로 주문 금액을 만들고,
- * 화면은 지금처럼 읽기만 한다 — 두 곳에 숫자를 적어 두면 반드시 어긋난다.
- *
- * total 을 list - discount 로 계산하지 않고 따로 적는 이유: 표시용 정가·할인과
- * 실제 청구 금액은 언제든 갈라질 수 있고(프로모션, 반올림), 청구 금액은
- * 파생값이 아니라 명시값이어야 한다.
- */
-export const FULL_REPORT_PRICE = {
-  /** 정가 */
-  list: 19900,
-  /** 첫 리포트 할인 */
-  discount: 10000,
-  /** 실제 청구 금액 */
-  total: 9900,
-} as const;
+// 상수는 src/lib/payments/pricing.ts 가 소유한다 — 주문 생성 API 가 같은 값으로
+// 청구 금액을 박아야 하는데, src/lib 이 이 폴더를 import 할 수는 없다.
+// 포맷 함수는 화면 관심사라 여기 남는다.
+import { FULL_REPORT_PRICE } from "@/lib/payments/pricing";
+export { FULL_REPORT_PRICE };
 
 /**
  * 1234567 → "₩1,234,567".
