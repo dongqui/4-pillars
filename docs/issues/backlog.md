@@ -11,7 +11,9 @@
 
 2026-07-31 `feat/home-profiles` 최종 리뷰에서 나왔지만 이번 범위 밖으로 둔 항목들.
 
-**결제 붙이기 전에 처리**
+**결제 붙이기 전에 처리하려던 것**
+
+2026-08-11 `feat/portone-payment` 로 결제가 붙었지만 아래 두 항목은 미처리 상태다. 프로필 삭제 기능이 없어(`src/`에 `DELETE FROM profiles` 또는 `deleteProfile` 없음) 1번은 현재 데이터 위험은 없다.
 
 - `purchases.profile_id`가 `ON DELETE CASCADE`다. 프로필 삭제가 생기면 결제 내역이 같이 지워진다 — 환불·분쟁·회계 때문에 결제 기록은 대상보다 오래 살아야 한다. `ON DELETE SET NULL`로 바꾸는 새 마이그레이션이 필요하다 (0007을 고치면 이미 적용된 DB에는 반영되지 않는다).
 - `purchases_paid_unique`는 `profile_id IS NULL` 행을 제약하지 못한다 (SQL은 NULL을 서로 다르게 본다). 프로필 단위가 아닌 상품(구독 등)은 `(user_id, product)` 기준 제약을 따로 걸어야 한다.
@@ -99,4 +101,8 @@
 
 ## 결제 연동 후속
 
-**금액 불일치 결제 자동 취소.** `confirmPayment` 는 포트원 조회 금액이 주문 금액과 다르면 `purchases` 를 `failed` 로 내리고 로그만 남긴다 — 돈은 받은 상태다. 포트원 취소 API 를 붙여 자동 환불해야 한다. 현재는 콘솔에서 수동 처리.
+2026-08-11 `feat/portone-payment` 구현에서 나온 것.
+
+**1. 금액 불일치 결제 자동 취소**
+
+`confirmPayment` 는 포트원 조회 금액이 주문 금액과 다르면 `purchases` 를 `failed` 로 내리고 로그만 남긴다 — 돈은 받은 상태다. 포트원 취소 API 를 붙여 자동 환불해야 한다. 현재는 콘솔에서 수동 처리.
