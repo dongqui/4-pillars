@@ -211,13 +211,17 @@ export async function confirmPayment(paymentId: string, d: ConfirmDeps): Promise
 | --- | --- | --- |
 | 행이 없다 | `not_found` | — |
 | 행이 이미 `paid` | `already` | — (포트원 조회를 생략한다) |
-| 포트원 `status`가 `FAILED`/`CANCELLED` | `not_paid` | `failed` |
-| 포트원 `status`가 `PAID`가 아니다 | `not_paid` | 그대로 (`READY`/`PENDING`은 재시도 여지가 있다) |
+| `status`가 **종결**(`FAILED`/`CANCELLED`/`PARTIALLY_CANCELLED`) | `not_paid` | `failed` |
+| `status`가 **대기**(`READY`/`PENDING`/`VIRTUAL_ACCOUNT_ISSUED`) | `not_paid` | 그대로 (웹훅이 뒤이어 확정할 수 있다) |
 | `currency !== 'KRW'` | `currency_mismatch` | `failed` |
 | `amount.total !== 행의 amount` | `amount_mismatch` | `failed` |
-| 전부 통과 | `confirmed` / `already` | `paid` |
+| 전부 통과, `markPaid`가 행을 뒤집음 | `confirmed` | `paid` |
+| 전부 통과, `markPaid`가 `false` + 다시 읽은 행이 `paid` | `already` | — |
+| 전부 통과, `markPaid`가 `false` + 그 외 | `not_paid` | — |
 
-마지막 줄이 둘로 갈리는 이유: `markPaid`가 `false`를 돌려주면 그 사이 다른 경로(웹훅/완료 API)가 먼저 확정했다는 뜻이다. 실패가 아니라 `already`다. **이 한 줄이 두 경로 동시 도착을 멱등하게 만든다.**
+**상태 분류는 `switch` + `never` 로 닫는다.** 포트원이 status를 하나 추가하면 컴파일이 깨진다 — 모르는 상태가 조용히 "아직 결제 전"으로 흘러가 행을 영원히 `pending`으로 남기는 것보다, 빌드가 멈춰 사람이 판단하는 편이 낫다. `PARTIALLY_CANCELLED`를 종결로 넣은 이유가 그 실패의 실례다: 돈이 잡혔다가 일부 돌아간 상태인데, 대기로 분류하면 웹훅이 몇 번을 와도 같은 판정만 되풀이하고 행은 끝내 확정되지 않는다.
+
+마지막 세 줄이 갈리는 이유: `markPaid`는 `WHERE status='pending'`이라 `false`가 **"paid였다"가 아니라 "pending이 아니었다"만 증명한다.** `refunded`·`failed` 행도 `false`를 낸다. 그래서 `false`일 때 행을 한 번 더 읽어, `paid`일 때만 `already`(=리포트를 연다)로 돌려준다. **이 갈래가 두 경로 동시 도착을 멱등하게 만들면서, 환불된 주문이 리포트를 여는 길은 막는다.**
 
 `amount_mismatch`는 돈은 받았는데 금액이 다른 상태다. 행을 `failed`로 내리고 `console.error`로 남기지만 **자동 취소는 하지 않는다** — 취소 API 연동은 이 작업 범위 밖이다. `docs/issues/backlog.md`에 "금액 불일치 결제 자동 취소"를 기록한다.
 

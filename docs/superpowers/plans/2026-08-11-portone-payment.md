@@ -17,6 +17,7 @@
 - **`process.env`를 직접 읽지 않는다.** `src/lib/payments/config.ts`의 함수만 읽고, 그 함수들은 `env` 인자를 받아 테스트가 `process.env`를 건드리지 않게 한다.
 - **env 부재는 예외가 아니라 값이다.** 키가 없어도 `npm run typecheck`와 `npm test`가 통과해야 한다. import 시점에 throw 하지 않는다.
 - **SQL은 반드시 태그드 템플릿.** 문자열 연결 금지 (`src/lib/db.ts` 주석 참조).
+- **마이그레이션 파일 하나에 SQL 문장 하나.** `scripts/migrate.mts` 가 파일 전체를 `sql.query()` 한 번으로 실행하고, Neon HTTP 드라이버는 다중 문장을 거부한다.
 - **DB 함수는 마지막 인자로 `client: SqlClient = sql`을 받는다.** 테스트가 가짜 클라이언트를 주입한다.
 - **라우트는 얇게.** `route.ts`는 파싱·세션·응답 조립만, 로직은 `_lib/handler.ts`에 주입식으로 둔다 (`src/app/api/profiles` 참조).
 - **`src/lib`은 `src/app`을 import 하지 않는다.** 반대 방향만 허용. 공유가 필요하면 `src/lib`으로 옮기고 원래 자리에서 재수출한다 (`src/lib/profiles/param.ts`가 만든 선례).
@@ -30,7 +31,8 @@
 
 | 파일 | 책임 |
 | --- | --- |
-| `migrations/0010_purchases_payment_id.sql` | `payment_id` 컬럼 + 부분 유니크 인덱스 |
+| `migrations/0010_purchases_payment_id.sql` | `payment_id` 컬럼 |
+| `migrations/0011_purchases_payment_id_unique.sql` | 그 컬럼의 부분 유니크 인덱스 |
 | `src/lib/db.ts` (수정) | `SqlClient` 타입의 새 거처 |
 | `src/lib/payments/store.ts` | `purchases` 행 CRUD. 컬럼 이름을 아는 유일한 곳 |
 | `src/lib/payments/config.ts` | env → 상점/채널/시크릿. `PaymentMethodId` 소유 |
@@ -51,6 +53,7 @@
 
 **Files:**
 - Create: `migrations/0010_purchases_payment_id.sql`
+- Create: `migrations/0011_purchases_payment_id_unique.sql`
 - Create: `src/lib/payments/store.ts`
 - Create: `src/lib/payments/store.test.ts`
 - Modify: `src/lib/db.ts` (`SqlClient` 타입 추가)
@@ -62,7 +65,9 @@
 
 `SqlClient`를 옮기는 이유: 지금 `src/lib/profiles/store.ts`에 정의돼 있어서 `payments/store.ts`가 프로필 모듈을 import 하게 된다. 두 저장소가 서로를 몰라야 한다. `src/lib/profiles/param.ts`가 같은 이유로 만들어진 선례다.
 
-- [ ] **Step 1: 마이그레이션 파일을 쓴다**
+- [ ] **Step 1: 마이그레이션 파일 두 개를 쓴다**
+
+⚠️ **파일 하나에 SQL 문장 하나.** `scripts/migrate.mts` 가 파일 전체를 `sql.query()` 한 번으로 실행하는데, Neon HTTP 드라이버는 prepared statement 에 여러 문장을 넣지 못한다. 기존 0001~0009 가 전부 단일 문장이라 지금까지 드러나지 않았을 뿐이다.
 
 `migrations/0010_purchases_payment_id.sql`:
 
@@ -72,7 +77,12 @@
 -- 포트원 웹훅은 transactionId 가 아니라 paymentId 로 오기 때문에 이 컬럼이 없으면
 -- 웹훅이 어느 행을 확정해야 하는지 알 수 없다.
 ALTER TABLE purchases ADD COLUMN IF NOT EXISTS payment_id text;
+```
 
+`migrations/0011_purchases_payment_id_unique.sql`:
+
+```sql
+-- 같은 주문 ID 로 행이 둘 생기지 않게 막는다.
 -- 부분 인덱스인 이유: 이 컬럼이 붙기 전 행과 PG 를 거치지 않는 행(수기 지급 등)은 NULL 이다.
 CREATE UNIQUE INDEX IF NOT EXISTS purchases_payment_id_unique
   ON purchases (payment_id) WHERE payment_id IS NOT NULL;
@@ -335,15 +345,15 @@ Expected: 전부 PASS
 - [ ] **Step 8: 마이그레이션을 적용한다**
 
 Run: `npm run db:migrate`
-Expected: `applying 0010_purchases_payment_id.sql` 다음 `done (1 applied, 9 skipped)`
+Expected: `applying 0010_…` `applying 0011_…` 다음 `done (2 applied, 9 skipped)`
 
 DB 연결이 안 되면 멈추고 보고한다. 마이그레이션 없이 다음 태스크로 넘어가면 나중에 런타임에서만 터진다.
 
 - [ ] **Step 9: 커밋**
 
 ```bash
-git add migrations/0010_purchases_payment_id.sql src/lib/payments/store.ts \
-        src/lib/payments/store.test.ts src/lib/db.ts src/lib/profiles/store.ts
+git add migrations/0010_purchases_payment_id.sql migrations/0011_purchases_payment_id_unique.sql \
+        src/lib/payments/store.ts src/lib/payments/store.test.ts src/lib/db.ts src/lib/profiles/store.ts
 git commit -m "feat(payments): 웹훅이 찾을 payment_id 컬럼과 purchases CRUD 를 만든다"
 ```
 
@@ -2340,5 +2350,5 @@ git commit -m "docs(payments): 포트원 env 를 예시에 적고 ISSUE-014 를 
 
 - [ ] `npm test` `npm run typecheck` `npm run lint` `npm run build` 전부 통과
 - [ ] 포트원 키가 하나도 없는 상태에서 `/checkout` 이 "결제를 준비 중입니다"로 잠긴다
-- [ ] `migrations/0010` 이 적용돼 있다 (`SELECT payment_id FROM purchases LIMIT 1` 이 에러 없이 돈다)
+- [ ] `migrations/0010`·`0011` 이 적용돼 있다 (`SELECT payment_id FROM purchases LIMIT 1` 이 에러 없이 돈다)
 - [ ] 설계 문서 §11 의 확인 항목 4개가 `docs/issues/payment.md` 에서 추적된다

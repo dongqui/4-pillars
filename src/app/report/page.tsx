@@ -21,8 +21,13 @@ import { ReportError } from "./_components/ReportError";
 
 /**
  * 캐시 미스면 섹션마다 LLM 을 병렬로 부른다 — /api/saju/route.ts 와 같은 값.
- * 유료 12섹션(무료 4 + 유료 8, ?paid=true)은 daeunOutlook 이 느려 이 값을 넘길 수 있다.
- * 결제를 붙일 때 다시 본다.
+ * 유료 12섹션(무료 4 + 유료 8)은 daeunOutlook 이 느려 이 값을 넘길 수 있다.
+ *
+ * 2026-08-11 결제가 붙었지만 이 값은 그때 다시 보자던 계획대로 재검토되지
+ * 않았다 — 값은 그대로 두었다(호스팅 플랜에 걸린 문제라 아무도 결정하지 않음,
+ * docs/issues/backlog.md 결제 연동 후속). 위험은 그대로다: 결제 직후 첫 렌더가
+ * 바로 유료 12섹션 경로라 타임아웃 가능성이 가장 높은 순간에 걸리고, 넘기면
+ * ProfileReport 가 아니라 ReportError 로 떨어진다(재시도 버튼 있음).
  */
 export const maxDuration = 60;
 
@@ -121,9 +126,9 @@ export default async function ReportPage({
   // 없는 프로필과 남의 프로필을 구분하지 않는다 — 구분하면 id 로 존재 여부를 훑을 수 있다.
   if (profile === null) notFound();
 
-  // 결제한 프로필이면 유료 섹션을 연다. 지금은 purchases 에 행을 넣는 코드가 없어
-  // 늘 false 지만, /home 카드가 같은 값으로 "전체 리포트" 배지를 띄우므로
-  // 두 화면이 어긋나지 않게 여기서도 읽는다.
+  // 결제한 프로필이면 유료 섹션을 연다. profile.isPaid 는 purchases 조인에서 온다.
+  // /home 카드가 같은 값으로 "전체 리포트" 배지를 띄우므로 두 화면이 어긋나지
+  // 않게 여기서도 읽는다.
   const profileAccess: ReportAccess = {
     ...access,
     isPaid: access.isPaid || profile.isPaid,

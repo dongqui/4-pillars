@@ -1,4 +1,7 @@
-export type PaymentMethodId = "card" | "naver" | "kakao";
+// 타입은 src/lib/payments/config.ts 가 소유한다 — 서버(채널 매핑)와 화면이 같은
+// 집합을 봐야 하고, src/lib 이 이 폴더를 import 할 수는 없다.
+import type { PaymentMethodId } from "@/lib/payments/config";
+export type { PaymentMethodId };
 
 export interface PaymentMethod {
   id: PaymentMethodId;
@@ -43,5 +46,3 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
     note: "결제하기를 누르면 카카오페이 QR·앱 인증 창이 열립니다. 인증을 완료하면 이 화면으로 돌아옵니다.",
   },
 ];
-
-export const DEFAULT_PAYMENT_METHOD: PaymentMethodId = "card";

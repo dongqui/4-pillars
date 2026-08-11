@@ -1,14 +1,17 @@
 "use client";
-import { PAYMENT_METHODS, type PaymentMethodId } from "../_lib/methods";
+import type { PaymentMethod, PaymentMethodId } from "../_lib/methods";
 
 export function PaymentMethodList({
+  methods,
   selected,
   onSelect,
 }: {
+  /** 서버가 채널키를 확인해 거른 목록. 여기서 다시 거르지 않는다. */
+  methods: PaymentMethod[];
   selected: PaymentMethodId;
   onSelect: (id: PaymentMethodId) => void;
 }) {
-  const note = PAYMENT_METHODS.find((m) => m.id === selected)?.note ?? "";
+  const note = methods.find((m) => m.id === selected)?.note ?? "";
 
   return (
     <section className="rounded-[20px] border border-slate-200 bg-white px-4 py-5 shadow-[0_1px_3px_rgba(17,24,39,.04)] sm:p-6">
@@ -18,7 +21,7 @@ export function PaymentMethodList({
       </div>
 
       <div className="flex flex-col gap-2.5">
-        {PAYMENT_METHODS.map((m) => {
+        {methods.map((m) => {
           const on = m.id === selected;
           return (
             // 디자인은 div + onClick 이지만 실제 radio 를 쓴다 — 키보드 화살표 이동과

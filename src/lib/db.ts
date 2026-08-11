@@ -14,3 +14,12 @@ if (!process.env.DATABASE_URL) {
  * SQL injection. Do NOT build query strings by concatenation.
  */
 export const sql = neon(process.env.DATABASE_URL);
+
+/**
+ * 태그드 템플릿 SQL 클라이언트(주입 가능). 기본은 위의 공유 neon 클라이언트.
+ * 저장소 모듈들이 서로를 import 하지 않도록 여기 둔다.
+ */
+export type SqlClient = (
+  strings: TemplateStringsArray,
+  ...values: unknown[]
+) => Promise<Record<string, unknown>[]>;
