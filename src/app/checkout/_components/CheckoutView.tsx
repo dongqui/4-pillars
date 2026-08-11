@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { DEFAULT_PAYMENT_METHOD, type PaymentMethodId } from "../_lib/methods";
+import { PAYMENT_METHODS, type PaymentMethodId } from "../_lib/methods";
 import type { OrderTarget } from "../_lib/to-order";
+import { usePayment } from "../_hooks/use-payment";
 import { PaymentMethodList } from "./PaymentMethodList";
 import { OrderSummary } from "./OrderSummary";
 import { StickyPayBar } from "./StickyPayBar";
@@ -17,14 +18,19 @@ import { StickyPayBar } from "./StickyPayBar";
 export function CheckoutView({
   profileId,
   target,
+  available,
 }: {
   profileId: string;
   target: OrderTarget;
+  available: PaymentMethodId[];
 }) {
-  const [method, setMethod] = useState<PaymentMethodId>(DEFAULT_PAYMENT_METHOD);
-  // 디자인 목업은 체크된 상태로 시작하지만 여기서는 비운다 — 결제·제3자 제공 동의를
-  // 미리 체크해 두면 사용자가 실제로 동의했다는 근거가 없다(전자상거래법).
+  // 화면 순서는 PAYMENT_METHODS 가, 사용 가능 여부는 서버가 정한다.
+  const methods = PAYMENT_METHODS.filter((m) => available.includes(m.id));
+  const [method, setMethod] = useState<PaymentMethodId>(methods[0]?.id ?? "card");
   const [agreed, setAgreed] = useState(false);
+  const { pay, status, error } = usePayment(profileId);
+  const pending = status === "pending";
+  const ready = methods.length > 0;
 
   return (
     <>
@@ -43,14 +49,29 @@ export function CheckoutView({
 
         <div className="grid grid-cols-1 items-start gap-5 min-[900px]:grid-cols-[minmax(0,1fr)_348px]">
           <div className="flex flex-col gap-5">
-            <PaymentMethodList selected={method} onSelect={setMethod} />
+            {ready ? (
+              <PaymentMethodList methods={methods} selected={method} onSelect={setMethod} />
+            ) : (
+              // 키가 없으면 정직하게 잠근다 — 빈 목록을 보여주고 버튼만 살려 두면
+              // 사용자는 눌러 보고 나서야 안 된다는 걸 안다.
+              <section className="rounded-[20px] border border-slate-200 bg-white px-4 py-8 text-center shadow-[0_1px_3px_rgba(17,24,39,.04)] sm:p-10">
+                <p className="m-0 text-[15px] font-semibold tracking-[-0.01em]">
+                  결제를 준비 중입니다
+                </p>
+                <p className="mt-2 mb-0 text-[13.5px] leading-[1.6] text-slate-400">
+                  곧 결제 수단을 열어 드릴게요. 조금만 기다려 주세요.
+                </p>
+              </section>
+            )}
           </div>
 
           <aside className="min-[900px]:sticky min-[900px]:top-6">
             <OrderSummary
               target={target}
-              agreed={agreed}
+              agreed={agreed && ready}
+              pending={pending}
               onToggleAgree={() => setAgreed((v) => !v)}
+              onPay={() => pay(method)}
             />
             <p className="mt-3.5 mr-1 ml-1 text-[12.5px] leading-[1.6] text-slate-300 [text-wrap:pretty]">
               디지털 콘텐츠 특성상 리포트 열람 후에는 환불이 불가합니다. 열람 전 7일 내 전액 환불
@@ -60,7 +81,15 @@ export function CheckoutView({
         </div>
       </main>
 
-      <StickyPayBar agreed={agreed} />
+      {error && (
+        <p
+          role="alert"
+          className="mx-auto mb-4 w-full max-w-[1040px] px-4 text-[13.5px] font-semibold text-red-600 sm:px-6"
+        >
+          {error}
+        </p>
+      )}
+      <StickyPayBar agreed={agreed && ready} pending={pending} onPay={() => pay(method)} />
     </>
   );
 }

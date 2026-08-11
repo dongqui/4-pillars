@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getProfile } from "@/lib/profiles/store";
 import { parseProfileParam, type SearchParams } from "@/lib/profiles/param";
+import { availableMethods } from "@/lib/payments/config";
 import { CheckoutHeader } from "./_components/CheckoutHeader";
 import { CheckoutView } from "./_components/CheckoutView";
 import { toOrderTarget } from "./_lib/to-order";
@@ -33,7 +34,11 @@ export default async function CheckoutPage({
   return (
     <div className="flex flex-1 flex-col bg-slate-50">
       <CheckoutHeader />
-      <CheckoutView profileId={profile.id} target={toOrderTarget(profile)} />
+      <CheckoutView
+        profileId={profile.id}
+        target={toOrderTarget(profile)}
+        available={availableMethods()}
+      />
     </div>
   );
 }

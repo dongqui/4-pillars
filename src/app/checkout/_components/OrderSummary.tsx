@@ -7,11 +7,15 @@ import { PayButton } from "./PayButton";
 export function OrderSummary({
   target,
   agreed,
+  pending,
   onToggleAgree,
+  onPay,
 }: {
   target: OrderTarget;
   agreed: boolean;
+  pending: boolean;
   onToggleAgree: () => void;
+  onPay: () => void;
 }) {
   return (
     <div className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-[0_1px_3px_rgba(17,24,39,.04)]">
@@ -76,6 +80,8 @@ export function OrderSummary({
         {/* 모바일에서는 하단 고정 바가 같은 역할을 한다 — 버튼이 둘 보이지 않게 여기서 숨긴다. */}
         <PayButton
           agreed={agreed}
+          pending={pending}
+          onPay={onPay}
           label={`${formatKrw(FULL_REPORT_PRICE.total)} 결제하기`}
           className="hidden w-full shadow-[0_12px_24px_-12px_rgba(37,99,235,.7)] disabled:shadow-none sm:block"
         />
