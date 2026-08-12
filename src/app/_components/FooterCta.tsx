@@ -27,7 +27,20 @@ export function FooterCta() {
             </div>
             <span className="font-semibold text-[14.5px]">사주</span>
           </div>
-          <div className="text-[13px] text-slate-500">나를 더 깊이 이해하는 가장 차분한 방법.</div>
+          <nav className="flex items-center gap-4 text-[13px] text-slate-400">
+            <Link href="/terms" className="hover:text-white">
+              이용약관
+            </Link>
+            <Link href="/privacy" className="font-semibold hover:text-white">
+              개인정보처리방침
+            </Link>
+            <Link href="/business" className="hover:text-white">
+              사업자정보
+            </Link>
+          </nav>
+        </div>
+        <div className="max-w-[1120px] mx-auto px-8 pb-7 text-[13px] text-slate-500">
+          나를 더 깊이 이해하는 가장 차분한 방법.
         </div>
       </div>
     </section>
