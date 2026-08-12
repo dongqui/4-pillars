@@ -42,8 +42,9 @@ export function usePayment(profileId: string) {
           method,
         })) as OrderResponse;
 
-        // 공통 값과 판별자를 나눈다 — PaymentRequest 가 payMethod 로 갈라지는
-        // 유니온이라, 공통 객체에 easyPay 를 스프레드로 얹으면 타입이 좁혀지지 않는다.
+        // 공통 값과 판별자를 나눈다 — 우리 OrderResponse 가 payMethod 로 갈라지는
+        // 판별 유니온이라 이걸 좁혀서 쓴다. SDK 의 PaymentRequest 타입은
+        // easyPay 를 옵셔널로 받을 뿐이라, 스프레드만으로는 provider 누락을 잡아 주지 않는다.
         const base = {
           storeId: order.storeId,
           channelKey: order.channelKey,

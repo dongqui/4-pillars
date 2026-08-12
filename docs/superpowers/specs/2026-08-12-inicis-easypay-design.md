@@ -28,7 +28,7 @@
 
 ## 3. 근거
 
-`@portone/browser-sdk` 0.1.9의 `EasyPayProvider`(`dist/v2/entity/EasyPayProvider.d.ts`)가 `NAVERPAY`·`KAKAOPAY`·`TOSSPAY` 모두에 KG이니시스를 지원 PG로 명시한다. 요청 타입은 `PaymentRequestUnion`(`dist/v2/request/PaymentRequestUnion.d.ts:32`)에서 `payMethod`로 갈라지며, `EASY_PAY`일 때 `easyPay?: PaymentRequestUnionEasyPay`를 받는다.
+`@portone/browser-sdk` 0.1.9의 `EasyPayProvider`(`dist/v2/entity/EasyPayProvider.d.ts`)가 `NAVERPAY`·`KAKAOPAY`·`TOSSPAY` 모두에 KG이니시스를 지원 PG로 명시한다. 요청 타입 `PaymentRequest`는 `PaymentRequestBase & PaymentRequestUnion`이고, `PaymentRequestUnion`(`dist/v2/request/PaymentRequestUnion.d.ts:32`)의 멤버는 전부 옵셔널이다 — `payMethod`는 `PaymentRequestBase`의 평범한 필드라 SDK 타입 자체가 `EASY_PAY`와 `easyPay`를 짝짓지 않는다. `easyPay?: PaymentRequestUnionEasyPay`는 언제나 받을 수 있는 옵셔널 필드다.
 
 제휴 계약은 아직 전이다. 그래서 "채널키가 있으면 그 수단을 켠다"는 지금 판정은 쓸 수 없다 — 채널키 하나가 네 수단을 동시에 켜 버린다. 채널과 수단을 별개의 축으로 나눈다.
 
@@ -138,7 +138,7 @@ export type OrderResponse = OrderBase & PaymentRequestKind;
 
 ### 5.3 `src/app/checkout/_hooks/use-payment.ts`
 
-`PaymentRequest`가 `payMethod`로 갈라지는 유니온이라, 공통 객체에 `easyPay`를 스프레드로 얹으면 타입이 좁혀지지 않는다. `OrderResponse`의 판별자로 두 갈래를 나눈다.
+SDK 의 `PaymentRequest`는 `PaymentRequestBase & PaymentRequestUnion`이고 `easyPay`는 옵셔널이라, 공통 객체에 스프레드로 얹어도 SDK 타입은 에러를 내지 않는다 — provider 누락을 SDK 가 잡아 주지 않는다는 뜻이다. 그래서 우리 `OrderResponse`(판별 유니온)의 판별자로 직접 두 갈래를 나눠 좁혀서 쓴다.
 
 ```ts
 const base = {

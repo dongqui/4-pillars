@@ -6,7 +6,7 @@ function deps(over: Partial<CreateOrderDeps> = {}): CreateOrderDeps {
     userId: "7",
     getProfile: vi.fn(async () => ({ id: "3", isPaid: false })),
     getStoreId: () => "store-1",
-    getChannel: () => ({ channelKey: "ch-card", payMethod: "CARD" as const }),
+    getChannel: vi.fn(() => ({ channelKey: "ch-card", payMethod: "CARD" as const })),
     getAppOrigin: () => "https://saju.example",
     newPaymentId: () => "saju-fixed",
     createPending: vi.fn(async () => {}),
@@ -20,6 +20,7 @@ describe("handleCreateOrder", () => {
   it("성공하면 결제창에 넘길 값을 한 번에 돌려준다", async () => {
     const d = deps();
     const r = await handleCreateOrder(body, d);
+    expect(d.getChannel).toHaveBeenCalledWith("card");
     expect(r.status).toBe(200);
     expect(r.body).toEqual({
       paymentId: "saju-fixed",
@@ -96,13 +97,14 @@ describe("handleCreateOrder", () => {
 
   it("간편결제 수단은 easyPayProvider 까지 실어 보낸다", async () => {
     const d = deps({
-      getChannel: () => ({
+      getChannel: vi.fn(() => ({
         channelKey: "ch-inicis",
         payMethod: "EASY_PAY" as const,
         easyPayProvider: "TOSSPAY" as const,
-      }),
+      })),
     });
     const r = await handleCreateOrder({ profileId: "3", method: "toss" }, d);
+    expect(d.getChannel).toHaveBeenCalledWith("toss");
     expect(r.status).toBe(200);
     expect(r.body).toMatchObject({
       channelKey: "ch-inicis",

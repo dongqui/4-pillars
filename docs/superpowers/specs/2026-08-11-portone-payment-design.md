@@ -143,7 +143,7 @@ export function getChannel(id: PaymentMethodId, env?): PaymentChannel | null;
 export function getStoreId(env?): string | null;
 ```
 
-수단↔채널 매핑:
+수단↔채널 매핑 (**뒤집혔다** — 삭제된 env 셋(`PORTONE_CHANNEL_KEY_CARD`/`_NAVERPAY`/`_KAKAOPAY`)을 전제한 표다. 2026-08-12 `2026-08-12-inicis-easypay-design.md` §4.1 이후 채널은 `PORTONE_CHANNEL_KEY_INICIS` 하나다):
 
 | `PaymentMethodId` | env | `payMethod` |
 | --- | --- | --- |
@@ -151,7 +151,7 @@ export function getStoreId(env?): string | null;
 | `naver` | `PORTONE_CHANNEL_KEY_NAVERPAY` | `EASY_PAY` |
 | `kakao` | `PORTONE_CHANNEL_KEY_KAKAOPAY` | `EASY_PAY` |
 
-간편결제는 `easyPayProvider`를 따로 넘기지 않는다 — 채널키가 이미 어느 PG인지 결정한다. **연동 시 확인이 필요한 가정이고**, 콘솔에서 실제 채널을 만든 뒤 결제창이 열리지 않으면 `easyPay: { easyPayProvider }`를 추가한다.
+~~간편결제는 `easyPayProvider`를 따로 넘기지 않는다 — 채널키가 이미 어느 PG인지 결정한다.~~ **뒤집혔다** — 채널을 이니시스 하나로 합치면서 채널키는 더 이상 PG 를 결정하지 못한다. 간편결제는 이제 `payMethod: "EASY_PAY"` + `easyPay.easyPayProvider` 로 UI 를 직접 호출한다 (`2026-08-12-inicis-easypay-design.md` §3–§4.2). **연동 시 확인이 필요한 가정이고**, 콘솔에서 실제 채널을 만든 뒤 결제창이 열리지 않으면 `easyPay: { easyPayProvider }`를 추가한다.
 
 `env`를 인자로 받는 이유: 테스트가 `process.env`를 건드리지 않고 조합을 검사할 수 있다. 기본값은 `process.env`.
 
@@ -326,7 +326,7 @@ router.replace(`/report?profile=${profileId}`);
 
 키를 채운 뒤 첫 실결제에서 확인해야 하는 것들. 코드는 다 있지만 문서만으로는 확정할 수 없었다.
 
-- 간편결제 채널에 `easyPayProvider` 없이 `payMethod: "EASY_PAY"`만으로 결제창이 열리는가 (§7.1)
+- ~~간편결제 채널에 `easyPayProvider` 없이 `payMethod: "EASY_PAY"`만으로 결제창이 열리는가 (§7.1)~~ **뒤집혔다** — 채널이 이니시스 하나로 합쳐지면서 간편결제는 `easyPayProvider`를 UI 직접 호출로 반드시 실어 보내는 쪽으로 바뀌었다. 배포 확인은 `2026-08-12-inicis-easypay-design.md` §8 참조.
 - `paymentId` 길이 제한에 `saju-{uuid}`(41자)가 걸리지 않는가
 - 웹훅 헤더 이름 (`webhook-*` / `svix-*`) — `Webhook.verify`가 흡수하지만 실패 시 로그로 확인
 - 모바일 리다이렉트 쿼리 파라미터 이름 (`code`/`message`)

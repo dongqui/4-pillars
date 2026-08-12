@@ -5,6 +5,7 @@ import {
   getChannel,
   getChannelKey,
   getStoreId,
+  PAYMENT_METHOD_IDS,
 } from "./config";
 
 const full = {
@@ -37,9 +38,7 @@ describe("getChannel", () => {
   });
 
   it("네 수단이 같은 채널키를 쓴다 — 이니시스 채널 하나가 전부를 연다", () => {
-    const keys = ["card", "naver", "kakao", "toss"].map(
-      (id) => getChannel(id as "card", full)?.channelKey,
-    );
+    const keys = PAYMENT_METHOD_IDS.map((id) => getChannel(id, full)?.channelKey);
     expect(new Set(keys)).toEqual(new Set(["ch-inicis"]));
   });
 
