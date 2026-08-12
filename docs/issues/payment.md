@@ -5,6 +5,7 @@
 ## ✅ ISSUE-014. 결제 연동 (단건 구매)
 
 포트원 v2. 설계: `docs/superpowers/specs/2026-08-11-portone-payment-design.md`.
+2026-08-12 수단 구성이 KG이니시스 채널 하나(카드·네이버페이·카카오페이·토스페이)로 바뀌었다. 노출 수단은 `PORTONE_METHODS` env 가 정한다: `docs/superpowers/specs/2026-08-12-inicis-easypay-design.md`.
 
 - 주문 생성 → 결제창 → 완료 API·웹훅 이중 확정. 금액은 `purchases.amount` 로만 대조한다.
 - `purchases.payment_id` (마이그레이션 0010) 로 웹훅이 행을 찾는다.
