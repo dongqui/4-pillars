@@ -66,7 +66,7 @@ describe("handleCreateOrder", () => {
 
   it("본문이 스키마에 맞지 않으면 400", async () => {
     const d = deps();
-    for (const bad of [null, {}, { profileId: "3" }, { profileId: "3", method: "toss" }]) {
+    for (const bad of [null, {}, { profileId: "3" }, { profileId: "3", method: "paypal" }]) {
       expect((await handleCreateOrder(bad, d)).status).toBe(400);
     }
   });
@@ -92,5 +92,27 @@ describe("handleCreateOrder", () => {
     const noAppOrigin = deps({ getAppOrigin: () => null });
     expect((await handleCreateOrder(body, noAppOrigin)).status).toBe(503);
     expect(noAppOrigin.createPending).not.toHaveBeenCalled();
+  });
+
+  it("간편결제 수단은 easyPayProvider 까지 실어 보낸다", async () => {
+    const d = deps({
+      getChannel: () => ({
+        channelKey: "ch-inicis",
+        payMethod: "EASY_PAY" as const,
+        easyPayProvider: "TOSSPAY" as const,
+      }),
+    });
+    const r = await handleCreateOrder({ profileId: "3", method: "toss" }, d);
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({
+      channelKey: "ch-inicis",
+      payMethod: "EASY_PAY",
+      easyPayProvider: "TOSSPAY",
+    });
+  });
+
+  it("카드는 easyPayProvider 를 싣지 않는다 — 브라우저가 카드창을 연다", async () => {
+    const r = await handleCreateOrder(body, deps());
+    expect(r.body).not.toHaveProperty("easyPayProvider");
   });
 });

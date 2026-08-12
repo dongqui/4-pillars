@@ -42,18 +42,30 @@ export function usePayment(profileId: string) {
           method,
         })) as OrderResponse;
 
-        const res = await PortOne.requestPayment({
+        // 공통 값과 판별자를 나눈다 — PaymentRequest 가 payMethod 로 갈라지는
+        // 유니온이라, 공통 객체에 easyPay 를 스프레드로 얹으면 타입이 좁혀지지 않는다.
+        const base = {
           storeId: order.storeId,
           channelKey: order.channelKey,
           paymentId: order.paymentId,
           orderName: order.orderName,
           totalAmount: order.totalAmount,
-          // OrderResponse(src/lib/payments/order.ts)의 currency·payMethod 가 이미
-          // PortOne SDK 가 받는 리터럴 집합의 부분집합이라 캐스팅이 필요 없다.
+          // OrderResponse(src/lib/payments/order.ts)의 currency 가 이미 PortOne SDK 가
+          // 받는 리터럴 집합의 부분집합이라 캐스팅이 필요 없다.
           currency: order.currency,
-          payMethod: order.payMethod,
           redirectUrl: order.redirectUrl,
-        });
+        };
+
+        // 간편결제는 UI 를 직접 호출한다 — 채널이 KG이니시스 하나뿐이라
+        // 어느 간편결제인지는 easyPayProvider 만이 결정한다.
+        const res =
+          order.payMethod === "EASY_PAY"
+            ? await PortOne.requestPayment({
+                ...base,
+                payMethod: "EASY_PAY",
+                easyPay: { easyPayProvider: order.easyPayProvider },
+              })
+            : await PortOne.requestPayment({ ...base, payMethod: "CARD" });
 
         // 모바일은 여기까지 오지 않는다 — 결제창이 페이지를 떠났고,
         // 돌아올 때는 /checkout/complete 가 받는다.

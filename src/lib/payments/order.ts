@@ -1,4 +1,4 @@
-import type { PortOnePayMethod } from "./config";
+import type { PaymentRequestKind } from "./config";
 
 /**
  * 주문 생성 API 응답 타입은 여기서 소유한다 — API 라우트(`_lib/handler.ts`)와
@@ -7,14 +7,19 @@ import type { PortOnePayMethod } from "./config";
  *
  * 브라우저가 requestPayment 에 그대로 펼쳐 넣는 값들.
  */
-export interface OrderResponse {
+interface OrderBase {
   paymentId: string;
   storeId: string;
   channelKey: string;
-  payMethod: PortOnePayMethod;
   orderName: string;
   totalAmount: number;
   /** 포트원 요청용 통화 코드. 조회 응답의 "KRW" 와 문자열이 다르다. */
   currency: "CURRENCY_KRW";
   redirectUrl: string;
 }
+
+/**
+ * 결제수단 부분은 config 의 PaymentRequestKind 를 그대로 쓴다 — 서버가 고른 조합과
+ * 브라우저가 보내는 조합이 같은 타입이라 둘이 어긋날 수 없다.
+ */
+export type OrderResponse = OrderBase & PaymentRequestKind;

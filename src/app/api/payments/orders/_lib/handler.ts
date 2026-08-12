@@ -77,8 +77,9 @@ export async function handleCreateOrder(
     body: {
       paymentId,
       storeId,
-      channelKey: channel.channelKey,
-      payMethod: channel.payMethod,
+      // 채널키와 판별자를 한 덩이로 넘긴다 — 따로 옮기면 payMethod 와
+      // easyPayProvider 가 어긋난 조합을 만들 수 있다.
+      ...channel,
       orderName: FULL_REPORT_ORDER_NAME,
       totalAmount: FULL_REPORT_PRICE.total,
       currency: "CURRENCY_KRW",
