@@ -8,4 +8,6 @@ test("수집 항목·위탁·문의처를 고지한다", () => {
   expect(html).toContain("위탁");
   expect(html).toContain("생년월일시");
   expect(html).toContain("hailmarylabs@gmail.com");
+  expect(html).toContain("Vercel");
+  expect(html).toContain("DeepSeek");
 });
