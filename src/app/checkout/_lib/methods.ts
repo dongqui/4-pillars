@@ -45,4 +45,12 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
     logoClass: "bg-[#FEE500] text-[#181600]",
     note: "결제하기를 누르면 카카오페이 QR·앱 인증 창이 열립니다. 인증을 완료하면 이 화면으로 돌아옵니다.",
   },
+  {
+    id: "toss",
+    name: "토스페이",
+    desc: "토스 앱에서 간편 결제",
+    logo: "toss",
+    logoClass: "bg-[#0064FF] text-white",
+    note: "결제하기를 누르면 토스페이 창이 열립니다. 인증을 완료하면 이 화면으로 돌아옵니다.",
+  },
 ];
