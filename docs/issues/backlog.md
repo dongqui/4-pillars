@@ -134,3 +134,23 @@ jsdom/RTL 이 설치돼 있지 않다. 수단 0개일 때 버튼 잠김과 이�
 **8. `/report` 의 `maxDuration = 60` 재검토**
 
 결제가 붙은 뒤 다시 보기로 했던 값인데 미뤄졌다(`src/app/report/page.tsx`). 유료 12섹션 경로가 가장 느린데, 결제 직후 첫 렌더가 바로 그 경로를 탄다.
+
+## 이니시스 단일 채널 후속
+
+2026-08-12 `feat/inicis-easypay` 로 수단 구성이 KG이니시스 채널 하나(카드·네이버페이·카카오페이·토스페이)로 바뀌면서 남은 것. 설계: `docs/superpowers/specs/2026-08-12-inicis-easypay-design.md`.
+
+**1. 제휴 계약 전에는 `PORTONE_METHODS` 에 간편결제를 넣지 않는다**
+
+카카오페이·토스페이·네이버페이는 포트원 콘솔에서 이니시스 채널에 제휴가 켜진 뒤에만 켠다. 계약 없이 켜면 화면에는 뜨고 결제창에서 실패한다 — 코드가 계약 상태를 알 방법이 없어 사람이 지키는 규칙이다.
+
+**2. `/checkout` 육안 확인이 아직 안 됐다**
+
+`src/app/checkout/_lib/methods.ts` 는 테스트가 없고 타입이 잡아 주는 것은 `id: "toss"` 뿐이다. 로고 칩(`PaymentMethodList.tsx` 의 `h-7 w-[42px]`)에 4글자 `toss` 가 들어가는지, 수단을 바꿀 때 안내문이 따라 바뀌는지는 눈으로만 확인된다. 수단을 켜기 전에 한 번 봐야 한다.
+
+**3. Vercel env 등록 — "배포 없이 켠다"는 절반만 참이다**
+
+`PORTONE_CHANNEL_KEY_INICIS`·`PORTONE_METHODS` 를 포함한 런타임 env 를 대시보드에 등록해야 한다(`.env*` 는 커밋되지 않는다). 그리고 Vercel 은 env 변경이 기존 배포에 반영되지 않아 **재배포가 필요하다** — 설계가 말하는 "배포 없이"는 코드 변경·리뷰 사이클이 없다는 뜻이지 재배포가 없다는 뜻이 아니다.
+
+**4. 다른 진행 중 브랜치의 `handler.test.ts` 가 이 변경을 받으면 깨진다**
+
+`method: "toss"` 를 400 의 예로 쓰는 케이스가 있는 브랜치들(`feat/landing-login-nav`, `feat/report-page`, `.claude/worktrees/` 의 워크트리들)은 머지할 때 그 한 줄을 같이 고쳐야 한다. 토스는 이제 정식 수단이라 200 이 나온다.
