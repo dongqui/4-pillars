@@ -1,3 +1,4 @@
+import { test, expect } from "vitest";
 import { COMPANY } from "./company";
 
 test("사업자 핵심 값이 등록증과 일치한다", () => {

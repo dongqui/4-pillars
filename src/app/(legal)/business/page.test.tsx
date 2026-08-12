@@ -1,3 +1,4 @@
+import { test, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import BusinessInfoPage from "./page";
 
