@@ -92,9 +92,9 @@ export type PaymentChannel = { channelKey: string } & PaymentRequestKind;
 
 **`PORTONE_METHODS` 파싱 규칙**
 
-1. 콤마로 자르고 각 조각을 `trim` + 소문자화한다.
-2. `z.enum(PAYMENT_METHOD_IDS)`로 거른다. `kakaopay` 같은 오타는 통과하지 못하고 버려진다. 예외를 던지지 않는 이유: env 오타 하나로 `/checkout`이 500이 되는 대신, 그 수단만 빠지고 화면은 정직하게 잠긴다.
-3. 중복은 접는다. 결과는 항상 `PAYMENT_METHOD_IDS` 순서를 따른다 — 화면 순서가 env 작성 순서에 흔들리면 안 된다.
+1. 콤마로 자르고 각 조각을 `trim` + 소문자화해 집합으로 만든다.
+2. 정규 목록 `PAYMENT_METHOD_IDS`를 그 집합으로 거른다 — env 문자열을 `PaymentMethodId`로 캐스팅하지 않고, 아는 수단 쪽에서 걸러 낸다. `kakaopay` 같은 오타는 어느 id 와도 만나지 못해 그대로 사라진다. 예외를 던지지 않는 이유: env 오타 하나로 `/checkout`이 500이 되는 대신, 그 수단만 빠지고 화면은 정직하게 잠긴다.
+3. 같은 방식으로 중복이 접히고, 결과 순서는 항상 `PAYMENT_METHOD_IDS` 순서다 — 화면 순서가 env 작성 순서에 흔들리면 안 된다.
 4. **미설정·빈 문자열·전부 걸러진 경우는 빈 배열이다.** 전부 켜지 않는다. 계약 전이고, env를 빠뜨렸을 때 결제창이 열리는 것보다 잠기는 쪽이 안전하다. 빈 문자열을 미설정으로 접는 기존 `read()`의 판단과 같은 방향이다.
 
 **`availableMethods` 판정 순서**
