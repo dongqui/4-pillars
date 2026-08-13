@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LegalPage } from "../_components/LegalPage";
-import { COMPANY } from "../_lib/company";
+import { COMPANY } from "@/lib/company";
 
 export const metadata: Metadata = {
   title: "사업자정보 | 사주대소",

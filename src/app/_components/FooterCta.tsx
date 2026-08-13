@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { COMPANY } from "@/lib/company";
 
 export function FooterCta() {
   return (
@@ -34,13 +35,21 @@ export function FooterCta() {
             <Link href="/privacy" className="font-semibold hover:text-white">
               개인정보처리방침
             </Link>
-            <Link href="/business" className="hover:text-white">
-              사업자정보
-            </Link>
           </nav>
         </div>
-        <div className="max-w-[1120px] mx-auto px-8 pb-7 text-[13px] text-slate-500">
-          나를 더 깊이 이해하는 가장 차분한 방법.
+        <div className="max-w-[1120px] mx-auto px-8 pb-7 text-[12.5px] leading-6 text-slate-500 space-y-0.5">
+          <p>
+            {COMPANY.name} · 대표 {COMPANY.ceo} · 사업자등록번호 {COMPANY.registrationNumber} ·
+            통신판매업신고 {COMPANY.mailOrderSalesNumber}
+          </p>
+          <p>{COMPANY.address}</p>
+          <p>
+            문의{" "}
+            <a href={`mailto:${COMPANY.contactEmail}`} className="hover:text-white">
+              {COMPANY.contactEmail}
+            </a>
+          </p>
+          <p className="pt-1 text-slate-600">나를 더 깊이 이해하는 가장 차분한 방법.</p>
         </div>
       </div>
     </section>
