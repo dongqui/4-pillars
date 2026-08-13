@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useFunnel } from "../../_context/FunnelContext";
 
 function clamp(n: number, min: number, max: number): number {
@@ -14,24 +14,36 @@ function pad2(n: number): string {
 const inputCls =
   "w-[72px] rounded-xl border border-slate-200 bg-white px-3 py-3.5 text-[17px] font-bold text-slate-900 text-center outline-none focus:border-accent placeholder:text-slate-300";
 
+function parseTime(h: string, m: string): { h: number; m: number } | null {
+  if (!h || !m) return null;
+  const hh = parseInt(h, 10);
+  const mm = parseInt(m, 10);
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+  return { h: hh, m: mm };
+}
+
 export function BirthTimeStep() {
   const { data, update } = useFunnel();
   const hourRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (data.timeKnown && !data.time) update({ time: { h: 12, m: 0 } });
-  }, [data.timeKnown, data.time, update]);
-
-  const time = data.time ?? { h: 12, m: 0 };
-  const [h, setH] = useState(pad2(time.h));
-  const [m, setM] = useState(pad2(time.m));
+  const time = data.time;
+  const [h, setH] = useState(time ? pad2(time.h) : "");
+  const [m, setM] = useState(time ? pad2(time.m) : "");
 
   function digitsOnly(raw: string): string {
     return raw.replace(/\D/g, "").slice(0, 2);
   }
 
+  function sync(nh: string, nm: string) {
+    const parsed = parseTime(nh, nm);
+    if (parsed) update({ time: parsed });
+    else if (data.time) update({ time: null });
+  }
+
   // 포커스가 벗어날 때 범위를 보정하고 컨텍스트에 반영
   function commit() {
+    if (!h && !m) return;
+    if (!h) return;
     const hh = clamp(parseInt(h, 10) || 0, 0, 23);
     const mm = clamp(parseInt(m, 10) || 0, 0, 59);
     setH(pad2(hh));
@@ -64,7 +76,11 @@ export function BirthTimeStep() {
           <input
             ref={hourRef}
             value={h}
-            onChange={(e) => setH(digitsOnly(e.target.value))}
+            onChange={(e) => {
+              const v = digitsOnly(e.target.value);
+              setH(v);
+              sync(v, m);
+            }}
             onBlur={commit}
             inputMode="numeric"
             placeholder="12"
@@ -74,7 +90,11 @@ export function BirthTimeStep() {
           <span className="text-slate-400">시</span>
           <input
             value={m}
-            onChange={(e) => setM(digitsOnly(e.target.value))}
+            onChange={(e) => {
+              const v = digitsOnly(e.target.value);
+              setM(v);
+              sync(h, v);
+            }}
             onBlur={commit}
             inputMode="numeric"
             placeholder="00"

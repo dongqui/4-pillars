@@ -20,7 +20,8 @@ function earliestAllowedStep(data: FunnelData): StepKey {
   if (!data.name.trim()) return "name";
   if (data.gender === null) return "gender";
   if (data.birth === null) return "birth";
-  return "review"; // time has a default / can be skipped; everything required is present
+  if (data.timeKnown && data.time === null) return "time";
+  return "review";
 }
 
 function FunnelInner() {
@@ -102,6 +103,10 @@ function FunnelInner() {
         return data.name.trim().length > 0;
       case "gender":
         return data.gender !== null;
+      case "birth":
+        return data.birth !== null;
+      case "time":
+        return !data.timeKnown || data.time !== null;
       default:
         return true;
     }
