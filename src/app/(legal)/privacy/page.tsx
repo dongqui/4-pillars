@@ -3,8 +3,8 @@ import { LegalPage } from "../_components/LegalPage";
 import { COMPANY } from "../_lib/company";
 
 export const metadata: Metadata = {
-  title: "개인정보처리방침 | 사주대소",
-  description: "사주대소 개인정보처리방침",
+  title: "개인정보처리방침 | 프로젝트 사주",
+  description: "프로젝트 사주 개인정보처리방침",
 };
 
 export default function PrivacyPage() {

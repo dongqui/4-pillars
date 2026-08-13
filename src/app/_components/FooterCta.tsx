@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export function FooterCta() {
   return (
@@ -21,12 +22,7 @@ export function FooterCta() {
       </div>
       <div className="border-t border-slate-800">
         <div className="max-w-[1120px] mx-auto px-8 py-7 flex items-center justify-between flex-wrap gap-3.5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-[26px] h-[26px] rounded-lg bg-white flex items-center justify-center text-slate-900 font-semibold text-[13px]">
-              사
-            </div>
-            <span className="font-semibold text-[14.5px]">사주</span>
-          </div>
+          <BrandLogo size="xs" tone="light" />
           <nav className="flex items-center gap-4 text-[13px] text-slate-400">
             <Link href="/terms" className="hover:text-white">
               이용약관

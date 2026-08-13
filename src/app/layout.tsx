@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "사주대소",
+  title: "프로젝트 사주",
   description: "생년월일시로 사주 원국을 계산하는 AI 사주 리포트 서비스",
 };
 

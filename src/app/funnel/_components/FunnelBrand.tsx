@@ -22,13 +22,12 @@ export function FunnelBrand() {
     <>
       <AppBrand
         href={HREF}
+        size="lg"
         onNavigate={(e) => {
           if (!hasInput(data)) return;
           e.preventDefault();
           setAsking(true);
         }}
-        iconClassName="w-[34px] h-[34px] rounded-[10px] bg-slate-900 text-base font-bold"
-        textClassName="font-bold text-lg tracking-tight"
       />
       {asking && (
         <LeaveConfirmDialog
