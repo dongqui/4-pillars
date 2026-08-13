@@ -8,6 +8,8 @@
 <body>
 <x-dc>
 <helmet>
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
   *{box-sizing:border-box;}
@@ -27,8 +29,18 @@
 
   <header style="border-bottom:1px solid #F3F4F6; background:rgba(255,255,255,.86); backdrop-filter:blur(14px);">
     <div style="max-width:640px; margin:0 auto; padding:0 24px; height:64px; display:flex; align-items:center; gap:10px;">
-      <div style="width:28px; height:28px; border-radius:9px; background:#111827; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:600; font-size:14px;">사</div>
-      <span style="font-weight:600; font-size:15.5px; letter-spacing:-0.02em;">사주</span>
+      <div style="width:28px; height:28px; border-radius:9px; background:#111827; display:flex; align-items:center; justify-content:center;">
+        <span style="display:flex; align-items:flex-end; gap:2.5px; height:14px;">
+          <span style="width:2.5px; height:7px; border-radius:1.25px; background:rgba(255,255,255,.42);"></span>
+          <span style="width:2.5px; height:11px; border-radius:1.25px; background:rgba(255,255,255,.62);"></span>
+          <span style="width:2.5px; height:9px; border-radius:1.25px; background:rgba(255,255,255,.52);"></span>
+          <span style="width:2.5px; height:14px; border-radius:1.25px; background:#fff;"></span>
+        </span>
+      </div>
+      <span style="display:flex; align-items:baseline; gap:5px; white-space:nowrap;">
+        <span style="font-size:11.5px; font-weight:600; color:#9CA3AF; letter-spacing:0.09em;">PROJECT</span>
+        <span style="font-size:15.5px; font-weight:700; letter-spacing:-0.03em;">사주</span>
+      </span>
     </div>
   </header>
 
