@@ -3,7 +3,7 @@ import { LegalPage } from "../_components/LegalPage";
 import { COMPANY } from "@/lib/company";
 
 export const metadata: Metadata = {
-  title: "사업자정보 | 사주대소",
+  title: "사업자정보 | 프로젝트 사주",
   description: "헤일메리랩스 사업자 정보",
 };
 

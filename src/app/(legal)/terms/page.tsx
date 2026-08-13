@@ -3,8 +3,8 @@ import { LegalPage } from "../_components/LegalPage";
 import { COMPANY } from "@/lib/company";
 
 export const metadata: Metadata = {
-  title: "이용약관 | 사주대소",
-  description: "사주대소 서비스 이용약관",
+  title: "이용약관 | 프로젝트 사주",
+  description: "프로젝트 사주 서비스 이용약관",
 };
 
 export default function TermsPage() {

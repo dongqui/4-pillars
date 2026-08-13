@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { BrandLogo } from "@/components/BrandLogo";
 
 type ProviderId = "kakao" | "line" | "google";
 
@@ -51,12 +52,7 @@ export default async function LoginPage({
   return (
     <main className="flex flex-1 flex-col">
       <header className="flex items-center justify-between px-5 py-5 sm:px-8">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-[30px] w-[30px] items-center justify-center rounded-[10px] bg-slate-900 text-[15px] font-semibold text-white">
-            사
-          </div>
-          <span className="text-base font-semibold tracking-tight">사주</span>
-        </div>
+        <BrandLogo size="md" />
         <Link href="/" className="text-sm font-medium text-slate-400 hover:text-slate-600">
           ← 돌아가기
         </Link>
