@@ -1,0 +1,1811 @@
+{
+  "version": "b01-final",
+  "namingPolicy": "장면명 개별 작명(환경어 1:1 고정 폐기) · 일지 원리는 scene.branchPrinciple로 공유 · direction은 내부 전용(카드 비노출) · 판정 기준: 일러스트화했을 때 멋있는가",
+  "decisions": [
+    "무쇠(庚)·보석(辛) 사용 — 도령 동일 단어 겹침 인지하고 감수",
+    "계수=이슬 확정",
+    "기사=온기가 스민 들판 유지 · 경신=단단히 벼린 무쇠 · 무오=볕이 내려앉은 산맥"
+  ],
+  "items": [
+    {
+      "id": 0,
+      "key": "갑자",
+      "hanja": "甲子",
+      "family": {
+        "stem": "갑",
+        "name": "큰나무형",
+        "hanja": "甲木",
+        "element": "목",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "깊은 물가의 큰나무",
+        "branch": "자",
+        "branchPrinciple": "깊은 물·한밤"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "인성",
+        "seatMeaning": "지원받는 자리",
+        "keywords": "안정·수용"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 1,
+      "key": "을축",
+      "hanja": "乙丑",
+      "family": {
+        "stem": "을",
+        "name": "들꽃형",
+        "hanja": "乙木",
+        "element": "목",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "진흙에서 핀 들꽃",
+        "branch": "축",
+        "branchPrinciple": "언 진흙·동트기 전"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "재성",
+        "seatMeaning": "내가 일구는 자리",
+        "keywords": "실행·성취"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 2,
+      "key": "병인",
+      "hanja": "丙寅",
+      "family": {
+        "stem": "병",
+        "name": "태양형",
+        "hanja": "丙火",
+        "element": "화",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "숲 위로 솟는 태양",
+        "branch": "인",
+        "branchPrinciple": "숲·새벽"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "인성",
+        "seatMeaning": "지원받는 자리",
+        "keywords": "안정·수용"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 3,
+      "key": "정묘",
+      "hanja": "丁卯",
+      "family": {
+        "stem": "정",
+        "name": "등불형",
+        "hanja": "丁火",
+        "element": "화",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "풀숲에 깃든 등불",
+        "branch": "묘",
+        "branchPrinciple": "풀·아침"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "인성",
+        "seatMeaning": "지원받는 자리",
+        "keywords": "안정·수용"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 4,
+      "key": "무진",
+      "hanja": "戊辰",
+      "family": {
+        "stem": "무",
+        "name": "산맥형",
+        "hanja": "戊土",
+        "element": "토",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "물 머금은 산맥",
+        "branch": "진",
+        "branchPrinciple": "옥토·용"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "비겁",
+        "seatMeaning": "뿌리내린 자리",
+        "keywords": "자립·확신"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 5,
+      "key": "기사",
+      "hanja": "己巳",
+      "family": {
+        "stem": "기",
+        "name": "들판형",
+        "hanja": "己土",
+        "element": "토",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "온기가 스민 들판",
+        "branch": "사",
+        "branchPrinciple": "타오르는 불"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "인성",
+        "seatMeaning": "지원받는 자리",
+        "keywords": "안정·수용"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 6,
+      "key": "경오",
+      "hanja": "庚午",
+      "family": {
+        "stem": "경",
+        "name": "무쇠형",
+        "hanja": "庚金",
+        "element": "금",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "불길에 달궈진 무쇠",
+        "branch": "오",
+        "branchPrinciple": "한낮의 불"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "관성",
+        "seatMeaning": "단련받는 자리",
+        "keywords": "절제·성장"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 7,
+      "key": "신미",
+      "hanja": "辛未",
+      "family": {
+        "stem": "신",
+        "name": "보석형",
+        "hanja": "辛金",
+        "element": "금",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "모래 속의 보석",
+        "branch": "미",
+        "branchPrinciple": "마른 흙·결실 전"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "인성",
+        "seatMeaning": "지원받는 자리",
+        "keywords": "안정·수용"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 8,
+      "key": "임신",
+      "hanja": "壬申",
+      "family": {
+        "stem": "임",
+        "name": "바다형",
+        "hanja": "壬水",
+        "element": "수",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "바위를 휘감는 바다",
+        "branch": "신",
+        "branchPrinciple": "바위·쇳돌"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "인성",
+        "seatMeaning": "지원받는 자리",
+        "keywords": "안정·수용"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 9,
+      "key": "계유",
+      "hanja": "癸酉",
+      "family": {
+        "stem": "계",
+        "name": "이슬형",
+        "hanja": "癸水",
+        "element": "수",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "거미줄에 맺힌 이슬",
+        "branch": "유",
+        "branchPrinciple": "여문 금·저녁"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "인성",
+        "seatMeaning": "지원받는 자리",
+        "keywords": "안정·수용"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 10,
+      "key": "갑술",
+      "hanja": "甲戌",
+      "family": {
+        "stem": "갑",
+        "name": "큰나무형",
+        "hanja": "甲木",
+        "element": "목",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "언덕 위의 큰나무",
+        "branch": "술",
+        "branchPrinciple": "마른 언덕·황혼"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "재성",
+        "seatMeaning": "내가 일구는 자리",
+        "keywords": "실행·성취"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 11,
+      "key": "을해",
+      "hanja": "乙亥",
+      "family": {
+        "stem": "을",
+        "name": "들꽃형",
+        "hanja": "乙木",
+        "element": "목",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "물안개 속 들꽃",
+        "branch": "해",
+        "branchPrinciple": "너른 물"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "인성",
+        "seatMeaning": "지원받는 자리",
+        "keywords": "안정·수용"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 12,
+      "key": "병자",
+      "hanja": "丙子",
+      "family": {
+        "stem": "병",
+        "name": "태양형",
+        "hanja": "丙火",
+        "element": "화",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "물 위로 떠오른 태양",
+        "branch": "자",
+        "branchPrinciple": "깊은 물·한밤"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "관성",
+        "seatMeaning": "단련받는 자리",
+        "keywords": "절제·성장"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 13,
+      "key": "정축",
+      "hanja": "丁丑",
+      "family": {
+        "stem": "정",
+        "name": "등불형",
+        "hanja": "丁火",
+        "element": "화",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "새벽을 기다리는 등불",
+        "branch": "축",
+        "branchPrinciple": "언 진흙·동트기 전"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "식상",
+        "seatMeaning": "내가 살리는 자리",
+        "keywords": "표현·베풂"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 14,
+      "key": "무인",
+      "hanja": "戊寅",
+      "family": {
+        "stem": "무",
+        "name": "산맥형",
+        "hanja": "戊土",
+        "element": "토",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "숲이 우거진 산맥",
+        "branch": "인",
+        "branchPrinciple": "숲·새벽"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "관성",
+        "seatMeaning": "단련받는 자리",
+        "keywords": "절제·성장"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 15,
+      "key": "기묘",
+      "hanja": "己卯",
+      "family": {
+        "stem": "기",
+        "name": "들판형",
+        "hanja": "己土",
+        "element": "토",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "풀 돋은 들판",
+        "branch": "묘",
+        "branchPrinciple": "풀·아침"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "관성",
+        "seatMeaning": "단련받는 자리",
+        "keywords": "절제·성장"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 16,
+      "key": "경진",
+      "hanja": "庚辰",
+      "family": {
+        "stem": "경",
+        "name": "무쇠형",
+        "hanja": "庚金",
+        "element": "금",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "흙에 묻힌 무쇠",
+        "branch": "진",
+        "branchPrinciple": "옥토·용"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "인성",
+        "seatMeaning": "지원받는 자리",
+        "keywords": "안정·수용"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 17,
+      "key": "신사",
+      "hanja": "辛巳",
+      "family": {
+        "stem": "신",
+        "name": "보석형",
+        "hanja": "辛金",
+        "element": "금",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "불에 세공된 보석",
+        "branch": "사",
+        "branchPrinciple": "타오르는 불"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "관성",
+        "seatMeaning": "단련받는 자리",
+        "keywords": "절제·성장"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 18,
+      "key": "임오",
+      "hanja": "壬午",
+      "family": {
+        "stem": "임",
+        "name": "바다형",
+        "hanja": "壬水",
+        "element": "수",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "윤슬 반짝이는 바다",
+        "branch": "오",
+        "branchPrinciple": "한낮의 불"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "재성",
+        "seatMeaning": "내가 일구는 자리",
+        "keywords": "실행·성취"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 19,
+      "key": "계미",
+      "hanja": "癸未",
+      "family": {
+        "stem": "계",
+        "name": "이슬형",
+        "hanja": "癸水",
+        "element": "수",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "마른 땅을 적시는 이슬",
+        "branch": "미",
+        "branchPrinciple": "마른 흙·결실 전"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "관성",
+        "seatMeaning": "단련받는 자리",
+        "keywords": "절제·성장"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 20,
+      "key": "갑신",
+      "hanja": "甲申",
+      "family": {
+        "stem": "갑",
+        "name": "큰나무형",
+        "hanja": "甲木",
+        "element": "목",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "바위틈의 큰나무",
+        "branch": "신",
+        "branchPrinciple": "바위·쇳돌"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "관성",
+        "seatMeaning": "단련받는 자리",
+        "keywords": "절제·성장"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 21,
+      "key": "을유",
+      "hanja": "乙酉",
+      "family": {
+        "stem": "을",
+        "name": "들꽃형",
+        "hanja": "乙木",
+        "element": "목",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "노을에 물든 들꽃",
+        "branch": "유",
+        "branchPrinciple": "여문 금·저녁"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "관성",
+        "seatMeaning": "단련받는 자리",
+        "keywords": "절제·성장"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 22,
+      "key": "병술",
+      "hanja": "丙戌",
+      "family": {
+        "stem": "병",
+        "name": "태양형",
+        "hanja": "丙火",
+        "element": "화",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "산마루에 걸린 태양",
+        "branch": "술",
+        "branchPrinciple": "마른 언덕·황혼"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "식상",
+        "seatMeaning": "내가 살리는 자리",
+        "keywords": "표현·베풂"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 23,
+      "key": "정해",
+      "hanja": "丁亥",
+      "family": {
+        "stem": "정",
+        "name": "등불형",
+        "hanja": "丁火",
+        "element": "화",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "물 위에 뜬 등불",
+        "branch": "해",
+        "branchPrinciple": "너른 물"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "관성",
+        "seatMeaning": "단련받는 자리",
+        "keywords": "절제·성장"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 24,
+      "key": "무자",
+      "hanja": "戊子",
+      "family": {
+        "stem": "무",
+        "name": "산맥형",
+        "hanja": "戊土",
+        "element": "토",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "샘을 품은 산맥",
+        "branch": "자",
+        "branchPrinciple": "깊은 물·한밤"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "재성",
+        "seatMeaning": "내가 일구는 자리",
+        "keywords": "실행·성취"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 25,
+      "key": "기축",
+      "hanja": "己丑",
+      "family": {
+        "stem": "기",
+        "name": "들판형",
+        "hanja": "己土",
+        "element": "토",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "물기 어린 들판",
+        "branch": "축",
+        "branchPrinciple": "언 진흙·동트기 전"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "비겁",
+        "seatMeaning": "뿌리내린 자리",
+        "keywords": "자립·확신"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 26,
+      "key": "경인",
+      "hanja": "庚寅",
+      "family": {
+        "stem": "경",
+        "name": "무쇠형",
+        "hanja": "庚金",
+        "element": "금",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "숲을 가르는 무쇠",
+        "branch": "인",
+        "branchPrinciple": "숲·새벽"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "재성",
+        "seatMeaning": "내가 일구는 자리",
+        "keywords": "실행·성취"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 27,
+      "key": "신묘",
+      "hanja": "辛卯",
+      "family": {
+        "stem": "신",
+        "name": "보석형",
+        "hanja": "辛金",
+        "element": "금",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "풀숲에 숨은 보석",
+        "branch": "묘",
+        "branchPrinciple": "풀·아침"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "재성",
+        "seatMeaning": "내가 일구는 자리",
+        "keywords": "실행·성취"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 28,
+      "key": "임진",
+      "hanja": "壬辰",
+      "family": {
+        "stem": "임",
+        "name": "바다형",
+        "hanja": "壬水",
+        "element": "수",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "용이 잠든 바다",
+        "branch": "진",
+        "branchPrinciple": "옥토·용"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "관성",
+        "seatMeaning": "단련받는 자리",
+        "keywords": "절제·성장"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 29,
+      "key": "계사",
+      "hanja": "癸巳",
+      "family": {
+        "stem": "계",
+        "name": "이슬형",
+        "hanja": "癸水",
+        "element": "수",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "볕을 머금은 이슬",
+        "branch": "사",
+        "branchPrinciple": "타오르는 불"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "재성",
+        "seatMeaning": "내가 일구는 자리",
+        "keywords": "실행·성취"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 30,
+      "key": "갑오",
+      "hanja": "甲午",
+      "family": {
+        "stem": "갑",
+        "name": "큰나무형",
+        "hanja": "甲木",
+        "element": "목",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "그늘 드리운 큰나무",
+        "branch": "오",
+        "branchPrinciple": "한낮의 불"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "식상",
+        "seatMeaning": "내가 살리는 자리",
+        "keywords": "표현·베풂"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 31,
+      "key": "을미",
+      "hanja": "乙未",
+      "family": {
+        "stem": "을",
+        "name": "들꽃형",
+        "hanja": "乙木",
+        "element": "목",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "마른 땅에 핀 들꽃",
+        "branch": "미",
+        "branchPrinciple": "마른 흙·결실 전"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "재성",
+        "seatMeaning": "내가 일구는 자리",
+        "keywords": "실행·성취"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 32,
+      "key": "병신",
+      "hanja": "丙申",
+      "family": {
+        "stem": "병",
+        "name": "태양형",
+        "hanja": "丙火",
+        "element": "화",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "바위를 달구는 태양",
+        "branch": "신",
+        "branchPrinciple": "바위·쇳돌"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "재성",
+        "seatMeaning": "내가 일구는 자리",
+        "keywords": "실행·성취"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 33,
+      "key": "정유",
+      "hanja": "丁酉",
+      "family": {
+        "stem": "정",
+        "name": "등불형",
+        "hanja": "丁火",
+        "element": "화",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "저물녘에 켠 등불",
+        "branch": "유",
+        "branchPrinciple": "여문 금·저녁"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "재성",
+        "seatMeaning": "내가 일구는 자리",
+        "keywords": "실행·성취"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 34,
+      "key": "무술",
+      "hanja": "戊戌",
+      "family": {
+        "stem": "무",
+        "name": "산맥형",
+        "hanja": "戊土",
+        "element": "토",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "우뚝 선 산맥",
+        "branch": "술",
+        "branchPrinciple": "마른 언덕·황혼"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "비겁",
+        "seatMeaning": "뿌리내린 자리",
+        "keywords": "자립·확신"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 35,
+      "key": "기해",
+      "hanja": "己亥",
+      "family": {
+        "stem": "기",
+        "name": "들판형",
+        "hanja": "己土",
+        "element": "토",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "물길을 낸 들판",
+        "branch": "해",
+        "branchPrinciple": "너른 물"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "재성",
+        "seatMeaning": "내가 일구는 자리",
+        "keywords": "실행·성취"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 36,
+      "key": "경자",
+      "hanja": "庚子",
+      "family": {
+        "stem": "경",
+        "name": "무쇠형",
+        "hanja": "庚金",
+        "element": "금",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "찬물에 담긴 무쇠",
+        "branch": "자",
+        "branchPrinciple": "깊은 물·한밤"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "식상",
+        "seatMeaning": "내가 살리는 자리",
+        "keywords": "표현·베풂"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 37,
+      "key": "신축",
+      "hanja": "辛丑",
+      "family": {
+        "stem": "신",
+        "name": "보석형",
+        "hanja": "辛金",
+        "element": "금",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "진흙 속의 보석",
+        "branch": "축",
+        "branchPrinciple": "언 진흙·동트기 전"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "인성",
+        "seatMeaning": "지원받는 자리",
+        "keywords": "안정·수용"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 38,
+      "key": "임인",
+      "hanja": "壬寅",
+      "family": {
+        "stem": "임",
+        "name": "바다형",
+        "hanja": "壬水",
+        "element": "수",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "새벽의 바다",
+        "branch": "인",
+        "branchPrinciple": "숲·새벽"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "식상",
+        "seatMeaning": "내가 살리는 자리",
+        "keywords": "표현·베풂"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 39,
+      "key": "계묘",
+      "hanja": "癸卯",
+      "family": {
+        "stem": "계",
+        "name": "이슬형",
+        "hanja": "癸水",
+        "element": "수",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "풀잎 끝의 이슬",
+        "branch": "묘",
+        "branchPrinciple": "풀·아침"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "식상",
+        "seatMeaning": "내가 살리는 자리",
+        "keywords": "표현·베풂"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 40,
+      "key": "갑진",
+      "hanja": "甲辰",
+      "family": {
+        "stem": "갑",
+        "name": "큰나무형",
+        "hanja": "甲木",
+        "element": "목",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "기름진 땅의 큰나무",
+        "branch": "진",
+        "branchPrinciple": "옥토·용"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "재성",
+        "seatMeaning": "내가 일구는 자리",
+        "keywords": "실행·성취"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 41,
+      "key": "을사",
+      "hanja": "乙巳",
+      "family": {
+        "stem": "을",
+        "name": "들꽃형",
+        "hanja": "乙木",
+        "element": "목",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "모닥불 곁의 들꽃",
+        "branch": "사",
+        "branchPrinciple": "타오르는 불"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "식상",
+        "seatMeaning": "내가 살리는 자리",
+        "keywords": "표현·베풂"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 42,
+      "key": "병오",
+      "hanja": "丙午",
+      "family": {
+        "stem": "병",
+        "name": "태양형",
+        "hanja": "丙火",
+        "element": "화",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "한낮의 태양",
+        "branch": "오",
+        "branchPrinciple": "한낮의 불"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "비겁",
+        "seatMeaning": "뿌리내린 자리",
+        "keywords": "자립·확신"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 43,
+      "key": "정미",
+      "hanja": "丁未",
+      "family": {
+        "stem": "정",
+        "name": "등불형",
+        "hanja": "丁火",
+        "element": "화",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "들을 밝히는 등불",
+        "branch": "미",
+        "branchPrinciple": "마른 흙·결실 전"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "식상",
+        "seatMeaning": "내가 살리는 자리",
+        "keywords": "표현·베풂"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 44,
+      "key": "무신",
+      "hanja": "戊申",
+      "family": {
+        "stem": "무",
+        "name": "산맥형",
+        "hanja": "戊土",
+        "element": "토",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "바위 능선의 산맥",
+        "branch": "신",
+        "branchPrinciple": "바위·쇳돌"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "식상",
+        "seatMeaning": "내가 살리는 자리",
+        "keywords": "표현·베풂"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 45,
+      "key": "기유",
+      "hanja": "己酉",
+      "family": {
+        "stem": "기",
+        "name": "들판형",
+        "hanja": "己土",
+        "element": "토",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "낟알 여문 들판",
+        "branch": "유",
+        "branchPrinciple": "여문 금·저녁"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "식상",
+        "seatMeaning": "내가 살리는 자리",
+        "keywords": "표현·베풂"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 46,
+      "key": "경술",
+      "hanja": "庚戌",
+      "family": {
+        "stem": "경",
+        "name": "무쇠형",
+        "hanja": "庚金",
+        "element": "금",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "언덕에 박힌 무쇠",
+        "branch": "술",
+        "branchPrinciple": "마른 언덕·황혼"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "인성",
+        "seatMeaning": "지원받는 자리",
+        "keywords": "안정·수용"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 47,
+      "key": "신해",
+      "hanja": "辛亥",
+      "family": {
+        "stem": "신",
+        "name": "보석형",
+        "hanja": "辛金",
+        "element": "금",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "맑은 물에 씻긴 보석",
+        "branch": "해",
+        "branchPrinciple": "너른 물"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "식상",
+        "seatMeaning": "내가 살리는 자리",
+        "keywords": "표현·베풂"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 48,
+      "key": "임자",
+      "hanja": "壬子",
+      "family": {
+        "stem": "임",
+        "name": "바다형",
+        "hanja": "壬水",
+        "element": "수",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "밤 깊은 바다",
+        "branch": "자",
+        "branchPrinciple": "깊은 물·한밤"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "비겁",
+        "seatMeaning": "뿌리내린 자리",
+        "keywords": "자립·확신"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 49,
+      "key": "계축",
+      "hanja": "癸丑",
+      "family": {
+        "stem": "계",
+        "name": "이슬형",
+        "hanja": "癸水",
+        "element": "수",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "찬 흙에 맺힌 이슬",
+        "branch": "축",
+        "branchPrinciple": "언 진흙·동트기 전"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "관성",
+        "seatMeaning": "단련받는 자리",
+        "keywords": "절제·성장"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 50,
+      "key": "갑인",
+      "hanja": "甲寅",
+      "family": {
+        "stem": "갑",
+        "name": "큰나무형",
+        "hanja": "甲木",
+        "element": "목",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "숲을 이룬 큰나무",
+        "branch": "인",
+        "branchPrinciple": "숲·새벽"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "비겁",
+        "seatMeaning": "뿌리내린 자리",
+        "keywords": "자립·확신"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 51,
+      "key": "을묘",
+      "hanja": "乙卯",
+      "family": {
+        "stem": "을",
+        "name": "들꽃형",
+        "hanja": "乙木",
+        "element": "목",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "흐드러지게 핀 들꽃",
+        "branch": "묘",
+        "branchPrinciple": "풀·아침"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "비겁",
+        "seatMeaning": "뿌리내린 자리",
+        "keywords": "자립·확신"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 52,
+      "key": "병진",
+      "hanja": "丙辰",
+      "family": {
+        "stem": "병",
+        "name": "태양형",
+        "hanja": "丙火",
+        "element": "화",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "들녘을 데우는 태양",
+        "branch": "진",
+        "branchPrinciple": "옥토·용"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "식상",
+        "seatMeaning": "내가 살리는 자리",
+        "keywords": "표현·베풂"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 53,
+      "key": "정사",
+      "hanja": "丁巳",
+      "family": {
+        "stem": "정",
+        "name": "등불형",
+        "hanja": "丁火",
+        "element": "화",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "불씨 품은 등불",
+        "branch": "사",
+        "branchPrinciple": "타오르는 불"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "비겁",
+        "seatMeaning": "뿌리내린 자리",
+        "keywords": "자립·확신"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 54,
+      "key": "무오",
+      "hanja": "戊午",
+      "family": {
+        "stem": "무",
+        "name": "산맥형",
+        "hanja": "戊土",
+        "element": "토",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "볕이 내려앉은 산맥",
+        "branch": "오",
+        "branchPrinciple": "한낮의 불"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "인성",
+        "seatMeaning": "지원받는 자리",
+        "keywords": "안정·수용"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 55,
+      "key": "기미",
+      "hanja": "己未",
+      "family": {
+        "stem": "기",
+        "name": "들판형",
+        "hanja": "己土",
+        "element": "토",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "황금빛 들판",
+        "branch": "미",
+        "branchPrinciple": "마른 흙·결실 전"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "비겁",
+        "seatMeaning": "뿌리내린 자리",
+        "keywords": "자립·확신"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 56,
+      "key": "경신",
+      "hanja": "庚申",
+      "family": {
+        "stem": "경",
+        "name": "무쇠형",
+        "hanja": "庚金",
+        "element": "금",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "단단히 벼린 무쇠",
+        "branch": "신",
+        "branchPrinciple": "바위·쇳돌"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "비겁",
+        "seatMeaning": "뿌리내린 자리",
+        "keywords": "자립·확신"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 57,
+      "key": "신유",
+      "hanja": "辛酉",
+      "family": {
+        "stem": "신",
+        "name": "보석형",
+        "hanja": "辛金",
+        "element": "금",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "노을을 담은 보석",
+        "branch": "유",
+        "branchPrinciple": "여문 금·저녁"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "비겁",
+        "seatMeaning": "뿌리내린 자리",
+        "keywords": "자립·확신"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 58,
+      "key": "임술",
+      "hanja": "壬戌",
+      "family": {
+        "stem": "임",
+        "name": "바다형",
+        "hanja": "壬水",
+        "element": "수",
+        "yinYang": "양"
+      },
+      "scene": {
+        "name": "산자락에 닿은 바다",
+        "branch": "술",
+        "branchPrinciple": "마른 언덕·황혼"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "관성",
+        "seatMeaning": "단련받는 자리",
+        "keywords": "절제·성장"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    },
+    {
+      "id": 59,
+      "key": "계해",
+      "hanja": "癸亥",
+      "family": {
+        "stem": "계",
+        "name": "이슬형",
+        "hanja": "癸水",
+        "element": "수",
+        "yinYang": "음"
+      },
+      "scene": {
+        "name": "바다로 가는 이슬",
+        "branch": "해",
+        "branchPrinciple": "너른 물"
+      },
+      "direction": {
+        "internalOnly": true,
+        "tenGodGroup": "비겁",
+        "seatMeaning": "뿌리내린 자리",
+        "keywords": "자립·확신"
+      },
+      "copy": {
+        "hook": null,
+        "chips": [],
+        "desc": null,
+        "basis": null
+      },
+      "needsReview": false
+    }
+  ]
+}
