@@ -55,6 +55,8 @@ export {
 } from "./data/stems";
 export {
   BRANCHES,
+  BRANCH_CHUNG,
+  BRANCH_HAP,
   BRANCH_ORDER,
   isBranch,
   type Branch,
@@ -83,6 +85,19 @@ export {
   type CharacterInternal,
   type CharacterSceneView,
 } from "./character";
+
+// 관계 엔진 — 두 사람의 일주로 분류·배지 판정 (귀인지도)
+export {
+  BADGE_LABELS,
+  RELATION_LABELS,
+  branchElement,
+  getRelation,
+  type DayPillarInput,
+  type Relation,
+  type RelationBadge,
+  type RelationKind,
+  type RelationLabel,
+} from "./relationship";
 
 // 캐릭터 데이터 (10 패밀리 × 60 일주)
 export {

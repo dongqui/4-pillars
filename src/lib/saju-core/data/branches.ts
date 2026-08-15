@@ -43,3 +43,26 @@ export const BRANCH_ORDER: readonly Branch[] = [
 export function isBranch(ch: string): ch is Branch {
   return ch in BRANCHES;
 }
+
+/**
+ * 육합(六合) — 자축·인해·묘술·진유·사신·오미.
+ * 12지지가 6쌍으로 빠짐없이 짝지어지므로 짝 하나를 가리키는 표로 충분하다.
+ */
+export const BRANCH_HAP: Record<Branch, Branch> = {
+  자: "축", 축: "자",
+  인: "해", 해: "인",
+  묘: "술", 술: "묘",
+  진: "유", 유: "진",
+  사: "신", 신: "사",
+  오: "미", 미: "오",
+};
+
+/** 충(沖) — 자오·축미·인신·묘유·진술·사해. 마주 보는 지지(6칸 차이)끼리 부딪친다. */
+export const BRANCH_CHUNG: Record<Branch, Branch> = {
+  자: "오", 오: "자",
+  축: "미", 미: "축",
+  인: "신", 신: "인",
+  묘: "유", 유: "묘",
+  진: "술", 술: "진",
+  사: "해", 해: "사",
+};
