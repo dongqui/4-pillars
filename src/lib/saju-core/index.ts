@@ -64,6 +64,18 @@ export {
   type TenGodGroup,
 } from "./data/relations";
 
+// 캐릭터 — 일주 → 60캐릭터 매핑
+export {
+  ALL_CHARACTERS,
+  characterById,
+  characterFromChart,
+  characterOf,
+  type Character,
+  type CharacterFamilyView,
+  type CharacterInternal,
+  type CharacterSceneView,
+} from "./character";
+
 // 캐릭터 데이터 (10 패밀리 × 60 일주)
 export {
   BRANCH_PRINCIPLES,

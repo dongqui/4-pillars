@@ -17,21 +17,23 @@ export interface BranchInfo {
   yinYang: YinYang;
   /** 본기(正氣) 천간 */
   mainStem: Stem;
+  /** 한자 (예: "子") */
+  hanja: string;
 }
 
 export const BRANCHES: Record<Branch, BranchInfo> = {
-  자: { element: "수", yinYang: "양", mainStem: "계" },
-  축: { element: "토", yinYang: "음", mainStem: "기" },
-  인: { element: "목", yinYang: "양", mainStem: "갑" },
-  묘: { element: "목", yinYang: "음", mainStem: "을" },
-  진: { element: "토", yinYang: "양", mainStem: "무" },
-  사: { element: "화", yinYang: "음", mainStem: "병" },
-  오: { element: "화", yinYang: "양", mainStem: "정" },
-  미: { element: "토", yinYang: "음", mainStem: "기" },
-  신: { element: "금", yinYang: "양", mainStem: "경" },
-  유: { element: "금", yinYang: "음", mainStem: "신" },
-  술: { element: "토", yinYang: "양", mainStem: "무" },
-  해: { element: "수", yinYang: "음", mainStem: "임" },
+  자: { element: "수", yinYang: "양", mainStem: "계", hanja: "子" },
+  축: { element: "토", yinYang: "음", mainStem: "기", hanja: "丑" },
+  인: { element: "목", yinYang: "양", mainStem: "갑", hanja: "寅" },
+  묘: { element: "목", yinYang: "음", mainStem: "을", hanja: "卯" },
+  진: { element: "토", yinYang: "양", mainStem: "무", hanja: "辰" },
+  사: { element: "화", yinYang: "음", mainStem: "병", hanja: "巳" },
+  오: { element: "화", yinYang: "양", mainStem: "정", hanja: "午" },
+  미: { element: "토", yinYang: "음", mainStem: "기", hanja: "未" },
+  신: { element: "금", yinYang: "양", mainStem: "경", hanja: "申" },
+  유: { element: "금", yinYang: "음", mainStem: "신", hanja: "酉" },
+  술: { element: "토", yinYang: "양", mainStem: "무", hanja: "戌" },
+  해: { element: "수", yinYang: "음", mainStem: "임", hanja: "亥" },
 };
 
 export const BRANCH_ORDER: readonly Branch[] = [
