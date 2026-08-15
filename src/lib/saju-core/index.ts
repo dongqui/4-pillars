@@ -64,6 +64,21 @@ export {
   type TenGodGroup,
 } from "./data/relations";
 
+// 캐릭터 데이터 (10 패밀리 × 60 일주)
+export {
+  BRANCH_PRINCIPLES,
+  CHARACTER_COPY,
+  CHARACTER_KEYS,
+  FAMILIES,
+  SEATS,
+  characterBasis,
+  characterSeatGroup,
+  type CharacterCopy,
+  type CharacterFamily,
+  type CharacterKey,
+  type CharacterSeat,
+} from "./data/characters-60";
+
 // 절기(대운/월령 계산에 사용)
 export { MONTH_TERMS, solarTermDate, type CalendarTime } from "./astro/solar-term";
 
