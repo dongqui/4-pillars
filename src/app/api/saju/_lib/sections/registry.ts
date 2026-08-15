@@ -11,7 +11,12 @@ export type SectionTier = "free" | "paid";
 export type SectionStorage = "chart" | "luck";
 
 export interface SectionSpec {
-  /** 이 섹션 스키마의 버전. DB schema_version 컬럼에 기록된다. shape 을 바꾸면 올린다. */
+  /**
+   * 이 섹션 스키마의 버전. DB schema_version 컬럼에 기록된다.
+   * shape 을 바꿀 때만이 아니라, 프롬프트 의미가 바뀌어 옛 캐시를 버려야 할 때도 올린다 —
+   * 캐시는 이 값이 다를 때만 무효화되므로(store.ts:decodeSections), 버전을 안 올리면
+   * 옛 프롬프트로 생성된 서술이 영원히 재사용된다.
+   */
   version: number;
   tier: SectionTier;
   storage: SectionStorage;
@@ -65,7 +70,7 @@ export const SECTIONS = {
   },
 
   outerVsInner: {
-    version: 1,
+    version: 2,
     tier: "free",
     storage: "chart",
     schema: z
@@ -78,7 +83,7 @@ export const SECTIONS = {
   },
 
   strengths: {
-    version: 1,
+    version: 2,
     tier: "free",
     storage: "chart",
     schema: z.array(TitledText).min(2).max(4),
@@ -88,7 +93,7 @@ export const SECTIONS = {
   },
 
   cautions: {
-    version: 1,
+    version: 2,
     tier: "free",
     storage: "chart",
     schema: z
@@ -101,7 +106,7 @@ export const SECTIONS = {
   },
 
   emotion: {
-    version: 1,
+    version: 2,
     tier: "paid",
     storage: "chart",
     schema: z.array(LabeledText).min(2).max(4),
@@ -112,7 +117,7 @@ export const SECTIONS = {
   },
 
   relating: {
-    version: 1,
+    version: 2,
     tier: "paid",
     storage: "chart",
     schema: z.array(KeyValue).min(3).max(6),
@@ -123,7 +128,7 @@ export const SECTIONS = {
   },
 
   environment: {
-    version: 1,
+    version: 2,
     tier: "paid",
     storage: "chart",
     schema: z
@@ -142,7 +147,7 @@ export const SECTIONS = {
   },
 
   love: {
-    version: 1,
+    version: 2,
     tier: "paid",
     storage: "chart",
     schema: z.array(LabeledText).min(2).max(4),
@@ -152,7 +157,7 @@ export const SECTIONS = {
   },
 
   compatibility: {
-    version: 1,
+    version: 2,
     tier: "paid",
     storage: "chart",
     schema: z
@@ -165,7 +170,7 @@ export const SECTIONS = {
   },
 
   wealth: {
-    version: 1,
+    version: 2,
     tier: "paid",
     storage: "chart",
     schema: z
@@ -183,7 +188,7 @@ export const SECTIONS = {
   },
 
   yearlyLuck: {
-    version: 1,
+    version: 2,
     tier: "paid",
     storage: "luck",
     schema: z.array(TimelineNote).min(1).max(12),
@@ -194,7 +199,7 @@ export const SECTIONS = {
   },
 
   daeunOutlook: {
-    version: 1,
+    version: 2,
     tier: "paid",
     storage: "luck",
     schema: z
