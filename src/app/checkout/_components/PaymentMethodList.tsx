@@ -11,8 +11,6 @@ export function PaymentMethodList({
   selected: PaymentMethodId;
   onSelect: (id: PaymentMethodId) => void;
 }) {
-  const note = methods.find((m) => m.id === selected)?.note ?? "";
-
   return (
     <section className="rounded-[20px] border border-slate-200 bg-white px-4 py-5 shadow-[0_1px_3px_rgba(17,24,39,.04)] sm:p-6">
       <div className="mb-[18px] flex items-baseline justify-between gap-3">
@@ -65,14 +63,6 @@ export function PaymentMethodList({
           );
         })}
       </div>
-
-      {/* 결제창이 새로 열린다는 사실을 누르기 전에 알린다. 선택을 바꾸면 이 문장도 바뀐다. */}
-      <p
-        aria-live="polite"
-        className="mt-4 rounded-[14px] border border-slate-100 bg-slate-50 px-[17px] py-[15px] text-[13.5px] leading-[1.6] text-slate-500 [text-wrap:pretty]"
-      >
-        {note}
-      </p>
     </section>
   );
 }

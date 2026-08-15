@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { getLuckCached, putLuckSections } from "./store-luck";
 import type { SqlClient } from "./store";
-import type { SectionKey } from "./sections";
+import { sectionVersion, type SectionKey } from "./sections";
 
 function fakeClient(rows: Record<string, unknown>[]) {
   const calls: { sql: string; values: unknown[] }[] = [];
@@ -26,7 +26,8 @@ describe("getLuckCached", () => {
 
   it("chart 캐시와 같은 규칙으로 have/missing 을 가른다", async () => {
     const { client } = fakeClient([
-      { section_key: "yearlyLuck", content: yearlyLuck, schema_version: 1 },
+      // 버전을 박아 두면 레지스트리 버전이 오를 때마다 이 테스트가 같이 깨진다
+      { section_key: "yearlyLuck", content: yearlyLuck, schema_version: sectionVersion("yearlyLuck") },
     ]);
     expect(await getLuckCached("lk", keys, client)).toEqual({
       have: { yearlyLuck },

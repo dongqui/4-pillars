@@ -76,8 +76,26 @@ export function OrderSummary({
             {agreed && "✓"}
           </span>
           <span className="text-[13px] leading-[1.55] text-slate-500 [text-wrap:pretty]">
-            결제 진행 및 <a href="#" className="text-accent hover:text-accent-700">전자상거래 이용약관</a>,{" "}
-            <a href="#" className="text-accent hover:text-accent-700">개인정보 제3자 제공</a>에 동의합니다.
+            {/* 새 탭으로 연다 — 결제수단 선택·동의 상태가 이 화면에만 있어서 이동하면 날아간다. */}
+            결제 진행 및{" "}
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noreferrer"
+              className="text-accent hover:text-accent-700"
+            >
+              전자상거래 이용약관
+            </a>
+            ,{" "}
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noreferrer"
+              className="text-accent hover:text-accent-700"
+            >
+              개인정보 처리방침
+            </a>
+            에 동의합니다.
           </span>
         </label>
 

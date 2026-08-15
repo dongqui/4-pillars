@@ -12,8 +12,6 @@ export interface PaymentMethod {
   /** 로고 칩 배경·글자색. 브랜드 색이라 팔레트 토큰을 쓰지 않는다. */
   logoClass: string;
   badge?: string;
-  /** 선택했을 때 목록 아래에 뜨는 안내문 — 결제창이 열린다는 사실을 미리 알린다. */
-  note: string;
 }
 
 /**
@@ -26,7 +24,6 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
     desc: "KG이니시스 국내 카드결제",
     logo: "카드",
     logoClass: "bg-slate-100 text-slate-500",
-    note: "결제하기를 누르면 KG이니시스 카드결제 창이 열립니다. 카드 정보 입력과 인증을 마치면 이 화면으로 돌아옵니다.",
   },
   {
     id: "naver",
@@ -35,7 +32,6 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
     logo: "N",
     logoClass: "bg-[#03C75A] text-white",
     badge: "포인트 적립",
-    note: "결제하기를 누르면 네이버페이 창이 열립니다. 인증을 완료하면 이 화면으로 돌아옵니다.",
   },
   {
     id: "kakao",
@@ -43,7 +39,6 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
     desc: "카카오톡에서 간편 결제",
     logo: "pay",
     logoClass: "bg-[#FEE500] text-[#181600]",
-    note: "결제하기를 누르면 카카오페이 QR·앱 인증 창이 열립니다. 인증을 완료하면 이 화면으로 돌아옵니다.",
   },
   {
     id: "toss",
@@ -51,6 +46,5 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
     desc: "토스 앱에서 간편 결제",
     logo: "toss",
     logoClass: "bg-[#0064FF] text-white",
-    note: "결제하기를 누르면 토스페이 창이 열립니다. 인증을 완료하면 이 화면으로 돌아옵니다.",
   },
 ];
