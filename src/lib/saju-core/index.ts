@@ -13,6 +13,14 @@ export {
 } from "./chart";
 export { distributeElements, type ElementDistribution } from "./elements";
 export {
+  elementProfile,
+  elementProfileCopy,
+  profileElements,
+  type ElementProfile,
+  type ElementProfileCopy,
+  type ElementVerdict,
+} from "./element-profile";
+export {
   analyzeTenGods,
   type TenGodCell,
   type TenGodResult,
