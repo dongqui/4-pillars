@@ -8,7 +8,7 @@ import {
   DEFAULT_TARGET,
   type CameraMode,
 } from "./camera";
-import { NEBULA_CENTERS, placePeople, positionFor } from "./layout";
+import { FIELD_CENTERS, SELF_POSITION, placePeople, positionFor } from "./layout";
 
 function dist(a: readonly number[], b: readonly number[]) {
   return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
@@ -54,24 +54,24 @@ describe("placePeople", () => {
   });
 });
 
-describe("NEBULA_CENTERS", () => {
+describe("FIELD_CENTERS", () => {
   it("5개 역할이 모두 정의돼 있다", () => {
     for (const role of ROLE_ORDER) {
-      expect(NEBULA_CENTERS[role]).toBeDefined();
+      expect(FIELD_CENTERS[role]).toBeDefined();
     }
   });
 
-  it("성운 중심들이 서로 충분히 떨어져 있다", () => {
+  it("Field 중심들이 서로 충분히 떨어져 있다", () => {
     for (let i = 0; i < ROLE_ORDER.length; i++) {
       for (let j = i + 1; j < ROLE_ORDER.length; j++) {
-        const d = dist(NEBULA_CENTERS[ROLE_ORDER[i]], NEBULA_CENTERS[ROLE_ORDER[j]]);
+        const d = dist(FIELD_CENTERS[ROLE_ORDER[i]], FIELD_CENTERS[ROLE_ORDER[j]]);
         expect(d).toBeGreaterThan(3.5);
       }
     }
   });
 
-  it("성운 중심이 원점에서 같은 거리에 있지 않다 — 동심원으로 보이면 실패다", () => {
-    const radii = ROLE_ORDER.map((r) => dist(NEBULA_CENTERS[r], [0, 0, 0]));
+  it("Field 중심이 원점에서 같은 거리에 있지 않다 — 동심원으로 보이면 실패다", () => {
+    const radii = ROLE_ORDER.map((r) => dist(FIELD_CENTERS[r], [0, 0, 0]));
     expect(Math.max(...radii) - Math.min(...radii)).toBeGreaterThan(1.5);
   });
 });
@@ -116,26 +116,63 @@ function projectToNdc(point: V3, eye: V3, target: V3, fovDeg: number, aspect: nu
 
 const PHONE_ASPECT = 375 / 812;
 
-describe("기본 진입 뷰 프레이밍 (375×812)", () => {
+describe("진입 프레이밍 — 다 담지 않되 길을 잃지 않는다", () => {
   const eye = DEFAULT_CAMERA_POSITION as V3;
   const target = DEFAULT_TARGET as V3;
-  const placed = placePeople(FRIENDS);
 
-  const onScreen = (p: V3) => {
-    const n = projectToNdc(p, eye, target, CAMERA_FOV, PHONE_ASPECT);
+  const onScreen = (p: V3, from: V3 = eye, look: V3 = target) => {
+    const n = projectToNdc(p, from, look, CAMERA_FOV, PHONE_ASPECT);
     return n.depth > 0 && Math.abs(n.x) <= 1 && Math.abs(n.y) <= 1;
   };
 
-  it("사람 20명 중 18명 이상이 화면 안에 들어온다", () => {
-    const visible = FRIENDS.filter((p) => onScreen(placed.get(p.id)! as V3)).length;
-    expect(visible).toBeGreaterThanOrEqual(18);
+  it("나(원점)는 화면 안에 있다 — 기준점을 잃지 않는다", () => {
+    expect(onScreen(SELF_POSITION as V3)).toBe(true);
   });
 
-  it("성운 중심 5개가 전부 화면 안에 들어온다", () => {
-    for (const role of ROLE_ORDER) {
-      expect(onScreen(NEBULA_CENTERS[role] as V3)).toBe(true);
-    }
+  it("Field 중심이 2~4개 보인다 — 빈 화면도, 전부 보이지도 않는다", () => {
+    const visible = ROLE_ORDER.filter((r) => onScreen(FIELD_CENTERS[r] as V3)).length;
+    expect(visible).toBeGreaterThanOrEqual(2);
+    expect(visible).toBeLessThanOrEqual(4);
   });
+});
+
+describe("모든 Field 는 각 모드의 제한 안에서 도달 가능하다", () => {
+  // '도달 가능' = Field 중심을 화면에 넣는 카메라 자세가 그 모드의
+  // polar·azimuth·distance 범위 안에 하나 이상 있다. Field 전체가 프레임에
+  // 들어올 필요는 없다. 못 가는 곳이 있으면 "길을 잃지 않는다"가 깨진다.
+  const target = DEFAULT_TARGET as V3;
+
+  const reachable = (center: V3, mode: CameraMode) => {
+    const l = CAMERA_LIMITS[mode];
+    const azMin = Number.isFinite(l.minAzimuth) ? l.minAzimuth : -Math.PI;
+    const azMax = Number.isFinite(l.maxAzimuth) ? l.maxAzimuth : Math.PI;
+
+    const STEPS = 24;
+    for (let i = 0; i <= STEPS; i++) {
+      const polar = l.minPolar + ((l.maxPolar - l.minPolar) * i) / STEPS;
+      for (let j = 0; j <= STEPS; j++) {
+        const az = azMin + ((azMax - azMin) * j) / STEPS;
+        for (const d of [l.minDistance, (l.minDistance + l.maxDistance) / 2, l.maxDistance]) {
+          const eye: V3 = [
+            d * Math.sin(polar) * Math.sin(az),
+            d * Math.cos(polar),
+            d * Math.sin(polar) * Math.cos(az),
+          ];
+          const n = projectToNdc(center, eye, target, CAMERA_FOV, PHONE_ASPECT);
+          if (n.depth > 0 && Math.abs(n.x) <= 1 && Math.abs(n.y) <= 1) return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  for (const mode of ["a", "b", "c"] as CameraMode[]) {
+    for (const role of ROLE_ORDER) {
+      it(`${mode} 모드에서 ${role} 에 도달할 수 있다`, () => {
+        expect(reachable(FIELD_CENTERS[role] as V3, mode)).toBe(true);
+      });
+    }
+  }
 });
 
 describe("기본 진입 뷰는 A·B·C 세 모드의 제한 안에 있다", () => {

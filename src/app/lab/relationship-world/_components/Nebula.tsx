@@ -4,7 +4,7 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { RelationRole } from "../_data/roles";
-import { NEBULA_CENTERS, NEBULA_SPREAD, hash01 } from "../_lib/layout";
+import { FIELD_CENTERS, FIELD_EXTENT, hash01 } from "../_lib/layout";
 
 // 색은 의미를 갖지 않는다. 오행색을 임의로 만들지 않기 위해 좁은 한색
 // 계열 안에서만 미세하게 변주하고, 구분은 밀도·크기·퍼짐이 맡는다.
@@ -21,8 +21,8 @@ export const NEBULA_STYLE: Record<
 
 export function Nebula({ role, dimmed }: { role: RelationRole; dimmed: boolean }) {
   const style = NEBULA_STYLE[role];
-  const center = NEBULA_CENTERS[role];
-  const spread = NEBULA_SPREAD[role];
+  const center = FIELD_CENTERS[role];
+  const spread = FIELD_EXTENT[role];
   const ref = useRef<THREE.Points>(null);
   const material = useRef<THREE.PointsMaterial>(null);
 

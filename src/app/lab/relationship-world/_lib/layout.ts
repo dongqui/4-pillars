@@ -7,7 +7,7 @@ export const SELF_POSITION: Vec3 = [0, 0, 0];
 // 의도적 비대칭이다. 원점에서의 거리·고도·방위각이 전부 다르다.
 // fill(뒤)과 refine(앞)은 기본 시점에서 화면상 겹치도록 x,y 를 비슷하게 두고
 // z 만 크게 벌렸다 — 겹침이 없으면 3D여도 평면 배치로 읽힌다.
-export const NEBULA_CENTERS: Record<RelationRole, Vec3> = {
+export const FIELD_CENTERS: Record<RelationRole, Vec3> = {
   fill: [5.1, 1.8, -2.4],
   refine: [4.0, 0.6, 6.6],
   beside: [-6.3, -1.2, 1.8],
@@ -15,8 +15,8 @@ export const NEBULA_CENTERS: Record<RelationRole, Vec3> = {
   express: [0.9, -3.0, 1.5],
 };
 
-// 인원이 많은 성운일수록 넓게 퍼진다. 밀도도 함께 달라져 구분에 보탬이 된다.
-export const NEBULA_SPREAD: Record<RelationRole, number> = {
+// 인원이 많은 Field 일수록 넓게 퍼진다. 밀도도 함께 달라져 구분에 보탬이 된다.
+export const FIELD_EXTENT: Record<RelationRole, number> = {
   fill: 3.2,
   beside: 2.3,
   express: 2.0,
@@ -45,11 +45,11 @@ const ROLE_SEED: Record<RelationRole, number> = {
  * (브리프 9절: 六合=가까이 / 沖=멀리 금지)
  */
 export function positionFor(role: RelationRole, indexInRole: number): Vec3 {
-  const center = NEBULA_CENTERS[role];
-  const spread = NEBULA_SPREAD[role];
+  const center = FIELD_CENTERS[role];
+  const spread = FIELD_EXTENT[role];
   const s = ROLE_SEED[role] + indexInRole * 7;
 
-  // 성운 부피 '안쪽'에 3차원으로 흩는다. 같은 깊이에 나란히 세우면 리스트가 된다.
+  // Field 부피 '안쪽'에 3차원으로 흩는다. 같은 깊이에 나란히 세우면 리스트가 된다.
   const u = hash01(s * 3 + 1) * 2 - 1;
   const theta = hash01(s * 3 + 2) * Math.PI * 2;
   const r = spread * (0.35 + hash01(s * 3 + 3) * 0.65);
