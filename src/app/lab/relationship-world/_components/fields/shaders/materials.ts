@@ -243,3 +243,52 @@ declare module "@react-three/fiber" {
     ribbonMaterial: ThreeElement<typeof RibbonMaterial>;
   }
 }
+
+/** 결정/파편: 면은 어둡고 모서리만 밝다 — 각진 실루엣이 그대로 읽혀야 한다. */
+const SHARD_FRAGMENT = /* glsl */ `
+varying vec3 vNormalW;
+varying vec3 vViewDirW;
+varying vec3 vPosL;
+${GLSL_FRESNEL}
+uniform float uTime;
+uniform vec3 uColor;
+uniform float uOpacity;
+uniform float uCamDist;
+uniform float uRadius;
+
+void main() {
+  float rim = fresnel(vNormalW, vViewDirW, 3.2);
+  float facet = 0.16 + 0.84 * rim;
+  // 다른 Field 들과 같은 이유다: C 모드는 minDistance 10.4 라 카메라가 격자
+  // 안까지 들어올 수 있다. 반지름의 0.65~1.15배 구간에서 smoothstep 으로
+  // 미리 죽여 "결정 격자 안에 서 있는" 상태에서 26개의 octahedron 이 화면을
+  // 덮는 오버드로우를 막는다(RefineShards.tsx 의 fadeRadius 유도 참고).
+  float proximity = smoothstep(uRadius * 0.65, uRadius * 1.15, uCamDist);
+  float a = facet * uOpacity * proximity;
+  if (a < 0.004) discard;
+  gl_FragColor = vec4(uColor, a);
+}
+`;
+
+export const ShardMaterial = shaderMaterial(
+  {
+    uTime: 0,
+    uColor: new THREE.Color("#b6c2d4"),
+    uOpacity: 0.72,
+    uCamDist: 999,
+    uRadius: 1,
+  },
+  SHELL_VERTEX,
+  SHARD_FRAGMENT,
+);
+
+// SHELL_VERTEX 를 재사용한다(LAYER_VERTEX 가 아니다) — fresnel 에 법선과 시선이
+// 필요하고, 그건 FillVolume 의 안개 정점 셰이더가 이미 넘긴다. LAYER_VERTEX 는
+// uv 만 넘겨서 vNormalW/vViewDirW 가 undefined 로 남는다.
+extend({ ShardMaterial });
+
+declare module "@react-three/fiber" {
+  interface ThreeElements {
+    shardMaterial: ThreeElement<typeof ShardMaterial>;
+  }
+}

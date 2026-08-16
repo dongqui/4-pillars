@@ -5,6 +5,7 @@ import { FillVolume } from "./FillVolume";
 import { BesideLayers } from "./BesideLayers";
 import { ExpressRays } from "./ExpressRays";
 import { MoveRibbons } from "./MoveRibbons";
+import { RefineShards } from "./RefineShards";
 
 export function FieldRegistry({
   role,
@@ -22,8 +23,7 @@ export function FieldRegistry({
       return <ExpressRays dimmed={dimmed} />;
     case "move":
       return <MoveRibbons dimmed={dimmed} />;
-    // refine 은 Task 6 에서 채운다.
-    default:
-      return null;
+    case "refine":
+      return <RefineShards dimmed={dimmed} />;
   }
 }
