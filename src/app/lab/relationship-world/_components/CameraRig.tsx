@@ -27,7 +27,7 @@ export function CameraRig({
     camera.position.set(...DEFAULT_CAMERA_POSITION);
     controls.current?.target.set(...DEFAULT_TARGET);
     controls.current?.update();
-  }, [resetSignal, camera]);
+  }, [resetSignal, mode, camera]);
 
   return (
     <OrbitControls
