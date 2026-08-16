@@ -8,11 +8,14 @@ import {
   DEFAULT_TARGET,
   type CameraMode,
 } from "./camera";
-import { FIELD_CENTERS, SELF_POSITION, placePeople, positionFor } from "./layout";
+import { FIELD_CENTERS, FIELD_EXTENT, SELF_POSITION, placePeople, positionFor } from "./layout";
 
 function dist(a: readonly number[], b: readonly number[]) {
   return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 }
+
+// BesideLayers.tsx 의 LAYERS 상수. 두 값이 어긋나면 사람이 평면 사이에 뜬다.
+const BESIDE_LAYER_TIERS = [-0.72, -0.24, 0.24, 0.72];
 
 describe("positionFor", () => {
   it("같은 역할·인덱스면 항상 같은 좌표를 준다", () => {
@@ -50,6 +53,50 @@ describe("placePeople", () => {
       for (let j = i + 1; j < placed.length; j++) {
         expect(dist(placed[i], placed[j])).toBeGreaterThan(0.35);
       }
+    }
+  });
+});
+
+describe("positionFor — Field 형태를 따른다", () => {
+  it("beside: y 가 BesideLayers.tsx 의 층 위치에 정확히 스냅한다", () => {
+    const center = FIELD_CENTERS.beside;
+    const extent = FIELD_EXTENT.beside;
+    for (let i = 0; i < 5; i++) {
+      const [, y] = positionFor("beside", i);
+      const localY = y - center[1];
+      const tier = BESIDE_LAYER_TIERS[i % BESIDE_LAYER_TIERS.length];
+      expect(localY).toBeCloseTo(tier * extent, 10);
+    }
+  });
+
+  it("move: 인덱스가 커질수록 흐름 방향(y)을 따라 단조 증가한다", () => {
+    const ys = [0, 1, 2].map((i) => positionFor("move", i)[1]);
+    expect(ys[0]).toBeLessThan(ys[1]);
+    expect(ys[1]).toBeLessThan(ys[2]);
+  });
+
+  it("express: 인덱스가 커질수록 중심에서 더 멀어진다", () => {
+    const center = FIELD_CENTERS.express;
+    const distances = [0, 1, 2, 3].map((i) => dist(positionFor("express", i), center));
+    for (let i = 1; i < distances.length; i++) {
+      expect(distances[i]).toBeGreaterThan(distances[i - 1]);
+    }
+  });
+
+  it("refine: 정의된 두 격자 셀 위에만 놓인다", () => {
+    const center = FIELD_CENTERS.refine;
+    const extent = FIELD_EXTENT.refine;
+    const step = extent * 0.85;
+    const cells: Array<readonly [number, number, number]> = [
+      [-1, 0, 1],
+      [1, 0, -1],
+    ];
+    for (let i = 0; i < 2; i++) {
+      const [x, y, z] = positionFor("refine", i);
+      const c = cells[i % cells.length];
+      expect(x - center[0]).toBeCloseTo(c[0] * step, 10);
+      expect(y - center[1]).toBeCloseTo(c[1] * step * 0.8, 10);
+      expect(z - center[2]).toBeCloseTo(c[2] * step, 10);
     }
   });
 });

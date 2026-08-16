@@ -46,20 +46,67 @@ const ROLE_SEED: Record<RelationRole, number> = {
  */
 export function positionFor(role: RelationRole, indexInRole: number): Vec3 {
   const center = FIELD_CENTERS[role];
-  const spread = FIELD_EXTENT[role];
+  const extent = FIELD_EXTENT[role];
   const s = ROLE_SEED[role] + indexInRole * 7;
 
-  // Field 부피 '안쪽'에 3차원으로 흩는다. 같은 깊이에 나란히 세우면 리스트가 된다.
-  const u = hash01(s * 3 + 1) * 2 - 1;
-  const theta = hash01(s * 3 + 2) * Math.PI * 2;
-  const r = spread * (0.35 + hash01(s * 3 + 3) * 0.65);
-  const flat = Math.sqrt(1 - u * u);
+  // Field 의 형태를 따라 배치한다. 배치가 형태와 따로 놀면
+  // 사람이 그 공간에 속해 보이지 않는다.
+  let local: [number, number, number];
 
-  return [
-    center[0] + r * flat * Math.cos(theta),
-    center[1] + r * u * 0.75,
-    center[2] + r * flat * Math.sin(theta),
-  ];
+  switch (role) {
+    case "fill": {
+      // 감싸는 안개: 껍질 안쪽에 고루
+      const u = hash01(s * 3 + 1) * 2 - 1;
+      const th = hash01(s * 3 + 2) * Math.PI * 2;
+      const r = extent * (0.4 + hash01(s * 3 + 3) * 0.75);
+      const flat = Math.sqrt(1 - u * u);
+      local = [r * flat * Math.cos(th), r * u * 0.75, r * flat * Math.sin(th)];
+      break;
+    }
+    case "beside": {
+      // 평행 층: 층 사이에 앉힌다. y 는 층 위치에 스냅한다.
+      const tiers = [-0.72, -0.24, 0.24, 0.72];
+      const tier = tiers[indexInRole % tiers.length];
+      local = [
+        (hash01(s * 3 + 1) * 2 - 1) * extent * 1.15,
+        tier * extent,
+        (hash01(s * 3 + 2) * 2 - 1) * extent * 0.7,
+      ];
+      break;
+    }
+    case "express": {
+      // 방사 광선: 코어에서 바깥으로, 거리를 서로 다르게
+      const u = hash01(s * 3 + 1) * 2 - 1;
+      const th = hash01(s * 3 + 2) * Math.PI * 2;
+      const r = extent * (0.75 + (indexInRole / 4) * 1.1);
+      const flat = Math.sqrt(1 - u * u);
+      local = [r * flat * Math.cos(th), r * u * 0.6, r * flat * Math.sin(th)];
+      break;
+    }
+    case "move": {
+      // 흐르는 리본: 흐름 방향(y)을 따라 늘어세운다
+      const t = (indexInRole + 0.5) / 3;
+      local = [
+        (hash01(s * 3 + 1) * 2 - 1) * extent * 1.0,
+        (t - 0.5) * extent * 2.0,
+        (hash01(s * 3 + 2) * 2 - 1) * extent * 1.0,
+      ];
+      break;
+    }
+    case "refine": {
+      // 정돈된 결정: 격자 위에 올린다
+      const cells: [number, number, number][] = [
+        [-1, 0, 1],
+        [1, 0, -1],
+      ];
+      const c = cells[indexInRole % cells.length];
+      const step = extent * 0.85;
+      local = [c[0] * step, c[1] * step * 0.8, c[2] * step];
+      break;
+    }
+  }
+
+  return [center[0] + local[0], center[1] + local[1], center[2] + local[2]];
 }
 
 /** placePeople 이 볼 수 있는 전부. feature 는 여기 없다. */
