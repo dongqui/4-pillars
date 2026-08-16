@@ -3,11 +3,13 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { FIELD_CENTERS, FIELD_EXTENT } from "../../_lib/layout";
+import { BESIDE_LAYERS, BESIDE_TILT, FIELD_CENTERS, FIELD_EXTENT } from "../../_lib/layout";
 import { FIELD_TINT } from "./tint";
 import { LayerMaterial } from "./shaders/materials";
 
-const LAYERS = [-0.72, -0.24, 0.24, 0.72];
+// LAYERS 와 기울기 값은 _lib/layout.ts 에 있다(BESIDE_LAYERS, BESIDE_TILT) —
+// positionFor 가 사람을 이 평면 위에 앉히려면 같은 값을 봐야 하기 때문에,
+// 여기서 따로 정의하지 않고 그 쪽을 import 한다.
 
 // 모든 층이 같은 틴트를 쓴다. JSX 안에서 매 렌더 `new THREE.Color(...)` 를
 // 새로 만들면 참조가 매번 바뀌어 R3F 가 매번 다시 적용한다 — 모듈 스코프로
@@ -40,8 +42,11 @@ export function BesideLayers({ dimmed }: { dimmed: boolean }) {
 
   return (
     // 살짝 기울여 둔다. 정확히 수평이면 카메라가 지면 근처로 올 때 사라진다.
-    <group position={center as unknown as [number, number, number]} rotation={[0, 0, 0.16]}>
-      {LAYERS.map((y, i) => (
+    <group
+      position={center as unknown as [number, number, number]}
+      rotation={[0, 0, BESIDE_TILT]}
+    >
+      {BESIDE_LAYERS.map((y, i) => (
         <mesh key={y} position={[0, y * extent, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[size, size * 0.62]} />
           <layerMaterial

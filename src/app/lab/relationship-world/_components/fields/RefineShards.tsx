@@ -3,7 +3,13 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { FIELD_CENTERS, FIELD_EXTENT, hash01 } from "../../_lib/layout";
+import {
+  FIELD_CENTERS,
+  FIELD_EXTENT,
+  REFINE_GRID_STEP,
+  REFINE_Y_COMPRESSION,
+  hash01,
+} from "../../_lib/layout";
 import { FIELD_TINT } from "./tint";
 import { ShardMaterial } from "./shaders/materials";
 
@@ -28,7 +34,7 @@ export function RefineShards({ dimmed }: { dimmed: boolean }) {
   // 격자다. 랜덤 배치로는 '정돈됨'이 읽히지 않는다 — 3×3×3 에서 중심을 뺀
   // 26개. 지터는 격자 간격(step)의 8% 이내로만 준다(j = step*0.08).
   const shards = useMemo(() => {
-    const step = extent * 0.85;
+    const step = extent * REFINE_GRID_STEP;
     const out: { pos: [number, number, number]; scale: number; spin: number }[] = [];
     let n = 0;
     for (let x = -1; x <= 1; x++) {
@@ -39,7 +45,7 @@ export function RefineShards({ dimmed }: { dimmed: boolean }) {
           out.push({
             pos: [
               x * step + (hash01(n * 3 + 1) - 0.5) * j,
-              y * step * 0.8 + (hash01(n * 3 + 2) - 0.5) * j,
+              y * step * REFINE_Y_COMPRESSION + (hash01(n * 3 + 2) - 0.5) * j,
               z * step + (hash01(n * 3 + 3) - 0.5) * j,
             ],
             scale: extent * (0.13 + hash01(n + 17) * 0.1),

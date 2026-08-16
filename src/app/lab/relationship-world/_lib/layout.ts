@@ -38,6 +38,29 @@ const ROLE_SEED: Record<RelationRole, number> = {
   refine: 211,
 };
 
+// ---------------------------------------------------------------------------
+// Field 지오메트리 상수 — 렌더링 컴포넌트(BesideLayers.tsx, RefineShards.tsx)와
+// positionFor 가 반드시 같은 값을 봐야 한다. 여기 한 곳에서만 정의하고 양쪽이
+// import 해서 쓴다. 값이 두 곳에 따로 있으면(리터럴 복붙) 한쪽만 고쳤을 때
+// 사람이 도형에서 어긋나도 아무 테스트도 잡아내지 못한다 — 그게 이 상수들을
+// 여기로 옮긴 이유다.
+//
+// _components/ 는 이 모듈을 import 하지만 이 모듈은 _components/ 를 import
+//하지 않는다(순환 방지). layout.ts 는 vitest 가 environment:"node" 로
+// 돌리므로 React/three/DOM import 를 들이면 안 된다 — 숫자만 놓는다.
+
+/** BesideLayers.tsx 의 LAYERS. 평행 층 4개의 로컬 y 위치(× extent). */
+export const BESIDE_LAYERS: readonly number[] = [-0.72, -0.24, 0.24, 0.72];
+
+/** BesideLayers.tsx 의 group rotation={[0, 0, BESIDE_TILT]}. Z축 기울기(rad). */
+export const BESIDE_TILT = 0.16;
+
+/** RefineShards.tsx 의 step = extent * REFINE_GRID_STEP. */
+export const REFINE_GRID_STEP = 0.85;
+
+/** RefineShards.tsx 의 y = ... * REFINE_Y_COMPRESSION. */
+export const REFINE_Y_COMPRESSION = 0.8;
+
 /**
  * 사람 한 명의 좌표.
  *
@@ -65,13 +88,20 @@ export function positionFor(role: RelationRole, indexInRole: number): Vec3 {
     }
     case "beside": {
       // 평행 층: 층 사이에 앉힌다. y 는 층 위치에 스냅한다.
-      const tiers = [-0.72, -0.24, 0.24, 0.72];
-      const tier = tiers[indexInRole % tiers.length];
-      local = [
-        (hash01(s * 3 + 1) * 2 - 1) * extent * 1.15,
-        tier * extent,
-        (hash01(s * 3 + 2) * 2 - 1) * extent * 0.7,
-      ];
+      //
+      // BesideLayers.tsx 는 네 평면을 만든 뒤 group 전체를 Z축으로
+      // BESIDE_TILT 만큼 기울인다(<group rotation={[0,0,BESIDE_TILT]}>).
+      // 여기서 (x, tier*extent) 를 회전 없이 그대로 center 에 더하면 평면의
+      // '기울기 전' 로컬 좌표를 '기울어진 뒤' 월드 좌표인 것처럼 쓰는 셈이라,
+      // 사람이 실제 평면에서 최대 0.22 만큼 어긋난다. 같은 Z축 회전을 여기서도
+      // 적용해야 사람이 진짜 평면 위에 눕는다.
+      const tier = BESIDE_LAYERS[indexInRole % BESIDE_LAYERS.length];
+      const x = (hash01(s * 3 + 1) * 2 - 1) * extent * 1.15;
+      const y = tier * extent;
+      const z = (hash01(s * 3 + 2) * 2 - 1) * extent * 0.7;
+      const cos = Math.cos(BESIDE_TILT);
+      const sin = Math.sin(BESIDE_TILT);
+      local = [x * cos - y * sin, x * sin + y * cos, z];
       break;
     }
     case "express": {
@@ -100,8 +130,8 @@ export function positionFor(role: RelationRole, indexInRole: number): Vec3 {
         [1, 0, -1],
       ];
       const c = cells[indexInRole % cells.length];
-      const step = extent * 0.85;
-      local = [c[0] * step, c[1] * step * 0.8, c[2] * step];
+      const step = extent * REFINE_GRID_STEP;
+      local = [c[0] * step, c[1] * step * REFINE_Y_COMPRESSION, c[2] * step];
       break;
     }
   }

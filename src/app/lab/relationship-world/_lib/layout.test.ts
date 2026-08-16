@@ -8,14 +8,27 @@ import {
   DEFAULT_TARGET,
   type CameraMode,
 } from "./camera";
-import { FIELD_CENTERS, FIELD_EXTENT, SELF_POSITION, placePeople, positionFor } from "./layout";
+import {
+  BESIDE_LAYERS,
+  BESIDE_TILT,
+  FIELD_CENTERS,
+  FIELD_EXTENT,
+  REFINE_GRID_STEP,
+  REFINE_Y_COMPRESSION,
+  SELF_POSITION,
+  placePeople,
+  positionFor,
+} from "./layout";
 
 function dist(a: readonly number[], b: readonly number[]) {
   return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 }
 
-// BesideLayers.tsx 의 LAYERS 상수. 두 값이 어긋나면 사람이 평면 사이에 뜬다.
-const BESIDE_LAYER_TIERS = [-0.72, -0.24, 0.24, 0.72];
+// BESIDE_LAYERS / BESIDE_TILT / REFINE_GRID_STEP / REFINE_Y_COMPRESSION 은
+// _lib/layout.ts 에 정의된 단일 소스다. BesideLayers.tsx 와 RefineShards.tsx
+// 도 이 값을 그대로 import 해서 렌더링에 쓴다 — 여기서 리터럴로 다시 베끼면
+// layout.ts 를 layout.ts 자기 자신하고만 비교하는 테스트가 되어, 렌더링
+// 컴포넌트가 이 값에서 벗어나도 아무것도 잡아내지 못한다.
 
 describe("positionFor", () => {
   it("같은 역할·인덱스면 항상 같은 좌표를 준다", () => {
@@ -58,13 +71,24 @@ describe("placePeople", () => {
 });
 
 describe("positionFor — Field 형태를 따른다", () => {
-  it("beside: y 가 BesideLayers.tsx 의 층 위치에 정확히 스냅한다", () => {
+  it("beside: 사람이 BesideLayers.tsx 가 실제로 그리는 '기울어진' 평면 위에 있다", () => {
+    // BesideLayers.tsx 는 평면들을 만든 뒤 group 전체를 Z축으로 BESIDE_TILT
+    // 만큼 돌린다. 그러므로 '평면 위'라는 말은 기울어지기 전의 로컬 y 가
+    // tier*extent 라는 뜻이다 — world 좌표를 center 만큼 빼고 -BESIDE_TILT
+    // 만큼 역회전해서 그 로컬 프레임으로 되돌린 뒤 검사해야, 실제로 렌더되는
+    // 평면과 맞는지가 증명된다. (world y 를 그대로 비교하면 회전을 빼먹은
+    // 버그를 이 테스트가 놓친다 — 1차 수정에서 실제로 벌어졌던 일이다.)
     const center = FIELD_CENTERS.beside;
     const extent = FIELD_EXTENT.beside;
+    const cos = Math.cos(-BESIDE_TILT);
+    const sin = Math.sin(-BESIDE_TILT);
     for (let i = 0; i < 5; i++) {
-      const [, y] = positionFor("beside", i);
-      const localY = y - center[1];
-      const tier = BESIDE_LAYER_TIERS[i % BESIDE_LAYER_TIERS.length];
+      const [wx, wy] = positionFor("beside", i);
+      const dx = wx - center[0];
+      const dy = wy - center[1];
+      // world 를 group 로컬 프레임으로 되돌리는 역회전(-BESIDE_TILT)
+      const localY = dx * sin + dy * cos;
+      const tier = BESIDE_LAYERS[i % BESIDE_LAYERS.length];
       expect(localY).toBeCloseTo(tier * extent, 10);
     }
   });
@@ -83,10 +107,10 @@ describe("positionFor — Field 형태를 따른다", () => {
     }
   });
 
-  it("refine: 정의된 두 격자 셀 위에만 놓인다", () => {
+  it("refine: 정의된 두 격자 셀 위에, RefineShards.tsx 와 같은 step·y압축으로 놓인다", () => {
     const center = FIELD_CENTERS.refine;
     const extent = FIELD_EXTENT.refine;
-    const step = extent * 0.85;
+    const step = extent * REFINE_GRID_STEP;
     const cells: Array<readonly [number, number, number]> = [
       [-1, 0, 1],
       [1, 0, -1],
@@ -95,7 +119,7 @@ describe("positionFor — Field 형태를 따른다", () => {
       const [x, y, z] = positionFor("refine", i);
       const c = cells[i % cells.length];
       expect(x - center[0]).toBeCloseTo(c[0] * step, 10);
-      expect(y - center[1]).toBeCloseTo(c[1] * step * 0.8, 10);
+      expect(y - center[1]).toBeCloseTo(c[1] * step * REFINE_Y_COMPRESSION, 10);
       expect(z - center[2]).toBeCloseTo(c[2] * step, 10);
     }
   });
