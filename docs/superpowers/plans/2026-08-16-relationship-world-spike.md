@@ -733,11 +733,14 @@ import { NEBULA_CENTERS, NEBULA_SPREAD, hash01 } from "../_lib/layout";
 
 // 색은 의미를 갖지 않는다. 오행색을 임의로 만들지 않기 위해 좁은 한색
 // 계열 안에서만 미세하게 변주하고, 구분은 밀도·크기·퍼짐이 맡는다.
+//
+// 다섯 틴트의 채도는 20~35% 대에 함께 묶여 있어야 한다. 하나만 채도가 튀면
+// 그 성운이 '파란 것'으로 읽히면서 색이 구분을 맡아버린다.
 export const NEBULA_STYLE: Record<
   RelationRole,
   { count: number; size: number; opacity: number; tint: string; drift: number }
 > = {
-  fill: { count: 1400, size: 0.26, opacity: 0.5, tint: "#bfdbfe", drift: 0.03 },
+  fill: { count: 1400, size: 0.26, opacity: 0.5, tint: "#c3ccd9", drift: 0.03 },
   beside: { count: 1100, size: 0.3, opacity: 0.42, tint: "#cbd5e1", drift: -0.026 },
   express: { count: 900, size: 0.22, opacity: 0.52, tint: "#a5b4c8", drift: 0.038 },
   move: { count: 700, size: 0.34, opacity: 0.38, tint: "#94a3b8", drift: -0.033 },
