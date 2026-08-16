@@ -12,7 +12,7 @@ export const NEBULA_STYLE: Record<
   RelationRole,
   { count: number; size: number; opacity: number; tint: string; drift: number }
 > = {
-  fill: { count: 1400, size: 0.26, opacity: 0.5, tint: "#bfdbfe", drift: 0.03 },
+  fill: { count: 1400, size: 0.26, opacity: 0.5, tint: "#c3ccd9", drift: 0.03 },
   beside: { count: 1100, size: 0.3, opacity: 0.42, tint: "#cbd5e1", drift: -0.026 },
   express: { count: 900, size: 0.22, opacity: 0.52, tint: "#a5b4c8", drift: 0.038 },
   move: { count: 700, size: 0.34, opacity: 0.38, tint: "#94a3b8", drift: -0.033 },
