@@ -20,6 +20,13 @@ type Tier = "full" | "compact" | "dot";
 const NEAR = 23;
 const FAR = 33;
 
+// 명패는 노드보다 위에 떠야 하지만, world-space Y 오프셋으로 만들면 C 모드
+// (minPolar 15°~maxPolar 140°)에서 world Y 축이 시선축에 거의 나란해지는
+// 각도가 나온다 — 화면 중앙이 아닌 사람은 그 순간 오프셋이 옆으로 새어(parallax)
+// 명패가 노드 위가 아니라 대각선으로 어긋난다. 그래서 오프셋을 화면공간(px)으로
+// 준다: 카메라 각도·줌과 무관하게 항상 화면상 수직으로 위에 뜬다.
+const LABEL_LIFT_PX = 32;
+
 function tierFor(distance: number): Tier {
   if (distance < NEAR) return "full";
   if (distance < FAR) return "compact";
@@ -63,52 +70,53 @@ export function PersonMarker({
 
   const shown = boosted ? boost(tier) : tier;
   const opacity = selected ? 1 : dimmed ? 0.28 : 0.92;
-  const labelPos: [number, number, number] = [position[0], position[1] + 0.34, position[2]];
 
   return (
     <group>
       <PersonNode position={position} selected={selected} dimmed={dimmed} />
       <Html
-        position={labelPos}
+        position={position as unknown as [number, number, number]}
         center
         zIndexRange={[30, 0]}
         style={{ pointerEvents: "auto", transition: "opacity 220ms ease", opacity }}
       >
-        {shown === "dot" ? (
-          <button
-            type="button"
-            aria-label={person.name}
-            onClick={() => onSelect(person.id)}
-            className="grid place-items-center w-11 h-11 -m-[14px] cursor-pointer bg-transparent border-0"
-          >
-            <span
-              className={`block w-[7px] h-[7px] rounded-full ${
-                selected ? "bg-blue-300" : "bg-slate-300/80"
-              }`}
-            />
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => onSelect(person.id)}
-            className={`
-              flex items-center justify-center whitespace-nowrap cursor-pointer
-              rounded-md border backdrop-blur-[2px] transition-all
-              ${
-                shown === "full"
-                  ? "min-h-11 px-3 text-[13px]"
-                  : "min-h-8 px-2 text-[11px] relative after:absolute after:content-[''] after:-inset-1.5"
-              }
-              ${
-                selected
-                  ? "border-blue-400/70 bg-blue-500/25 text-white font-semibold"
-                  : "border-slate-400/25 bg-slate-900/55 text-slate-200 font-medium"
-              }
-            `}
-          >
-            {person.name}
-          </button>
-        )}
+        <div style={{ transform: `translateY(-${LABEL_LIFT_PX}px)` }}>
+          {shown === "dot" ? (
+            <button
+              type="button"
+              aria-label={person.name}
+              onClick={() => onSelect(person.id)}
+              className="grid place-items-center w-11 h-11 -m-[14px] cursor-pointer bg-transparent border-0"
+            >
+              <span
+                className={`block w-[7px] h-[7px] rounded-full ${
+                  selected ? "bg-blue-300" : "bg-slate-300/80"
+                }`}
+              />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onSelect(person.id)}
+              className={`
+                flex items-center justify-center whitespace-nowrap cursor-pointer
+                rounded-md border backdrop-blur-[2px] transition-all
+                ${
+                  shown === "full"
+                    ? "min-h-11 px-3 text-[13px]"
+                    : "min-h-8 px-2 text-[11px] relative after:absolute after:content-[''] after:-inset-1.5"
+                }
+                ${
+                  selected
+                    ? "border-blue-400/70 bg-blue-500/25 text-white font-semibold"
+                    : "border-slate-400/25 bg-slate-900/55 text-slate-200 font-medium"
+                }
+              `}
+            >
+              {person.name}
+            </button>
+          )}
+        </div>
       </Html>
     </group>
   );
