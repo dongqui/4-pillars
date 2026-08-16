@@ -4,6 +4,7 @@ import type { RelationRole } from "../../_data/roles";
 import { FillVolume } from "./FillVolume";
 import { BesideLayers } from "./BesideLayers";
 import { ExpressRays } from "./ExpressRays";
+import { MoveRibbons } from "./MoveRibbons";
 
 export function FieldRegistry({
   role,
@@ -19,7 +20,9 @@ export function FieldRegistry({
       return <BesideLayers dimmed={dimmed} />;
     case "express":
       return <ExpressRays dimmed={dimmed} />;
-    // move / refine 은 Task 5~6 에서 채운다.
+    case "move":
+      return <MoveRibbons dimmed={dimmed} />;
+    // refine 은 Task 6 에서 채운다.
     default:
       return null;
   }

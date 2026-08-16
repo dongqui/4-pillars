@@ -192,3 +192,54 @@ declare module "@react-three/fiber" {
     rayMaterial: ThreeElement<typeof RayMaterial>;
   }
 }
+
+const RIBBON_FRAGMENT = /* glsl */ `
+varying vec2 vUv;
+uniform float uTime;
+uniform vec3 uColor;
+uniform float uOpacity;
+uniform float uPhase;
+uniform float uCamDist;
+uniform float uRadius;
+
+void main() {
+  // 길이를 따라 계속 흘러간다 — 멈추면 '움직이게 한다'가 죽는다.
+  float head = fract(vUv.x * 1.4 - uTime * 0.13 + uPhase);
+  float flow = smoothstep(0.42, 0.0, abs(head - 0.5));
+  // 양 끝은 부드럽게 사라지게 해서 잘린 튜브로 안 보이게 한다.
+  float ends = smoothstep(0.0, 0.14, vUv.x) * smoothstep(1.0, 0.86, vUv.x);
+
+  // 다른 Field 들과 같은 이유다: C 모드는 minDistance 10.4 라 카메라가 리본
+  // 다발 안으로 들어올 수 있다. 반지름의 0.65~1.15배 구간에서 smoothstep 으로
+  // 미리 죽여 "리본 사이에 서 있는" 상태에서 3가닥의 DoubleSide 튜브가
+  // additive 로 겹쳐 화면을 덮는 오버드로우를 막는다.
+  float proximity = smoothstep(uRadius * 0.65, uRadius * 1.15, uCamDist);
+
+  float a = (0.22 + flow * 0.78) * ends * uOpacity * proximity;
+  if (a < 0.003) discard;
+  gl_FragColor = vec4(uColor, a);
+}
+`;
+
+// LAYER_VERTEX 는 Task 3 에서 이미 이 파일에 정의돼 있다(uv 만 넘기는 최소 정점
+// 셰이더). 튜브도 uv 만 있으면 되므로 그대로 재사용한다 — 새로 만들지 말 것.
+export const RibbonMaterial = shaderMaterial(
+  {
+    uTime: 0,
+    uColor: new THREE.Color("#bac6d6"),
+    uOpacity: 0.55,
+    uPhase: 0,
+    uCamDist: 999,
+    uRadius: 1,
+  },
+  LAYER_VERTEX,
+  RIBBON_FRAGMENT,
+);
+
+extend({ RibbonMaterial });
+
+declare module "@react-three/fiber" {
+  interface ThreeElements {
+    ribbonMaterial: ThreeElement<typeof RibbonMaterial>;
+  }
+}
