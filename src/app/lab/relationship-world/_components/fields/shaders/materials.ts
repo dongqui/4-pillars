@@ -80,3 +80,64 @@ declare module "@react-three/fiber" {
     mistMaterial: ThreeElement<typeof MistMaterial>;
   }
 }
+
+const LAYER_VERTEX = /* glsl */ `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+const LAYER_FRAGMENT = /* glsl */ `
+varying vec2 vUv;
+${GLSL_HASH}
+uniform float uTime;
+uniform vec3 uColor;
+uniform float uOpacity;
+uniform float uPhase;
+uniform float uCamDist;
+uniform float uRadius;
+
+void main() {
+  // 한 방향으로만 흐른다 — '나란히'가 움직임으로 읽혀야 한다.
+  float flow = fract(vUv.x * 2.6 - uTime * 0.06 + uPhase);
+  float streak = smoothstep(0.5, 0.0, abs(flow - 0.5) * 2.0);
+  float grain = noise2(vec3(vUv * 6.0, uPhase));
+
+  // 사각형 경계를 지운다.
+  vec2 d = (vUv - 0.5) * 2.0;
+  float edge = smoothstep(1.0, 0.15, length(d));
+
+  // FillVolume 의 셸과 같은 이유다: 카메라가 층 사이로 들어오면 4장의
+  // DoubleSide 평면이 화면 전체를 덮는 오버드로우가 된다. 반지름의
+  // 0.65~1.15배 구간에서 smoothstep 으로 미리 죽여 "층 사이에 서 있는"
+  // 상태에서는 실제로 비어 보이게 한다.
+  float proximity = smoothstep(uRadius * 0.65, uRadius * 1.15, uCamDist);
+
+  float a = streak * edge * (0.35 + grain * 0.65) * uOpacity * proximity;
+  if (a < 0.003) discard;
+  gl_FragColor = vec4(uColor, a);
+}
+`;
+
+export const LayerMaterial = shaderMaterial(
+  {
+    uTime: 0,
+    uColor: new THREE.Color("#c9cdd2"),
+    uOpacity: 0.42,
+    uPhase: 0,
+    uCamDist: 999,
+    uRadius: 1,
+  },
+  LAYER_VERTEX,
+  LAYER_FRAGMENT,
+);
+
+extend({ LayerMaterial });
+
+declare module "@react-three/fiber" {
+  interface ThreeElements {
+    layerMaterial: ThreeElement<typeof LayerMaterial>;
+  }
+}

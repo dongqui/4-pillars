@@ -2,6 +2,7 @@
 
 import type { RelationRole } from "../../_data/roles";
 import { FillVolume } from "./FillVolume";
+import { BesideLayers } from "./BesideLayers";
 
 export function FieldRegistry({
   role,
@@ -13,7 +14,9 @@ export function FieldRegistry({
   switch (role) {
     case "fill":
       return <FillVolume dimmed={dimmed} />;
-    // beside / express / move / refine 은 Task 3~6 에서 채운다.
+    case "beside":
+      return <BesideLayers dimmed={dimmed} />;
+    // express / move / refine 은 Task 4~6 에서 채운다.
     default:
       return null;
   }
