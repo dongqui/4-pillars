@@ -37,7 +37,12 @@ export function WorldShell() {
         <CameraModeToggle
           mode={mode}
           onChange={setMode}
-          onReset={() => setResetSignal((n) => n + 1)}
+          onReset={() => {
+            // 선택을 함께 푼다. 안 그러면 기본 뷰로 스냅한 직후 focus 보간이
+            // 다시 그 사람에게 끌고 가서 "처음 위치로" 가 먹통으로 보인다.
+            setSelectedId(null);
+            setResetSignal((n) => n + 1);
+          }}
         />
       </div>
 
