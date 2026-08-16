@@ -141,3 +141,54 @@ declare module "@react-three/fiber" {
     layerMaterial: ThreeElement<typeof LayerMaterial>;
   }
 }
+
+const RAY_FRAGMENT = /* glsl */ `
+varying vec2 vUv;
+${GLSL_HASH}
+uniform float uTime;
+uniform vec3 uColor;
+uniform float uOpacity;
+uniform float uPhase;
+uniform float uCamDist;
+uniform float uRadius;
+
+void main() {
+  // vUv.y = 0 이 코어, 1 이 바깥 끝이다.
+  float outward = smoothstep(1.0, 0.05, vUv.y);
+  // 폭 방향은 가운데만 남긴다.
+  float across = smoothstep(0.5, 0.0, abs(vUv.x - 0.5) * 2.0);
+  float pulse = 0.65 + 0.35 * sin(uTime * 0.8 + uPhase + vUv.y * 3.0);
+  float grain = noise2(vec3(vUv * 4.0, uPhase));
+
+  // FillVolume/BesideLayers 와 같은 이유다: C 모드는 minDistance 10.4 라
+  // 카메라가 광선 다발 안쪽까지 들어올 수 있다. 반지름의 0.65~1.15배 구간에서
+  // smoothstep 으로 미리 죽여 "광선 사이에 서 있는" 상태에서 9장의 DoubleSide
+  // 평면이 additive 로 겹쳐 화면을 덮는 오버드로우를 막는다.
+  float proximity = smoothstep(uRadius * 0.65, uRadius * 1.15, uCamDist);
+
+  float a = outward * across * pulse * (0.4 + grain * 0.6) * uOpacity * proximity;
+  if (a < 0.003) discard;
+  gl_FragColor = vec4(uColor, a);
+}
+`;
+
+export const RayMaterial = shaderMaterial(
+  {
+    uTime: 0,
+    uColor: new THREE.Color("#c2cbd6"),
+    uOpacity: 0.5,
+    uPhase: 0,
+    uCamDist: 999,
+    uRadius: 1,
+  },
+  LAYER_VERTEX,
+  RAY_FRAGMENT,
+);
+
+extend({ RayMaterial });
+
+declare module "@react-three/fiber" {
+  interface ThreeElements {
+    rayMaterial: ThreeElement<typeof RayMaterial>;
+  }
+}
