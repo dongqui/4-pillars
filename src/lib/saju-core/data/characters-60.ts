@@ -639,7 +639,7 @@ export function characterSeatGroup(stem: Stem, branch: Branch): TenGodGroup {
   return tenGodGroup(tenGod(STEMS[stem], STEMS[BRANCHES[branch].mainStem]));
 }
 
-/** 내부 근거 문장 — 리포트·검수용, 카드에 노출하지 않는다 */
+/** 근거 문장 — 카드 상단에 그대로 노출된다 (B24). 리포트·검수도 같은 문장을 쓴다 */
 export function characterBasis(stem: Stem, branch: Branch): string {
   const group = characterSeatGroup(stem, branch);
   return `${FAMILIES[stem].label} 일간이 ${branch}(${group}, ${BRANCH_PRINCIPLES[branch]}) 위에 앉은 구조`;

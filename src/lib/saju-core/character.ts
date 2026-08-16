@@ -42,7 +42,14 @@ export interface CharacterSceneView {
   principle: string;
 }
 
-/** 카드에 노출하지 않는 판정 근거 — 리포트·검수용 */
+/**
+ * 판정 근거 — 리포트·검수용.
+ *
+ * `basis` 만은 예외로 카드에 노출한다(B24 확정). "일간·인성" 같은 사주 용어를 담지만,
+ * 피벗 이후 용어 금지는 **리포트 본문에만** 적용한다 — 카드에서는 그 한 줄이
+ * 장면명이 어디서 나왔는지를 설명하는 유일한 근거다.
+ * 나머지 필드(tenGodGroup·seatMeaning·keywords)는 화면에 내보내지 않는다.
+ */
 export interface CharacterInternal {
   tenGodGroup: TenGodGroup;
   seatMeaning: string;
