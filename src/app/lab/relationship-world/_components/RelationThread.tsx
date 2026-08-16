@@ -8,17 +8,35 @@ import { SELF_POSITION, type Vec3 } from "../_lib/layout";
 
 // 六合 과 沖 이 공유하는 단 하나의 색. 절대 분기시키지 않는다.
 const THREAD_COLOR = "#94a3b8";
-// 렌더링 결과 기준 불투명도. 겹치는 가닥 수로 역산해, 몇 가닥이 포개지든
-// 합성 결과가 항상 이 값이 되게 한다 — 六合 과 沖 의 무게를 같게 유지하는 핵심.
-// (알파값 자체는 feature 로 분기하지 않는다. strandAlpha 는 오직 "몇 가닥이
-// 같은 자리에 겹치는가"라는 기하학적 사실에서만 값을 유도한다. 沖 이 두 가닥,
-// 六合/none 이 한 가닥이라 인자가 다를 뿐, 관계 종류를 조건으로 쓰지 않는다.
-// 이걸 다시 THREAD_OPACITY 하나로 "단순화"하면 沖 두 가닥이 겹쳐 그려질 때
-// 합성 알파가 0.55 가 아니라 1-(1-0.55)^2 ≈ 0.80 이 되어 沖 이 六合보다
-// 진하게 보이는 버그가 재발한다.)
+
+/**
+ * 화면에 찍히는 선 하나의 불투명도. 저작(authored)된 상수는 이것 하나다.
+ *
+ * 六合 과 沖 은 같은 색, 같은 밝기여야 한다 — 한쪽이 진하면 그 순간 좋은 관계 /
+ * 나쁜 관계로 읽힌다. 그래서 세 경로(沖 두 가닥, 六合 한 가닥, 없음 한 가닥)의
+ * <Strand> 는 전부 이 값을 그대로 쓴다.
+ *
+ * 예전에는 沖 의 두 가닥이 서로 겹친다고 보고 두 가닥 모두 strandAlpha(2)=0.329
+ * 를 썼는데, 실측하면 두 가닥은 겹치지 않는다. 포커스 뷰 375px 에서 가닥 사이
+ * 간격의 중앙값이 34~74px 이고, 2px 안으로 붙는 구간은 곡선 길이의 0.5~1.5%
+ * (양 끝점의 짧은 꼬리뿐이고 그마저 명패에 가린다). 결과적으로 沖 은 사실상
+ * 어디서나 0.329, 六合 은 0.55 로 그려져 前提가 만들려던 것과 정반대로
+ * 기울어 있었다.
+ */
 const THREAD_OPACITY = 0.55;
-function strandAlpha(strandCount: number) {
-  return 1 - Math.pow(1 - THREAD_OPACITY, 1 / strandCount);
+
+/**
+ * 같은 자리에 n 개의 마크가 실제로 포개질 때, 합성 결과가 THREAD_OPACITY 가
+ * 되도록 각 마크에 줄 알파. 유도의 근거는 오직 "정말 겹치는가"라는 기하학적
+ * 사실이지 feature 가 아니다.
+ *
+ * 지금 이 조건을 만족하는 곳은 한 군데뿐이다 — 六合 의 흐름 입자. 입자는
+ * 정의상 곡선 위(curve.getPoint)에 놓이므로 자기 아래의 선과 반드시 겹친다.
+ * 입자에도 THREAD_OPACITY 를 주면 그 지점의 합성이 1-(1-0.55)^2 ≈ 0.80 이 되어
+ * 六合 쪽만 무거워진다.
+ */
+function strandAlpha(markCount: number) {
+  return 1 - Math.pow(1 - THREAD_OPACITY, 1 / markCount);
 }
 const SEGMENTS = 64;
 const PARTICLES = 16;
@@ -101,7 +119,10 @@ function FlowParticles({ curve }: { curve: THREE.QuadraticBezierCurve3 }) {
   });
 
   return (
-    <points ref={ref}>
+    // 버퍼를 0 으로 만들어 두므로 최초 바운딩 스피어가 원점 반경 0 으로 잡힌다.
+    // 지금 안 잘리는 건 R3F 의 Update 단계가 Render 보다 먼저 도는 덕이지
+    // 보장이 아니다. 컬링을 끄면 프레임 순서에 기대지 않는다 (입자 16개다).
+    <points ref={ref} frustumCulled={false}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
@@ -109,7 +130,8 @@ function FlowParticles({ curve }: { curve: THREE.QuadraticBezierCurve3 }) {
         size={0.14}
         color={THREAD_COLOR}
         transparent
-        opacity={THREAD_OPACITY}
+        // 입자는 자기 아래의 선과 진짜로 겹치는 유일한 마크다 → 역산 알파.
+        opacity={strandAlpha(2)}
         sizeAttenuation
         depthWrite={false}
       />
@@ -130,18 +152,14 @@ export function RelationThread({ to, feature }: { to: Vec3; feature: Feature }) 
   const crossB = useMemo(() => buildCurve(to, -BOW), [to]);
 
   if (feature === "chung") {
-    // 두 가닥이 같은 두 끝점(SELF_POSITION, to) 사이를 지나며 끝점 근처에서
-    // 거의 겹친다. LineBasicMaterial 은 기본 NormalBlending 이라 알파가
-    // 그대로 더해지므로, 가닥마다 THREAD_OPACITY 를 그대로 쓰면 겹치는
-    // 지점에서 합성 알파가 1-(1-0.55)^2 ≈ 0.80 으로 六合의 단일 가닥(0.55)
-    // 보다 진해진다 — 색은 같아도 "무게"가 달라 보이는 것도 금지 규칙 위반.
-    // strandAlpha(2) 를 각 가닥에 써서 겹친 결과가 다시 THREAD_OPACITY 가
-    // 되도록 역산한다.
-    const alpha = strandAlpha(2);
+    // 두 가닥은 부호가 반대인 호라 서로 겹치지 않는다 — 375px 포커스 뷰에서
+    // 간격 중앙값 34~74px, 2px 안으로 붙는 구간은 길이의 0.5~1.5% 뿐이고
+    // 그것도 명패 아래 숨는 끝점 꼬리다. 겹치지 않으니 역산할 것도 없다.
+    // 두 가닥 모두 六合·없음과 똑같은 THREAD_OPACITY 로 그린다.
     return (
       <group>
-        <Strand curve={crossA} phase={0.4} alpha={alpha} />
-        <Strand curve={crossB} phase={3.1} alpha={alpha} />
+        <Strand curve={crossA} phase={0.4} alpha={THREAD_OPACITY} />
+        <Strand curve={crossB} phase={3.1} alpha={THREAD_OPACITY} />
       </group>
     );
   }
@@ -149,12 +167,12 @@ export function RelationThread({ to, feature }: { to: Vec3; feature: Feature }) 
   if (feature === "yukhap") {
     return (
       <group>
-        <Strand curve={single} phase={0} alpha={strandAlpha(1)} />
+        <Strand curve={single} phase={0} alpha={THREAD_OPACITY} />
         <FlowParticles curve={single} />
       </group>
     );
   }
 
   // feature 없음. 조용한 선 하나. 배지도 라벨도 붙지 않는다.
-  return <Strand curve={single} phase={0} alpha={strandAlpha(1)} />;
+  return <Strand curve={single} phase={0} alpha={THREAD_OPACITY} />;
 }

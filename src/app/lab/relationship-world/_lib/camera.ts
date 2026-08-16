@@ -2,9 +2,33 @@ export type CameraMode = "a" | "b" | "c";
 
 const deg = (d: number) => (d * Math.PI) / 180;
 
-/** 기본 뷰. polar 약 76°, azimuth 0°, 거리 약 13.4 — A/B/C 전부의 범위 안이다. */
-export const DEFAULT_CAMERA_POSITION: [number, number, number] = [0, 3.2, 13];
+/**
+ * 수직 fov 다. three 의 fov 는 언제나 수직이라, 가로 화각은 종횡비가 곱해진
+ * atan(tan(fov/2)·aspect) 로 줄어든다. 375×812(aspect 0.462)에서 가로 반각은
+ * 12.2° 뿐이다 — 이 상수를 키워서 폭을 벌 수는 없다. 필요한 폭을 fov 로만
+ * 채우려면 수직 112° 가 필요하고 그 각도는 화면 가장자리를 심하게 왜곡한다.
+ * 그래서 폭은 fov 가 아니라 '거리'로 번다(아래 DEFAULT_CAMERA_POSITION).
+ */
+export const CAMERA_FOV = 50;
+
+/**
+ * 기본 뷰. polar 76.17°, azimuth 0°, 거리 41.20 — A/B/C 전부의 범위 안이다.
+ *
+ * 방향은 예전 [0, 3.2, 13] 과 완전히 같고(3.2:13 비율 유지) 거리만 3.077 배
+ * 밀었다. 세로 화면의 가시 반폭은 거리 d 에서 d·tan(25°)·aspect = 0.2154·d 라,
+ * 옛 거리 13.39 에서는 2.88 밖에 안 됐다 — 월드가 x 로 −7.7..6.6 을 쓰는데
+ * 사람 20명 중 4명만 화면에 들어왔다. 41.20 에서는 반폭이 8.87 이 되어
+ * 20/20 · 성운 5/5 가 전부 프러스텀 안에 든다(layout.test.ts 가 잠근다).
+ *
+ * 월드 좌표(layout.ts)는 건드리지 않았다. 거리만 바꾸면 화면상 배치는 데스크톱
+ * 기준 뷰와 동일한 구도가 그대로 축소돼 들어오고, 좌표 규칙 테스트도 그대로 산다.
+ */
+const DEFAULT_BASE_Z = 40;
+export const DEFAULT_CAMERA_POSITION: [number, number, number] = [0, 9.85, DEFAULT_BASE_Z];
 export const DEFAULT_TARGET: [number, number, number] = [0, 0, 0];
+
+/** 설계 문서 10절의 zoom 배율. 기준 길이만 13 → 40 으로 옮겼다. */
+const zoom = (factor: number) => +(DEFAULT_BASE_Z * factor).toFixed(2);
 
 export const CAMERA_LIMITS: Record<
   CameraMode,
@@ -24,8 +48,8 @@ export const CAMERA_LIMITS: Record<
     maxPolar: deg(85),
     minAzimuth: deg(-35),
     maxAzimuth: deg(35),
-    minDistance: 10.4,
-    maxDistance: 15.6,
+    minDistance: zoom(0.8), // 32
+    maxDistance: zoom(1.2), // 48
     enablePan: false,
   },
   // B · 중간
@@ -34,8 +58,8 @@ export const CAMERA_LIMITS: Record<
     maxPolar: deg(100),
     minAzimuth: -Infinity,
     maxAzimuth: Infinity,
-    minDistance: 7.8,
-    maxDistance: 20.8,
+    minDistance: zoom(0.6), // 24
+    maxDistance: zoom(1.6), // 64
     enablePan: false,
   },
   // C · 자유 + Reset
@@ -44,8 +68,8 @@ export const CAMERA_LIMITS: Record<
     maxPolar: deg(140),
     minAzimuth: -Infinity,
     maxAzimuth: Infinity,
-    minDistance: 5.2,
-    maxDistance: 32.5,
+    minDistance: zoom(0.4), // 16
+    maxDistance: zoom(2.5), // 100
     enablePan: true,
   },
 };

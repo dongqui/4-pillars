@@ -10,8 +10,13 @@ import type { Vec3 } from "../_lib/layout";
 type Tier = "full" | "compact" | "dot";
 
 // 경계값은 눈으로 맞춘 값이다. 375px 에서 이름이 겹치기 시작하는 지점이 곧 경계다.
-const NEAR = 11;
-const FAR = 17;
+// 카메라 거리를 3.077 배로 밀었으므로(camera.ts) 같은 화면상 밀도를 만들려면
+// 이 경계도 함께 밀려야 한다. 11/17 을 그대로 두면 20명이 영원히 dot 이다.
+// 35/50 은 A(32~48) · B(24~64) · C(16~100) 세 모드 모두에서 full/compact/dot
+// 세 단계가 실제로 나온다 — 34/52 로 두면 A 에서 dot 이 안 나온다.
+// 기본 진입은 full 2 / compact 18 로, 375px 에 명패 20개를 늘어놓지 않는다.
+const NEAR = 35;
+const FAR = 50;
 
 function tierFor(distance: number): Tier {
   if (distance < NEAR) return "full";

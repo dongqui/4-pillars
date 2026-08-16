@@ -25,12 +25,23 @@ export function WorldShell() {
 
   return (
     <div className="relative w-full h-full">
-      <World
-        selectedId={selectedId}
-        onSelect={setSelectedId}
-        mode={mode}
-        resetSignal={resetSignal}
-      />
+      {/*
+        isolate 가 필수다. drei <Html> 은 카메라 거리로 z-index 를 계산해
+        zIndexRange 안의 값을 마커마다 찍는데, R3F 가 만드는 Html 컨테이너는
+        position:relative + z-index auto 라 쌓임 맥락을 만들지 않는다. 그대로 두면
+        명패의 z-30 이 시트(z-20)·토글(z-10)과 같은 맥락에서 겨뤄, 사람을 탭한
+        순간 흰 시트 위로 어두운 명패가 올라앉고 pointerEvents:"auto" 때문에
+        닫기 버튼을 향한 탭까지 가로챈다. 여기서 맥락을 끊으면 마커의 z 는
+        이 div 안에서만 유효해지고, div 자체는 z-auto 라 시트와 토글이 항상 위다.
+      */}
+      <div className="absolute inset-0 isolate">
+        <World
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          mode={mode}
+          resetSignal={resetSignal}
+        />
+      </div>
 
       {/* 스파이크 비교용 UI. 실제 제품 화면에는 없다. */}
       <div className="absolute top-[max(12px,env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-10">

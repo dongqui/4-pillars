@@ -13,13 +13,17 @@ import {
 } from "../_lib/camera";
 import { SELF_POSITION, type Vec3 } from "../_lib/layout";
 
-const FOCUS_DISTANCE = 8.5;
-// 0 = 나, 1 = 상대. 정확히 중간(0.5)을 보면 상대가 화면 밖으로 밀려난다 —
-// 375px 세로 화면에서 거리 8.5 의 가시 반폭은 약 1.83 인데 |상대|/2 는 1.80~4.19 다.
-// 상대 쪽으로 치우치되 나도 얼추 프레임에 남겨 Task 9 의 관계 실이 읽히게 한다.
-const FOCUS_BIAS = 0.75;
+// 기본 뷰(41.20)와 같은 3.077 배로 밀었다. 진입 → 포커스의 줌 비율(1.575 배)이
+// 예전 13.39 → 8.5 와 같아서, 선택했을 때 "얼마나 다가가는가"의 체감이 유지된다.
+const FOCUS_DISTANCE = 26.2;
+// 0 = 나, 1 = 상대. 거리가 밀리면서 375px 세로 화면의 가시 반폭이 1.83 → 5.64 로
+// 넓어져, 예전만큼 상대 쪽으로 치우칠 필요가 없어졌다. 0.70 이면 20명 전원이
+// 프레임 안(최대 |ndc.x| 0.44)이고 '나'도 20/20 남아 관계 실이 끝까지 읽힌다.
+const FOCUS_BIAS = 0.7;
 // 타깃을 아래로 내리면 피사체가 화면 위쪽에 잡힌다 — 40vh 시트에 가리지 않게.
-const FRAME_LIFT = 1.4;
+// 가시 높이도 같은 비율로 넓어졌으므로 화면상 같은 위치를 만들려면 이 값도 커져야
+// 한다. 6.0 에서 상단 1/3 안착이 A 18/20, B·C 20/20 (기존 9 / 11 / 11).
+const FRAME_LIFT = 6.0;
 // 타깃/거리 오차가 이보다 작아지면 보간을 끈다.
 const SETTLE_EPSILON = 0.01;
 
@@ -50,10 +54,19 @@ export function CameraRig({
   const animating = useRef(false);
 
   useEffect(() => {
-    // resetSignal 이 바뀔 때마다 기본 뷰로 돌린다. 첫 마운트에도 한 번 돈다.
+    // resetSignal 이나 mode 가 바뀔 때마다 기본 뷰로 돌린다. 첫 마운트에도 한 번 돈다.
     camera.position.set(...DEFAULT_CAMERA_POSITION);
     controls.current?.target.set(...DEFAULT_TARGET);
     controls.current?.update();
+    // 래치를 여기서 다시 건다. focusOn 은 useMemo 로 얼린 Map 에서 나오는
+    // 참조라 모드를 바꿔도 그대로여서, 아래 useFrame 의 참조 비교만으로는
+    // 다시 켜지지 않는다 — 그러면 선택된 사람을 둔 채 A→B 로 바꿨을 때
+    // 카메라가 기본 뷰에 버려지고 시트만 그 사람을 계속 보여준다.
+    // 이 스파이크의 목적이 "같은 사람으로 A/B/C 를 비교"하는 것이라 치명적이다.
+    // 선택이 없으면 desiredTarget 이 기본 타깃이고 위에서 이미 스냅했으므로
+    // 첫 프레임에 오차 0 으로 곧장 꺼진다 → C 모드의 pan 은 그대로 살아남는다.
+    // 단순 리렌더에는 이 이펙트가 돌지 않으므로 래치도 다시 걸리지 않는다.
+    animating.current = true;
   }, [resetSignal, mode, camera]);
 
   useFrame((_, delta) => {
