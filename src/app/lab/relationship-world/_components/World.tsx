@@ -9,13 +9,19 @@ import { Starfield } from "./Starfield";
 import { SelfCore } from "./SelfCore";
 import { Nebula } from "./Nebula";
 import { PersonMarker } from "./PersonMarker";
+import { CameraRig } from "./CameraRig";
+import type { CameraMode } from "../_lib/camera";
 
 export function World({
   selectedId,
   onSelect,
+  mode,
+  resetSignal,
 }: {
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  mode: CameraMode;
+  resetSignal: number;
 }) {
   const placed = useMemo(() => placePeople(FRIENDS), []);
   const selected = FRIENDS.find((p) => p.id === selectedId) ?? null;
@@ -32,6 +38,8 @@ export function World({
 
       <ambientLight intensity={0.35} />
       <directionalLight position={[6, 8, 6]} intensity={0.5} />
+
+      <CameraRig mode={mode} resetSignal={resetSignal} />
 
       <Starfield />
       <SelfCore />
