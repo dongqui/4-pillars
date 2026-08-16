@@ -101,13 +101,19 @@ uniform float uRadius;
 
 void main() {
   // 한 방향으로만 흐른다 — '나란히'가 움직임으로 읽혀야 한다.
+  //
+  // 아래 두 항은 "값이 커질수록 어두워지는" 감쇠라서 smoothstep(큰, 작은, x) 로
+  // 쓰고 싶어지지만, GLSL ES 1.00 은 edge0 >= edge1 일 때 결과가 **정의되지
+  // 않는다**. 드라이버가 0 을 돌려주는 폰이면 beside·express·move 세 Field 가
+  // 통째로 사라지고, 스파이크는 "3D 가 별로다"라는 거짓 결론을 낸다.
+  // 그래서 전부 1.0 - smoothstep(작은, 큰, x) 로 뒤집어 쓴다.
   float flow = fract(vUv.x * 2.6 - uTime * 0.06 + uPhase);
-  float streak = smoothstep(0.5, 0.0, abs(flow - 0.5) * 2.0);
+  float streak = 1.0 - smoothstep(0.0, 0.5, abs(flow - 0.5) * 2.0);
   float grain = noise2(vec3(vUv * 6.0, uPhase));
 
   // 사각형 경계를 지운다.
   vec2 d = (vUv - 0.5) * 2.0;
-  float edge = smoothstep(1.0, 0.15, length(d));
+  float edge = 1.0 - smoothstep(0.15, 1.0, length(d));
 
   // FillVolume 의 셸과 같은 이유다: 카메라가 층 사이로 들어오면 4장의
   // DoubleSide 평면이 화면 전체를 덮는 오버드로우가 된다. 반지름의
@@ -154,9 +160,11 @@ uniform float uRadius;
 
 void main() {
   // vUv.y = 0 이 코어, 1 이 바깥 끝이다.
-  float outward = smoothstep(1.0, 0.05, vUv.y);
+  // 1.0 - smoothstep(작은, 큰, x) 형태인 이유는 LAYER_FRAGMENT 주석 참고
+  // (GLSL ES 1.00 은 edge0 >= edge1 을 정의하지 않는다).
+  float outward = 1.0 - smoothstep(0.05, 1.0, vUv.y);
   // 폭 방향은 가운데만 남긴다.
-  float across = smoothstep(0.5, 0.0, abs(vUv.x - 0.5) * 2.0);
+  float across = 1.0 - smoothstep(0.0, 0.5, abs(vUv.x - 0.5) * 2.0);
   float pulse = 0.65 + 0.35 * sin(uTime * 0.8 + uPhase + vUv.y * 3.0);
   float grain = noise2(vec3(vUv * 4.0, uPhase));
 
@@ -204,10 +212,12 @@ uniform float uRadius;
 
 void main() {
   // 길이를 따라 계속 흘러간다 — 멈추면 '움직이게 한다'가 죽는다.
+  // 1.0 - smoothstep(작은, 큰, x) 형태인 이유는 LAYER_FRAGMENT 주석 참고
+  // (GLSL ES 1.00 은 edge0 >= edge1 을 정의하지 않는다).
   float head = fract(vUv.x * 1.4 - uTime * 0.13 + uPhase);
-  float flow = smoothstep(0.42, 0.0, abs(head - 0.5));
+  float flow = 1.0 - smoothstep(0.0, 0.42, abs(head - 0.5));
   // 양 끝은 부드럽게 사라지게 해서 잘린 튜브로 안 보이게 한다.
-  float ends = smoothstep(0.0, 0.14, vUv.x) * smoothstep(1.0, 0.86, vUv.x);
+  float ends = smoothstep(0.0, 0.14, vUv.x) * (1.0 - smoothstep(0.86, 1.0, vUv.x));
 
   // 다른 Field 들과 같은 이유다: C 모드는 minDistance 10.4 라 카메라가 리본
   // 다발 안으로 들어올 수 있다. 반지름의 0.65~1.15배 구간에서 smoothstep 으로
@@ -262,7 +272,12 @@ void main() {
   // 다른 Field 들과 같은 이유다: C 모드는 minDistance 10.4 라 카메라가 격자
   // 안까지 들어올 수 있다. 반지름의 0.65~1.15배 구간에서 smoothstep 으로
   // 미리 죽여 "결정 격자 안에 서 있는" 상태에서 26개의 octahedron 이 화면을
-  // 덮는 오버드로우를 막는다(RefineShards.tsx 의 fadeRadius 유도 참고).
+  // 덮는 오버드로우를 막는다.
+  //
+  // uRadius 는 반드시 그 Field 의 **진짜** 바운딩 반지름이어야 한다. 부풀려
+  // 넘기면 "완전히 보이는" 거리가 같은 배율로 밀려나 C 모드에서 핀치 한 번에
+  // 본체가 통째로 사라진다 — 값은 geometry.ts 의 FIELD_FADE_RADIUS 하나에서만
+  // 나오고, 그 주석에 전말이 적혀 있다.
   float proximity = smoothstep(uRadius * 0.65, uRadius * 1.15, uCamDist);
   float a = facet * uOpacity * proximity;
   if (a < 0.004) discard;

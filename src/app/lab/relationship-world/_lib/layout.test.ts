@@ -11,9 +11,15 @@ import {
 import {
   BESIDE_LAYERS,
   BESIDE_TILT,
+  EXPRESS_RAYS,
+  EXPRESS_RAY_WIDTH,
   FIELD_CENTERS,
   FIELD_EXTENT,
+  MOVE_RIBBONS,
+  MOVE_TUBE_RADIUS,
   REFINE_GRID_STEP,
+  REFINE_MAX_SHARD_RADIUS,
+  REFINE_SHARDS,
   REFINE_Y_COMPRESSION,
   SELF_POSITION,
   placePeople,
@@ -22,6 +28,15 @@ import {
 
 function dist(a: readonly number[], b: readonly number[]) {
   return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+}
+
+/** 점 p 에서 선분 a→b 까지의 수직 거리. */
+function distToSegment(p: readonly number[], a: readonly number[], b: readonly number[]) {
+  const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+  const ap = [p[0] - a[0], p[1] - a[1], p[2] - a[2]];
+  const denom = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2;
+  const t = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / denom));
+  return dist(p, [a[0] + ab[0] * t, a[1] + ab[1] * t, a[2] + ab[2] * t]);
 }
 
 // BESIDE_LAYERS / BESIDE_TILT / REFINE_GRID_STEP / REFINE_Y_COMPRESSION 은
@@ -99,6 +114,31 @@ describe("positionFor — Field 형태를 따른다", () => {
     expect(ys[1]).toBeLessThan(ys[2]);
   });
 
+  // 단조 y 만으로는 아무것도 증명되지 않는다 — x/z 를 ±extent 로 무작위로 흩어도
+  // 통과한다(실제로 그랬고, 가장 먼 사람이 리본에서 1.09 떨어져 있었다).
+  // 리본까지의 실제 거리를 재야 "리본 위에 있다"가 잠긴다.
+  it("move: 사람이 실제 리본 곡선 위에 있다", () => {
+    const center = FIELD_CENTERS.move;
+    for (let i = 0; i < 3; i++) {
+      const p = positionFor("move", i);
+      // Catmull-Rom 은 제어점을 정확히 통과한다. 그러므로 제어점까지의 거리는
+      // 곡선까지 거리의 상한이다 — three 를 import 하지 않고도 증명된다.
+      // (three 로 곡선을 2000점 샘플링해 실측하면 0.089~0.185 다.)
+      let nearest = Infinity;
+      for (const ribbon of MOVE_RIBBONS) {
+        for (const cp of ribbon) {
+          nearest = Math.min(
+            nearest,
+            dist(p, [center[0] + cp[0], center[1] + cp[1], center[2] + cp[2]]),
+          );
+        }
+      }
+      expect(nearest).toBeLessThan(0.3);
+      // 튜브 안에 통째로 박히지도 않는다 — 노드가 리본 속으로 사라진다.
+      expect(nearest).toBeGreaterThan(MOVE_TUBE_RADIUS * 0.5);
+    }
+  });
+
   it("express: 인덱스가 커질수록 중심에서 더 멀어진다", () => {
     const center = FIELD_CENTERS.express;
     const distances = [0, 1, 2, 3].map((i) => dist(positionFor("express", i), center));
@@ -107,20 +147,60 @@ describe("positionFor — Field 형태를 따른다", () => {
     }
   });
 
-  it("refine: 정의된 두 격자 셀 위에, RefineShards.tsx 와 같은 step·y압축으로 놓인다", () => {
+  // 단조 반지름만으로는 아무것도 증명되지 않는다 — 방향을 따로 hash 해도
+  // 통과한다(실제로 그랬고, 가장 먼 사람이 광선에서 1.53 떨어져 있었다).
+  it("express: 사람이 실제 광선 다발 위에 있다", () => {
+    const center = FIELD_CENTERS.express;
+    const halfWidth = EXPRESS_RAY_WIDTH / 2;
+    for (let i = 0; i < 4; i++) {
+      const p = positionFor("express", i);
+      let nearest = Infinity;
+      for (const ray of EXPRESS_RAYS) {
+        const tip = [
+          center[0] + ray.dir[0] * ray.len,
+          center[1] + ray.dir[1] * ray.len,
+          center[2] + ray.dir[2] * ray.len,
+        ];
+        nearest = Math.min(nearest, distToSegment(p, center, tip));
+      }
+      expect(nearest).toBeLessThan(halfWidth);
+    }
+  });
+
+  it("refine: 사람이 조각 안에 파묻히지 않는다", () => {
+    // 예전 셀 [-1,0,1]·[1,0,-1] 은 26개 조각이 이미 차지한 칸이라, 두 사람이
+    // 각각 조각 중심에서 0.030 / 0.041 거리에 — 즉 팔면체 안에 통째로 —
+    // 들어가 있었다. 노드(r 0.075)도 헤일로(r 0.17)도 보이지 않는다.
     const center = FIELD_CENTERS.refine;
-    const extent = FIELD_EXTENT.refine;
-    const step = extent * REFINE_GRID_STEP;
-    const cells: Array<readonly [number, number, number]> = [
-      [-1, 0, 1],
-      [1, 0, -1],
-    ];
+    for (let i = 0; i < 2; i++) {
+      const p = positionFor("refine", i);
+      for (const shard of REFINE_SHARDS) {
+        const world = [
+          center[0] + shard.pos[0],
+          center[1] + shard.pos[1],
+          center[2] + shard.pos[2],
+        ];
+        expect(dist(p, world)).toBeGreaterThan(REFINE_MAX_SHARD_RADIUS);
+      }
+    }
+  });
+
+  it("refine: 사람이 격자의 반칸 자리에 있다 — 여전히 '격자 위'로 읽힌다", () => {
+    const center = FIELD_CENTERS.refine;
+    const step = FIELD_EXTENT.refine * REFINE_GRID_STEP;
     for (let i = 0; i < 2; i++) {
       const [x, y, z] = positionFor("refine", i);
-      const c = cells[i % cells.length];
-      expect(x - center[0]).toBeCloseTo(c[0] * step, 10);
-      expect(y - center[1]).toBeCloseTo(c[1] * step * REFINE_Y_COMPRESSION, 10);
-      expect(z - center[2]).toBeCloseTo(c[2] * step, 10);
+      // 로컬 좌표를 반칸 단위로 되돌리면 정확히 ±0.5 의 정수배여야 한다.
+      const cell = [
+        (x - center[0]) / step,
+        (y - center[1]) / (step * REFINE_Y_COMPRESSION),
+        (z - center[2]) / step,
+      ];
+      for (const c of cell) {
+        expect(Math.abs(c * 2 - Math.round(c * 2))).toBeLessThan(1e-9);
+        // 정수 칸이면 조각이 이미 그 자리에 있다. 반드시 반칸이어야 한다.
+        expect(Math.abs(c - Math.round(c))).toBeGreaterThan(0.4);
+      }
     }
   });
 });

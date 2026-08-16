@@ -3,8 +3,16 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { BESIDE_LAYERS, BESIDE_TILT, FIELD_CENTERS, FIELD_EXTENT } from "../../_lib/layout";
+import {
+  BESIDE_LAYERS,
+  BESIDE_PLANE_ASPECT,
+  BESIDE_PLANE_SPAN,
+  BESIDE_TILT,
+  FIELD_CENTERS,
+  FIELD_EXTENT,
+} from "../../_lib/layout";
 import { FIELD_TINT } from "./tint";
+import { FIELD_FADE_RADIUS } from "./geometry";
 import { LayerMaterial } from "./shaders/materials";
 
 // LAYERS 와 기울기 값은 _lib/layout.ts 에 있다(BESIDE_LAYERS, BESIDE_TILT) —
@@ -20,7 +28,7 @@ export function BesideLayers({ dimmed }: { dimmed: boolean }) {
   const mats = useRef<Array<InstanceType<typeof LayerMaterial> | null>>([]);
   const center = FIELD_CENTERS.beside;
   const extent = FIELD_EXTENT.beside;
-  const size = extent * 2.6;
+  const size = BESIDE_PLANE_SPAN;
   // 카메라→중심 거리 계산용. center 는 모듈 상수라 참조가 안 바뀌므로
   // 이 벡터는 실질적으로 한 번만 만들어진다(매 프레임 new 하지 않는다).
   const centerVec = useMemo(
@@ -48,7 +56,7 @@ export function BesideLayers({ dimmed }: { dimmed: boolean }) {
     >
       {BESIDE_LAYERS.map((y, i) => (
         <mesh key={y} position={[0, y * extent, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[size, size * 0.62]} />
+          <planeGeometry args={[size, size * BESIDE_PLANE_ASPECT]} />
           <layerMaterial
             ref={(m) => {
               mats.current[i] = m;
@@ -56,7 +64,7 @@ export function BesideLayers({ dimmed }: { dimmed: boolean }) {
             uColor={BESIDE_COLOR}
             uOpacity={0.42}
             uPhase={i * 0.27}
-            uRadius={size}
+            uRadius={FIELD_FADE_RADIUS.beside}
             transparent
             depthWrite={false}
             side={THREE.DoubleSide}

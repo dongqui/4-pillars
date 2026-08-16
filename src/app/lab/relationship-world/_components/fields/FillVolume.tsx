@@ -3,11 +3,14 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { FIELD_CENTERS, FIELD_EXTENT } from "../../_lib/layout";
+import { FIELD_CENTERS, FIELD_EXTENT, FILL_SHELLS } from "../../_lib/layout";
 import { FIELD_TINT } from "./tint";
 import { MistMaterial } from "./shaders/materials";
 
-const SHELLS = [1.0, 1.34, 1.72];
+// 매 렌더 new THREE.Color(...) 를 JSX 안에서 만들면 참조가 매번 바뀌어 R3F 가
+// 매번 다시 적용한다. 모듈 스코프에서 한 번만 만든다 — 나머지 네 Field 는 이미
+// 이렇게 하고 있고 이 파일을 반면교사로 인용하고 있었다.
+const MIST_COLOR = new THREE.Color(FIELD_TINT.fill);
 
 export function FillVolume({ dimmed }: { dimmed: boolean }) {
   const group = useRef<THREE.Group>(null);
@@ -43,14 +46,14 @@ export function FillVolume({ dimmed }: { dimmed: boolean }) {
 
   return (
     <group ref={group} position={center as unknown as [number, number, number]}>
-      {SHELLS.map((s, i) => (
+      {FILL_SHELLS.map((s, i) => (
         <mesh key={s}>
           <icosahedronGeometry args={[extent * s, 3]} />
           <mistMaterial
             ref={(m) => {
               mats.current[i] = m;
             }}
-            uColor={new THREE.Color(FIELD_TINT.fill)}
+            uColor={MIST_COLOR}
             uOpacity={0.5}
             uShellRadius={extent * s}
             transparent
