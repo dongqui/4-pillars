@@ -6,14 +6,9 @@ import { BesideLayers } from "./BesideLayers";
 import { ExpressRays } from "./ExpressRays";
 import { MoveRibbons } from "./MoveRibbons";
 import { RefineShards } from "./RefineShards";
+import { FieldAccents } from "./FieldAccents";
 
-export function FieldRegistry({
-  role,
-  dimmed,
-}: {
-  role: RelationRole;
-  dimmed: boolean;
-}) {
+function getFieldBody(role: RelationRole, dimmed: boolean) {
   switch (role) {
     case "fill":
       return <FillVolume dimmed={dimmed} />;
@@ -26,4 +21,20 @@ export function FieldRegistry({
     case "refine":
       return <RefineShards dimmed={dimmed} />;
   }
+}
+
+export function FieldRegistry({
+  role,
+  dimmed,
+}: {
+  role: RelationRole;
+  dimmed: boolean;
+}) {
+  const body = getFieldBody(role, dimmed);
+  return (
+    <group>
+      {body}
+      <FieldAccents role={role} dimmed={dimmed} />
+    </group>
+  );
 }
