@@ -7,7 +7,7 @@ import { FRIENDS } from "../_data/mock-people";
 import { placePeople } from "../_lib/layout";
 import { Starfield } from "./Starfield";
 import { SelfCore } from "./SelfCore";
-import { Nebula } from "./Nebula";
+import { FieldRegistry } from "./fields/FieldRegistry";
 import { PersonMarker } from "./PersonMarker";
 import { CameraRig } from "./CameraRig";
 import { RelationThread } from "./RelationThread";
@@ -56,7 +56,7 @@ export function World({
       <SelfCore />
 
       {ROLE_ORDER.map((role) => (
-        <Nebula key={role} role={role} dimmed={selected !== null && selected.role !== role} />
+        <FieldRegistry key={role} role={role} dimmed={selected !== null && selected.role !== role} />
       ))}
 
       {/*
