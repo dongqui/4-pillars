@@ -39,7 +39,11 @@ export function World({
       <ambientLight intensity={0.35} />
       <directionalLight position={[6, 8, 6]} intensity={0.5} />
 
-      <CameraRig mode={mode} resetSignal={resetSignal} />
+      <CameraRig
+        mode={mode}
+        resetSignal={resetSignal}
+        focusOn={selected ? placed.get(selected.id)! : null}
+      />
 
       <Starfield />
       <SelfCore />
