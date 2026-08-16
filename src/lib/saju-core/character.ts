@@ -6,7 +6,7 @@
 // 자시(23시~) 정책: 라이트 퍼널은 시간을 받지 않으므로 입력 날짜를 그대로 쓴다.
 // 야자시(23시 이후를 다음 날로 볼지)는 시주가 필요한 유료 리포트에서만 다룬다.
 
-import type { Chart } from "./chart";
+import { buildPillars, type Pillars, type PillarsInput } from "./chart";
 import { BRANCHES, type Branch } from "./data/branches";
 import {
   BRANCH_PRINCIPLES,
@@ -132,8 +132,13 @@ export function characterById(id: number): Character {
 }
 
 /** 원국의 일주로 캐릭터를 판정한다 — 시주(hour) 없이도 동작한다 */
-export function characterFromChart(chart: Chart): Character {
-  return characterOf(chart.day.stem, chart.day.branch);
+export function characterFromChart(pillars: Pillars): Character {
+  return characterOf(pillars.day.stem, pillars.day.branch);
+}
+
+/** 생년월일만으로 캐릭터를 판정한다 — 라이트 퍼널의 입구 */
+export function characterFromBirth(input: PillarsInput): Character {
+  return characterFromChart(buildPillars(input));
 }
 
 /** 60종 전체 — 순번 순서 */

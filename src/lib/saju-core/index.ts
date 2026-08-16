@@ -6,10 +6,13 @@
 export { analyze, type SajuAnalysis } from "./analyze";
 export {
   buildChart,
+  buildPillars,
   type BirthInput,
   type Chart,
   type Gender,
   type Pillar,
+  type Pillars,
+  type PillarsInput,
 } from "./chart";
 export { distributeElements, type ElementDistribution } from "./elements";
 export {
@@ -78,6 +81,7 @@ export {
 export {
   ALL_CHARACTERS,
   characterById,
+  characterFromBirth,
   characterFromChart,
   characterOf,
   type Character,

@@ -24,14 +24,15 @@ export interface CharacterCardProps {
 }
 
 /**
- * 한자 워터마크에만 쓰는 명조체. 전체 한글 자족을 받으면 수 MB 라서
- * 60갑자에 실제로 쓰이는 22자(십천간·십이지지)만 서브셋으로 받는다.
- * `precedence` 를 주면 React 가 <head> 로 올리고 중복 링크를 하나로 합친다.
+ * 한자 워터마크에만 쓰는 명조체. `precedence` 를 주면 React 가 <head> 로 올리고
+ * 카드가 여러 장 있어도 링크를 하나로 합친다.
+ *
+ * `&text=` 서브셋을 쓰지 않는다 — 그 경로(fonts.gstatic.com/l/font)는 CORS 헤더를
+ * 주지 않아 @font-face 로드가 차단된다. 기본 URL 은 unicode-range 로 잘게 쪼개져
+ * 있어서 어차피 한자가 든 조각만 받는다.
  */
-const HANJA_GLYPHS = "甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥";
 const HANJA_FONT_HREF =
-  "https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700" +
-  `&text=${encodeURIComponent(HANJA_GLYPHS)}&display=swap`;
+  "https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700&display=swap";
 
 /** 1080 캔버스 기준 워터마크 한 글자의 크기 */
 const GLYPH = 262;
