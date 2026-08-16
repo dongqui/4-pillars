@@ -10,6 +10,7 @@ import { SelfCore } from "./SelfCore";
 import { Nebula } from "./Nebula";
 import { PersonMarker } from "./PersonMarker";
 import { CameraRig } from "./CameraRig";
+import { RelationThread } from "./RelationThread";
 import type { CameraMode } from "../_lib/camera";
 
 export function World({
@@ -63,6 +64,10 @@ export function World({
           onSelect={onSelect}
         />
       ))}
+
+      {selected && (
+        <RelationThread to={placed.get(selected.id)!} feature={selected.feature} />
+      )}
     </Canvas>
   );
 }
