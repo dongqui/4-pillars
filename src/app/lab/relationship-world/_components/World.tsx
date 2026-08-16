@@ -1,8 +1,10 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
+import { ROLE_ORDER } from "../_data/roles";
 import { Starfield } from "./Starfield";
 import { SelfCore } from "./SelfCore";
+import { Nebula } from "./Nebula";
 
 export function World() {
   return (
@@ -19,6 +21,10 @@ export function World() {
 
       <Starfield />
       <SelfCore />
+
+      {ROLE_ORDER.map((role) => (
+        <Nebula key={role} role={role} dimmed={false} />
+      ))}
     </Canvas>
   );
 }
