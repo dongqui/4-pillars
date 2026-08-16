@@ -3,6 +3,8 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { CameraModeToggle } from "./CameraModeToggle";
+import { FRIENDS } from "../_data/mock-people";
+import { PersonSheet } from "./PersonSheet";
 import type { CameraMode } from "../_lib/camera";
 
 const World = dynamic(() => import("./World").then((m) => m.World), {
@@ -18,6 +20,8 @@ export function WorldShell() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mode, setMode] = useState<CameraMode>("b");
   const [resetSignal, setResetSignal] = useState(0);
+
+  const selected = FRIENDS.find((p) => p.id === selectedId) ?? null;
 
   return (
     <div className="relative w-full h-full">
@@ -36,6 +40,8 @@ export function WorldShell() {
           onReset={() => setResetSignal((n) => n + 1)}
         />
       </div>
+
+      <PersonSheet person={selected} onClose={() => setSelectedId(null)} />
     </div>
   );
 }
