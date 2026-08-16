@@ -13,6 +13,14 @@ export {
 } from "./chart";
 export { distributeElements, type ElementDistribution } from "./elements";
 export {
+  elementProfile,
+  elementProfileCopy,
+  profileElements,
+  type ElementProfile,
+  type ElementProfileCopy,
+  type ElementVerdict,
+} from "./element-profile";
+export {
   analyzeTenGods,
   type TenGodCell,
   type TenGodResult,
@@ -47,6 +55,8 @@ export {
 } from "./data/stems";
 export {
   BRANCHES,
+  BRANCH_CHUNG,
+  BRANCH_HAP,
   BRANCH_ORDER,
   isBranch,
   type Branch,
@@ -63,6 +73,46 @@ export {
   type TenGod,
   type TenGodGroup,
 } from "./data/relations";
+
+// 캐릭터 — 일주 → 60캐릭터 매핑
+export {
+  ALL_CHARACTERS,
+  characterById,
+  characterFromChart,
+  characterOf,
+  type Character,
+  type CharacterFamilyView,
+  type CharacterInternal,
+  type CharacterSceneView,
+} from "./character";
+
+// 관계 엔진 — 두 사람의 일주로 분류·배지 판정 (귀인지도)
+export {
+  BADGE_LABELS,
+  RELATION_LABELS,
+  branchElement,
+  getRelation,
+  type DayPillarInput,
+  type Relation,
+  type RelationBadge,
+  type RelationKind,
+  type RelationLabel,
+} from "./relationship";
+
+// 캐릭터 데이터 (10 패밀리 × 60 일주)
+export {
+  BRANCH_PRINCIPLES,
+  CHARACTER_COPY,
+  CHARACTER_KEYS,
+  FAMILIES,
+  SEATS,
+  characterBasis,
+  characterSeatGroup,
+  type CharacterCopy,
+  type CharacterFamily,
+  type CharacterKey,
+  type CharacterSeat,
+} from "./data/characters-60";
 
 // 절기(대운/월령 계산에 사용)
 export { MONTH_TERMS, solarTermDate, type CalendarTime } from "./astro/solar-term";

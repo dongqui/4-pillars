@@ -17,21 +17,23 @@ export interface BranchInfo {
   yinYang: YinYang;
   /** 본기(正氣) 천간 */
   mainStem: Stem;
+  /** 한자 (예: "子") */
+  hanja: string;
 }
 
 export const BRANCHES: Record<Branch, BranchInfo> = {
-  자: { element: "수", yinYang: "양", mainStem: "계" },
-  축: { element: "토", yinYang: "음", mainStem: "기" },
-  인: { element: "목", yinYang: "양", mainStem: "갑" },
-  묘: { element: "목", yinYang: "음", mainStem: "을" },
-  진: { element: "토", yinYang: "양", mainStem: "무" },
-  사: { element: "화", yinYang: "음", mainStem: "병" },
-  오: { element: "화", yinYang: "양", mainStem: "정" },
-  미: { element: "토", yinYang: "음", mainStem: "기" },
-  신: { element: "금", yinYang: "양", mainStem: "경" },
-  유: { element: "금", yinYang: "음", mainStem: "신" },
-  술: { element: "토", yinYang: "양", mainStem: "무" },
-  해: { element: "수", yinYang: "음", mainStem: "임" },
+  자: { element: "수", yinYang: "양", mainStem: "계", hanja: "子" },
+  축: { element: "토", yinYang: "음", mainStem: "기", hanja: "丑" },
+  인: { element: "목", yinYang: "양", mainStem: "갑", hanja: "寅" },
+  묘: { element: "목", yinYang: "음", mainStem: "을", hanja: "卯" },
+  진: { element: "토", yinYang: "양", mainStem: "무", hanja: "辰" },
+  사: { element: "화", yinYang: "음", mainStem: "병", hanja: "巳" },
+  오: { element: "화", yinYang: "양", mainStem: "정", hanja: "午" },
+  미: { element: "토", yinYang: "음", mainStem: "기", hanja: "未" },
+  신: { element: "금", yinYang: "양", mainStem: "경", hanja: "申" },
+  유: { element: "금", yinYang: "음", mainStem: "신", hanja: "酉" },
+  술: { element: "토", yinYang: "양", mainStem: "무", hanja: "戌" },
+  해: { element: "수", yinYang: "음", mainStem: "임", hanja: "亥" },
 };
 
 export const BRANCH_ORDER: readonly Branch[] = [
@@ -41,3 +43,26 @@ export const BRANCH_ORDER: readonly Branch[] = [
 export function isBranch(ch: string): ch is Branch {
   return ch in BRANCHES;
 }
+
+/**
+ * 육합(六合) — 자축·인해·묘술·진유·사신·오미.
+ * 12지지가 6쌍으로 빠짐없이 짝지어지므로 짝 하나를 가리키는 표로 충분하다.
+ */
+export const BRANCH_HAP: Record<Branch, Branch> = {
+  자: "축", 축: "자",
+  인: "해", 해: "인",
+  묘: "술", 술: "묘",
+  진: "유", 유: "진",
+  사: "신", 신: "사",
+  오: "미", 미: "오",
+};
+
+/** 충(沖) — 자오·축미·인신·묘유·진술·사해. 마주 보는 지지(6칸 차이)끼리 부딪친다. */
+export const BRANCH_CHUNG: Record<Branch, Branch> = {
+  자: "오", 오: "자",
+  축: "미", 미: "축",
+  인: "신", 신: "인",
+  묘: "유", 유: "묘",
+  진: "술", 술: "진",
+  사: "해", 해: "사",
+};
