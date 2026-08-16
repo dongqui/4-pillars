@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import dynamic from "next/dynamic";
 
 const World = dynamic(() => import("./World").then((m) => m.World), {
@@ -12,9 +13,11 @@ const World = dynamic(() => import("./World").then((m) => m.World), {
 });
 
 export function WorldShell() {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
   return (
     <div className="relative w-full h-full">
-      <World />
+      <World selectedId={selectedId} onSelect={setSelectedId} />
     </div>
   );
 }
