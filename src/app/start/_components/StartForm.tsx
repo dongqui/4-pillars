@@ -138,7 +138,7 @@ export function StartForm() {
         {pending ? "캐릭터를 고르는 중" : "내 캐릭터 알아보기"}
       </button>
       <p className="mt-3.5 text-center text-[12.5px] text-slate-400 [text-wrap:pretty]">
-        로그인 없음 · 생일은 캐릭터 계산에만 사용
+        로그인 없음 · 생일은 이 브라우저에만 저장돼요
       </p>
     </form>
   );

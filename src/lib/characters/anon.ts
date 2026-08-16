@@ -1,31 +1,24 @@
 import { z } from "zod";
 import { cookies } from "next/headers";
 import { characterFromBirth, type Character } from "@/lib/saju-core";
-import { characterById } from "@/lib/saju-core/character";
 
 /**
- * 로그인하지 않은 사람의 캐릭터를 나르는 쿠키.
+ * 로그인하지 않은 사람의 라이트 퍼널 입력을 나르는 쿠키.
  *
- * 프로필 드래프트(src/lib/drafts/store.ts)와 달리 Redis 를 쓰지 않는다. 담는 것이
- * 60갑자 순번 하나와 (선택) 이름뿐이라 쿠키에 들어가고, 무엇보다 **생년월일을
- * 어디에도 남기지 않는다** — "생일은 캐릭터 계산에만 사용" 이라는 화면 문구가
- * 문구로만 남지 않게 하려면 계산 직후 버리는 쪽이 맞다.
+ * 캐릭터(60갑자 순번)가 아니라 **입력한 생년월일**을 담는다. 캐릭터만 담으면 홈에서
+ * 리포트로 넘어갈 때 생년월일을 다시 받아야 하는데, 그 재입력이 무료 → 유료 전환
+ * 경로의 마찰이 된다. 캐릭터는 여기서 파생하므로 둘이 어긋날 일도 없다.
+ *
+ * 프로필 드래프트(src/lib/drafts/store.ts)를 쓰지 않는 이유: 그쪽은 성별·이름이
+ * 필수인 완성된 프로필 본문을 담는 그릇이라, 성별을 묻지 않는 라이트 퍼널의 입력이
+ * 들어가지 않는다. 담을 것도 작아서 Redis 왕복을 만들 이유가 없다.
  *
  * 값이 조작돼도 자기 카드만 바뀌므로 서명하지 않는다. 대신 읽을 때마다 검증한다.
  */
 export const ANON_CHARACTER_COOKIE = "character";
 
-/** 세션·드래프트와 같은 7일. 더 길게 두면 주인 없는 캐릭터가 남는다. */
+/** 세션·드래프트와 같은 7일. 더 길게 두면 주인 없는 생년월일이 남는다. */
 const MAX_AGE = 60 * 60 * 24 * 7;
-
-const anonCharacterSchema = z.object({
-  /** 60갑자 순번 (갑자=0 … 계해=59) */
-  characterId: z.number().int().min(0).max(59),
-  /** 라이트 퍼널의 이름은 선택 입력이다 */
-  name: z.string().trim().min(1).max(20).nullable(),
-});
-
-export type AnonCharacter = z.infer<typeof anonCharacterSchema>;
 
 /**
  * 라이트 퍼널이 받는 입력. 시각·출생지·성별을 받지 않는다 — 일주는 날짜만으로 정해진다.
@@ -46,7 +39,7 @@ export const lightBirthSchema = z.object({
 
 export type LightBirthBody = z.infer<typeof lightBirthSchema>;
 
-/** 생년월일 → 캐릭터. 이 함수를 지나면 생년월일은 들고 다니지 않는다. */
+/** 생년월일 → 캐릭터 */
 export function characterOfLightBirth(body: LightBirthBody): Character {
   return characterFromBirth({
     year: body.birth.year,
@@ -57,15 +50,15 @@ export function characterOfLightBirth(body: LightBirthBody): Character {
   });
 }
 
-export function encodeAnonCharacter(value: AnonCharacter): string {
+export function encodeAnonBirth(value: LightBirthBody): string {
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
 
-export function decodeAnonCharacter(raw: string | undefined): AnonCharacter | null {
+export function decodeAnonBirth(raw: string | undefined): LightBirthBody | null {
   if (!raw) return null;
   try {
     const json: unknown = JSON.parse(Buffer.from(raw, "base64url").toString("utf8"));
-    const parsed = anonCharacterSchema.safeParse(json);
+    const parsed = lightBirthSchema.safeParse(json);
     return parsed.success ? parsed.data : null;
   } catch {
     return null;
@@ -82,13 +75,28 @@ export function anonCharacterCookieOptions() {
   };
 }
 
-/** 쿠키에 담긴 익명 캐릭터. 없거나 모양이 깨졌으면 null */
+/** 쿠키에 담긴 익명 입력. 없거나 모양이 깨졌으면 null */
+export async function readAnonBirth(): Promise<LightBirthBody | null> {
+  const store = await cookies();
+  return decodeAnonBirth(store.get(ANON_CHARACTER_COOKIE)?.value);
+}
+
+/**
+ * 쿠키의 입력으로 캐릭터까지 세워서 준다.
+ *
+ * 세울 수 없는 값(만세력이 못 다루는 음력 조합 등)이면 캐릭터가 없는 것으로 본다 —
+ * 이 값은 사용자가 고칠 수 있는 쿠키라 화면이 그것 때문에 죽으면 안 된다.
+ */
 export async function readAnonCharacter(): Promise<{
   character: Character;
-  name: string | null;
+  birth: LightBirthBody;
 } | null> {
-  const store = await cookies();
-  const value = decodeAnonCharacter(store.get(ANON_CHARACTER_COOKIE)?.value);
-  if (!value) return null;
-  return { character: characterById(value.characterId), name: value.name };
+  const birth = await readAnonBirth();
+  if (!birth) return null;
+  try {
+    return { character: characterOfLightBirth(birth), birth };
+  } catch (e) {
+    console.error("[anon] characterOfLightBirth", e instanceof Error ? e.message : e);
+    return null;
+  }
 }

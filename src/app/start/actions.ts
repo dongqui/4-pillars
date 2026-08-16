@@ -6,7 +6,7 @@ import {
   ANON_CHARACTER_COOKIE,
   anonCharacterCookieOptions,
   characterOfLightBirth,
-  encodeAnonCharacter,
+  encodeAnonBirth,
   lightBirthSchema,
 } from "@/lib/characters/anon";
 
@@ -57,9 +57,9 @@ export async function createCharacter(_prev: StartState, formData: FormData): Pr
     return { error: "아직 오지 않은 날짜예요" };
   }
 
-  let characterId: number;
   try {
-    characterId = characterOfLightBirth(parsed.data).id;
+    // 결과는 쓰지 않는다 — 세울 수 있는 날짜인지 여기서 확인해야 리빌이 빈 화면을 만나지 않는다
+    characterOfLightBirth(parsed.data);
   } catch (e) {
     // 만세력이 못 세우는 조합(존재하지 않는 음력 윤달 등)
     console.error("[start] characterOfLightBirth", e instanceof Error ? e.message : e);
@@ -67,11 +67,7 @@ export async function createCharacter(_prev: StartState, formData: FormData): Pr
   }
 
   const store = await cookies();
-  store.set(
-    ANON_CHARACTER_COOKIE,
-    encodeAnonCharacter({ characterId, name: parsed.data.name }),
-    anonCharacterCookieOptions(),
-  );
+  store.set(ANON_CHARACTER_COOKIE, encodeAnonBirth(parsed.data), anonCharacterCookieOptions());
 
   redirect("/reveal");
 }

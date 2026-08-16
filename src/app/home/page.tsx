@@ -53,7 +53,7 @@ export default async function HomePage({
   // 저장된 것과 저장되지 않은 것이 한 목록에 섞여 보이면 무엇이 남는지 알기 어렵다.
   if (entries.length === 0) {
     const anon = await readAnonCharacter();
-    if (anon) entries = [toAnonEntry(anon.character, anon.name)];
+    if (anon) entries = [toAnonEntry(anon.character, anon.birth.name)];
   }
 
   return (

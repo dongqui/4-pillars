@@ -14,5 +14,5 @@ export default async function RevealPage() {
   // 직접 URL 로 들어왔거나 쿠키가 만료된 경우
   if (!anon) redirect("/start");
 
-  return <Reveal character={anon.character} name={anon.name} />;
+  return <Reveal character={anon.character} name={anon.birth.name} />;
 }
