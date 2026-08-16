@@ -84,7 +84,11 @@ export function PersonMarker({
           className={`
             flex items-center justify-center whitespace-nowrap cursor-pointer
             rounded-md border backdrop-blur-[2px] transition-all
-            ${shown === "full" ? "min-h-11 px-3 text-[13px]" : "min-h-8 px-2 text-[11px]"}
+            ${
+              shown === "full"
+                ? "min-h-11 px-3 text-[13px]"
+                : "min-h-8 px-2 text-[11px] relative after:absolute after:content-[''] after:-inset-1.5"
+            }
             ${
               selected
                 ? "border-blue-400/70 bg-blue-500/25 text-white font-semibold"
