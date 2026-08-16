@@ -49,8 +49,8 @@ export const CAMERA_LIMITS: Record<
     maxPolar: deg(85),
     minAzimuth: deg(-35),
     maxAzimuth: deg(35),
-    minDistance: zoom(0.8), // 32
-    maxDistance: zoom(1.2), // 48
+    minDistance: zoom(0.8), // 20.8
+    maxDistance: zoom(1.2), // 31.2
     enablePan: false,
   },
   // B · 중간
@@ -59,8 +59,8 @@ export const CAMERA_LIMITS: Record<
     maxPolar: deg(100),
     minAzimuth: -Infinity,
     maxAzimuth: Infinity,
-    minDistance: zoom(0.6), // 24
-    maxDistance: zoom(1.6), // 64
+    minDistance: zoom(0.6), // 15.6
+    maxDistance: zoom(1.6), // 41.6
     enablePan: false,
   },
   // C · 자유 + Reset
@@ -69,8 +69,8 @@ export const CAMERA_LIMITS: Record<
     maxPolar: deg(140),
     minAzimuth: -Infinity,
     maxAzimuth: Infinity,
-    minDistance: zoom(0.4), // 16
-    maxDistance: zoom(2.5), // 100
+    minDistance: zoom(0.4), // 10.4
+    maxDistance: zoom(2.5), // 65
     enablePan: true,
   },
 };
