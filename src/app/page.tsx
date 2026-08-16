@@ -3,9 +3,8 @@ import { getUser } from "@/lib/auth/users";
 import { resolveDisplayName } from "@/lib/auth/display-name";
 import { LandingNav } from "./_components/LandingNav";
 import { Hero } from "./_components/Hero";
-import { KnowSection } from "./_components/KnowSection";
-import { SampleReport } from "./_components/SampleReport";
-import { TrustSection } from "./_components/TrustSection";
+import { FlowSteps } from "./_components/FlowSteps";
+import { JourneySection } from "./_components/JourneySection";
 import { FooterCta } from "./_components/FooterCta";
 
 /**
@@ -29,9 +28,8 @@ export default async function Home() {
     <div className="flex-1">
       <LandingNav displayName={await navDisplayName()} />
       <Hero />
-      <KnowSection />
-      <SampleReport />
-      <TrustSection />
+      <FlowSteps />
+      <JourneySection />
       <FooterCta />
     </div>
   );
