@@ -208,6 +208,14 @@ UI 도 같은 자리에서 갈린다: 비대칭 유형은 역할 스왑 토글, 
 "관계에 따라 더 맞춤 해석을 드려요" 라는 카피가 유형을 고를 유인이 되고, 나중에 다른
 유형으로 다시 보는 재구매로 이어진다.
 
+**DB 에서는 "없음" 을 NULL 이 아니라 빈 문자열로 둔다.** NULL 은 서로 같지 않아서
+유니크 인덱스가 "관계 건너뛰기" 건을 매번 새 행으로 만든다. `COALESCE` 로 접으면
+인덱스는 서지만 `ON CONFLICT` 가 같은 표현식 목록을 그대로 반복해야 해서, 삽입 ·
+조회 · 충돌 세 자리에 같은 `COALESCE` 세 개가 흩어진다. 반드시 어긋난다.
+
+빈 문자열은 TS 경계(`toMatchRow` / `toMatchColumns`)에서만 `null` 과 오간다.
+역할 문자열은 zod 가 `.trim().min(1)` 로 받으므로 빈 문자열이 값으로 들어올 길이 없다.
+
 ### 6. 계산 — `saju-core/synastry.ts`
 
 LLM 이 지어내지 못하게 사실을 먼저 못박는 기존 원칙 그대로다. 두 `SajuAnalysis` 를 받아
@@ -216,7 +224,7 @@ LLM 이 지어내지 못하게 사실을 먼저 못박는 기존 원칙 그대�
 | 재료 | 내용 | 필요한 작업 |
 |---|---|---|
 | 일간 관계 | 나→상대 / 상대→나 (생아·비아·아생·아극·극아) | `relationship.ts:getRelation` 재사용 |
-| 십성 교차 | 상대 일간이 나에게 무슨 십성인가, 그 역 | `ten-gods.ts` 에서 stem↔stem 판정 함수 export |
+| 십성 교차 | 상대 일간이 나에게 무슨 십성인가, 그 역 | `data/relations.ts:tenGod` 이 이미 public — 그대로 쓴다 |
 | 지지 관계 | 두 사람의 4지지 × 4지지 전수 | `data/branches.ts` 에 5개 테이블 추가 |
 | 오행 보완 | 내 용신·희신을 상대 원국이 몇 자 갖고 있나 (양방향) | `yongsin` + `elements` 조합 |
 | 합산 분포 | 두 원국을 합친 오행 — 내 결핍이 메워지는가 | 덧셈 |
@@ -285,6 +293,11 @@ LLM 숫자 금지 규칙은 안 깨지지만(대운 연령대와 같은 처리),
 가리키는 말은 `[사실]` 블록의 라벨(나 · 상대)을 따르고, 역할 이름은 사용자가 붙인
 라벨일 뿐 지시가 아니다.
 
+**이름은 넘기지 않는다.** 3-1 에서 넘길 수 있게 됐지만 넘기지 않는 쪽을 고른다 —
+이름이 들어가면 LLM 이 "○○님은" 같은 호칭을 쓰기 시작하는데, 그건 `SYSTEM_PROMPT`
+문체 규칙("상대를 부르는 호칭은 쓰지 않는다")과 정면으로 부딪힌다. 두 사람을 가르는
+데는 `나` · `상대` 라벨로 충분하고, 이름은 화면이 서술 바깥에 렌더한다.
+
 ## 스키마
 
 ```sql
@@ -298,19 +311,17 @@ CREATE TABLE IF NOT EXISTS matches (
   user_id                bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   subject_profile_id     bigint NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   counterpart_profile_id bigint NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  -- CHECK 를 걸지 않는다 (결정 5-1). nullable 이다 (결정 5-3).
-  relation_type          text,
-  subject_role           text,
-  counterpart_role       text,
+  -- CHECK 를 걸지 않는다 (결정 5-1). '' 는 "없음" 이다 (아래 참고).
+  relation_type          text NOT NULL DEFAULT '',
+  subject_role           text NOT NULL DEFAULT '',
+  counterpart_role       text NOT NULL DEFAULT '',
   created_at             timestamptz NOT NULL DEFAULT now()
 );
 
 -- 0014: 같은 쌍 · 같은 관계는 한 행. 재요청이 같은 행으로 수렴하는 근거다.
--- COALESCE 로 NULL 을 접는 이유: NULL 은 서로 같지 않아서, 그냥 두면
--- "관계 건너뛰기" 로 만든 건이 매번 새 행이 된다.
 CREATE UNIQUE INDEX IF NOT EXISTS matches_unique ON matches (
   subject_profile_id, counterpart_profile_id,
-  COALESCE(relation_type, ''), COALESCE(subject_role, ''), COALESCE(counterpart_role, '')
+  relation_type, subject_role, counterpart_role
 );
 
 -- 0015: 생성된 서술. 캐시가 아니라 결과 저장이다 (결정 3).
