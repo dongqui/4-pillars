@@ -10,7 +10,7 @@ const paidBody = JSON.stringify({
 function deps(over: Partial<WebhookDeps> = {}): WebhookDeps {
   return {
     verify: vi.fn(async () => {}),
-    confirm: vi.fn(async () => ({ ok: true as const, kind: "confirmed" as const, profileId: "3" })),
+    confirm: vi.fn(async () => ({ ok: true as const, kind: "confirmed" as const })),
     ...over,
   };
 }
@@ -43,7 +43,7 @@ describe("handleWebhook", () => {
       }),
       confirm: vi.fn(async () => {
         order.push("confirm");
-        return { ok: true as const, kind: "confirmed" as const, profileId: "3" };
+        return { ok: true as const, kind: "confirmed" as const };
       }),
     });
     await handleWebhook(paidBody, headers, d);

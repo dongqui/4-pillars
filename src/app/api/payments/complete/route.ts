@@ -4,6 +4,7 @@ import { confirmPayment } from "@/lib/payments/confirm";
 import { confirmDeps } from "@/lib/payments/deps";
 import { PortOneNotConfiguredError } from "@/lib/payments/portone";
 import { findOrderByPaymentId } from "@/lib/payments/store";
+import { getBalance } from "@/lib/tickets/wallet";
 import { handleComplete } from "./_lib/handler";
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -21,6 +22,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       userId: session?.userId ?? null,
       findOrder: (paymentId) => findOrderByPaymentId(paymentId),
       confirm: (paymentId) => confirmPayment(paymentId, confirmDeps),
+      getBalance: (userId) => getBalance(userId),
     });
     return NextResponse.json(result.body, { status: result.status });
   } catch (e) {

@@ -9,11 +9,13 @@ export interface CompleteDeps {
   userId: string | null;
   findOrder(paymentId: string): Promise<PendingOrder | null>;
   confirm(paymentId: string): Promise<ConfirmResult>;
+  /** 확정 뒤의 잔액. 화면이 충전 결과를 응답 한 번으로 읽게 한다. */
+  getBalance(userId: string): Promise<number>;
 }
 
 export interface CompleteResult {
   status: number;
-  body: { profileId: string } | { error: string; kind?: string };
+  body: { balance: number } | { error: string; kind?: string };
 }
 
 // ConfirmFailure 로 키를 두는 이유: confirm.ts 에 kind 가 하나 추가됐는데 여기를
@@ -41,7 +43,8 @@ export async function handleComplete(raw: unknown, d: CompleteDeps): Promise<Com
   }
 
   const result = await d.confirm(paymentId);
-  if (result.ok) return { status: 200, body: { profileId: result.profileId } };
+  // 잔액은 확정 뒤에 읽는다 — 적립이 확정과 한 문장이라 여기서 읽으면 이미 반영돼 있다.
+  if (result.ok) return { status: 200, body: { balance: await d.getBalance(d.userId) } };
 
   return {
     status: FAILURE_STATUS[result.kind],
