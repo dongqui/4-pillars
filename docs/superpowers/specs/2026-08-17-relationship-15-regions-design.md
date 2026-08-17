@@ -318,12 +318,13 @@ positionFor(role, feature, indexInSubRegion) =
 
 | 파일 | 변경 |
 | --- | --- |
-| `_data/role-colors.ts` | **신규** — Role hue 5색, 상태 변조 규칙, 광량 계산. three/React 없음 |
+| `_data/hsl.ts` | **신규** — HSL→hex 변환 한 함수. `saju-colors.ts` 와 `role-colors.ts` 가 공유한다. 같은 변환을 두 곳에 베끼면 한쪽만 고쳤을 때 같은 색이 다른 hex 로 나온다 |
+| `_data/role-colors.ts` | **신규** — Role hue 5색과 상태별 채도·명도 변조. 색만 다룬다. three/React 없음 |
 | `_data/roles.ts` | `DISPLAY_TITLES` 15칸 추가 |
 | `_data/mock-people.ts` | 그대로 (관성 沖 은 비워 둔다) |
 | `_data/saju-colors.ts` | 그대로. 호출 지점만 이동 |
 | `_lib/layout.ts` | 배치 재작성. `ROLE_ANCHORS`, `subAnchor`, `positionFor(role, feature, i)` |
-| `_lib/node-visual.ts` | 상태별 halo 상수와 광량 불변식 |
+| `_lib/node-visual.ts` | halo 기하(반지름)·알파·움직임 상수와 광량 불변식 `stateLight()` |
 | `_lib/connections.ts` | 세그먼트별 Role 색 배열 추가 |
 | `_components/PersonNode.tsx` | `pillarKey` → `role` + `feature`. 호흡·진동 추가 |
 | `_components/PersonMarker.tsx` | `dot` 색을 Role 색으로 |
