@@ -24,6 +24,31 @@ export const ANCHOR_RADIUS = 7;
 const SUB_TILT = (12 * Math.PI) / 180;
 
 /**
+ * 좌표를 소수 4자리로 옮겨 적은 값 그대로는 |anchor| 가 7 에서 최대 3.2e-5
+ * 벗어난다(반올림 오차 — 예: move 의 z 는 소수 3자리로 적혀 있어 오차가 가장
+ * 크다). "어떤 역할도 더 가깝지 않다"는 소수점 9자리까지 정확해야 하는
+ * 보증이라, 방향은 이 숫자들 그대로 두고 길이만 ANCHOR_RADIUS 로 다시 맞춘다.
+ */
+function toAnchorRadius(v: Vec3): Vec3 {
+  const l = Math.hypot(v[0], v[1], v[2]);
+  const k = ANCHOR_RADIUS / l;
+  return [v[0] * k, v[1] * k, v[2] * k];
+}
+
+/**
+ * Role 앵커 solved 좌표의 정규화 전 원본. **자릿수 그대로 옮겨 적은 값이다** —
+ * ROLE_ANCHORS 는 toAnchorRadius 를 거치므로 무엇을 넣어도 길이가 정확히 7이
+ * 되어, 자릿수 오타를 잡으려면 이 원본을 직접 재야 한다(layout.test.ts).
+ */
+export const ROLE_ANCHOR_LITERALS: Record<RelationRole, Vec3> = {
+  move: [-1.7653, 6.2975, -2.495],
+  beside: [1.2101, 4.8569, 4.8935],
+  refine: [2.6854, -2.4885, -5.9662],
+  fill: [0.8922, -4.3054, 5.4468],
+  express: [-2.5795, -4.6397, -4.5628],
+};
+
+/**
  * Role 앵커와 소구역 삼각형의 방향.
  *
  * 좌표는 **화면 배치에서 역산했다.** 375×812 진입 화면에서 원점 깊이의 가시
@@ -38,27 +63,16 @@ const SUB_TILT = (12 * Math.PI) / 180;
  * phase 는 소구역 셋의 화면 간격이 최대가 되도록 역할마다 따로 골랐다.
  * **앵커를 옮기면 phase 도 다시 풀어야 한다** — 그냥 두면 세 소구역이 화면에서
  * 한 점으로 뭉칠 수 있다.
- *
- * 좌표를 소수 4자리로 옮겨 적은 값 그대로는 |anchor| 가 7 에서 최대 3e-5
- * 벗어난다(반올림 오차 — 예: move 의 z 는 소수 3자리로 적혀 있어 오차가 가장
- * 크다). "어떤 역할도 더 가깝지 않다"는 소수점 9자리까지 정확해야 하는
- * 보증이라, 방향은 이 숫자들 그대로 두고 길이만 ANCHOR_RADIUS 로 다시 맞춘다.
  */
-function toAnchorRadius(v: Vec3): Vec3 {
-  const l = Math.hypot(v[0], v[1], v[2]);
-  const k = ANCHOR_RADIUS / l;
-  return [v[0] * k, v[1] * k, v[2] * k];
-}
-
 export const ROLE_ANCHORS: Record<
   RelationRole,
   { readonly anchor: Vec3; readonly phase: number }
 > = {
-  move: { anchor: toAnchorRadius([-1.7653, 6.2975, -2.495]), phase: 0.4451 }, //    화면 (132, 195) 깊이 27.69
-  beside: { anchor: toAnchorRadius([1.2101, 4.8569, 4.8935]), phase: 2.6878 }, //   화면 (238, 258) 깊이 20.86
-  refine: { anchor: toAnchorRadius([2.6854, -2.4885, -5.9662]), phase: 3.8921 }, // 화면 (258, 432) 깊이 33.16
-  fill: { anchor: toAnchorRadius([0.8922, -4.3054, 5.4468]), phase: 1.2479 }, //    화면 (222, 618) 깊이 22.52
-  express: { anchor: toAnchorRadius([-2.5795, -4.6397, -4.5628]), phase: 1.946 }, // 화면 (118, 498) 깊이 32.32
+  move: { anchor: toAnchorRadius(ROLE_ANCHOR_LITERALS.move), phase: 0.4451 }, //    화면 (132, 195) 깊이 27.69
+  beside: { anchor: toAnchorRadius(ROLE_ANCHOR_LITERALS.beside), phase: 2.6878 }, //   화면 (238, 258) 깊이 20.86
+  refine: { anchor: toAnchorRadius(ROLE_ANCHOR_LITERALS.refine), phase: 3.8921 }, // 화면 (258, 432) 깊이 33.16
+  fill: { anchor: toAnchorRadius(ROLE_ANCHOR_LITERALS.fill), phase: 1.2479 }, //    화면 (222, 618) 깊이 22.52
+  express: { anchor: toAnchorRadius(ROLE_ANCHOR_LITERALS.express), phase: 1.946 }, // 화면 (118, 498) 깊이 32.32
 };
 
 /** 소구역 삼각형에서 각 상태가 차지하는 꼭짓점. */
@@ -130,20 +144,48 @@ export function subAnchor(role: RelationRole, feature: Feature): Vec3 {
   return rotate(tilted, dir, phase + (STATE_INDEX[feature] * 2 * Math.PI) / 3);
 }
 
+const dist3 = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+
 /**
- * 사람 한 명의 좌표.
+ * 같은 소구역 안에서 사람과 사람이 화면에서 겹치지 않기 위한 최소 3D 간격.
  *
- * indexInSubRegion 은 **(role, feature) 쌍 안에서** 0부터 센다. Role 안 전체
- * 순번으로 세면 한 사람이 빠졌을 때 같은 소구역의 다른 사람들이 전부 자리를 옮긴다.
+ * 3D 간격만으로는 이 문제를 놓친다 — 이 상수가 없던 때는 21명 3D 최소 간격
+ * (0.2579)은 통과했지만, 도윤(beside/none)↔가온(beside/none)이 화면에서
+ * 5.09px 로 붙어 그 깊이(≈20.9)의 코어 반경(0.075 → 3.13px)을 두 배 넘게
+ * 삼켰다. 이름표가 겹쳐 누가 누군지 읽을 수 없었다 — 앵커에서 이미 겪은
+ * "3D 로는 떨어져 있어도 화면에서는 겹친다" 함정이 한 단계 아래에서도
+ * 그대로 벌어진 것이다.
+ *
+ * 1.4 는 실측으로 고른 값이다: mock 데이터에서 화면 최소 간격(21명, 나 포함)이
+ * 18px 을 넘도록 스캔했다 — 1.30~1.33 은 아직 16px 대, 1.34 부터 23.6px 로
+ * 뛰어오르고 1.40 까지 그대로 유지된다. 1.41 이상은 express/none(SPREAD 1.15
+ * 안에 2명뿐)에서 MAX_ATTEMPTS 안에 유효한 자리를 못 찾아 실패로 되돌아간다.
+ * 그래서 1.40 을 그 안전 구간의 위쪽 끝으로 잡았다.
  */
-export function positionFor(
+const MIN_SEPARATION = 1.4;
+
+/**
+ * 재시도 상한. mock 데이터에서 가장 붐빈 칸은 4명(fill/none)이고, 그 재귀
+ * 깊이는 언제나 작다. 48 은 MIN_SEPARATION=1.4 에서 이 데이터의 모든 칸이
+ * 재시도 예산 안에 성공하는 것을 확인한 값이다(32 로는 fill/none 의 네 번째
+ * 사람이 실패해 되돌아간다).
+ */
+const MAX_ATTEMPTS = 48;
+
+/** 재시도마다 시드를 벌리는 간격. 1회차(attempt 0)는 원래 시드를 그대로 써서
+ * 재시도가 필요 없는 칸(대개 1명뿐인 六合·沖)의 좌표를 예전과 똑같이 지킨다. */
+const RETRY_STRIDE = 991;
+
+function sampleCandidate(
   role: RelationRole,
   feature: Feature,
   indexInSubRegion: number,
+  attempt: number,
 ): Vec3 {
   const center = subAnchor(role, feature);
   const spread = SPREAD[feature];
-  const s = (ROLE_INDEX[role] * 97 + STATE_INDEX[feature] * 31 + indexInSubRegion) * 7;
+  const base = (ROLE_INDEX[role] * 97 + STATE_INDEX[feature] * 31 + indexInSubRegion) * 7;
+  const s = attempt === 0 ? base : base + attempt * RETRY_STRIDE;
 
   // 구 내부 균등 분포. cbrt 없이 반지름을 균등하게 뽑으면 중심에 몰린다.
   const u = hash01(s + 1) * 2 - 1;
@@ -156,6 +198,35 @@ export function positionFor(
     center[1] + r * u,
     center[2] + r * flat * Math.sin(theta),
   ];
+}
+
+/**
+ * 사람 한 명의 좌표.
+ *
+ * indexInSubRegion 은 **(role, feature) 쌍 안에서** 0부터 센다. Role 안 전체
+ * 순번으로 세면 한 사람이 빠졌을 때 같은 소구역의 다른 사람들이 전부 자리를 옮긴다.
+ *
+ * 같은 소구역의 앞선 사람들(0..indexInSubRegion-1)과 MIN_SEPARATION 이상
+ * 떨어지지 않으면 시드를 바꿔 다시 뽑는다. "앞선 사람들"은 이 함수를 그
+ * 인덱스로 다시 부른 값이라 — 순수 함수라서 언제 불러도 같은 좌표가 나온다 —
+ * 상태를 두지 않고도 계산할 수 있다. mock 데이터에서 가장 붐빈 칸이 4명이라
+ * 재귀는 항상 얕다. MAX_ATTEMPTS 를 다 써도 못 찾으면 마지막 후보를 그대로
+ * 쓴다 — 이 함수는 항상 끝나야 한다.
+ */
+export function positionFor(
+  role: RelationRole,
+  feature: Feature,
+  indexInSubRegion: number,
+): Vec3 {
+  const earlier: Vec3[] = [];
+  for (let j = 0; j < indexInSubRegion; j++) earlier.push(positionFor(role, feature, j));
+  const farEnough = (p: Vec3) => earlier.every((o) => dist3(p, o) >= MIN_SEPARATION);
+
+  let candidate = sampleCandidate(role, feature, indexInSubRegion, 0);
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS && !farEnough(candidate); attempt++) {
+    candidate = sampleCandidate(role, feature, indexInSubRegion, attempt);
+  }
+  return candidate;
 }
 
 /**

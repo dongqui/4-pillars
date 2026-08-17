@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { FRIENDS } from "../_data/mock-people";
-import { ROLE_ORDER, type Feature, type RelationRole } from "../_data/roles";
+import { ROLE_ORDER, type Feature } from "../_data/roles";
 import {
   CAMERA_FOV,
   CAMERA_LIMITS,
@@ -10,6 +10,7 @@ import {
 } from "./camera";
 import {
   ANCHOR_RADIUS,
+  ROLE_ANCHOR_LITERALS,
   ROLE_ANCHORS,
   SELF_POSITION,
   SPREAD,
@@ -30,9 +31,14 @@ describe("Role 앵커", () => {
     for (const role of ROLE_ORDER) expect(ROLE_ANCHORS[role]).toBeDefined();
   });
 
-  it("모든 앵커가 나로부터 등거리다 — 어떤 역할도 '더 가깝다'가 되면 안 된다", () => {
+  it("옮겨 적은 원본 좌표가 |v|=7 에서 크게 벗어나지 않는다 — 자릿수 오타를 잡는다", () => {
+    // ROLE_ANCHORS[role].anchor 자체는 toAnchorRadius 를 거치므로 무엇을
+    // 넣어도 길이가 정확히 7이 된다 — 그 값으로 "등거리"를 검사하면 리터럴이
+    // 무엇이든 항상 통과하는 공허한 테스트가 된다(실제로 그랬다: junk 벡터로
+    // 확인됨). 대신 정규화 전 원본 리터럴을 직접 재서, 값 하나를 통째로
+    // 잘못 옮겨 적는 실수를 잡는다. 실측 최대 편차는 3.2e-5(refine) 다.
     for (const role of ROLE_ORDER) {
-      expect(len(ROLE_ANCHORS[role].anchor), role).toBeCloseTo(ANCHOR_RADIUS, 9);
+      expect(Math.abs(len(ROLE_ANCHOR_LITERALS[role]) - ANCHOR_RADIUS), role).toBeLessThan(1e-4);
     }
   });
 
@@ -138,12 +144,14 @@ describe("placePeople", () => {
   });
 
   it("두 사람이 같은 자리에 겹치지 않는다", () => {
-    // 나까지 포함한 21명의 실측 최소 간격은 0.2579 (가온 ↔ 예린) 다.
-    // 하한 0.2 는 그보다 낮되 진짜 충돌은 잡는 값이다.
+    // 나까지 포함한 21명의 실측 최소 3D 간격은 1.4023 (나윤 ↔ 건우, 둘 다
+    // express/none) 이다 — positionFor 의 MIN_SEPARATION(1.4) 재시도가 이
+    // 하한을 만든다. 하한 1.2 는 그보다 낮되 진짜 충돌(재시도가 실패해
+    // MIN_SEPARATION 밑으로 되돌아가는 경우)은 잡는 값이다.
     const placed = [...placePeople(FRIENDS).values(), SELF_POSITION];
     for (let i = 0; i < placed.length; i++) {
       for (let j = i + 1; j < placed.length; j++) {
-        expect(dist(placed[i], placed[j])).toBeGreaterThan(0.2);
+        expect(dist(placed[i], placed[j])).toBeGreaterThan(1.2);
       }
     }
   });
@@ -151,14 +159,20 @@ describe("placePeople", () => {
   it("15칸 각각에 인원수만큼의 좌표가 생긴다 — 빈 칸에는 0개다", () => {
     // 관성 沖 은 목 데이터에서 비어 있다(15구역 중 유일한 0명 칸). 그 칸에
     // 유령 좌표가 생기지 않는 것이 "빈 소구역은 아무것도 그리지 않는다"의
-    // 근거다. 목 데이터만 세는 단언은 placePeople 을 전혀 검사하지 못하므로,
-    // 실제 출력 좌표를 소구역별로 되짚어 센다.
+    // 근거다.
+    //
+    // expected.filter(p => placed.has(p.id)).length 를 expected.length 와
+    // 비교하는 방식은 빈 칸에서 늘 expected = [] 라 공허하게 참이 되어
+    // 아무것도 증명하지 못한다 — 유령 좌표가 있든 없든 통과한다. 대신
+    // placePeople 의 출력 크기와 key 집합을 입력 전체와 통째로 비교한다:
+    // 유령 좌표가 하나라도 생기면 size 가 늘거나 key 집합에 없는 id 가 섞인다.
     const placed = placePeople(FRIENDS);
+    expect(placed.size).toBe(FRIENDS.length);
+    expect(new Set(placed.keys())).toEqual(new Set(FRIENDS.map((p) => p.id)));
+
     for (const role of ROLE_ORDER) {
       for (const feature of FEATURES) {
         const expected = FRIENDS.filter((p) => p.role === role && p.feature === feature);
-        const actual = expected.filter((p) => placed.has(p.id));
-        expect(actual, `${role}/${feature}`).toHaveLength(expected.length);
         // 그 칸의 좌표들은 전부 그 칸의 중심 주변에 있어야 한다 — 인덱스가
         // 엇갈리면 사람이 남의 소구역에 놓인다.
         for (const p of expected) {
@@ -291,6 +305,23 @@ describe("진입 프레이밍 — 다섯 구역이 전부 보인다", () => {
       const [a, b, c] = FEATURES.map((f) => subAnchor(role, f) as V3);
       for (const d of [screenDist(a, b), screenDist(a, c), screenDist(b, c)]) {
         expect(d, role).toBeGreaterThan(40);
+      }
+    }
+  });
+
+  it("사람 간 화면 거리가 18px 이상이다 — 이름표가 겹치지 않는다", () => {
+    // 앵커(100px)·소구역(40px) 은 지키는데 사람과 사람은 지키지 않던 문턱이다.
+    // 실측: positionFor 에 MIN_SEPARATION 재시도가 없던 때는 도윤↔가온
+    // (둘 다 beside/none)이 5.09px 로 붙어, 그 깊이(≈20.9)에서 CORE_RADIUS
+    // (0.075)가 만드는 반지름 3.13px 를 두 배 넘게 삼켰다 — 이름표가 겹쳐
+    // 누가 누군지 읽을 수 없었다. 3D 최소 간격(그때 0.2579)은 통과했다 —
+    // 앵커에서 겪은 "3D 로는 떨어져 있어도 화면에서는 겹친다"가 사람 단위에서
+    // 그대로 재현된 것이다.
+    // 지금 실측 최소는 23.62px(지현 ↔ 태호, 둘 다 fill/none, 깊이 ≈22.5) 다.
+    const placed = [...placePeople(FRIENDS).values(), SELF_POSITION].map((p) => p as V3);
+    for (let i = 0; i < placed.length; i++) {
+      for (let j = i + 1; j < placed.length; j++) {
+        expect(screenDist(placed[i], placed[j])).toBeGreaterThan(18);
       }
     }
   });
