@@ -39,41 +39,34 @@ const ROLE_SEED: Record<RelationRole, number> = {
 };
 
 // ---------------------------------------------------------------------------
-// Field 지오메트리 — 렌더링 컴포넌트와 positionFor 가 반드시 같은 값을 봐야
-// 한다. 여기 한 곳에서만 정의하고 양쪽이 import 해서 쓴다. 값이 두 곳에 따로
-// 있으면(리터럴 복붙) 한쪽만 고쳤을 때 사람이 도형에서 어긋나도 아무 테스트도
-// 잡아내지 못한다 — 그게 이 상수들을 여기로 옮긴 이유다.
+// Field 지오메트리 — 한때 _components/fields/(BesideLayers.tsx, RefineShards.tsx,
+// ExpressRays.tsx, MoveRibbons.tsx, FillVolume.tsx 등)가 렌더링에 쓰던 값과
+// 반드시 일치해야 했던 상수들이다. 그 디렉터리는 통째로 삭제됐다(Field
+// 오브젝트를 사람 Node 로 대체) — 지금 이 상수들이 하는 일은 오직
+// positionFor 의 배치 계산뿐이다. 사람이 각 Field 의 형태(층·격자·광선·
+// 리본·껍질)를 따라 놓이도록 결정하는 값이지, 더 이상 다른 파일과 값을
+// 맞춰야 할 이유는 없다.
 //
 // 좌표는 전부 **Field 로컬 절대 좌표**다(이미 extent 가 곱해져 있다). 소비자가
 // 다시 extent 를 곱하면 안 된다 — 한쪽만 곱하는 실수를 애초에 못 하게 하려고
 // 이렇게 둔다.
 //
-// _components/ 는 이 모듈을 import 하지만 이 모듈은 _components/ 를 import
-// 하지 않는다(순환 방지). layout.ts 는 vitest 가 environment:"node" 로
-// 돌리므로 React/three/DOM import 를 들이면 안 된다 — 숫자만 놓는다.
-// three 가 필요한 파생값(CatmullRom 곡선, 페이드 반지름)은
-// _components/fields/geometry.ts 가 이 상수들로부터 만든다.
+// layout.ts 는 vitest 가 environment:"node" 로 돌리므로 React/three/DOM
+// import 를 들이면 안 된다 — 숫자만 놓는다.
 
-/** FillVolume.tsx 의 동심 셸 반지름 배율(× extent). */
-export const FILL_SHELLS: readonly number[] = [1.0, 1.34, 1.72];
-
-/** BesideLayers.tsx 의 LAYERS. 평행 층 4개의 로컬 y 위치(× extent). */
+/** positionFor("beside") 가 사람을 앉히는 평행 층 4개의 로컬 y 위치(× extent). */
 export const BESIDE_LAYERS: readonly number[] = [-0.72, -0.24, 0.24, 0.72];
 
-/** BesideLayers.tsx 의 group rotation={[0, 0, BESIDE_TILT]}. Z축 기울기(rad). */
+/** positionFor("beside") 가 평면을 눕히는 Z축 기울기(rad). */
 export const BESIDE_TILT = 0.16;
 
-/** BesideLayers.tsx 의 planeGeometry 한 변(월드 단위). 짧은 변은 × ASPECT. */
-export const BESIDE_PLANE_SPAN = FIELD_EXTENT.beside * 2.6;
-export const BESIDE_PLANE_ASPECT = 0.62;
-
-/** RefineShards.tsx 의 step = extent * REFINE_GRID_STEP. */
+/** positionFor("refine") 격자 간격의 배율(× extent). REFINE_SHARDS 의 조각 배치와 사람이 앉는 반칸 자리 둘 다 이 값에서 나온다. */
 export const REFINE_GRID_STEP = 0.85;
 
-/** RefineShards.tsx 의 y = ... * REFINE_Y_COMPRESSION. */
+/** positionFor("refine") 이 y 축 격자 간격에 곱하는 압축 배율. */
 export const REFINE_Y_COMPRESSION = 0.8;
 
-/** RefineShards.tsx 의 지터 폭(× extent). 격자 간격의 8% 이내. */
+/** REFINE_SHARDS 조각 위치에 주는 지터 폭(× extent). 격자 간격의 8% 이내. */
 const REFINE_JITTER = 0.068;
 
 export type Shard = {
@@ -83,9 +76,11 @@ export type Shard = {
 };
 
 /**
- * RefineShards.tsx 가 그리는 26개 조각(3×3×3 에서 중심 제외).
- * positionFor("refine") 이 사람을 조각 **안에** 넣지 않으려면 같은 배열을 봐야
- * 한다 — 예전엔 컴포넌트에만 있어서 사람 둘이 조각 속에 파묻혀 있었다.
+ * 26개 조각(3×3×3 격자에서 중심 제외)의 위치·크기·회전.
+ * positionFor("refine") 이 사람을 조각 **안에** 넣지 않으려고 이 배열과의
+ * 거리를 검사한다 — 렌더링 컴포넌트가 없어진 지금은 이 배열 자체가 "조각이
+ * 어디 있는가"의 유일한 정의다. 예전엔 이 계산이 컴포넌트에만 있어서 사람
+ * 둘이 조각 속에 파묻혀 있었다.
  */
 export const REFINE_SHARDS: readonly Shard[] = (() => {
   const extent = FIELD_EXTENT.refine;
@@ -119,16 +114,18 @@ export const REFINE_MAX_SHARD_RADIUS = REFINE_SHARDS.reduce(
   0,
 );
 
-export const EXPRESS_RAY_COUNT = 9;
-/** ExpressRays.tsx 의 planeGeometry 폭(월드 단위). 반폭은 이 값의 절반. */
+const EXPRESS_RAY_COUNT = 9;
+/** positionFor("express") 이 사람을 광선 축에서 벗어나게 둘 수 있는 폭(월드 단위). 반폭은 이 값의 절반. */
 export const EXPRESS_RAY_WIDTH = FIELD_EXTENT.express * 0.42;
 
 export type Ray = { readonly dir: Vec3; readonly len: number; readonly phase: number };
 
 /**
- * ExpressRays.tsx 가 그리는 9가닥의 방향·길이.
+ * 9가닥 광선의 방향·길이.
  * positionFor("express") 은 이 방향을 따라 사람을 놓는다 — 예전엔 방향을 따로
- * hash 해서 사람이 광선에서 최대 1.53 떨어져 허공에 떠 있었다.
+ * hash 해서 사람이 광선에서 최대 1.53 떨어져 허공에 떠 있었다. 렌더링
+ * 컴포넌트가 없어진 지금은 이 배열 자체가 "광선이 어디로 뻗는가"의 유일한
+ * 정의다.
  */
 export const EXPRESS_RAYS: readonly Ray[] = Array.from(
   { length: EXPRESS_RAY_COUNT },
@@ -145,12 +142,12 @@ export const EXPRESS_RAYS: readonly Ray[] = Array.from(
   },
 );
 
-export const MOVE_RIBBON_COUNT = 3;
-/** MoveRibbons.tsx 의 TubeGeometry 반지름(월드 단위). */
+const MOVE_RIBBON_COUNT = 3;
+/** positionFor("move") 이 리본 튜브 속에 사람이 파묻히지 않았는지 확인하는 반지름 기준(월드 단위). */
 export const MOVE_TUBE_RADIUS = FIELD_EXTENT.move * 0.055;
 
 /**
- * MoveRibbons.tsx 의 CatmullRom 제어점 3가닥 × 6점.
+ * 리본 3가닥 × 6점의 CatmullRom 제어점.
  * Catmull-Rom 은 제어점을 **정확히 지나가므로**, 여기 있는 점 자체가 곧 곡선
  * 위의 점이다 — positionFor("move") 은 그래서 three 없이도 리본 위에 사람을
  * 놓을 수 있고, layout.test.ts 도 three 없이 그것을 증명할 수 있다.
@@ -172,7 +169,7 @@ export const MOVE_RIBBONS: readonly (readonly Vec3[])[] = Array.from(
 );
 
 /** dir 에 수직인 단위벡터. seed 로 수직 평면 안의 각도를 돌린다. */
-export function perpendicularTo(dir: Vec3, seed: number): Vec3 {
+function perpendicularTo(dir: Vec3, seed: number): Vec3 {
   const helper: Vec3 = Math.abs(dir[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
   const ax = cross(dir, helper);
   const a = normalize(ax);
@@ -224,12 +221,12 @@ export function positionFor(role: RelationRole, indexInRole: number): Vec3 {
     case "beside": {
       // 평행 층: 층 사이에 앉힌다. y 는 층 위치에 스냅한다.
       //
-      // BesideLayers.tsx 는 네 평면을 만든 뒤 group 전체를 Z축으로
-      // BESIDE_TILT 만큼 기울인다(<group rotation={[0,0,BESIDE_TILT]}>).
-      // 여기서 (x, tier*extent) 를 회전 없이 그대로 center 에 더하면 평면의
-      // '기울기 전' 로컬 좌표를 '기울어진 뒤' 월드 좌표인 것처럼 쓰는 셈이라,
-      // 사람이 실제 평면에서 최대 0.22 만큼 어긋난다. 같은 Z축 회전을 여기서도
-      // 적용해야 사람이 진짜 평면 위에 눕는다.
+      // "평행 층"의 실제 모양은 로컬 y = tier*extent 에 놓인 넉 장의 평면을
+      // Z축으로 BESIDE_TILT 만큼 기울인 것이다. (x, tier*extent) 를 회전 없이
+      // 그대로 center 에 더하면 '기울기 전' 로컬 좌표를 '기울어진 뒤' 월드
+      // 좌표인 것처럼 쓰는 셈이라, 사람이 실제 평면에서 최대 0.22 만큼
+      // 어긋난다. 같은 Z축 회전을 여기서도 적용해야 사람이 진짜 평면 위에
+      // 눕는다.
       const tier = BESIDE_LAYERS[indexInRole % BESIDE_LAYERS.length];
       const x = (hash01(s * 3 + 1) * 2 - 1) * extent * 1.15;
       const y = tier * extent;

@@ -45,5 +45,5 @@ export const FRIENDS: readonly MockPerson[] = [
 
   // 나를 다듬는 사람 · 2
   { id: "f19", name: "다인", pillarKey: "을사", sceneName: "모닥불 곁의 들꽃", role: "refine", feature: "yukhap" },
-  { id: "f20", name: "현수", pillarKey: "갑자", sceneName: "깊은 물가의 큰나무", role: "refine", feature: "none" },
+  { id: "f20", name: "현수", pillarKey: "경오", sceneName: "한낮의 무쇠", role: "refine", feature: "none" },
 ];

@@ -140,4 +140,10 @@ describe("paletteFor", () => {
       expect(() => paletteFor(p.pillarKey), p.name).not.toThrow();
     }
   });
+
+  it("mock 21명의 색이 서로 다르다 — 스파이크의 판단 대상이 색이라 중복은 판단을 오염시킨다", () => {
+    const people = [SELF, ...FRIENDS];
+    const cores = people.map((p) => paletteFor(p.pillarKey).core);
+    expect(new Set(cores).size).toBe(people.length);
+  });
 });
