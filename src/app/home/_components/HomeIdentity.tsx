@@ -18,11 +18,10 @@ interface Props {
 const ADD_HREF = "/funnel?step=name";
 
 /**
- * 아직 계정이 없는 사람의 리포트 진입점. 리포트는 실제 데이터를 계정에 붙여 놓고
- * 보여주므로 로그인이 필요하다 — 로그인하는 순간 드래프트가 프로필로 올라가고
- * 입력을 다시 받지 않는다.
+ * 아직 계정이 없는 사람의 리포트. 로그인을 먼저 시키지 않는다 — 무료 섹션은 드래프트의
+ * 실데이터로 그대로 보여주고, 잠긴 섹션의 CTA 가 로그인(=드래프트 승격) → 결제로 이어진다.
  */
-const REPORT_NEEDS_LOGIN = "/login";
+const DRAFT_REPORT_HREF = "/report";
 
 /**
  * 프로필 셀렉터 + 캐릭터 카드 + 탐색 그리드.
@@ -225,9 +224,8 @@ export function HomeIdentity({ entries, canAdd }: Props) {
 
       <ExploreGrid
         reportHref={
-          active.profileId ? `/report?profile=${active.profileId}` : REPORT_NEEDS_LOGIN
+          active.profileId ? `/report?profile=${active.profileId}` : DRAFT_REPORT_HREF
         }
-        saved={active.profileId !== null}
       />
     </>
   );

@@ -1,6 +1,6 @@
 import type { BirthInput } from "@/lib/saju-core";
-import type { ProfileRow } from "@/lib/profiles/store";
 import { findRegion, type Country } from "@/lib/regions";
+import type { ReportSubject } from "./subject";
 
 /** ProfileRow.birthPlace.country 는 DB 에서 온 string 이라 좁혀서 쓴다. */
 function toCountry(v: string): Country | null {
@@ -11,7 +11,7 @@ function toCountry(v: string): Country | null {
  * 저장된 프로필을 사주 계산 입력으로 되돌린다.
  * 퍼널의 toBirthInput(FunnelData 기준)과 나란한 자리 — 이쪽은 DB 행 기준이다.
  */
-export function toBirthInput(profile: ProfileRow): BirthInput {
+export function toBirthInput(profile: ReportSubject): BirthInput {
   const { birth, time, birthPlace } = profile;
   const country = birthPlace ? toCountry(birthPlace.country) : null;
 

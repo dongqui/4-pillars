@@ -1,5 +1,5 @@
 import type { Chart } from "@/lib/saju-core";
-import type { ProfileRow } from "@/lib/profiles/store";
+import type { ReportSubject } from "./subject";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -12,7 +12,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
  * chart 를 받는 이유는 일주 하나다.
  */
 export function toReportMeta(
-  profile: ProfileRow,
+  profile: ReportSubject,
   chart: Chart,
 ): { name: string; birthLine: string } {
   const { year, month, day } = profile.birth;

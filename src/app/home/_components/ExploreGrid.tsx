@@ -1,9 +1,8 @@
 import Link from "next/link";
 
 interface Props {
-  /** 저장된 프로필이면 그 리포트로, 아니면 프로필을 만드는 퍼널로 */
+  /** 저장된 프로필이면 그 리포트로, 아직 계정이 없으면 드래프트 리포트(/report)로 */
   reportHref: string;
-  saved: boolean;
 }
 
 const CARD =
@@ -24,7 +23,7 @@ function Dot({ size, style }: { size: number; style: string }) {
   );
 }
 
-export function ExploreGrid({ reportHref, saved }: Props) {
+export function ExploreGrid({ reportHref }: Props) {
   return (
     <section className="mx-auto max-w-[780px] px-5 pb-9 pt-5 md:px-8 md:pb-[52px] md:pt-[26px]">
       <div className="mb-[11px] text-[14.5px] font-bold tracking-[-0.02em]">이어서 살펴보기</div>
@@ -34,8 +33,7 @@ export function ExploreGrid({ reportHref, saved }: Props) {
           <div className={EYEBROW}>나를 더 깊이</div>
           <div className={TITLE}>리포트</div>
           <p className={DESC}>기질과 사고방식, 감정의 결까지 더 깊이 살펴보세요.</p>
-          {/* 입력은 이미 다 받았다. 저장 전이면 계정에 붙이는 일만 남는다 */}
-          <span className={CTA}>{saved ? "리포트 보기 →" : "로그인하고 리포트 보기 →"}</span>
+          <span className={CTA}>리포트 보기 →</span>
         </Link>
 
         <Link href="/map" className={CARD}>
