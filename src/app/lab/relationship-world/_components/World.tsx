@@ -2,12 +2,10 @@
 
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import { ROLE_ORDER } from "../_data/roles";
 import { FRIENDS } from "../_data/mock-people";
 import { placePeople } from "../_lib/layout";
 import { Starfield } from "./Starfield";
 import { SelfCore } from "./SelfCore";
-import { FieldRegistry } from "./fields/FieldRegistry";
 import { PersonMarker } from "./PersonMarker";
 import { CameraRig } from "./CameraRig";
 import { RelationThread } from "./RelationThread";
@@ -46,9 +44,6 @@ export function World({
       */}
       <fog attach="fog" args={["#0F172A", 35.8, 104]} />
 
-      <ambientLight intensity={0.35} />
-      <directionalLight position={[6, 8, 6]} intensity={0.5} />
-
       <CameraRig
         mode={mode}
         resetSignal={resetSignal}
@@ -58,14 +53,10 @@ export function World({
       <Starfield />
       <SelfCore />
 
-      {ROLE_ORDER.map((role) => (
-        <FieldRegistry key={role} role={role} dimmed={selected !== null && selected.role !== role} />
-      ))}
-
       {/*
-        dim 은 '다른 성운'에만 건다. 같은 성운 사람까지 흐리면 boosted 로 한 단계
-        올린 명패가 0.28 로 흐려진 채 커지기만 해서, 선택했을 때 오히려 더
-        어지럽고 덜 읽힌다 — 설계 7절이 노린 것의 정반대다.
+        dim 은 '다른 role 그룹'에만 건다. 같은 그룹 사람까지 흐리면 boosted 로 한
+        단계 올린 명패가 흐려진 채 커지기만 해서, 선택했을 때 오히려 더 어지럽고
+        덜 읽힌다.
       */}
       {FRIENDS.map((person) => (
         <PersonMarker
