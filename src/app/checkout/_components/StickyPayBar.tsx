@@ -1,5 +1,5 @@
 "use client";
-import { FULL_REPORT_PRICE, formatKrw } from "../_lib/pricing";
+import { formatKrw } from "../_lib/pricing";
 import { PayButton } from "./PayButton";
 
 /**
@@ -7,10 +7,12 @@ import { PayButton } from "./PayButton";
  * 결제 버튼이 화면 밖에 있게 된다.
  */
 export function StickyPayBar({
+  amount,
   agreed,
   pending,
   onPay,
 }: {
+  amount: number;
   agreed: boolean;
   pending: boolean;
   onPay: () => void;
@@ -21,7 +23,7 @@ export function StickyPayBar({
         <div className="flex-none">
           <div className="text-[11.5px] font-semibold text-slate-400">최종 결제 금액</div>
           <div className="text-xl leading-tight font-bold tracking-[-0.03em]">
-            {formatKrw(FULL_REPORT_PRICE.total)}
+            {formatKrw(amount)}
           </div>
         </div>
         <PayButton

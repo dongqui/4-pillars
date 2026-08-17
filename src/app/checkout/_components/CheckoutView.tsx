@@ -2,9 +2,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PAYMENT_METHODS, type PaymentMethodId } from "../_lib/methods";
-import type { OrderTarget } from "../_lib/to-order";
+import type { TicketPackage, TicketPackageId } from "../_lib/pricing";
 import { usePayment } from "../_hooks/use-payment";
 import { PaymentMethodList } from "./PaymentMethodList";
+import { PackagePicker } from "./PackagePicker";
 import { OrderSummary } from "./OrderSummary";
 import { StickyPayBar } from "./StickyPayBar";
 
@@ -16,39 +17,49 @@ import { StickyPayBar } from "./StickyPayBar";
  * 폭을 JS 로 재면 서버가 그린 첫 화면이 데스크톱으로 나왔다가 마운트 후 튄다.
  */
 export function CheckoutView({
-  profileId,
-  target,
+  next,
+  balance,
+  packages,
   available,
 }: {
-  profileId: string;
-  target: OrderTarget;
+  next: string;
+  balance: number;
+  packages: TicketPackage[];
   available: PaymentMethodId[];
 }) {
   // 화면 순서는 PAYMENT_METHODS 가, 사용 가능 여부는 서버가 정한다.
   const methods = PAYMENT_METHODS.filter((m) => available.includes(m.id));
   const [method, setMethod] = useState<PaymentMethodId>(methods[0]?.id ?? "card");
+  // 기본 선택은 가운데 패키지다 — 첫 항목을 고르면 가장 싼 것만 팔린다.
+  const [packageId, setPackageId] = useState<TicketPackageId>(
+    packages[Math.floor(packages.length / 2)]?.id ?? packages[0].id,
+  );
   const [agreed, setAgreed] = useState(false);
-  const { pay, status, error } = usePayment(profileId);
+  const { pay, status, error } = usePayment(next);
   const pending = status === "pending";
   const ready = methods.length > 0;
+
+  const pkg = packages.find((p) => p.id === packageId) ?? packages[0];
 
   return (
     <>
       <main className="mx-auto w-full max-w-[1040px] px-4 pt-6 pb-[132px] sm:px-6 sm:pt-[clamp(32px,5vw,56px)] sm:pb-[120px]">
         <div className="mb-[clamp(22px,4vw,32px)]">
           <Link
-            href={`/report?profile=${profileId}`}
+            href={next}
             className="mb-3 inline-block text-[13.5px] font-semibold text-slate-400 hover:text-slate-600"
           >
-            ← 리포트로 돌아가기
+            ← 돌아가기
           </Link>
           <h1 className="m-0 text-[clamp(24px,5vw,34px)] font-bold tracking-[-0.035em]">
-            결제하기
+            이용권 충전
           </h1>
+          <p className="mt-2 mb-0 text-[14px] text-slate-400">지금 {balance}장 있어요</p>
         </div>
 
         <div className="grid grid-cols-1 items-start gap-5 min-[900px]:grid-cols-[minmax(0,1fr)_348px]">
           <div className="flex flex-col gap-5">
+            <PackagePicker packages={packages} selected={packageId} onSelect={setPackageId} />
             {ready ? (
               <PaymentMethodList methods={methods} selected={method} onSelect={setMethod} />
             ) : (
@@ -67,16 +78,17 @@ export function CheckoutView({
 
           <aside className="min-[900px]:sticky min-[900px]:top-6">
             <OrderSummary
-              target={target}
+              pkg={pkg}
+              balance={balance}
               agreed={agreed}
               canPay={agreed && ready}
               pending={pending}
               onToggleAgree={() => setAgreed((v) => !v)}
-              onPay={() => pay(method)}
+              onPay={() => pay(packageId, method)}
             />
             <p className="mt-3.5 mr-1 ml-1 text-[12.5px] leading-[1.6] text-slate-300 [text-wrap:pretty]">
-              디지털 콘텐츠 특성상 리포트 열람 후에는 환불이 불가합니다. 열람 전 7일 내 전액 환불
-              가능합니다.
+              사용하지 않은 이용권은 결제일로부터 7일 내 전액 환불 가능합니다. 이미 사용한
+              이용권은 환불되지 않습니다.
             </p>
           </aside>
         </div>
@@ -90,7 +102,12 @@ export function CheckoutView({
           {error}
         </p>
       )}
-      <StickyPayBar agreed={agreed && ready} pending={pending} onPay={() => pay(method)} />
+      <StickyPayBar
+        amount={pkg.amount}
+        agreed={agreed && ready}
+        pending={pending}
+        onPay={() => pay(packageId, method)}
+      />
     </>
   );
 }

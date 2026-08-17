@@ -1,18 +1,20 @@
 "use client";
-import { FULL_REPORT_PRICE, formatKrw, formatKrwDiscount } from "../_lib/pricing";
-import type { OrderTarget } from "../_lib/to-order";
+import { creditedTickets, formatKrw, type TicketPackage } from "../_lib/pricing";
 import { LockGlyph } from "./LockGlyph";
 import { PayButton } from "./PayButton";
 
 export function OrderSummary({
-  target,
+  pkg,
+  balance,
   agreed,
   canPay,
   pending,
   onToggleAgree,
   onPay,
 }: {
-  target: OrderTarget;
+  pkg: TicketPackage;
+  /** 충전 전 잔액. 충전 뒤 얼마가 되는지 보여 주려고 받는다. */
+  balance: number;
   /** 체크박스가 그대로 반영하는 값. 결제수단이 0개여도 동의 자체는 눈에 보여야 한다. */
   agreed: boolean;
   /** 결제 버튼 활성화 조건 — agreed && ready. 체크박스에는 쓰지 않는다. */
@@ -21,41 +23,33 @@ export function OrderSummary({
   onToggleAgree: () => void;
   onPay: () => void;
 }) {
+  const credited = creditedTickets(pkg);
+
   return (
     <div className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-[0_1px_3px_rgba(17,24,39,.04)]">
       <div className="px-[18px] pt-5 pb-[18px] sm:px-6 sm:pt-[22px] sm:pb-5">
         <h2 className="m-0 mb-4 text-[15px] font-bold tracking-[-0.01em]">주문 내역</h2>
 
-        <div className="flex items-center gap-[13px] border-b border-slate-100 pb-[18px]">
-          <span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-accent/10 text-base font-bold text-accent">
-            {target.initial}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[15px] font-semibold tracking-[-0.01em]">
-              사주 전체 리포트
-            </span>
-            <span className="mt-0.5 block text-[13px] text-slate-400">{target.label}</span>
-          </span>
-        </div>
-
-        <div className="flex flex-col gap-2.5 border-b border-slate-100 py-[18px]">
+        <div className="flex flex-col gap-2.5 border-b border-slate-100 pb-[18px]">
           <div className="flex justify-between text-sm">
-            <span className="text-slate-500">리포트 12개 섹션</span>
-            <span className="font-semibold">{formatKrw(FULL_REPORT_PRICE.list)}</span>
+            <span className="text-slate-500">이용권 {pkg.tickets}장</span>
+            <span className="font-semibold">{formatKrw(pkg.amount)}</span>
           </div>
+          {pkg.bonus > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">묶음 보너스</span>
+              <span className="font-semibold text-accent">+{pkg.bonus}장</span>
+            </div>
+          )}
           <div className="flex justify-between text-sm">
-            <span className="text-slate-500">첫 리포트 할인</span>
-            <span className="font-semibold text-red-600">
-              {formatKrwDiscount(FULL_REPORT_PRICE.discount)}
-            </span>
+            <span className="text-slate-500">충전 후 잔액</span>
+            <span className="font-semibold">{balance + credited}장</span>
           </div>
         </div>
 
         <div className="flex items-baseline justify-between pt-[18px]">
           <span className="text-[15px] font-bold">최종 결제 금액</span>
-          <span className="text-2xl font-bold tracking-[-0.03em]">
-            {formatKrw(FULL_REPORT_PRICE.total)}
-          </span>
+          <span className="text-2xl font-bold tracking-[-0.03em]">{formatKrw(pkg.amount)}</span>
         </div>
       </div>
 
@@ -104,7 +98,7 @@ export function OrderSummary({
           agreed={canPay}
           pending={pending}
           onPay={onPay}
-          label={`${formatKrw(FULL_REPORT_PRICE.total)} 결제하기`}
+          label={`${formatKrw(pkg.amount)} 결제하기`}
           className="hidden w-full shadow-[0_12px_24px_-12px_rgba(37,99,235,.7)] disabled:shadow-none sm:block"
         />
 

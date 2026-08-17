@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import * as PortOne from "@portone/browser-sdk/v2";
 import type { PaymentMethodId } from "../_lib/methods";
+import type { TicketPackageId } from "../_lib/pricing";
 import type { OrderResponse } from "@/lib/payments/order";
 
 export type PaymentStatus = "idle" | "pending";
@@ -22,24 +23,25 @@ async function postJson(url: string, body: unknown): Promise<unknown> {
 }
 
 /**
- * 결제 시작. 주문 생성 → 결제창 → 완료 확정 → 리포트.
+ * 결제 시작. 주문 생성 → 결제창 → 완료 확정 → 원래 자리.
  *
  * 금액·상품명을 여기서 만들지 않는다 — 전부 주문 생성 응답에서 온다.
- * 브라우저가 정할 수 있는 값은 "어느 프로필을 어느 수단으로" 뿐이다.
+ * 브라우저가 정할 수 있는 값은 "어느 패키지를 어느 수단으로" 뿐이다.
  */
-export function usePayment(profileId: string) {
+export function usePayment(next: string) {
   const router = useRouter();
   const [status, setStatus] = useState<PaymentStatus>("idle");
   const [error, setError] = useState<string | null>(null);
 
   const pay = useCallback(
-    async (method: PaymentMethodId) => {
+    async (packageId: TicketPackageId, method: PaymentMethodId) => {
       setStatus("pending");
       setError(null);
       try {
         const order = (await postJson("/api/payments/orders", {
-          profileId,
+          packageId,
           method,
+          next,
         })) as OrderResponse;
 
         // 공통 값과 판별자를 나눈다 — 우리 OrderResponse 가 payMethod 로 갈라지는
@@ -74,15 +76,15 @@ export function usePayment(profileId: string) {
         if (res?.code != null) throw new Error(res.message ?? "결제가 취소되었습니다");
 
         await postJson("/api/payments/complete", { paymentId: order.paymentId });
-        // replace 인 이유: 뒤로 가기로 결제 화면에 돌아오면 이미 결제된 프로필이라
-        // /checkout 가드가 다시 리포트로 튕긴다 — 히스토리에 남길 이유가 없다.
-        router.replace(`/report?profile=${profileId}`);
+        // replace 인 이유: 뒤로 가기로 충전 화면에 돌아와도 이미 충전이 끝나 있어
+        // 히스토리에 남길 이유가 없다.
+        router.replace(next);
       } catch (e) {
         setError(e instanceof Error ? e.message : "결제를 진행하지 못했습니다");
         setStatus("idle");
       }
     },
-    [profileId, router],
+    [next, router],
   );
 
   return { pay, status, error };
