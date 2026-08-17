@@ -26,6 +26,7 @@ export function World({
   // ConnectionLines 는 이 배열이 바뀔 때만 지오메트리를 다시 만든다. placed 가
   // 고정이므로 이것도 고정이다 — 선택을 바꿔도 재생성되지 않는다.
   const targets = useMemo(() => FRIENDS.map((p) => placed.get(p.id)!), [placed]);
+  const roles = useMemo(() => FRIENDS.map((p) => p.role), []);
   const selected = FRIENDS.find((p) => p.id === selectedId) ?? null;
 
   return (
@@ -57,7 +58,7 @@ export function World({
         나와 모든 사람을 잇는 기본 구조선. 선택했을 때만 뜨는 RelationThread 와
         역할이 다르다 — 이건 항상 떠 있고, 전원에게 완전히 동일하다.
       */}
-      <ConnectionLines targets={targets} />
+      <ConnectionLines targets={targets} roles={roles} />
       <SelfCore />
 
       {/*
