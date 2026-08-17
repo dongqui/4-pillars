@@ -94,13 +94,13 @@ export function hslToHex({ h, s, l }: Hsl): string {
 
 - [ ] **Step 2: `saju-colors.ts` 가 그것을 쓰게 한다**
 
-`saju-colors.ts` 에서 지역 `hslToHex` 함수 정의(64-76행)와 지역 `type Hsl` 정의를 지우고, 맨 위에 import 를 추가한다:
+`saju-colors.ts` 에서 지역 `hslToHex` 함수 정의(64-76행)와 지역 `type Hsl` 정의(20행)를 지우고, 맨 위에 import 를 추가한다:
 
 ```ts
 import { hslToHex, type Hsl } from "./hsl";
 ```
 
-`Hsl` 이 `saju-colors.ts` 안에서 export 되고 있었다면 `export type { Hsl } from "./hsl";` 로 재수출한다. export 가 아니었다면 그냥 지운다.
+`Hsl` 은 `saju-colors.ts` 에서 export 되고 있지 않으므로(20행이 `type Hsl = ...` 다) 재수출할 필요가 없다. 그냥 지운다.
 
 - [ ] **Step 3: 기존 사주색 테스트가 그대로 통과하는지 확인**
 
@@ -816,9 +816,26 @@ describe("placePeople", () => {
     }
   });
 
-  it("사람이 없는 소구역은 좌표를 만들지 않는다", () => {
-    // 관성 沖 은 목 데이터에서 비어 있다. 15구역 중 유일한 0명 칸이고,
-    // 이게 있어야 "빈 소구역은 아무것도 그리지 않는다"가 실제로 확인된다.
+  it("15칸 각각에 인원수만큼의 좌표가 생긴다 — 빈 칸에는 0개다", () => {
+    // 관성 沖 은 목 데이터에서 비어 있다(15구역 중 유일한 0명 칸). 그 칸에
+    // 유령 좌표가 생기지 않는 것이 "빈 소구역은 아무것도 그리지 않는다"의
+    // 근거다. 목 데이터만 세는 단언은 placePeople 을 전혀 검사하지 못하므로,
+    // 실제 출력 좌표를 소구역별로 되짚어 센다.
+    const placed = placePeople(FRIENDS);
+    for (const role of ROLE_ORDER) {
+      for (const feature of FEATURES) {
+        const expected = FRIENDS.filter((p) => p.role === role && p.feature === feature);
+        const actual = expected.filter((p) => placed.has(p.id));
+        expect(actual, `${role}/${feature}`).toHaveLength(expected.length);
+        // 그 칸의 좌표들은 전부 그 칸의 중심 주변에 있어야 한다 — 인덱스가
+        // 엇갈리면 사람이 남의 소구역에 놓인다.
+        for (const p of expected) {
+          expect(dist(placed.get(p.id)!, subAnchor(role, feature)), p.id).toBeLessThanOrEqual(
+            SPREAD[feature] + 1e-9,
+          );
+        }
+      }
+    }
     expect(FRIENDS.filter((p) => p.role === "refine" && p.feature === "chung")).toHaveLength(0);
   });
 
@@ -1461,7 +1478,24 @@ Expected: FAIL — `connectionColors`, `CONNECTION_SELF_DIM` 이 없다.
 
 - [ ] **Step 3: `connections.ts` 에 추가한다**
 
-기존 `connectionSegments`, `CONNECTION_COLOR`, `CONNECTION_OPACITY` 는 그대로 두되 `CONNECTION_COLOR` 는 더 이상 쓰이지 않으므로 삭제한다. 아래를 추가한다.
+`connectionSegments` 와 `CONNECTION_OPACITY` 의 **값**은 그대로 두고, `CONNECTION_COLOR` 는 삭제한다.
+
+**모듈 최상단 주석을 반드시 고친다.** 지금 이렇게 적혀 있다:
+
+> *"모두 같은 색, 같은 알파. feature 도 role 도 거리도 읽지 않는다 — 하나라도 읽으면 그 순간 선이 관계의 좋고 나쁨을 말하기 시작한다."*
+
+이 문장은 새 설계와 정면으로 어긋난다 — 이제 선은 role 을 읽는다. 읽으면 안 되는 것은 **feature** 뿐이다. 코드와 어긋나는 주석은 다음 사람을 정확히 반대 방향으로 이끈다. 이렇게 바꾼다:
+
+```
+ *  - 색은 role 을 읽되 feature 는 읽지 않는다. role 은 "어느 구역 사람인가"라는
+ *    구조지만, feature 를 읽는 순간 선이 관계의 좋고 나쁨을 말하기 시작한다.
+ *    connectionColors 의 시그니처가 feature 를 받지 못하게 되어 있다.
+ *  - 알파는 전원 동일하다. 진하기가 달라지면 그것도 강약이다.
+```
+
+`CONNECTION_OPACITY` 의 주석도 고친다 — "나의 코어(opaque, 진입 화면 지름 12px)"는 `SELF_NODE_SCALE` 이 2.5 이던 시절의 값이다. 지금은 **19.5px** 다.
+
+그리고 아래를 추가한다.
 
 ```ts
 import { roleColor } from "../_data/role-colors";
