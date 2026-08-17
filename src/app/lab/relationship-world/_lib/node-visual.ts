@@ -88,7 +88,9 @@ export const STATE_VISUAL: Record<Feature, StateVisual> = {
 };
 
 /**
- * 한 상태가 내보내는 적분 광량.
+ * 한 상태가 내보내는 적분 광량. `alphaScale` 은 선택·dim 이 두 halo 에 거는
+ * 배율(ALPHA_SCALE 의 각 값)을 대입해, 그 배율이 걸린 뒤에도 불변식이
+ * 유지되는지 검증할 수 있게 한다 — 기본값 1 은 정지 상태(배율 없음)다.
  *
  * 스프라이트의 적분 밝기는 α × 반지름² 에 비례한다. 호흡은 크기가 시간에 따라
  * 변하므로 scale(t) = 1 + d·sin(ωt) 의 시간 평균 <scale²> = 1 + d²/2 로 보정한다.
@@ -98,15 +100,37 @@ export const STATE_VISUAL: Record<Feature, StateVisual> = {
  * 광량이 같다고 지각 밝기가 같지는 않다 — 沖 은 피크 알파가 높고 六合 은
  * 낮으며, 그건 설계 의도다. 불변식이 막는 것은 한 상태가 전체적으로
  * 밝아지는 것뿐이다.
+ *
+ * 여기엔 클램프(min(1, ...))가 없다 — 클램프는 실제로 화면에 그려지는 컴포넌트의
+ * 런타임 백스톱이지 이 계산의 일부가 아니다. ALPHA_SCALE 이 세 상태 중 어느
+ * 것도 포화시키지 않도록 골라져 있어야 이 함수가 곧 실제로 그려지는 값과
+ * 일치한다 — 그 전제를 "ALPHA_SCALE" 테스트가 지킨다.
  */
-export function stateLight(feature: Feature): number {
+export function stateLight(feature: Feature, alphaScale = 1): number {
   const v = STATE_VISUAL[feature];
   const timeAverage = 1 + v.breatheAmplitude ** 2 / 2;
   return (
-    (v.nearAlpha * v.nearRadius ** 2 + v.diffuseAlpha * DIFFUSE_HALO_RADIUS ** 2) *
+    (v.nearAlpha * alphaScale * v.nearRadius ** 2 +
+      v.diffuseAlpha * alphaScale * DIFFUSE_HALO_RADIUS ** 2) *
     timeAverage
   );
 }
+
+/**
+ * 선택·dim 이 근접·확산 halo 알파에 거는 배율. 세 상태 모두에 같은 배율이
+ * 걸리고, 그 배율은 어떤 상태의 알파도 포화(1을 넘어 클램프)시키지 않도록
+ * 골랐다 — 포화되는 순간 그 상태만 실효 배율이 깎여 광량 불변식이 깨진다
+ * (PersonNode 의 selected 상태에서 沖 이 그렇게 깨진 적이 있다: 1.5 배율에서
+ * 沖 의 nearAlpha 0.758 × 1.5 = 1.137 → 1.0 으로 클램프되어 세 상태 spread 가
+ * 1.67% 로 벌어졌다 — 0.5% 문턱의 3배 이상).
+ *
+ * selected 의 상한은 세 상태 중 nearAlpha 가 가장 큰 沖(0.758)이 정한다:
+ * 1 / 0.758 = 1.3193. 1.3 은 그 아래 ~1.5% 여유를 두고, 세 상태가 전부 같은
+ * 1.3× 를 그대로 실현하게 한다 — 포화가 없으니 stateLight(f, 1.3) 이 세
+ * 상태에서 다시 0.5% 이내로 일치한다(node-visual.test.ts 의 "ALPHA_SCALE"
+ * 참고).
+ */
+export const ALPHA_SCALE = { selected: 1.3, base: 1, dimmed: 0.22 } as const;
 
 export const HALO_TEXTURE_SIZE = 64;
 

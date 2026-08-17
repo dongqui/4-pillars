@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ALPHA_SCALE,
   CORE_RADIUS,
   DIFFUSE_HALO_RADIUS,
   HALO_TEXTURE_SIZE,
@@ -100,7 +101,11 @@ describe("광량 불변식", () => {
     // 재조정은 통과) 1.28% 짜리 회귀는 반드시 잡는다. "호흡의 시간 평균이
     // 광량에 반영된다" 테스트가 같은 회귀를 직접 검사하지만, 이 테스트도
     // 독립적으로 걸리도록 조인다.
-    const lights = FEATURES.map(stateLight);
+    // Array.prototype.map 은 (요소, 인덱스, 배열) 을 콜백에 넘긴다. stateLight
+    // 가 이제 두 번째 인자로 alphaScale 을 받으므로, stateLight 를 그대로
+    // map 에 넘기면 인덱스(0/1/2)가 alphaScale 로 새어 들어간다. 화살표로
+    // feature 하나만 넘긴다.
+    const lights = FEATURES.map((f) => stateLight(f));
     const spread = (Math.max(...lights) - Math.min(...lights)) / Math.min(...lights);
     expect(spread, `T = ${lights.map((v) => v.toFixed(6)).join(" / ")}`).toBeLessThan(0.005);
   });
@@ -149,5 +154,34 @@ describe("광량 불변식", () => {
     expect(STATE_VISUAL.none.tremorAmplitude).toBe(0);
     expect(STATE_VISUAL.yukhap.tremorAmplitude).toBe(0);
     expect(STATE_VISUAL.chung.breatheAmplitude).toBe(0);
+  });
+});
+
+describe("ALPHA_SCALE", () => {
+  // selected(1.5)가 沖 의 nearAlpha(0.758)를 1.137 로 밀어 Math.min(1, ...)에
+  // 클램프됐던 회귀. 클램프된 상태만 실효 배율이 깎여 광량 불변식이
+  // 0.5% 문턱을 3배 넘게(1.67%) 벌어졌었다 — stateLight() 는 정지 상태만
+  // 검사해서 이 회귀를 못 잡았다. 이 두 테스트가 배율이 걸린 뒤까지 지킨다.
+  const scales = Object.values(ALPHA_SCALE);
+
+  it("어떤 배율도 어떤 상태의 알파를 포화시키지 않는다", () => {
+    for (const scale of scales) {
+      for (const f of FEATURES) {
+        const v = STATE_VISUAL[f];
+        expect(v.nearAlpha * scale, `${f} near ×${scale}`).toBeLessThanOrEqual(1);
+        expect(v.diffuseAlpha * scale, `${f} diffuse ×${scale}`).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  it("배율이 걸린 뒤에도 세 상태의 광량이 0.5% 이내로 일치한다", () => {
+    for (const scale of scales) {
+      const lights = FEATURES.map((f) => stateLight(f, scale));
+      const spread = (Math.max(...lights) - Math.min(...lights)) / Math.min(...lights);
+      expect(
+        spread,
+        `scale=${scale}, T = ${lights.map((v) => v.toFixed(6)).join(" / ")}`,
+      ).toBeLessThan(0.005);
+    }
   });
 });

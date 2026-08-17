@@ -7,6 +7,7 @@ import { nodeColor } from "../_data/role-colors";
 import type { Feature, RelationRole } from "../_data/roles";
 import type { Vec3 } from "../_lib/layout";
 import {
+  ALPHA_SCALE,
   CORE_RADIUS,
   DIFFUSE_HALO_RADIUS,
   HALO_TEXTURE_SIZE,
@@ -32,9 +33,6 @@ const HALO_TEXTURE = (() => {
   texture.minFilter = THREE.LinearFilter;
   return texture;
 })();
-
-/** 선택·dim 이 알파에 거는 배율. 세 상태 모두에 같은 비율로 걸어 균형을 깨지 않는다. */
-const ALPHA_SCALE = { selected: 1.5, base: 1, dimmed: 0.22 } as const;
 
 export function PersonNode({
   position,
