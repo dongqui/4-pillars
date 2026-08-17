@@ -24,9 +24,12 @@
 
 ## 1. 데이터 모델
 
+`scripts/migrate.mts` 가 Neon HTTP 드라이버로 파일 전체를 한 번의 prepared statement
+로 보내므로 **마이그레이션 파일 하나에 SQL 문장은 하나만** 담는다. 그래서 네 파일로
+쪼갠다: `0012` 테이블 · `0013` 인덱스 · `0014` 메시지 테이블 · `0015` 메시지 인덱스.
+
 ```sql
 -- migrations/0012_consultations.sql
-
 -- 상담 1건 = 이용권 1장 = 이 테이블 한 행.
 CREATE TABLE IF NOT EXISTS consultations (
   id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -51,6 +54,7 @@ CREATE TABLE IF NOT EXISTS consultation_messages (
   role            text NOT NULL CHECK (role IN ('user', 'counselor')),
   bubbles         jsonb NOT NULL,
   suggestions     jsonb,
+  crisis          boolean NOT NULL DEFAULT false,
   turn_no         int NOT NULL,
   created_at      timestamptz NOT NULL DEFAULT now()
 );
@@ -207,8 +211,17 @@ user       <이번 발화>
 2. 그 턴은 `turns_used` 에서 차감하지 않는다. 위기 상황에서 "남은 대화 0회"를 만나는
    일은 없어야 한다
 
-2번은 모델이 스키마에 `crisis: boolean` 을 실어 알린다. 프롬프트 한 겹뿐이라 새는
-구멍이 있다 — 키워드 필터를 앞단에 더 얹는 것은 이번 범위 밖으로 둔다.
+2번은 모델이 스키마에 `crisis: boolean` 을 실어 알리고, 그 값을
+`consultation_messages.crisis` 에 남긴다.
+
+**미차감에는 한도가 있다.** 상담 하나에서 위기 턴은 최대 3회까지만 공짜다
+(`MAX_FREE_CRISIS_TURNS`). 한도가 없으면 모델이 `crisis: true` 를 남발하거나 사용자가
+그렇게 유도해 무한히 무료 턴을 얻는 길이 열린다. 4회째부터는 여전히 안내로 답하되
+`turns_used` 를 정상 차감한다 — 안내를 끊지 않으면서 구멍만 막는다. `crisisSoFar` 는
+저장된 메시지의 `crisis` 플래그를 세어 구한다.
+
+프롬프트 한 겹뿐이라 판정 자체에는 새는 구멍이 있다 — 키워드 필터를 앞단에 더 얹는
+것은 이번 범위 밖으로 둔다.
 
 ## 4. 화면
 
@@ -350,8 +363,11 @@ src/lib/consultations/
   ticket-port.ts      TicketPort 인터페이스 + 던지는 stub      ← 다른 세션이 지울 파일
   budget.ts           턴 예산·상태 전이 (순수)
   prompt.ts           시스템 프롬프트 + 메시지 배치 (순수)
-  schema.ts           말풍선/추천질문/제목 tool 스키마 (순수)
+  schema.ts           말풍선/추천질문/제목 tool 스키마 + 응답 파싱 (순수)
   input.ts            발화 검증 — 1,000자 상한 (zod)
+  chat-transport.ts   DeepSeek 채팅 어댑터 (메시지 배열 + usage 반환)
+  turn.ts             프롬프트 조립 → 호출 → 파싱 한 턴 (주입)
+  service.ts          openConsultation / advanceConsultation (차감·되돌리기)
   store.ts            DB 접근. 컬럼 이름을 아는 유일한 곳
   model.ts            CONSULT_MODEL 상수
 
@@ -364,7 +380,7 @@ src/app/consult/
   [id]/page.tsx       대화방 (서버에서 이력 로드)
   _components/        ChatRoom · Bubble · Composer · SuggestionChips · TypingDots
 
-migrations/0012_consultations.sql
+migrations/0012_consultations.sql        ~ 0015_consultation_messages_idx.sql
 ```
 
 코어를 `src/app/api/.../_lib` 이 아니라 `src/lib/consultations/` 에 두는 이유는
@@ -372,9 +388,15 @@ migrations/0012_consultations.sql
 공용 코어가 되면서 소유권이 흐려졌다. 상담도 라우트와 페이지 양쪽에서 쓰이므로
 처음부터 `src/lib` 에 둔다.
 
-재사용하는 것은 `chartFacts`(사실 블록)와 `createDeepSeekTransport`(어댑터) 두 개다.
-기존 섹션 파이프라인 자체는 쓰지 않는다 — 그쪽은 *원국 단위 캐시 + 1회성 생성*이
-전제라 유저별 대화 이력과 캐시 키부터 충돌한다.
+기존 코드에서 그대로 재사용하는 것은 `chartFacts`(사실 블록) 하나뿐이다. 기존 섹션
+파이프라인은 쓰지 않는다 — 그쪽은 *원국 단위 캐시 + 1회성 생성*이 전제라 유저별 대화
+이력과 캐시 키부터 충돌한다.
+
+`createDeepSeekTransport` 도 재사용할 수 없다. 그 어댑터는 `SectionRequest`(= `system`
++ `user` 두 메시지, `key: SectionKey`)에 묶여 있어 대화 이력을 실을 자리가 없고,
+토큰 사용량도 `onUsage` 콜백으로만 흘린다. 그래서 `chat-transport.ts` 에 형제 어댑터를
+새로 둔다 — 메시지 배열을 받고 usage 를 반환값으로 돌려준다. 기존 어댑터를 일반화하지
+않는 이유는 그러면 리포트 경로를 건드리게 되고, 얻는 것 없이 위험만 지기 때문이다.
 
 ## 7. 테스트
 
