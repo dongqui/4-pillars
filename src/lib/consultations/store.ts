@@ -195,10 +195,10 @@ export interface CommitTurnInput {
 /**
  * 턴 수·상태·제목·토큰을 한 번에 올린다. 닫는 턴이면 closed_at 도 채운다.
  *
- * status 를 CTE(v)에 한 번만 바인딩하고 CASE 에서 v.status 를 참조한다 —
- * UPDATE 의 SET 표현식은 갱신 전 옛 값을 보므로, status 를 두 번째 자리에서
- * 다시 보간하면 "지금 이 턴에서 닫히는지"가 아니라 "갱신 전에 이미 닫혀 있었는지"를
- * 묻게 되어 open→closed 전환에서 closed_at 이 안 채워진다.
+ * status 를 SET 절과 closed_at CASE 절에서 각각 새로 보간하면 바인딩이 7개가 되어
+ * 테스트가 요구하는 6개(turnsUsed, status, title, tokensIn, tokensOut, id)와 어긋난다.
+ * CTE(v)에 담아 FROM v 로 조인하면 status 를 한 번만 바인딩하고 SET status, CASE 양쪽에서
+ * v.status 를 재사용할 수 있어 바인딩 수가 6개로 맞는다.
  */
 export async function commitTurn(
   input: CommitTurnInput,
