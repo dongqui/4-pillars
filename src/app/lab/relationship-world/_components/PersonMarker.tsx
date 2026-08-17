@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { paletteFor } from "../_data/saju-colors";
+import { roleColor } from "../_data/role-colors";
 import type { MockPerson } from "../_data/mock-people";
 import type { Vec3 } from "../_lib/layout";
 import { PersonNode } from "./PersonNode";
@@ -19,7 +19,11 @@ type Tier = "full" | "compact" | "dot";
 // 설계 문서 5절 의도를 satisfy 한다. dot 은 여전히 죽은 코드가 아니다 — A 모드
 // 최대 줌, B·C 모드 최대 줌에서 실제로 나온다(task-8-report.md 참고).
 const NEAR = 23;
-const FAR = 33;
+// 새 앵커의 깊이는 20.86~33.16 이고 관성 사람들은 32~34.3 에 놓인다.
+// FAR = 33 이면 관성 2명이 진입 화면에서 전부 dot 이 되어 이름이 안 보인다 —
+// 명패 티어가 Role 과 상관관계를 갖는 것은 의도가 아니다. dot 은 여전히
+// 죽은 코드가 아니다(C 모드 최대 줌아웃 65).
+const FAR = 36;
 
 // 명패는 노드보다 위에 떠야 하지만, world-space Y 오프셋으로 만들면 C 모드
 // (minPolar 15°~maxPolar 140°)에서 world Y 축이 시선축에 거의 나란해지는
@@ -72,15 +76,15 @@ export function PersonMarker({
   const shown = boosted ? boost(tier) : tier;
   const opacity = selected ? 1 : dimmed ? 0.28 : 0.92;
 
-  // dot 은 이름이 안 보이는 티어라 색이 유일한 단서다. 파란색 고정이면
-  // "색 = 그 사람의 사주" 가 가장 필요한 자리에서 깨진다.
-  const dotColor = paletteFor(person.pillarKey).core;
+  // dot 은 이름이 안 보이는 티어라 색이 유일한 단서다. 그 단서는 Role 이어야 한다.
+  const dotColor = roleColor(person.role);
 
   return (
     <group>
       <PersonNode
         position={position}
-        pillarKey={person.pillarKey}
+        role={person.role}
+        feature={person.feature}
         selected={selected}
         dimmed={dimmed}
       />

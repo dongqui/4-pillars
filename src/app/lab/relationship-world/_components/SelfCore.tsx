@@ -7,24 +7,24 @@ import { SELF_NODE_SCALE } from "../_lib/node-visual";
 import { PersonNode } from "./PersonNode";
 
 /**
- * 나도 다른 사람과 같은 규칙을 따른다 — 같은 3층 구조, 같은 사주색.
+ * 나도 다른 사람과 같은 규칙을 따른다 — 같은 3층 구조, 같은 색 체계.
  * 다른 것은 크기 하나뿐이다(SELF_NODE_SCALE).
  *
- * 예전에는 파란 발광 구체 + pointLight 였는데, "색 = 그 사람의 사주" 아래에서
- * 나만 역할과 무관한 파란색일 이유가 없다. SELF 의 pillarKey 는 "갑자" 다.
+ * 색은 비겁(beside)이다. 나와 나란히 서는 관계가 비겁이므로 나 자신이 그
+ * 색상 가족의 원점이다. 상태는 기본 — 나는 나 자신과 六合 하지도 沖 하지도 않는다.
  */
 export function SelfCore() {
   return (
     <group>
       <PersonNode
         position={SELF_POSITION}
-        pillarKey={SELF.pillarKey}
+        role="beside"
+        feature="none"
         selected={false}
         dimmed={false}
         nodeScale={SELF_NODE_SCALE}
       />
 
-      {/* 어느 것이 나인지 모르면 관계 지도가 아니다. 이름은 DOM 으로. */}
       <Html
         center
         position={SELF_POSITION as unknown as [number, number, number]}
