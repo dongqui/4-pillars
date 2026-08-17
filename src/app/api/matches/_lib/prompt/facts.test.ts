@@ -39,6 +39,12 @@ describe("matchFacts", () => {
     expect(text).toContain('상대의 역할: "멘티"');
   });
 
+  it("자유 역할은 [관계] 헤더에서도 인용부호 안에 들어간다 — 헤더도 지시문으로 안 읽히게", () => {
+    const text = matchFacts(ctx({ type: "custom", subjectRole: "멘토", counterpartRole: "멘티" }));
+    expect(text).toContain('[관계 · "멘토" - "멘티"]');
+    expect(text).not.toContain("[관계 · 멘토 - 멘티]");
+  });
+
   it("나이차는 범주값으로만 나간다 — 연도를 흘리지 않는다", () => {
     const text = matchFacts(ctx(NONE));
     expect(text).toContain("나이차: 또래");

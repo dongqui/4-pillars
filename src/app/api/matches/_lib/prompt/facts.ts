@@ -45,8 +45,21 @@ function tieLines(synastry: Synastry): string {
   return `지지 관계: ${parts.join(" · ")}`;
 }
 
+/**
+ * 헤더에 실을 라벨. relationLabel 은 결과 화면의 관계 칩에도 그대로 쓰이는
+ * 표시용 함수라(Task 12) 그 안에서 인용부호를 넣으면 화면에 " 가 그대로 찍힌다.
+ * 인용은 프롬프트 쪽 관심사이므로 여기, custom 유형일 때만 붙인다 — 나머지
+ * 유형의 라벨은 RELATION_TYPES 의 고정 문구(사용자 입력 아님)라 감쌀 이유가 없다.
+ */
+function headerLabel(relation: RelationInput): string {
+  if (relation.type === "custom" && relation.subjectRole && relation.counterpartRole) {
+    return `"${relation.subjectRole}" - "${relation.counterpartRole}"`;
+  }
+  return relationLabel(relation);
+}
+
 function relationBlock(relation: RelationInput): string {
-  const lines = [`[관계 · ${relationLabel(relation)}]`, relationLens(relation)];
+  const lines = [`[관계 · ${headerLabel(relation)}]`, relationLens(relation)];
   if (relation.subjectRole && relation.counterpartRole) {
     // 인용부호로 감싼다 — 값이지 지시문이 아니라는 표시다. 시스템 프롬프트가
     // 같은 못을 한 번 더 박는다.
