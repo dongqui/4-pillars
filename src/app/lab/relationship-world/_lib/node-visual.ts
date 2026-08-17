@@ -9,54 +9,100 @@
  * 검증되지 않았다. 실물을 보고 조절할 곳이 여기 하나다.
  */
 
+import type { Feature } from "../_data/roles";
+
 /** 코어. 사람의 위치 그 자체. opaque 로 그려서 깊이 버퍼에 참여한다. */
 export const CORE_RADIUS = 0.075;
 
 /**
- * 나만 노드가 크다. 색은 다른 사람과 같은 규칙(SELF 의 pillarKey)을 따른다.
- *
- * 코어와 근접 halo 에 **함께** 걸린다. 코어만 키우면 반지름 0.1875 코어가
- * 반지름 0.28 근접 halo 를 67% 채워서, 빛나는 점이 아니라 테두리 얇은 원반으로
- * 읽힌다 — 설계 문서의 "Outer Glow + Inner Core" 3층 구조가 나에게서만 깨진다.
- *
- * 확산 halo 에는 걸지 않는다. 1.6 × 2.5 = 4.0 이면 진입 화면 지름이 260px,
- * 화면폭의 70% 라 중앙이 통째로 물든다. 확산 halo 는 "사람들이 모여서 Field 를
- * 만든다"를 위한 층이지 한 사람을 강조하는 층이 아니다.
- *
- * 진입 화면(375px, 1 월드 단위 ≈ 32.5px)에서 나의 코어 지름 19.5px, 근접 halo
- * 72.8px(화면폭의 19%). 다른 사람은 각각 4.9px, 18.2px 다.
- *
- * 근접 halo 반지름이 1.12 월드 단위인데 가장 가까운 사람도 원점에서 2 이상
- * 떨어져 있어 남의 노드를 삼키지 않는다.
+ * 나만 노드가 크다. 코어와 근접 halo 에 함께 걸린다.
+ * 진입 화면(375px, 1 월드 단위 ≈ 32.5px)에서 코어 지름 19.5px, 근접 halo 72.8px.
  */
 export const SELF_NODE_SCALE = 4;
 
-/** 노드를 또렷하게 만드는 좁은 halo. */
-export const NEAR_HALO_RADIUS = 0.28;
-
 /**
- * 사람이 모인 자리에만 색 기운을 남기는 넓은 halo.
+ * 확산 halo 반지름. **세 상태가 같은 값을 쓴다.**
  *
- * 이 값은 사람 간 **최근접 거리의 분포**에서 나온다. 최소 간격 0.4354 를
- * 근거로 삼으면 안 된다 — 그건 210개 쌍 중 가장 가까운 한 쌍의 값이고(이
- * 0.4354 는 `layout.test.ts` 의 `toBeGreaterThan(0.35)` 로 잠겨 있지도
- * 않다, 실측값일 뿐이다), 최근접 거리의 중앙값은 1.93 으로 4.4배 크다.
- * 실제로 0.95 를 쓰면 중앙값 사람의 겹치는 이웃이 0명, 21명 중 12명이
- * 아무와도 겹치지 않아 "사람들이 Field 를 만든다"가 그냥 일어나지 않는다.
+ * 상태마다 바꾸면 六合 의 빛 번짐이 승인된 폭을 넘는다 — 초안의 2.1 은 진입
+ * 화면 지름 166px 로, 승인된 104px 의 160% 였다. 상태 차이는 반지름이 아니라
+ * 알파와 근접 halo 로 만든다.
  *
- * 1.6 에서 중앙값 2명과 겹치고 고립되는 사람은 2명뿐이다. additive 라
- * 겹친 만큼 밝아진다. **이것이 '사람들이 Field 를 만든다'의 전부다** —
- * 별도의 안개나 볼륨 오브젝트를 두면 지워버린 Field 가 축소판으로 돌아온다.
- *
- * 진입 화면(375px)에서 지름 약 104px, 화면폭의 28% 다. 실물을 보고 조절할
- * 값이 이 파일에서 이것 하나다.
+ * 1.6 인 근거는 겹침이다. 새 배치의 실측: 겹치는 이웃 중앙값 4명, 최대 5명,
+ * 고립 1/21. 이 겹침이 곧 "사람들이 Field 를 만든다"의 전부다.
  */
 export const DIFFUSE_HALO_RADIUS = 1.6;
 
-export const HALO_ALPHA = {
-  near: { base: 0.55, selected: 0.85, dimmed: 0.12 },
-  diffuse: { base: 0.07, selected: 0.12, dimmed: 0.015 },
-} as const;
+export type StateVisual = {
+  readonly nearRadius: number;
+  readonly nearAlpha: number;
+  readonly diffuseAlpha: number;
+  /** 六合 전용. scale 진폭. 0 이면 호흡하지 않는다. */
+  readonly breatheAmplitude: number;
+  /** 초. breatheAmplitude 가 0 이면 의미 없다. */
+  readonly breathePeriod: number;
+  /** 沖 전용. 월드 단위 위치 흔들림. 0 이면 떨지 않는다. */
+  readonly tremorAmplitude: number;
+  /** Hz. tremorAmplitude 가 0 이면 의미 없다. */
+  readonly tremorHz: number;
+};
+
+/**
+ * 기본 / 六合 / 沖 의 시각 상수.
+ *
+ * nearAlpha 의 소수점 넷째 자리는 임의의 값이 아니다 — stateLight 가 세
+ * 상태에서 같아지도록 역산한 값이다(설계 문서 4.3). **반지름이나 확산 알파를
+ * 만지면 이 값도 다시 풀어야 한다.** 광량 불변식 테스트가 그것을 강제한다.
+ */
+export const STATE_VISUAL: Record<Feature, StateVisual> = {
+  none: {
+    nearRadius: 0.28,
+    nearAlpha: 0.55,
+    diffuseAlpha: 0.07,
+    breatheAmplitude: 0,
+    breathePeriod: 0,
+    tremorAmplitude: 0,
+    tremorHz: 0,
+  },
+  yukhap: {
+    nearRadius: 0.42, // 넓고
+    nearAlpha: 0.4462, // 옅게
+    diffuseAlpha: 0.055,
+    breatheAmplitude: 0.16,
+    breathePeriod: 4.6,
+    tremorAmplitude: 0,
+    tremorHz: 0,
+  },
+  chung: {
+    nearRadius: 0.2, // 좁고
+    nearAlpha: 0.758, // 진하게
+    diffuseAlpha: 0.075,
+    breatheAmplitude: 0,
+    breathePeriod: 0,
+    tremorAmplitude: 0.02, // 진입 화면에서 0.5~0.8px
+    tremorHz: 6,
+  },
+};
+
+/**
+ * 한 상태가 내보내는 적분 광량.
+ *
+ * 스프라이트의 적분 밝기는 α × 반지름² 에 비례한다. 호흡은 크기가 시간에 따라
+ * 변하므로 scale(t) = 1 + d·sin(ωt) 의 시간 평균 <scale²> = 1 + d²/2 로 보정한다.
+ * 이 보정을 빼먹으면 호흡하는 상태가 평균적으로 더 밝아진다.
+ *
+ * 이 값이 세 상태에서 같아야 "沖이 제일 세다"가 생기지 않는다. 다만 적분
+ * 광량이 같다고 지각 밝기가 같지는 않다 — 沖 은 피크 알파가 높고 六合 은
+ * 낮으며, 그건 설계 의도다. 불변식이 막는 것은 한 상태가 전체적으로
+ * 밝아지는 것뿐이다.
+ */
+export function stateLight(feature: Feature): number {
+  const v = STATE_VISUAL[feature];
+  const timeAverage = 1 + v.breatheAmplitude ** 2 / 2;
+  return (
+    (v.nearAlpha * v.nearRadius ** 2 + v.diffuseAlpha * DIFFUSE_HALO_RADIUS ** 2) *
+    timeAverage
+  );
+}
 
 export const HALO_TEXTURE_SIZE = 64;
 

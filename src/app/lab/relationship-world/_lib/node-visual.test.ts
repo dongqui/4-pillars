@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   CORE_RADIUS,
   DIFFUSE_HALO_RADIUS,
-  HALO_ALPHA,
   HALO_TEXTURE_SIZE,
-  NEAR_HALO_RADIUS,
+  STATE_VISUAL,
+  SELF_NODE_SCALE,
   radialFalloff,
+  stateLight,
 } from "./node-visual";
+import type { Feature } from "../_data/roles";
 
 const SIZE = HALO_TEXTURE_SIZE;
 const alphaAt = (data: Uint8Array, x: number, y: number) => data[(y * SIZE + x) * 4 + 3];
@@ -65,34 +67,79 @@ describe("radialFalloff", () => {
   });
 });
 
+const FEATURES: Feature[] = ["none", "yukhap", "chung"];
+
 describe("시각 상수", () => {
   it("코어 < 근접 halo < 확산 halo 순으로 커진다", () => {
-    expect(CORE_RADIUS).toBeLessThan(NEAR_HALO_RADIUS);
-    expect(NEAR_HALO_RADIUS).toBeLessThan(DIFFUSE_HALO_RADIUS);
-  });
-
-  it("확산 halo 는 최근접 거리 중앙값(1.93)의 절반을 넘어 이웃과 실제로 겹친다", () => {
-    // 최소 간격(0.4354)을 기준으로 삼으면 안 된다 — 210개 쌍 중 가장 가까운
-    // 한 쌍의 값이라, 그걸 통과해도 중앙값 사람은 아무와도 겹치지 않는다.
-    // 겹치지 않으면 이 브랜치의 핵심 메커니즘이 성립하지 않는다.
-    expect(DIFFUSE_HALO_RADIUS * 2).toBeGreaterThan(1.93);
-  });
-
-  it("확산 halo 는 근접 halo 보다 훨씬 옅다", () => {
-    expect(HALO_ALPHA.diffuse.base).toBeLessThan(HALO_ALPHA.near.base / 4);
-  });
-
-  it("두 halo 모두 선택 > 기본 > dim 순으로 진하다", () => {
-    for (const layer of [HALO_ALPHA.near, HALO_ALPHA.diffuse]) {
-      expect(layer.selected).toBeGreaterThan(layer.base);
-      expect(layer.base).toBeGreaterThan(layer.dimmed);
+    for (const f of FEATURES) {
+      expect(CORE_RADIUS, f).toBeLessThan(STATE_VISUAL[f].nearRadius);
+      expect(STATE_VISUAL[f].nearRadius, f).toBeLessThan(DIFFUSE_HALO_RADIUS);
     }
   });
 
-  it("겹침이 가장 많은 자리에서도 확산 halo 가 화면을 덮지 않는다", () => {
-    // R=1.6 에서 한 사람 주위의 겹치는 이웃은 중앙값 2명, 최대 5명이다.
-    // additive 라 합이 그대로 쌓인다 — 자기 것까지 6겹이 0.5 를 넘으면
-    // 직전 스파이크의 '흰 덩어리'가 색깔만 바뀐 채 돌아온다.
-    expect(HALO_ALPHA.diffuse.base * 6).toBeLessThan(0.5);
+  it("나는 다른 사람보다 2배 이상 크다", () => {
+    expect(SELF_NODE_SCALE).toBeGreaterThanOrEqual(2);
+  });
+
+  it("확산 halo 는 최근접 거리 중앙값의 절반을 넘어 이웃과 실제로 겹친다", () => {
+    // 겹치지 않으면 "사람들이 Field 를 만든다"가 성립하지 않는다.
+    // 새 배치의 실측: 겹치는 이웃 중앙값 4명, 고립 1/21.
+    expect(DIFFUSE_HALO_RADIUS * 2).toBeGreaterThan(1.93);
+  });
+});
+
+describe("광량 불변식", () => {
+  // 설계 문서 4.3. 브리프 §3.2 가 "沖이 가장 강하고 六合이 가장 약한 등급처럼
+  // 읽힐 수 있다"고 직접 경고한 것을, 부탁이 아니라 숫자로 막는다.
+  it("세 상태의 적분 광량이 서로 2% 이내다", () => {
+    const lights = FEATURES.map(stateLight);
+    const spread = (Math.max(...lights) - Math.min(...lights)) / Math.min(...lights);
+    expect(spread, `T = ${lights.map((v) => v.toFixed(6)).join(" / ")}`).toBeLessThan(0.02);
+  });
+
+  it("호흡의 시간 평균이 광량에 반영된다", () => {
+    // scale(t) = 1 + d·sin(ωt) → <scale²> = 1 + d²/2.
+    // 이걸 빼먹으면 六合 이 평균적으로 더 밝아진다. 진폭이 있는 상태가
+    // 정확히 그만큼 보정돼 있는지 직접 확인한다.
+    const v = STATE_VISUAL.yukhap;
+    expect(v.breatheAmplitude).toBeGreaterThan(0);
+    const raw = v.nearAlpha * v.nearRadius ** 2 + v.diffuseAlpha * DIFFUSE_HALO_RADIUS ** 2;
+    expect(stateLight("yukhap")).toBeCloseTo(raw * (1 + v.breatheAmplitude ** 2 / 2), 10);
+  });
+
+  it("확산 halo 반지름은 세 상태가 같다 — 상태마다 바꾸면 빛 번짐이 승인폭을 넘는다", () => {
+    expect(DIFFUSE_HALO_RADIUS).toBe(1.6);
+  });
+
+  it("모든 알파가 0 초과 1 이하다", () => {
+    for (const f of FEATURES) {
+      const v = STATE_VISUAL[f];
+      expect(v.nearAlpha, `${f} near`).toBeGreaterThan(0);
+      expect(v.nearAlpha, `${f} near`).toBeLessThanOrEqual(1);
+      expect(v.diffuseAlpha, `${f} diffuse`).toBeGreaterThan(0);
+      expect(v.diffuseAlpha, `${f} diffuse`).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("확산 halo 가 6겹 쌓여도 화면을 덮지 않는다", () => {
+    // 이 상한을 넘으면 직전 스파이크의 '흰 덩어리'가 색만 바뀐 채 돌아온다.
+    for (const f of FEATURES) {
+      expect(STATE_VISUAL[f].diffuseAlpha * 6, f).toBeLessThan(0.5);
+    }
+  });
+
+  it("六合 은 넓고 옅게, 沖 은 좁고 진하게 퍼진다", () => {
+    // 광량이 같아도 성격은 달라야 한다. 방향이 뒤집히면 잡는다.
+    expect(STATE_VISUAL.yukhap.nearRadius).toBeGreaterThan(STATE_VISUAL.none.nearRadius);
+    expect(STATE_VISUAL.yukhap.nearAlpha).toBeLessThan(STATE_VISUAL.none.nearAlpha);
+    expect(STATE_VISUAL.chung.nearRadius).toBeLessThan(STATE_VISUAL.none.nearRadius);
+    expect(STATE_VISUAL.chung.nearAlpha).toBeGreaterThan(STATE_VISUAL.none.nearAlpha);
+  });
+
+  it("움직임은 한 상태에 하나씩만 붙는다", () => {
+    expect(STATE_VISUAL.none.breatheAmplitude).toBe(0);
+    expect(STATE_VISUAL.none.tremorAmplitude).toBe(0);
+    expect(STATE_VISUAL.yukhap.tremorAmplitude).toBe(0);
+    expect(STATE_VISUAL.chung.breatheAmplitude).toBe(0);
   });
 });
