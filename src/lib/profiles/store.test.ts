@@ -38,7 +38,7 @@ const dbRow = {
   birth_region_id: "seoul",
   true_solar: true,
   created_at: "2026-07-31T00:00:00.000Z",
-  is_paid: false,
+  is_unlocked: false,
 };
 
 const newProfile: CreateProfileInput = {
@@ -67,7 +67,7 @@ describe("toProfileRow", () => {
       birthPlace: { country: "KR", regionId: "seoul" },
       trueSolar: true,
       createdAt: "2026-07-31T00:00:00.000Z",
-      isPaid: false,
+      isUnlocked: false,
     });
   });
 
@@ -84,16 +84,26 @@ describe("toProfileRow", () => {
 });
 
 describe("listProfiles", () => {
-  it("결제된 상품이 조인되면 isPaid 가 true", async () => {
-    const { client, calls } = fakeClient([{ ...dbRow, is_paid: true }]);
+  it("권한이 조인되면 isUnlocked 가 true", async () => {
+    const { client } = fakeClient([{ ...dbRow, is_unlocked: true }]);
     const rows = await listProfiles("7", client);
 
     expect(rows).toHaveLength(1);
-    expect(rows[0].isPaid).toBe(true);
-    expect(calls[0].sql).toContain("LEFT JOIN purchases");
-    expect(calls[0].sql).toContain("ORDER BY p.created_at DESC");
-    // 바인딩 순서는 템플릿에 나타난 순서다 — product 가 JOIN 조건이라 user_id 보다 앞선다.
-    expect(calls[0].values).toEqual(["full_report", "7"]);
+    expect(rows[0].isUnlocked).toBe(true);
+  });
+
+  it("purchases 가 아니라 entitlements 를 조인한다 — 권한의 출처는 이용권 사용이다", async () => {
+    const { client, calls } = fakeClient([]);
+    await listProfiles("7", client);
+    expect(calls[0].sql).toContain("LEFT JOIN entitlements");
+    expect(calls[0].sql).not.toContain("purchases");
+    expect(calls[0].sql).toContain("'full_report'");
+  });
+
+  it("subject_key 는 프로필 id 를 문자열로 맞춘 값이다 — text 컬럼과 bigint 를 그냥 비교하면 터진다", async () => {
+    const { client, calls } = fakeClient([]);
+    await listProfiles("7", client);
+    expect(calls[0].sql).toContain("p.id::text");
   });
 
   it("프로필이 없으면 빈 배열", async () => {
@@ -154,12 +164,12 @@ describe("createProfile", () => {
 
 describe("getProfile", () => {
   it("행이 있으면 ProfileRow 로 접는다", async () => {
-    const { client, calls } = fakeClient([{ ...dbRow, is_paid: true }]);
+    const { client, calls } = fakeClient([{ ...dbRow, is_unlocked: true }]);
     const row = await getProfile("7", "3", client);
 
     expect(row?.id).toBe("3");
-    expect(row?.isPaid).toBe(true);
-    expect(calls[0].sql).toContain("LEFT JOIN purchases");
+    expect(row?.isUnlocked).toBe(true);
+    expect(calls[0].sql).toContain("LEFT JOIN entitlements");
   });
 
   // id 만으로 찾으면 쿼리 파라미터를 증가시켜 남의 생년월일을 읽을 수 있다.
@@ -169,8 +179,8 @@ describe("getProfile", () => {
     await getProfile("7", "3", client);
 
     expect(calls[0].sql).toContain("p.user_id");
-    // 바인딩 순서는 템플릿에 나타난 순서다 — product(JOIN 조건) → id → user_id.
-    expect(calls[0].values).toEqual(["full_report", "3", "7"]);
+    // 바인딩 순서는 템플릿에 나타난 순서다 — feature 는 리터럴이라 바인딩되지 않고, id → user_id 순서만 남는다.
+    expect(calls[0].values).toEqual(["3", "7"]);
   });
 
   it("행이 없으면 null — 없는 프로필과 남의 프로필을 구분하지 않는다", async () => {

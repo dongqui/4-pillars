@@ -14,7 +14,7 @@ const base: ProfileRow = {
   birthPlace: { country: "KR", regionId: "busan" },
   trueSolar: true,
   createdAt: "2026-07-31T00:00:00.000Z",
-  isPaid: false,
+  isUnlocked: false,
 };
 
 describe("toBirthInput", () => {

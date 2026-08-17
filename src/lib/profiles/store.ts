@@ -1,5 +1,4 @@
 import { sql as neonSql, type SqlClient } from "@/lib/db";
-import { PRODUCT_FULL_REPORT } from "./products";
 
 // 재수출 — store.test.ts 를 비롯한 기존 import 경로를 깨지 않는다.
 export type { SqlClient };
@@ -31,11 +30,11 @@ export interface ProfileRow {
   birthPlace: { country: string; regionId: string } | null;
   trueSolar: boolean;
   createdAt: string;
-  /** purchases 조인에서 파생 — 해당 프로필에 status='paid' 행이 있으면 true. */
-  isPaid: boolean;
+  /** entitlements 조인에서 파생 — 이 프로필의 전체 리포트에 이용권을 쓴 적이 있으면 true. */
+  isUnlocked: boolean;
 }
 
-export type CreateProfileInput = Omit<ProfileRow, "id" | "createdAt" | "isPaid">;
+export type CreateProfileInput = Omit<ProfileRow, "id" | "createdAt" | "isUnlocked">;
 
 /**
  * DB 행 → ProfileRow. 컬럼 이름을 아는 유일한 곳이다.
@@ -71,25 +70,32 @@ export function toProfileRow(r: Record<string, unknown>): ProfileRow {
         : null,
     trueSolar: r.true_solar === true,
     createdAt: String(r.created_at),
-    isPaid: r.is_paid === true,
+    isUnlocked: r.is_unlocked === true,
   };
 }
 
 /**
- * 내 프로필을 최신순으로. 결제 여부는 purchases 를 LEFT JOIN 해 파생한다 —
- * profiles 에 is_paid 를 두면 결제 테이블과 두 벌이 되어 어긋난다.
+ * 내 프로필을 최신순으로. 열람 권한은 entitlements 를 LEFT JOIN 해 파생한다 —
+ * profiles 에 컬럼을 두면 권한 테이블과 두 벌이 되어 어긋난다.
+ *
+ * subject_key 가 text 라 p.id 를 ::text 로 맞춘다. 반대로 subject_key 를
+ * ::bigint 로 캐스팅하면 궁합의 '12:34' 같은 키에서 터진다.
  */
 export async function listProfiles(
   userId: string,
   client: SqlClient = sql,
 ): Promise<ProfileRow[]> {
+  // 'full_report' 는 상수가 아니라 리터럴로 적는다 — @/lib/tickets/features 를
+  // import 하면 profiles 가 tickets 에 의존하게 되고, 무엇보다 이 값은 이미
+  // entitlements 테이블에 문자열로 나가 있는 값이라 리팩터로 상수 이름이
+  // 바뀌어도 함께 움직이면 안 되는 영속 계약이다.
   const rows = await client`
-    SELECT p.*, (pu.id IS NOT NULL) AS is_paid
+    SELECT p.*, (e.id IS NOT NULL) AS is_unlocked
     FROM profiles p
-    LEFT JOIN purchases pu
-      ON pu.profile_id = p.id
-     AND pu.product = ${PRODUCT_FULL_REPORT}
-     AND pu.status = 'paid'
+    LEFT JOIN entitlements e
+      ON e.user_id = p.user_id
+     AND e.feature = 'full_report'
+     AND e.subject_key = p.id::text
     WHERE p.user_id = ${userId}::bigint
     ORDER BY p.created_at DESC
   `;
@@ -97,7 +103,7 @@ export async function listProfiles(
 }
 
 /**
- * 내 프로필 하나. isPaid 파생은 listProfiles 와 같다.
+ * 내 프로필 하나. isUnlocked 파생은 listProfiles 와 같다.
  *
  * ⚠️ user_id 조건이 이 함수의 존재 이유다. profiles.id 는 순번 bigint 라
  * URL(/report?profile=<id>)에 노출된다 — id 만으로 찾으면 파라미터를 증가시켜
@@ -111,13 +117,17 @@ export async function getProfile(
   id: string,
   client: SqlClient = sql,
 ): Promise<ProfileRow | null> {
+  // 'full_report' 는 상수가 아니라 리터럴로 적는다 — @/lib/tickets/features 를
+  // import 하면 profiles 가 tickets 에 의존하게 되고, 무엇보다 이 값은 이미
+  // entitlements 테이블에 문자열로 나가 있는 값이라 리팩터로 상수 이름이
+  // 바뀌어도 함께 움직이면 안 되는 영속 계약이다.
   const rows = await client`
-    SELECT p.*, (pu.id IS NOT NULL) AS is_paid
+    SELECT p.*, (e.id IS NOT NULL) AS is_unlocked
     FROM profiles p
-    LEFT JOIN purchases pu
-      ON pu.profile_id = p.id
-     AND pu.product = ${PRODUCT_FULL_REPORT}
-     AND pu.status = 'paid'
+    LEFT JOIN entitlements e
+      ON e.user_id = p.user_id
+     AND e.feature = 'full_report'
+     AND e.subject_key = p.id::text
     WHERE p.id = ${id}::bigint AND p.user_id = ${userId}::bigint
   `;
   const row = rows[0];
