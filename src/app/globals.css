@@ -154,3 +154,26 @@ body {
     animation: none;
   }
 }
+
+/* 상담 대화방(consult) 연출. 새로 온 상담사 답에만 쓴다 — 복원된 이력은 즉시 그린다 */
+@keyframes pv-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pv-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+  }
+  30% {
+    opacity: 1;
+  }
+}
