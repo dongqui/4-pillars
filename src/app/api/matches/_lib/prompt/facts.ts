@@ -80,6 +80,11 @@ export function matchFacts(ctx: MatchContext): string {
     tieLines(synastry),
     `오행 보완: 내 용신 ${subject.yongsin.yongsin} — 상대 원국에 ${synastry.subject.yongsinFromOther}자` +
       ` · 상대 용신 ${counterpart.yongsin.yongsin} — 내 원국에 ${synastry.counterpart.yongsinFromOther}자`,
+    // 희신도 같이 넘긴다(설계 결정 6 의 "오행 보완 (양방향)"). 용신만 보면 "채워 주는
+    // 것이 없다" 로 끝나는 쌍이 실제로는 차선을 채우고 있는 경우를 서술이 놓친다 —
+    // synastry 가 이미 계산해 두고 아무도 읽지 않던 값이 이것이다.
+    `희신 보완: 내 희신 ${subject.yongsin.huisin} — 상대 원국에 ${synastry.subject.huisinFromOther}자` +
+      ` · 상대 희신 ${counterpart.yongsin.huisin} — 내 원국에 ${synastry.counterpart.huisinFromOther}자`,
     `합산 오행: ${ELEMENT_ORDER.map((el) => `${el} ${synastry.combined[el]}`).join(" · ")}`,
     `나이차: ${synastry.ageGap}`,
   ].join("\n");

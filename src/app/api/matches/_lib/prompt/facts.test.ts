@@ -56,6 +56,18 @@ describe("matchFacts", () => {
     const text = matchFacts(ctx(NONE));
     expect(text).toContain("지지 관계:");
   });
+
+  it("오행 보완은 용신과 희신 양방향을 다 싣는다 — 용신만 보면 차선을 채우는 쌍을 놓친다", () => {
+    const c = ctx(NONE);
+    const text = matchFacts(c);
+
+    expect(text).toContain(
+      `희신 보완: 내 희신 ${c.subject.yongsin.huisin} — 상대 원국에 ${c.synastry.subject.huisinFromOther}자`,
+    );
+    expect(text).toContain(
+      `상대 희신 ${c.counterpart.yongsin.huisin} — 내 원국에 ${c.synastry.counterpart.huisinFromOther}자`,
+    );
+  });
 });
 
 describe("buildMatchSectionRequest", () => {

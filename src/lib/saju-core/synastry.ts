@@ -147,7 +147,15 @@ function ageGapOf(subject: SajuAnalysis, counterpart: SajuAnalysis): AgeGap {
  *
  * 가중 점수를 매기고 구간을 잘라 라벨로 바꾸지 않는다. 그러면 숨긴 숫자가 그대로
  * 남아 "왜 이 라벨인가" 를 설명할 수 없게 되고, 라벨의 근거만 흐려진다.
- * 배지(일지가 통째로 맞물리거나 부딪히는 것)는 분류보다 강한 신호라 먼저 본다.
+ *
+ * 라벨은 **일간 관계와 지지 배지의 조합**이다(설계 결정 6-1). 배지가 분류를 덮으면
+ * 생아+육합과 극아+육합이 같은 라벨로 접혀 — 나를 채워 주는 사람과 나를 다잡는
+ * 사람이 한 문구가 된다 — 두 축 중 하나가 화면에서 사라진다. 그래서 배지는 분류를
+ * 대신하지 않고 그 앞에 붙는다.
+ *
+ * 어휘가 배지 이름(찰떡 · 불꽃 · 쌍둥이, BADGE_LABELS)과 다른 것은 의도다. 배지는
+ * 라벨 바로 아래에 근거로 붙으므로, 라벨이 그 이름을 그대로 되풀이하면 결론 자리에
+ * 새로 얹히는 정보가 없어진다.
  */
 const KIND_LABEL: Record<RelationKind, string> = {
   생아: "나를 채워 주는 쌍",
@@ -157,15 +165,21 @@ const KIND_LABEL: Record<RelationKind, string> = {
   극아: "나를 다잡는 쌍",
 };
 
-const BADGE_LABEL: Record<RelationBadge, string> = {
-  동일일주: "거울 같은 쌍",
-  육합: "맞물리는 쌍",
-  충: "부딪히며 굴러가는 쌍",
+/** 배지는 분류를 어떻게 겪는지를 수식한다 — 자리를 빼앗지 않는다. */
+const BADGE_PREFIX: Record<RelationBadge, string> = {
+  동일일주: "거울처럼",
+  육합: "맞물리며",
+  충: "부딪히며",
 };
 
-function labelOf(relation: Relation): string {
+/**
+ * 두 축을 합쳐 한 문구로. 배지는 하나뿐이다(relationship.ts 의 badges 가 배타적으로
+ * 하나만 낸다) — 여럿이 되면 여기서 어느 것을 앞에 둘지 정해야 한다.
+ */
+export function synastryLabel(relation: Relation): string {
+  const kind = KIND_LABEL[relation.kind];
   const badge = relation.badges[0];
-  return badge ? BADGE_LABEL[badge] : KIND_LABEL[relation.kind];
+  return badge ? `${BADGE_PREFIX[badge]} ${kind}` : kind;
 }
 
 export function analyzeSynastry(
@@ -186,7 +200,7 @@ export function analyzeSynastry(
     ties: collectTies(subject, counterpart),
     combined,
     ageGap: ageGapOf(subject, counterpart),
-    label: labelOf(relation),
+    label: synastryLabel(relation),
   };
 }
 

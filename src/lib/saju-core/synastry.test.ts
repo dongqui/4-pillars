@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { analyze } from "./analyze";
-import { analyzeSynastry } from "./synastry";
+import { analyzeSynastry, synastryLabel } from "./synastry";
+import { BADGE_LABELS, RELATION_LABELS } from "./relationship";
 import { tenGod } from "./data/relations";
 import { STEMS, type Stem } from "./data/stems";
 import type { BirthInput } from "./chart";
@@ -46,7 +47,8 @@ describe("analyzeSynastry", () => {
   it("같은 사람끼리는 동일일주 배지가 붙는다", () => {
     const s = analyzeSynastry(A, A);
     expect(s.relation.badges).toContain("동일일주");
-    expect(s.label).toBe("거울 같은 쌍");
+    // 배지가 분류를 덮지 않는다 — 같은 일간이라 분류는 비아이고, 배지는 그 앞에 붙는다.
+    expect(s.label).toBe("거울처럼 결이 닮은 쌍");
   });
 
   it("나이차는 범주값이다 — 숫자를 노출하지 않는다", () => {
@@ -81,5 +83,36 @@ describe("analyzeSynastry", () => {
     expect(expectedTenGodOfCForA).not.toBe(expectedTenGodOfAForC); // 이 짝이 방향성을 실제로 갖는지 자체 확인
     expect(s.subject.tenGodOfOther).toBe(expectedTenGodOfCForA);
     expect(s.counterpart.tenGodOfOther).toBe(expectedTenGodOfAForC);
+  });
+});
+
+// 라벨은 일간 관계와 지지 배지의 조합이다(설계 결정 6-1). 배지가 분류를 덮으면
+// "나를 채워 주는 사람" 과 "나를 다잡는 사람" 이 같은 문구로 접힌다.
+describe("synastryLabel", () => {
+  it("배지가 없으면 분류만으로 만든다", () => {
+    expect(synastryLabel({ kind: "생아", label: "귀인", badges: [] })).toBe("나를 채워 주는 쌍");
+  });
+
+  it("같은 배지라도 분류가 다르면 라벨이 다르다", () => {
+    const helped = synastryLabel({ kind: "생아", label: "귀인", badges: ["육합"] });
+    const pushed = synastryLabel({ kind: "극아", label: "스승", badges: ["육합"] });
+
+    expect(helped).not.toBe(pushed);
+    expect(helped).toBe("맞물리며 나를 채워 주는 쌍");
+    expect(pushed).toBe("맞물리며 나를 다잡는 쌍");
+  });
+
+  it("같은 분류라도 배지가 다르면 라벨이 다르다", () => {
+    expect(synastryLabel({ kind: "비아", label: "단짝", badges: ["육합"] })).not.toBe(
+      synastryLabel({ kind: "비아", label: "단짝", badges: ["충"] }),
+    );
+  });
+
+  it("배지 이름(찰떡 · 불꽃 · 쌍둥이)을 되풀이하지 않는다 — 바로 아래 배지 줄과 겹치면 안 된다", () => {
+    for (const badge of ["육합", "충", "동일일주"] as const) {
+      const label = synastryLabel({ kind: "비아", label: "단짝", badges: [badge] });
+      expect(label).not.toContain(BADGE_LABELS[badge].name);
+      expect(label).not.toContain(RELATION_LABELS["비아"].name);
+    }
   });
 });
