@@ -24,8 +24,13 @@ export const FIELD_EXTENT: Record<RelationRole, number> = {
   refine: 1.4,
 };
 
-/** 시드 기반 0..1. Math.random 을 쓰면 렌더마다 월드가 흔들린다. */
-export function hash01(seed: number): number {
+/**
+ * 시드 기반 0..1. Math.random 을 쓰면 렌더마다 월드가 흔들린다.
+ *
+ * 한때 Starfield 가 별먼지 방향을 뽑는 데 썼지만 그 파일은 삭제됐다(하얀 입자와
+ * 황도면 링 제거). 지금은 이 모듈 안에서만 쓴다.
+ */
+function hash01(seed: number): number {
   const x = Math.sin(seed * 127.1 + 11.7) * 43758.5453;
   return x - Math.floor(x);
 }

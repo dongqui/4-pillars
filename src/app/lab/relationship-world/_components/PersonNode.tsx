@@ -40,13 +40,14 @@ export function PersonNode({
   pillarKey,
   selected,
   dimmed,
-  coreScale = 1,
+  nodeScale = 1,
 }: {
   position: Vec3;
   pillarKey: string;
   selected: boolean;
   dimmed: boolean;
-  coreScale?: number;
+  /** 코어와 근접 halo 에 함께 걸린다. 확산 halo 는 모두가 같은 크기다. */
+  nodeScale?: number;
 }) {
   const coreMat = useRef<THREE.MeshBasicMaterial>(null);
   const nearMat = useRef<THREE.SpriteMaterial>(null);
@@ -96,12 +97,14 @@ export function PersonNode({
         "카메라를 돌리면 앞뒤가 실제로 느껴져야 한다"는 요구가 여기서만 선다.
       */}
       <mesh>
-        <sphereGeometry args={[CORE_RADIUS * coreScale, 12, 12]} />
+        <sphereGeometry args={[CORE_RADIUS * nodeScale, 12, 12]} />
         <meshBasicMaterial ref={coreMat} color={palette.core} />
       </mesh>
 
       {/* sprite 는 three 가 알아서 카메라를 향하게 한다. scale 은 지름이다. */}
-      <sprite scale={[NEAR_HALO_RADIUS * 2, NEAR_HALO_RADIUS * 2, 1]}>
+      <sprite
+        scale={[NEAR_HALO_RADIUS * 2 * nodeScale, NEAR_HALO_RADIUS * 2 * nodeScale, 1]}
+      >
         <spriteMaterial
           ref={nearMat}
           map={HALO_TEXTURE}
