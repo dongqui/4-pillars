@@ -44,9 +44,6 @@ export function World({
       */}
       <fog attach="fog" args={["#0F172A", 35.8, 104]} />
 
-      <ambientLight intensity={0.35} />
-      <directionalLight position={[6, 8, 6]} intensity={0.5} />
-
       <CameraRig
         mode={mode}
         resetSignal={resetSignal}
