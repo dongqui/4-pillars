@@ -36,6 +36,10 @@ describe("spendTicket", () => {
     const { client, calls } = fakeClient([{ entitlement_id: 11, balance: 5 }]);
     await spendTicket(input, client);
     const { sql } = calls[0];
+    // indexOf 비교만으로는 INSERT 자체가 사라져도 -1(못 찾음)이 다른 자리보다
+    // 작아 그대로 통과해 버린다. 존재를 먼저 못 박아야 "먼저다" 라는 주장이
+    // 실제로 그 문장을 가리킨다.
+    expect(sql).toContain("INSERT INTO entitlements");
     expect(sql.indexOf("INSERT INTO entitlements")).toBeLessThan(sql.indexOf("UPDATE ticket_wallets"));
   });
 
@@ -47,6 +51,15 @@ describe("spendTicket", () => {
     expect(await spendTicket(input, client)).toEqual({ ok: true, kind: "already", balance: 5 });
     expect(calls[0].sql).toContain("ON CONFLICT");
     expect(calls[0].sql).toContain("DO NOTHING");
+    // 이 두 관문은 동시성 안전의 핵심이라 단위 테스트로 행동을 재현할 수 없다 —
+    // claim 이 비어도(중복이든 잔액 부족이든) pay 가 EXISTS 로 막지 못하면 매 중복
+    // 요청마다 조용히 이중 차감된다. SQL 텍스트에 고정해 두는 것이 유일한 가드다.
+    expect(calls[0].sql).toContain("WHERE user_id = ?::bigint AND EXISTS (SELECT 1 FROM claim)");
+    // claim 이 아예 안 생기는 조건(잔액 >= 비용)도 같은 이유로 텍스트에 고정한다 —
+    // 이게 없으면 잔액이 모자라도 권한이 그냥 생겨 버린다.
+    expect(calls[0].sql).toContain(
+      "WHERE (SELECT balance FROM ticket_wallets WHERE user_id = ?::bigint) >= ?",
+    );
   });
 
   it("잔액이 모자라면 insufficient", async () => {
