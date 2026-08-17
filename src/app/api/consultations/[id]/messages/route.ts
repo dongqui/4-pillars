@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth/session";
 import { getProfile, listProfiles } from "@/lib/profiles/store";
+import { isSequentialId } from "@/lib/profiles/param";
 import { utteranceSchema } from "@/lib/consultations/input";
 import { factsForProfile } from "@/lib/consultations/facts";
 import { consultationDeps } from "@/lib/consultations/deps";
@@ -16,8 +17,10 @@ export async function POST(
   if (!session) return Response.json({ error: "로그인이 필요합니다" }, { status: 401 });
 
   const { id } = await params;
-  // URL 문자열을 그대로 ::bigint 로 캐스팅하면 DB 에러 → 500 이다. 형식을 먼저 본다.
-  if (!/^[1-9]\d*$/.test(id)) {
+  // URL 문자열을 그대로 ::bigint 로 캐스팅하면 DB 에러 → 500 이다. 형식뿐 아니라
+  // bigint 상한도 여기서 함께 본다(isSequentialId, param.ts) — 자릿수만 세면
+  // 19자리 안에서도 상한을 넘는 값을 놓쳐 getConsultation 의 ::bigint 캐스팅이 넘친다.
+  if (!isSequentialId(id)) {
     return Response.json({ error: "상담을 찾을 수 없어요" }, { status: 404 });
   }
 
