@@ -21,20 +21,28 @@ function deps(over: Partial<Parameters<typeof handleCreateMatch>[1]> = {}) {
 }
 
 describe("handleCreateMatch", () => {
-  it("비로그인은 401", async () => {
+  it("비로그인은 401 — 프로필을 들여다보기 전에 막는다", async () => {
+    const getProfile = vi.fn();
     const r = await handleCreateMatch(
       { subjectProfileId: "2", counterpartProfileId: "3", relation: NONE },
-      deps({ userId: null, checkAccess: async () => ({ ok: false, reason: "unauthenticated" }) }),
+      deps({
+        userId: null,
+        checkAccess: async () => ({ ok: false, reason: "unauthenticated" }),
+        getProfile,
+      }),
     );
     expect(r.status).toBe(401);
+    expect(getProfile).not.toHaveBeenCalled();
   });
 
-  it("한도를 넘으면 429", async () => {
+  it("한도를 넘으면 429 — 프로필을 들여다보기 전에 막는다", async () => {
+    const getProfile = vi.fn();
     const r = await handleCreateMatch(
       { subjectProfileId: "2", counterpartProfileId: "3", relation: NONE },
-      deps({ checkAccess: async () => ({ ok: false, reason: "rate_limited" }) }),
+      deps({ checkAccess: async () => ({ ok: false, reason: "rate_limited" }), getProfile }),
     );
     expect(r.status).toBe(429);
+    expect(getProfile).not.toHaveBeenCalled();
   });
 
   it("body 가 어긋나면 400", async () => {
