@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { analyze } from "@/lib/saju-core";
 import { getSession } from "@/lib/auth/session";
@@ -11,6 +12,8 @@ import { getLuckCached, putLuckSections } from "@/app/api/saju/_lib/store-luck";
 import { FREE_SECTION_KEYS, SECTION_KEYS, type Interpretation } from "@/app/api/saju/_lib/sections";
 import type { InterpretationGenerator } from "@/app/api/saju/_lib/types";
 import { getReportAccess, parseProfileParam, type ReportAccess } from "./_lib/access";
+import { extractClientIp } from "@/lib/reports/rate-limit";
+import { gateAnonGeneration, isRateLimited } from "./_lib/gated-generator";
 import { draftToSubject, type ReportSubject } from "./_lib/subject";
 import { toBirthInput } from "./_lib/to-birth-input";
 import { toReportMeta } from "./_lib/to-meta";
@@ -20,6 +23,7 @@ import { ReportShell } from "./_components/ReportShell";
 import { ReportBody } from "./_components/ReportBody";
 import { AnalyzingReport } from "./_components/AnalyzingReport";
 import { ReportError } from "./_components/ReportError";
+import { ReportRateLimited } from "./_components/ReportRateLimited";
 
 /**
  * 캐시 미스면 섹션마다 LLM 을 병렬로 부른다 — /api/saju/route.ts 와 같은 값.
@@ -35,18 +39,21 @@ export const maxDuration = 60;
 
 // 첫 요청에서 만든다. 모듈 로드 시점에 만들면 키가 없는 빌드 환경에서 빌드가 깨진다.
 let generatorCache: InterpretationGenerator | undefined;
-const generator = (): InterpretationGenerator => (generatorCache ??= createGenerator());
+const sharedGenerator = (): InterpretationGenerator => (generatorCache ??= createGenerator());
 
 /** 계산·생성·조립. 여기만 느리므로 이 컴포넌트만 <Suspense> 안에 둔다. */
 async function ProfileReport({
   subject,
   profileId,
   access,
+  generator,
 }: {
   subject: ReportSubject;
   /** 저장된 프로필이면 그 id. 익명 드래프트면 없다 — 결제로 보낼 대상이 아직 없다는 뜻이다. */
   profileId?: string;
   access: ReportAccess;
+  /** 비로그인 경로만 한도를 씌운 생성기를 넘긴다 */
+  generator: InterpretationGenerator;
 }) {
   // ?paid=true를 다시 붙이지 않는다 — 유료 판정은 이제 profile.isPaid(purchases 조인)가
   // 서버에서 내리므로 URL에 실을 이유가 없고, 프로덕션에서는 이 토글이 무시되니
@@ -63,9 +70,10 @@ async function ProfileReport({
 
   const year = new Date().getFullYear();
   let interpretation: Partial<Interpretation>;
+  let rateLimited = false;
   try {
     ({ interpretation } = await produceSections(analysis, {
-      generator: generator(),
+      generator,
       getCached,
       putCached,
       getLuckCached,
@@ -75,8 +83,13 @@ async function ProfileReport({
     }));
   } catch (e) {
     if (e instanceof GenerationError) {
-      // 생성 실패면 캐시에 있던 것만으로 계속한다.
-      console.error("[/report] 해석 생성 실패", e);
+      // 한도에 걸린 것은 실패가 아니다 — 캐시에 있던 것만으로 이어가되, 보여줄 것이
+      // 하나도 없으면 아래에서 다른 문구로 안내한다.
+      if (isRateLimited(e)) {
+        rateLimited = true;
+      } else {
+        console.error("[/report] 해석 생성 실패", e);
+      }
       interpretation = e.partial;
     } else {
       // DB 오류·DEEP_SEEK_API_KEY 누락(generator()) 등 그 외 예외는 여기서 삼킨다.
@@ -89,7 +102,9 @@ async function ProfileReport({
 
   // overview 가 없으면 히어로가 통째로 비어 리포트라 부를 것이 없다.
   // 그 외에는 확보한 섹션만 보여준다 — 빠진 섹션은 다음 방문에 missing 으로 다시 잡힌다.
-  if (!interpretation.overview) return <ReportError retryHref={retryHref} />;
+  if (!interpretation.overview) {
+    return rateLimited ? <ReportRateLimited /> : <ReportError retryHref={retryHref} />;
+  }
 
   const content = toReportContent(
     analysis,
@@ -129,7 +144,17 @@ export default async function ReportPage({
     return (
       <ReportShell showHomeLink={session !== null}>
         <Suspense fallback={<AnalyzingReport name={draft.name} />}>
-          <ProfileReport subject={draftToSubject(draft)} access={access} />
+          <ProfileReport
+            subject={draftToSubject(draft)}
+            access={access}
+            // 드래프트를 보는 사람이 로그인 상태일 수도 있다(승격이 아직 안 된 경우).
+            // 한도는 계정 없는 요청에만 씌운다.
+            generator={
+              session === null
+                ? gateAnonGeneration(sharedGenerator(), extractClientIp(await headers()))
+                : sharedGenerator()
+            }
+          />
         </Suspense>
       </ReportShell>
     );
@@ -154,7 +179,12 @@ export default async function ReportPage({
   return (
     <ReportShell showHomeLink>
       <Suspense fallback={<AnalyzingReport name={profile.name} />}>
-        <ProfileReport subject={profile} profileId={profile.id} access={profileAccess} />
+        <ProfileReport
+          subject={profile}
+          profileId={profile.id}
+          access={profileAccess}
+          generator={sharedGenerator()}
+        />
       </Suspense>
     </ReportShell>
   );
