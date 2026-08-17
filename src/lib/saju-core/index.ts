@@ -103,6 +103,17 @@ export {
   type RelationLabel,
 } from "./relationship";
 
+// 궁합 계산 — 두 원국에서 관계의 사실(일간 관계·십성·지지 관계·오행 합·나이차)만 뽑는다
+export {
+  analyzeSynastry,
+  branchElementOf,
+  type AgeGap,
+  type BranchTie,
+  type Synastry,
+  type SynastrySide,
+  type TieKind,
+} from "./synastry";
+
 // 캐릭터 데이터 (10 패밀리 × 60 일주)
 export {
   BRANCH_PRINCIPLES,
