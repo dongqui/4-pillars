@@ -29,6 +29,9 @@ describe("safeNextPath", () => {
   it("제어문자가 섞인 값을 막는다 — 개행으로 검사를 우회할 수 있다", () => {
     expect(safeNextPath("/\nhttps://evil.example")).toBe(DEFAULT_NEXT);
     expect(safeNextPath("/re\tport")).toBe(DEFAULT_NEXT);
+    // DEL (U+007F)과 C1 제어문자 (U+0080–U+009F)도 거절한다
+    expect(safeNextPath("/home\x7f")).toBe(DEFAULT_NEXT);
+    expect(safeNextPath("/home\x81")).toBe(DEFAULT_NEXT);
   });
 
   it("상대 경로도 막는다 — 어느 화면 기준인지 알 수 없다", () => {

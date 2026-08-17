@@ -13,8 +13,12 @@ export const DEFAULT_NEXT = "/home";
 
 export function safeNextPath(raw: string | undefined | null): string {
   if (typeof raw !== "string") return DEFAULT_NEXT;
-  // 개행·탭이 섞이면 이후 검사를 우회하거나 헤더를 오염시킬 수 있다.
-  if ([...raw].some((c) => c.charCodeAt(0) < 0x20)) return DEFAULT_NEXT;
+  // C0 제어문자(0x00–0x1F), DEL(0x7F), C1 제어문자(0x80–0x9F)는 이후 검사를 우회하거나
+  // Location 헤더를 오염시킬 수 있다.
+  if ([...raw].some((c) => {
+    const code = c.charCodeAt(0);
+    return code < 0x20 || code === 0x7f || (code >= 0x80 && code <= 0x9f);
+  })) return DEFAULT_NEXT;
   if (!raw.startsWith("/")) return DEFAULT_NEXT;
   // "//evil.example" 는 스킴 상대 URL, "/\evil.example" 는 그 브라우저별 변형이다.
   if (raw.startsWith("//") || raw.startsWith("/\\")) return DEFAULT_NEXT;
