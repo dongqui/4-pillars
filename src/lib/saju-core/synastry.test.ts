@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { analyze } from "./analyze";
 import { analyzeSynastry } from "./synastry";
+import { tenGod } from "./data/relations";
+import { STEMS, type Stem } from "./data/stems";
 import type { BirthInput } from "./chart";
 
 const birth = (year: number, month: number, day: number, hour = 10): BirthInput => ({
   year, month, day, hour, minute: 0, gender: "male", calendar: "solar",
 });
+
+const ey = (s: Stem) => ({ element: STEMS[s].element, yinYang: STEMS[s].yinYang });
 
 const A = analyze(birth(1990, 10, 25));
 const B = analyze(birth(1993, 4, 12));
@@ -63,5 +67,19 @@ describe("analyzeSynastry", () => {
     const s = analyzeSynastry(A, B);
     expect(s.subject.yongsinFromOther).toBe(B.elements.counts[A.yongsin.yongsin]);
     expect(s.counterpart.huisinFromOther).toBe(A.elements.counts[B.yongsin.huisin]);
+  });
+
+  it("상대 일간의 십성은 방향을 가진다 — 인자를 바꿔치기하면 값이 달라져야 잡힌다", () => {
+    // A/B는 일간(계/계)이 같아 어느 방향으로 넣어도 비견이 나온다 — swap 버그를
+    // 못 잡는 조합이다. 일간 오행이 다른 짝(A: 계, C: 신)을 써서 방향성을 확인한다.
+    const C = analyze(birth(1988, 6, 15));
+    const s = analyzeSynastry(A, C);
+
+    const expectedTenGodOfCForA = tenGod(ey(A.chart.dayMaster), ey(C.chart.dayMaster));
+    const expectedTenGodOfAForC = tenGod(ey(C.chart.dayMaster), ey(A.chart.dayMaster));
+
+    expect(expectedTenGodOfCForA).not.toBe(expectedTenGodOfAForC); // 이 짝이 방향성을 실제로 갖는지 자체 확인
+    expect(s.subject.tenGodOfOther).toBe(expectedTenGodOfCForA);
+    expect(s.counterpart.tenGodOfOther).toBe(expectedTenGodOfAForC);
   });
 });
