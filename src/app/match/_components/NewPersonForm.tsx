@@ -1,31 +1,25 @@
 "use client";
 
-import { useState } from "react";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { Toggle } from "@/components/Toggle";
 import { hasLeapMonth } from "@/lib/saju-core";
-import type { CreateProfileBody } from "@/lib/profiles/input";
-import { digitsOnly, emptyDraft, toCounterpart, type Draft } from "../_lib/to-counterpart";
+import { digitsOnly, type Draft } from "../_lib/to-counterpart";
 
 interface Props {
-  onChange: (next: CreateProfileBody | null) => void;
-  /** 세그먼트가 "저장된 사람" 일 때도 마운트는 유지한 채 감춘다 — 탭을 오가도 입력이 안 지워진다. */
-  hidden?: boolean;
+  draft: Draft;
+  onDraftChange: (patch: Partial<Draft>) => void;
 }
 
 const FIELD =
   "rounded-xl border border-slate-200 bg-white px-3 py-3 text-[15px] font-bold text-slate-900 text-center outline-none focus:border-accent placeholder:text-slate-300 disabled:opacity-40";
 
-/** 상대를 즉석으로 입력하는 폼. 자기 draft 상태만 갖고, 유효할 때만 부모에 값을 올린다. */
-export function NewPersonForm({ onChange, hidden = false }: Props) {
-  const [draft, setDraft] = useState<Draft>(emptyDraft);
-
-  function updateDraft(patch: Partial<Draft>) {
-    const next = { ...draft, ...patch };
-    setDraft(next);
-    onChange(toCounterpart(next));
-  }
-
+/**
+ * 상대를 즉석으로 입력하는 폼. draft 를 소유하지 않는다(controlled) — CounterpartPicker 가
+ * draft 의 유일한 진실의 원천이다. 이 폼이 스스로 상태를 들고 있으면, 세그먼트를
+ * "저장된 사람" 으로 옮겼다 되돌아왔을 때 화면에 보이는 값과 실제로 제출되는 값이
+ * 서로 다른 원천에서 나와 어긋날 수 있다.
+ */
+export function NewPersonForm({ draft, onDraftChange }: Props) {
   const leapAvailable = (() => {
     const yy = parseInt(draft.y, 10);
     const mm = parseInt(draft.m, 10);
@@ -33,10 +27,10 @@ export function NewPersonForm({ onChange, hidden = false }: Props) {
   })();
 
   return (
-    <div className={`space-y-3 rounded-2xl bg-slate-50 p-4 ${hidden ? "hidden" : ""}`}>
+    <div className="space-y-3 rounded-2xl bg-slate-50 p-4">
       <input
         value={draft.name}
-        onChange={(e) => updateDraft({ name: e.target.value })}
+        onChange={(e) => onDraftChange({ name: e.target.value })}
         placeholder="이름"
         aria-label="상대 이름"
         maxLength={20}
@@ -48,7 +42,7 @@ export function NewPersonForm({ onChange, hidden = false }: Props) {
           type="button"
           role="radio"
           aria-checked={draft.gender === "male"}
-          onClick={() => updateDraft({ gender: "male" })}
+          onClick={() => onDraftChange({ gender: "male" })}
           className={`flex-1 rounded-xl border py-2.5 text-sm font-semibold transition-colors ${
             draft.gender === "male"
               ? "border-accent bg-accent-50 text-accent"
@@ -61,7 +55,7 @@ export function NewPersonForm({ onChange, hidden = false }: Props) {
           type="button"
           role="radio"
           aria-checked={draft.gender === "female"}
-          onClick={() => updateDraft({ gender: "female" })}
+          onClick={() => onDraftChange({ gender: "female" })}
           className={`flex-1 rounded-xl border py-2.5 text-sm font-semibold transition-colors ${
             draft.gender === "female"
               ? "border-accent bg-accent-50 text-accent"
@@ -79,14 +73,14 @@ export function NewPersonForm({ onChange, hidden = false }: Props) {
         ]}
         value={draft.calendar}
         onChange={(calendar) =>
-          updateDraft({ calendar, ...(calendar === "solar" ? { isLeapMonth: false } : {}) })
+          onDraftChange({ calendar, ...(calendar === "solar" ? { isLeapMonth: false } : {}) })
         }
       />
 
       <div className="flex items-center gap-2">
         <input
           value={draft.y}
-          onChange={(e) => updateDraft({ y: digitsOnly(e.target.value, 4) })}
+          onChange={(e) => onDraftChange({ y: digitsOnly(e.target.value, 4) })}
           inputMode="numeric"
           placeholder="1990"
           aria-label="상대 생년"
@@ -95,7 +89,7 @@ export function NewPersonForm({ onChange, hidden = false }: Props) {
         <span className="text-sm text-slate-400">년</span>
         <input
           value={draft.m}
-          onChange={(e) => updateDraft({ m: digitsOnly(e.target.value, 2) })}
+          onChange={(e) => onDraftChange({ m: digitsOnly(e.target.value, 2) })}
           inputMode="numeric"
           placeholder="1"
           aria-label="상대 생월"
@@ -104,7 +98,7 @@ export function NewPersonForm({ onChange, hidden = false }: Props) {
         <span className="text-sm text-slate-400">월</span>
         <input
           value={draft.d}
-          onChange={(e) => updateDraft({ d: digitsOnly(e.target.value, 2) })}
+          onChange={(e) => onDraftChange({ d: digitsOnly(e.target.value, 2) })}
           inputMode="numeric"
           placeholder="1"
           aria-label="상대 생일"
@@ -116,14 +110,18 @@ export function NewPersonForm({ onChange, hidden = false }: Props) {
       {leapAvailable && (
         <label className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 py-3">
           <span className="text-[13px] text-slate-600">윤달</span>
-          <Toggle checked={draft.isLeapMonth} onChange={(v) => updateDraft({ isLeapMonth: v })} label="윤달" />
+          <Toggle
+            checked={draft.isLeapMonth}
+            onChange={(v) => onDraftChange({ isLeapMonth: v })}
+            label="윤달"
+          />
         </label>
       )}
 
       <div className="flex items-center gap-2">
         <input
           value={draft.h}
-          onChange={(e) => updateDraft({ h: digitsOnly(e.target.value, 2) })}
+          onChange={(e) => onDraftChange({ h: digitsOnly(e.target.value, 2) })}
           disabled={!draft.timeKnown}
           inputMode="numeric"
           placeholder="12"
@@ -133,7 +131,7 @@ export function NewPersonForm({ onChange, hidden = false }: Props) {
         <span className="text-sm text-slate-400">시</span>
         <input
           value={draft.min}
-          onChange={(e) => updateDraft({ min: digitsOnly(e.target.value, 2) })}
+          onChange={(e) => onDraftChange({ min: digitsOnly(e.target.value, 2) })}
           disabled={!draft.timeKnown}
           inputMode="numeric"
           placeholder="00"
@@ -143,7 +141,7 @@ export function NewPersonForm({ onChange, hidden = false }: Props) {
         <span className="text-sm text-slate-400">분</span>
         <button
           type="button"
-          onClick={() => updateDraft({ timeKnown: !draft.timeKnown })}
+          onClick={() => onDraftChange({ timeKnown: !draft.timeKnown })}
           aria-pressed={!draft.timeKnown}
           className="ml-auto text-[12.5px] font-semibold text-slate-500 hover:text-slate-700"
         >
