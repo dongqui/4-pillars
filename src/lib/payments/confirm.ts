@@ -4,13 +4,17 @@ import type { PendingOrder } from "./store";
 export type ConfirmFailure = "not_found" | "not_paid" | "amount_mismatch" | "currency_mismatch";
 
 export type ConfirmResult =
-  | { ok: true; kind: "confirmed" | "already"; profileId: string }
+  | { ok: true; kind: "confirmed" | "already" }
   | { ok: false; kind: ConfirmFailure };
 
 export interface ConfirmDeps {
   findOrder(paymentId: string): Promise<PendingOrder | null>;
   lookupPayment(paymentId: string): Promise<PortOnePayment>;
-  /** 갱신된 행이 있으면 true. false 는 이미 다른 경로가 확정했다는 뜻이다. */
+  /**
+   * 갱신된 행이 있으면 true. false 는 이미 다른 경로가 확정했다는 뜻이다.
+   * 프로덕션 구현(deps.ts)은 확정과 이용권 적립을 한 문장으로 처리한다 —
+   * 이 함수가 true 를 돌려줬다는 것은 적립까지 끝났다는 뜻이다.
+   */
   markPaid(a: { paymentId: string; transactionId: string | null }): Promise<boolean>;
   markFailed(paymentId: string): Promise<void>;
 }
@@ -66,7 +70,7 @@ export async function confirmPayment(
 
   // 이미 확정된 주문에 포트원을 다시 부르지 않는다 — 웹훅과 완료 API 가 겹칠 때
   // 같은 결제 건을 두 번 조회할 이유가 없다.
-  if (order.status === "paid") return { ok: true, kind: "already", profileId: order.profileId };
+  if (order.status === "paid") return { ok: true, kind: "already" };
 
   // 여기서 던지는 예외는 삼키지 않는다. 일시 장애를 "미결제"로 접으면 돈은 받고
   // 리포트는 안 열린 채 조용히 끝난다 — 호출자가 5xx 로 올려 재시도를 유도해야 한다.
@@ -98,14 +102,12 @@ export async function confirmPayment(
     paymentId,
     transactionId: payment.transactionId ?? null,
   });
-  if (flipped) return { ok: true, kind: "confirmed", profileId: order.profileId };
+  if (flipped) return { ok: true, kind: "confirmed" };
 
   // false 는 "pending 이 아니었다"만 뜻한다 — paid 일 수도, refunded/failed 일 수도 있다.
   // 다시 읽어 확인한다: 다른 경로가 먼저 확정했으면 already 지만, 환불되거나 실패로
-  // 내려간 행을 already 로 돌려주면 결제되지 않은 주문이 리포트를 연다.
+  // 내려간 행을 already 로 돌려주면 결제되지 않은 주문이 이용권을 지급받는다.
   const after = await d.findOrder(paymentId);
-  if (after?.status === "paid") {
-    return { ok: true, kind: "already", profileId: after.profileId };
-  }
+  if (after?.status === "paid") return { ok: true, kind: "already" };
   return { ok: false, kind: "not_paid" };
 }

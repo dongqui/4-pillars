@@ -6,15 +6,14 @@ import type { PortOnePayment } from "./portone";
 const order: PendingOrder = {
   paymentId: "saju-abc",
   userId: "7",
-  profileId: "3",
-  amount: 9900,
+  amount: 5000,
   status: "pending",
 };
 
 const paid: PortOnePayment = {
   id: "saju-abc",
   status: "PAID",
-  amount: { total: 9900, paid: 9900 },
+  amount: { total: 5000, paid: 5000 },
   currency: "KRW",
   transactionId: "tx-1",
 };
@@ -41,7 +40,6 @@ describe("confirmPayment", () => {
     expect(await confirmPayment("saju-abc", d)).toEqual({
       ok: true,
       kind: "already",
-      profileId: "3",
     });
     expect(d.lookupPayment).not.toHaveBeenCalled();
   });
@@ -51,7 +49,6 @@ describe("confirmPayment", () => {
     expect(await confirmPayment("saju-abc", d)).toEqual({
       ok: true,
       kind: "confirmed",
-      profileId: "3",
     });
     expect(d.markPaid).toHaveBeenCalledWith({ paymentId: "saju-abc", transactionId: "tx-1" });
   });
@@ -65,7 +62,6 @@ describe("confirmPayment", () => {
     expect(await confirmPayment("saju-abc", d)).toEqual({
       ok: true,
       kind: "already",
-      profileId: "3",
     });
     expect(d.markFailed).not.toHaveBeenCalled();
   });
@@ -138,5 +134,35 @@ describe("confirmPayment", () => {
     });
     await expect(confirmPayment("saju-abc", d)).rejects.toThrow("network");
     expect(d.markFailed).not.toHaveBeenCalled();
+  });
+
+  it("markPaid 가 false 여도 다시 읽어 paid 면 already — 다른 경로가 먼저 확정한 경우", async () => {
+    let reads = 0;
+    const result = await confirmPayment("saju-abc", {
+      ...deps(),
+      findOrder: async () => ({
+        paymentId: "saju-abc",
+        userId: "7",
+        amount: 5000,
+        status: reads++ === 0 ? "pending" : "paid",
+      }),
+      markPaid: async () => false,
+    });
+    expect(result).toEqual({ ok: true, kind: "already" });
+  });
+
+  it("markPaid 가 false 이고 다시 읽어도 paid 가 아니면 not_paid — 환불된 행이 리포트를 열면 안 된다", async () => {
+    let reads = 0;
+    const result = await confirmPayment("saju-abc", {
+      ...deps(),
+      findOrder: async () => ({
+        paymentId: "saju-abc",
+        userId: "7",
+        amount: 5000,
+        status: reads++ === 0 ? "pending" : "refunded",
+      }),
+      markPaid: async () => false,
+    });
+    expect(result).toEqual({ ok: false, kind: "not_paid" });
   });
 });
