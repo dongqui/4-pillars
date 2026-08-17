@@ -75,3 +75,82 @@ body {
 .saju-fade {
   animation: saju-fade 0.35s ease both;
 }
+
+/* 리빌 → 홈 연출 (시안 pv-*). 카드가 화면을 갈아타는 동안 이어지는 느낌을 만든다 */
+@keyframes pv-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pv-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes pv-breathe {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.04);
+  }
+}
+@keyframes pv-cardin {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes pv-handoff {
+  from {
+    opacity: 0.55;
+    transform: scale(1.16) translateY(-26px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.pv-fade {
+  animation: pv-fade 0.5s ease-out;
+}
+.pv-rise {
+  animation: pv-rise 0.5s 0.25s ease-out both;
+}
+.pv-breathe {
+  animation: pv-breathe 2.8s ease-in-out infinite;
+}
+.pv-cardin {
+  animation: pv-cardin 0.6s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+.pv-handoff {
+  animation: pv-handoff 0.52s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+
+/* 연출이 정보를 나르지는 않는다 — 끄고 봐도 잃는 것이 없어야 한다 */
+@media (prefers-reduced-motion: reduce) {
+  .pv-fade,
+  .pv-rise,
+  .pv-breathe,
+  .pv-cardin,
+  .pv-handoff,
+  .saju-fade {
+    animation: none;
+  }
+}

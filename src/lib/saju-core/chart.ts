@@ -68,8 +68,22 @@ function parsePillar(korean: string, hanja: string): Pillar {
   return { korean, hanja, stem, branch };
 }
 
+/**
+ * 성별을 뺀 출생 정보. 간지는 성별과 무관하게 정해진다 — 성별은 대운 방향에만 쓰인다.
+ * 라이트 퍼널처럼 성별을 묻지 않는 입구가 가짜 성별을 지어내지 않게 하려고 따로 둔다.
+ */
+export type PillarsInput = Omit<BirthInput, "gender">;
+
+/** 성별 없이 세운 원국. 대운이 필요 없는 화면(캐릭터 카드)이 쓴다. */
+export type Pillars = Omit<Chart, "gender">;
+
 /** 출생 정보로 원국을 계산한다. */
 export function buildChart(input: BirthInput): Chart {
+  return { ...buildPillars(input), gender: input.gender };
+}
+
+/** 성별 없이 원국의 간지만 세운다. */
+export function buildPillars(input: PillarsInput): Pillars {
   let { year, month, day } = input;
   if (input.calendar === "lunar") {
     const solar = lunarToSolar(year, month, day, input.isLeapMonth ?? false).solar;
@@ -97,7 +111,6 @@ export function buildChart(input: BirthInput): Chart {
     day: dayPillar,
     hour,
     dayMaster: dayPillar.stem,
-    gender: input.gender,
     solar: { year, month, day, hour: input.hour ?? null, minute: input.minute ?? 0 },
     raw,
   };

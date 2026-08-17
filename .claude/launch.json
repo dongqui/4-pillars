@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "saju-dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["next", "dev", "--port", "3021"],
+      "port": 3021
+    }
+  ]
+}

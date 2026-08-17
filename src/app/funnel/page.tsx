@@ -7,7 +7,7 @@ import { useFunnelNav } from "./_hooks/useFunnelNav";
 import { activeSteps, stepIndex, type StepKey } from "./_lib/steps";
 import { FunnelLayout } from "./_components/FunnelLayout";
 import { FunnelFooter } from "./_components/FunnelFooter";
-import { AnalyzingScreen } from "./_components/AnalyzingScreen";
+import { CalculatingScreen } from "./_components/CalculatingScreen";
 import { toProfileBody } from "./_lib/toProfileBody";
 import { NameStep } from "./_components/steps/NameStep";
 import { GenderStep } from "./_components/steps/GenderStep";
@@ -40,8 +40,7 @@ function FunnelInner() {
     }
   }, [step, data, router]);
 
-  // 분석 완료 → 프로필 저장 후 리포트로.
-  // 저장에 실패해도 사용자를 막지 않는다 — 리포트는 입력만으로 볼 수 있다.
+  // 입력 완료 → 프로필(또는 드래프트) 저장 후 리빌로.
   const submitted = useRef(false);
   useEffect(() => {
     // Strict Mode는 개발 모드에서 effect를 mount → cleanup → 재-mount로 두 번 실행한다.
@@ -54,14 +53,17 @@ function FunnelInner() {
 
     let cancelled = false;
 
-    // 응답이 빨리 와도 분석 화면이 번쩍이지 않게 최소 노출 시간을 둔다.
+    // 응답이 빨리 와도 계산 화면이 번쩍이지 않게 최소 노출 시간을 둔다. 리빌이 같은
+    // 배경에서 한 번 더 문구를 보여주므로(합쳐서 2.2초) 여기서는 절반만 잡는다.
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     const minDelay = new Promise<void>((resolve) => {
-      timeoutId = setTimeout(resolve, 2200);
+      timeoutId = setTimeout(resolve, 1100);
     });
 
     void (async () => {
-      let dest = "/report";
+      // 리빌은 서버에 남은 것(프로필 또는 드래프트)으로 캐릭터를 세운다. 저장이
+      // 아예 실패하면 보여줄 것이 없으므로 홈으로 보내고, 홈이 빈 상태를 안내한다.
+      let dest = "/home";
       try {
         const res = await fetch("/api/profiles", {
           method: "POST",
@@ -70,11 +72,10 @@ function FunnelInner() {
         });
         if (res.status === 201) {
           const { id } = (await res.json()) as { id: string };
-          dest = `/report?profile=${id}`;
+          dest = `/reveal?profile=${id}`;
         } else if (res.status === 202) {
           // 비로그인. 입력은 드래프트로 보관됐고 로그인하는 순간 프로필이 된다.
-          // dest 는 이미 "/report" — 재대입하지 않는다. 분기는 그대로 남긴다(안 두면
-          // 202 가 "그 밖" 갈래로 흘러 console.error 를 찍는다).
+          dest = "/reveal";
         } else if (res.status === 409) {
           // 프로필 한도 초과 — 목록에서 정리하게 돌려보낸다.
           dest = "/home?error=limit";
@@ -83,7 +84,7 @@ function FunnelInner() {
           console.error(`[POST /api/profiles] unexpected status ${res.status}`);
         }
       } catch {
-        // 네트워크 오류도 저장 없이 리포트만 보여준다.
+        // 네트워크 오류 — dest 는 "/home" 그대로다.
       }
       await minDelay;
       if (!cancelled) router.push(dest);
@@ -95,7 +96,7 @@ function FunnelInner() {
     };
   }, [analyzing, data, router]);
 
-  if (analyzing) return <AnalyzingScreen name={data.name} />;
+  if (analyzing) return <CalculatingScreen name={data.name} />;
 
   const canNext = (() => {
     switch (step) {

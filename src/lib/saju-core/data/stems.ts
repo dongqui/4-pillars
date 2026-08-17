@@ -10,20 +10,22 @@ export type Stem =
 export interface StemInfo {
   element: Element;
   yinYang: YinYang;
+  /** 한자 (예: "甲") */
+  hanja: string;
 }
 
 /** 10천간: 갑을(목) 병정(화) 무기(토) 경신(금) 임계(수), 양음 교대 */
 export const STEMS: Record<Stem, StemInfo> = {
-  갑: { element: "목", yinYang: "양" },
-  을: { element: "목", yinYang: "음" },
-  병: { element: "화", yinYang: "양" },
-  정: { element: "화", yinYang: "음" },
-  무: { element: "토", yinYang: "양" },
-  기: { element: "토", yinYang: "음" },
-  경: { element: "금", yinYang: "양" },
-  신: { element: "금", yinYang: "음" },
-  임: { element: "수", yinYang: "양" },
-  계: { element: "수", yinYang: "음" },
+  갑: { element: "목", yinYang: "양", hanja: "甲" },
+  을: { element: "목", yinYang: "음", hanja: "乙" },
+  병: { element: "화", yinYang: "양", hanja: "丙" },
+  정: { element: "화", yinYang: "음", hanja: "丁" },
+  무: { element: "토", yinYang: "양", hanja: "戊" },
+  기: { element: "토", yinYang: "음", hanja: "己" },
+  경: { element: "금", yinYang: "양", hanja: "庚" },
+  신: { element: "금", yinYang: "음", hanja: "辛" },
+  임: { element: "수", yinYang: "양", hanja: "壬" },
+  계: { element: "수", yinYang: "음", hanja: "癸" },
 };
 
 export const STEM_ORDER: readonly Stem[] = [
