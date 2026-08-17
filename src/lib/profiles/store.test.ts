@@ -6,6 +6,7 @@ import {
   createProfile,
   getProfile,
   listProfiles,
+  promoteProfileToSelf,
   toProfileRow,
   type CreateProfileInput,
   type SqlClient,
@@ -51,6 +52,7 @@ const newProfile: CreateProfileInput = {
   time: null,
   birthPlace: null,
   trueSolar: true,
+  kind: "self",
 };
 
 describe("toProfileRow", () => {
@@ -68,6 +70,7 @@ describe("toProfileRow", () => {
       trueSolar: true,
       createdAt: "2026-07-31T00:00:00.000Z",
       isPaid: false,
+      kind: "self",
     });
   });
 
@@ -86,7 +89,8 @@ describe("toProfileRow", () => {
 describe("listProfiles", () => {
   it("결제된 상품이 조인되면 isPaid 가 true", async () => {
     const { client, calls } = fakeClient([{ ...dbRow, is_paid: true }]);
-    const rows = await listProfiles("7", client);
+    // 'all' — 이 테스트는 kind 필터링이 아니라 isPaid 파생을 본다.
+    const rows = await listProfiles("7", "all", client);
 
     expect(rows).toHaveLength(1);
     expect(rows[0].isPaid).toBe(true);
@@ -98,19 +102,19 @@ describe("listProfiles", () => {
 
   it("프로필이 없으면 빈 배열", async () => {
     const { client } = fakeClient([]);
-    expect(await listProfiles("7", client)).toEqual([]);
+    expect(await listProfiles("7", "all", client)).toEqual([]);
   });
 });
 
 describe("countProfiles", () => {
   it("count 결과를 숫자로 반환", async () => {
     const { client, calls } = fakeClient([{ n: 2 }]);
-    expect(await countProfiles("7", client)).toBe(2);
+    expect(await countProfiles("7", "self", client)).toBe(2);
     expect(calls[0].sql).toContain("FROM profiles");
     // WHERE user_id 가 빠지면 전체 유저의 프로필을 세게 되어 개수 한도가
     // 계정별이 아니라 전역이 되어버린다 — 그 회귀를 여기서 잡는다.
     expect(calls[0].sql).toContain("WHERE user_id");
-    expect(calls[0].values).toEqual(["7"]);
+    expect(calls[0].values).toEqual(["7", "self"]);
   });
 });
 
@@ -120,13 +124,13 @@ describe("createProfile", () => {
     expect(await createProfile("7", newProfile, client)).toEqual({ id: "42" });
 
     expect(calls[1].sql).toContain("INSERT INTO profiles");
-    // 14개 위치 바인딩 전부를 컬럼 순서대로 고정한다 — toContain(null)처럼 위치를
+    // 15개 위치 바인딩 전부를 컬럼 순서대로 고정한다 — toContain(null)처럼 위치를
     // 안 가리면 birth_hour/birth_country 같은 컬럼이 뒤바뀌어도 테스트가 안 잡는다.
     // 순서는 store.ts의 INSERT 컬럼 목록과 동일하다:
     // user_id, name, gender, calendar, is_leap_month,
     // birth_year, birth_month, birth_day,
     // time_known, birth_hour, birth_minute,
-    // birth_country, birth_region_id, true_solar
+    // birth_country, birth_region_id, true_solar, kind
     expect(calls[1].values).toEqual([
       "7",
       "이정숙",
@@ -142,6 +146,7 @@ describe("createProfile", () => {
       null,
       null,
       true,
+      "self",
     ]);
   });
 
@@ -176,5 +181,45 @@ describe("getProfile", () => {
   it("행이 없으면 null — 없는 프로필과 남의 프로필을 구분하지 않는다", async () => {
     const { client } = fakeClient([]);
     expect(await getProfile("7", "3", client)).toBeNull();
+  });
+});
+
+describe("kind", () => {
+  it("listProfiles 는 kind 로 거른다 — 'self' 는 궁합 상대를 홈에 올리지 않는다", async () => {
+    const queries: string[] = [];
+    const client = ((strings: TemplateStringsArray, ...values: unknown[]) => {
+      queries.push(strings.join("?"));
+      void values;
+      return Promise.resolve([]);
+    }) as unknown as SqlClient;
+
+    await listProfiles("1", "self", client);
+    expect(queries[0]).toContain("p.kind =");
+  });
+
+  it("listProfiles('all') 은 거르지 않는다 — 궁합 상대 선택 목록이 쓴다", async () => {
+    const queries: string[] = [];
+    const client = ((strings: TemplateStringsArray, ...values: unknown[]) => {
+      queries.push(strings.join("?"));
+      void values;
+      return Promise.resolve([]);
+    }) as unknown as SqlClient;
+
+    await listProfiles("1", "all", client);
+    expect(queries[0]).not.toContain("p.kind =");
+  });
+
+  it("toProfileRow 는 모르는 kind 를 'self' 로 접지 않는다 — 'other' 를 지켜야 홈이 안 샌다", () => {
+    const row = toProfileRow({
+      id: 1, name: "테스트", gender: "male", calendar: "solar", is_leap_month: false,
+      birth_year: 1990, birth_month: 1, birth_day: 1, time_known: false,
+      true_solar: true, created_at: "2026-01-01", kind: "other",
+    });
+    expect(row.kind).toBe("other");
+  });
+
+  it("promoteProfileToSelf 는 이미 self 면 false 를 낸다", async () => {
+    const client = (() => Promise.resolve([])) as unknown as SqlClient;
+    expect(await promoteProfileToSelf("1", "2", client)).toBe(false);
   });
 });

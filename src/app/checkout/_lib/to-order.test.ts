@@ -15,6 +15,7 @@ const profile = (over: Partial<ProfileRow> = {}): ProfileRow => ({
   trueSolar: false,
   createdAt: "2026-08-05T00:00:00Z",
   isPaid: false,
+  kind: "self",
   ...over,
 });
 

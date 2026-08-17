@@ -17,6 +17,7 @@ function row(overrides: Partial<ProfileRow> = {}): ProfileRow {
     trueSolar: true,
     createdAt: "2026-08-16T00:00:00.000Z",
     isPaid: false,
+    kind: "self",
     ...overrides,
   };
 }

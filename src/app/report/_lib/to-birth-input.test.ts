@@ -15,6 +15,7 @@ const base: ProfileRow = {
   trueSolar: true,
   createdAt: "2026-07-31T00:00:00.000Z",
   isPaid: false,
+  kind: "self",
 };
 
 describe("toBirthInput", () => {

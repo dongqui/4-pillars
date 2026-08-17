@@ -53,7 +53,8 @@ export async function handleCreateProfile(
   }
 
   try {
-    const { id } = await deps.create(deps.userId, body);
+    // 이 경로는 사용자 본인의 사주를 저장한다 — 궁합 상대는 이 API 를 타지 않는다.
+    const { id } = await deps.create(deps.userId, { ...body, kind: "self" });
 
     if (!deps.existingToken) return { status: 201, body: { id } };
 

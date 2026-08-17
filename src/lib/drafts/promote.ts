@@ -34,7 +34,8 @@ export async function promoteDraft(
     const draft = await deps.getDraft(token);
     if (!draft) return { kind: "none" };
 
-    const { id } = await deps.createProfile(userId, draft);
+    // 드래프트 승격은 언제나 로그인한 본인의 사주를 저장한다.
+    const { id } = await deps.createProfile(userId, { ...draft, kind: "self" });
 
     // 삭제 실패가 성공을 뒤집지 않게 따로 감싼다 — 행은 이미 생겼고,
     // 여기서 failed 를 돌려주면 쿠키가 남아 다음 로그인에 중복 프로필이 생긴다.

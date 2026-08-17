@@ -42,7 +42,7 @@ export default async function HomePage({
   if (session) {
     const [user, rows] = await Promise.all([
       getUser(session.userId),
-      listProfiles(session.userId),
+      listProfiles(session.userId, "self"),
     ]);
     displayName = resolveDisplayName(user);
     entries = rows.map(toHomeEntry);
