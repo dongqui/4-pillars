@@ -36,9 +36,13 @@ tint.ts  tint.test.ts  shaders/common.ts  shaders/materials.ts  shaders/material
 
 `_lib/layout.ts` 는 손대지 않는다. `positionFor` 가 role 마다 다른 실루엣으로 사람을 앉힌다 — beside 는 기울어진 4개 층, refine 은 격자, express 는 광선 방향, move 는 리본 곡선, fill 은 동심 껍질. Field 오브젝트가 없어져도 이 배치가 그대로 "5 Role 은 공간적 위치로 구분"을 수행한다. 오히려 Field 가 사라져야 배치가 눈에 보인다.
 
-`layout.test.ts` 39개도 그대로 산다.
+`layout.test.ts` 35개도 그대로 산다.
 
-`RelationThread`, `CameraRig`, `PersonMarker`, `PersonSheet`, `Starfield`, `SelfCore`, 카메라 A/B/C 토글은 모두 유지한다.
+`RelationThread`, `CameraRig`, `PersonSheet`, `Starfield`, 카메라 A/B/C 토글은 손대지 않는다.
+
+`SelfCore` 와 `PersonMarker` 는 색만 바뀐다. 지금 둘 다 파란색이 하드코딩돼 있는데(`#93c5fd` 발광 구체, dot 티어의 `bg-slate-300/80`), "색 = 사람의 사주" 아래에서는 나도 자기 색을 가져야 하고 dot 도 그 사람 색이어야 한다.
+
+`SelfCore` 가 `meshStandardMaterial` 을 쓰는 유일한 곳이므로(확인함), 이걸 basic 으로 바꾸면 `World.tsx` 의 `ambientLight` · `directionalLight` 와 `SelfCore` 의 `pointLight` 가 전부 죽은 코드가 된다 — 함께 지운다.
 
 ## 3. 색 시스템 — `_data/saju-colors.ts`
 
@@ -68,9 +72,9 @@ const BRANCHES = ["자","축","인","묘","진","사","오","미","신","유","�
 | 경 | 금 | 양 | 205, 27%, 73% | `#a8bdcd` |
 | 신 | 금 | 음 | 205, 20%, 57% | `#7b95a7` |
 | 임 | 수 | 양 | 229, 45%, 69% | `#8c99d4` |
-| 계 | 수 | 음 | 229, 27%, 53% | `#6773a8` |
+| 계 | 수 | 음 | 229, 27%, 56% | `#717cad` |
 
-수 → 심해 청, 금 → 얼음빛 회청으로 옮겼다. 전통 오행색의 흑·백은 이 배경(`#06080f`)에서 색으로 기능하지 못한다. 이건 Project Saju 의 시각 제안이지 명리의 공식 색 체계가 아니다 — 그래서 이 표는 파일 하나에 갇혀 있고 통째로 교체 가능하다.
+수 → 심해 청, 금 → 얼음빛 회청으로 옮겼다. 전통 오행색의 흑·백은 이 배경(`#0F172A`, `World.tsx` 가 칠하는 실제 값)에서 색으로 기능하지 못한다. 계(癸)만 명도가 53% 였으면 명도비 3.91 로 아래 바닥을 못 넘어 56% 로 올렸다. 이건 Project Saju 의 시각 제안이지 명리의 공식 색 체계가 아니다 — 그래서 이 표는 파일 하나에 갇혀 있고 통째로 교체 가능하다.
 
 채도 상한은 55%다. 5색 네온으로 보이지 않게 하는 유일한 장치다.
 
@@ -93,11 +97,18 @@ lightOffset(i) = (floor(i / 4) - 1) * 4       →  -4,  0, +4
 ### 3.4 인터페이스
 
 ```ts
-export type NodeColor = { readonly glow: string; readonly core: string };
-export function colorFor(pillarKey: string): NodeColor;
+export type NodePalette = {
+  readonly glow: string;         // outer glow — 일간
+  readonly core: string;         // inner core — 일간 + 지지 변조
+  readonly coreSelected: string; // core 명도 +12
+  readonly coreDimmed: string;   // core 명도 −28 · 채도 ×0.6
+};
+export function paletteFor(pillarKey: string): NodePalette;
 ```
 
-`colorFor` 는 순수 함수다. React·three·DOM 을 import 하지 않는다 — 테스트가 node 환경에서 돈다.
+선택·dim 파생색까지 이 모듈이 만든다. 색 계산이 컴포넌트로 새면 테스트 밖으로 나가고, 6절의 규칙이 세 파일에 흩어진다.
+
+`paletteFor` 는 순수 함수다. React·three·DOM 을 import 하지 않는다 — 테스트가 node 환경에서 돈다.
 
 ## 4. Node 구조
 
@@ -165,12 +176,12 @@ dim 상태에서도 색상(hue)은 유지한다. hue 까지 회색으로 빼면 
 
 ### 새로 — `_data/saju-colors.test.ts`
 
-1. 60개 pillarKey(10 × 12 전수) 가 전부 해석된다
+1. 실제 60갑자 전수가 해석되고 60개 core 색이 서로 다르다. 파서는 문법적으로 유효한 10 × 12 = 120개 조합 전체에 대해 전역 함수다(60갑자가 아닌 조합도 던지지 않는다 — 천간·지지가 각자 유효하면 색은 나온다)
 2. 목록에 없는 글자는 던진다. `"신미"` 의 신은 천간, `"무신"` 의 신은 지지로 파싱된다 — 두 사람의 색이 다르다
 3. 같은 천간의 12개 일주는 hue 가 같고, (채도, 명도) 쌍이 12개 모두 다르다
 4. core 는 언제나 glow 보다 채도·명도가 높다
 5. 서로 다른 오행 쌍의 hue 거리 > 같은 오행 쌍의 hue 거리(= 0)
-6. 10개 glow 색 전부 배경 `#06080f` 대비 명도비 4.0 이상 (현재 최저는 계 4.38)
+6. 10개 glow 색 전부 배경 `#0F172A` 대비 명도비 4.0 이상 (현재 최저는 계 4.41)
 7. 10개 **glow** 색의 채도가 55% 를 넘지 않는다 (core 는 +15 되므로 이 상한의 대상이 아니다)
 8. `mock-people.ts` 의 21명 전원이 해석된다
 
@@ -180,7 +191,7 @@ dim 상태에서도 색상(hue)은 유지한다. hue 까지 회색으로 빼면 
 
 ### 유지
 
-`layout.test.ts` 39개 전부. 배치는 바뀌지 않는다.
+`layout.test.ts` 35개 전부. 배치는 바뀌지 않는다.
 
 ## 8. 성능
 
