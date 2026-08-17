@@ -86,8 +86,25 @@ const replyShape = z.object({
 });
 
 /**
+ * 제목이 빠진 첫 턴 응답을 메운다. 사용자 발화 앞부분을 잘라 쓴다.
+ *
+ * 모델이 title 을 안 주는 것을 실패로 볼 수도 있지만, 그러면 parseReply 가 던지고
+ * openConsultation 이 이용권을 되돌려 상담이 아예 안 열린다 — 제목 한 줄 때문에
+ * 치를 대가가 아니다. 목록에서 알아볼 수만 있으면 된다.
+ */
+export function fallbackTitle(utterance: string): string {
+  // 스프레드로 자르는 이유: 서로게이트 쌍이 반으로 잘리지 않게
+  // (src/app/home/_lib/to-home-entry.ts 의 initialOf 와 같은 이유).
+  const chars = [...utterance.trim()];
+  return chars.length <= TITLE_MAX_CHARS
+    ? chars.join("")
+    : `${chars.slice(0, TITLE_MAX_CHARS - 1).join("")}…`;
+}
+
+/**
  * 돌아온 tool 인자를 믿기 전에 한 번 거른다. 던지면 그 턴은 실패로 처리되고
  * 차감되지 않는다 — 깨진 응답에 이용권을 쓰게 두지 않는다.
+ * 개수·필수 강제는 여기 걸지 않는다 — tool 스키마 쪽에만 둔다. 모양이 깨진 응답만 거른다.
  */
 export function parseReply(raw: unknown, opts: ReplyOptions): CounselorReply {
   const parsed = replyShape.parse(raw);

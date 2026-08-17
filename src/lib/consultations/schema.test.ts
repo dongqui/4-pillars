@@ -4,8 +4,10 @@ import {
   MAX_BUBBLES,
   MIN_BUBBLES,
   SUGGESTION_COUNT,
+  TITLE_MAX_CHARS,
   replyToolSchema,
   parseReply,
+  fallbackTitle,
 } from "./schema";
 
 const middle = { first: false, last: false };
@@ -88,5 +90,44 @@ describe("parseReply", () => {
 
   it("도구 이름은 emit_reply 다", () => {
     expect(COUNSEL_TOOL_NAME).toBe("emit_reply");
+  });
+
+  it("추천질문이 하나만 와도 통과시킨다 — 칩 하나 때문에 턴을 버리지 않는다", () => {
+    const r = parseReply({ ...good, suggestions: ["하나만"] }, middle);
+    expect(r.suggestions).toEqual(["하나만"]);
+  });
+
+  it("첫 턴에 제목이 없어도 통과시킨다 — 메우는 것은 turn.ts 의 몫이다", () => {
+    const r = parseReply(good, { first: true, last: false });
+    expect(r.title).toBeUndefined();
+  });
+});
+
+describe("fallbackTitle", () => {
+  it("짧은 발화는 그대로 쓴다", () => {
+    expect(fallbackTitle("잠이 안 와요")).toBe("잠이 안 와요");
+  });
+
+  it("앞뒤 공백을 지운다", () => {
+    expect(fallbackTitle("  힘들어요  ")).toBe("힘들어요");
+  });
+
+  it("상한을 넘기면 잘라내고 줄임표를 붙인다", () => {
+    const long = "가".repeat(TITLE_MAX_CHARS + 10);
+    const title = fallbackTitle(long);
+    expect([...title]).toHaveLength(TITLE_MAX_CHARS);
+    expect(title.endsWith("…")).toBe(true);
+  });
+
+  it("상한 딱 맞는 길이는 줄임표 없이 그대로 쓴다", () => {
+    const exact = "가".repeat(TITLE_MAX_CHARS);
+    expect(fallbackTitle(exact)).toBe(exact);
+  });
+
+  it("서로게이트 쌍을 반으로 자르지 않는다", () => {
+    const emoji = "🙂".repeat(TITLE_MAX_CHARS + 5);
+    const title = fallbackTitle(emoji);
+    expect([...title]).toHaveLength(TITLE_MAX_CHARS);
+    expect(title).not.toContain("�");
   });
 });
