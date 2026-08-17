@@ -56,7 +56,8 @@ export function World({
 
       {/*
         나와 모든 사람을 잇는 기본 구조선. 선택했을 때만 뜨는 RelationThread 와
-        역할이 다르다 — 이건 항상 떠 있고, 전원에게 완전히 동일하다.
+        역할이 다르다 — 이건 항상 떠 있고, 알파는 전원 동일하다. 색만은 그
+        사람의 Role 을 담아 다섯 갈래 구역을 드러낸다.
       */}
       <ConnectionLines targets={targets} roles={roles} />
       <SelfCore />
