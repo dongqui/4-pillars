@@ -1,18 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { RelationInput } from "@/lib/matches/relation-types";
 import type { PersonOption } from "../_lib/to-person-option";
 import { CounterpartPicker, type CounterpartValue } from "./CounterpartPicker";
+import { PersonList } from "./PersonList";
 import { RelationPicker } from "./RelationPicker";
 
-const PERSON_BTN =
-  "flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3 text-left transition-colors";
-const PERSON_BTN_ON = "border-accent bg-accent-50";
-const PERSON_BTN_OFF = "border-slate-200 bg-white hover:border-slate-300";
-
+/**
+ * people 에는 "나"로 고를 수 없는 사람(kind='other')도 섞여 있을 수 있다 — page.tsx 가
+ * 이미 people.some(kind==='self') 를 확인한 뒤에만 이 컴포넌트를 렌더하므로, subjects 는
+ * 항상 하나 이상이라고 가정한다.
+ */
 export function MatchForm({ people }: { people: PersonOption[] }) {
   const router = useRouter();
   // "나"는 내 사주(kind='self')에서만 고른다 — 궁합 상대로 저장된 사람(kind='other')을
@@ -53,24 +53,6 @@ export function MatchForm({ people }: { people: PersonOption[] }) {
     router.push(`/match/${body.matchId}${counterpart.kind === "new" ? "?new=1" : ""}`);
   }
 
-  // 내 사주가 하나도 없으면 고를 것이 없다 — 퍼널로 먼저 보낸다.
-  if (subjects.length === 0) {
-    return (
-      <div className="mx-auto max-w-[560px] px-5 py-16 text-center md:px-8">
-        <p className="mb-2 text-[19px] font-bold tracking-[-0.025em]">먼저 내 사주를 저장해 주세요</p>
-        <p className="mb-7 text-[14.5px] text-slate-400 [text-wrap:pretty]">
-          궁합은 내 사주와 상대의 사주를 함께 봐요.
-        </p>
-        <Link
-          href="/funnel?step=name"
-          className="inline-block rounded-[14px] bg-accent px-7 py-4 text-base font-semibold text-white shadow-[0_12px_24px_-14px_rgba(37,99,235,.9)] hover:bg-accent-700"
-        >
-          내 사주 저장하기
-        </Link>
-      </div>
-    );
-  }
-
   return (
     <div className="mx-auto max-w-[560px] space-y-8 px-5 py-8 md:px-8">
       <h1 className="text-[22px] font-bold tracking-[-0.025em]">궁합 보기</h1>
@@ -78,27 +60,7 @@ export function MatchForm({ people }: { people: PersonOption[] }) {
       <section>
         <h2 className="mb-1 text-[15px] font-bold tracking-[-0.02em]">나는 누구인가요?</h2>
         <p className="mb-3 text-[13px] text-gray-500">저장된 내 사주 중에서 골라주세요</p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {subjects.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setSubjectId(p.id)}
-              aria-pressed={subjectId === p.id}
-              className={`${PERSON_BTN} ${subjectId === p.id ? PERSON_BTN_ON : PERSON_BTN_OFF}`}
-            >
-              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-slate-100 text-[13.5px] font-bold text-slate-500">
-                {p.initial}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[14.5px] font-semibold text-slate-900">
-                  {p.name}
-                </span>
-                <span className="block text-[12.5px] text-slate-400">{p.birthLabel}</span>
-              </span>
-            </button>
-          ))}
-        </div>
+        <PersonList people={subjects} selectedId={subjectId} onSelect={(p) => setSubjectId(p.id)} />
       </section>
 
       <CounterpartPicker

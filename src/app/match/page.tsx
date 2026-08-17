@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/session";
 import { listProfiles } from "@/lib/profiles/store";
 import { toPersonOption } from "./_lib/to-person-option";
 import { MatchForm } from "./_components/MatchForm";
+import { NoSubjectFallback } from "./_components/NoSubjectFallback";
 
 export const metadata: Metadata = { title: "궁합 · 프로젝트 사주" };
 
@@ -21,10 +22,13 @@ export default async function MatchPage() {
   // "all" 이다 — 궁합 상대로 저장된 사람(kind='other')도 다시 고를 수 있어야 한다.
   const profiles = await listProfiles(session.userId, "all");
   const people = profiles.map(toPersonOption);
+  // 내 사주(kind='self')가 하나도 없으면 "나"로 고를 게 없다 — 폼을 아예 내려보내지
+  // 않는다(home/page.tsx 가 entries.length===0 일 때 EmptyState 를 고르는 것과 같은 자리).
+  const hasSubject = people.some((p) => p.kind === "self");
 
   return (
     <div className="min-h-screen flex-1 bg-white">
-      <MatchForm people={people} />
+      {hasSubject ? <MatchForm people={people} /> : <NoSubjectFallback />}
     </div>
   );
 }
