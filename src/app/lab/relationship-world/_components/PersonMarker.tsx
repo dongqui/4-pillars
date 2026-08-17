@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { paletteFor } from "../_data/saju-colors";
 import type { MockPerson } from "../_data/mock-people";
 import type { Vec3 } from "../_lib/layout";
 import { PersonNode } from "./PersonNode";
@@ -71,9 +72,18 @@ export function PersonMarker({
   const shown = boosted ? boost(tier) : tier;
   const opacity = selected ? 1 : dimmed ? 0.28 : 0.92;
 
+  // dot 은 이름이 안 보이는 티어라 색이 유일한 단서다. 파란색 고정이면
+  // "색 = 그 사람의 사주" 가 가장 필요한 자리에서 깨진다.
+  const dotColor = paletteFor(person.pillarKey).core;
+
   return (
     <group>
-      <PersonNode position={position} selected={selected} dimmed={dimmed} />
+      <PersonNode
+        position={position}
+        pillarKey={person.pillarKey}
+        selected={selected}
+        dimmed={dimmed}
+      />
       <Html
         position={position as unknown as [number, number, number]}
         center
@@ -89,9 +99,11 @@ export function PersonMarker({
               className="grid place-items-center w-11 h-11 -m-[14px] cursor-pointer bg-transparent border-0"
             >
               <span
-                className={`block w-[7px] h-[7px] rounded-full ${
-                  selected ? "bg-blue-300" : "bg-slate-300/80"
-                }`}
+                className="block w-[7px] h-[7px] rounded-full"
+                style={{
+                  backgroundColor: dotColor,
+                  opacity: selected ? 1 : 0.8,
+                }}
               />
             </button>
           ) : (

@@ -1,69 +1,125 @@
 "use client";
 
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { paletteFor } from "../_data/saju-colors";
 import type { Vec3 } from "../_lib/layout";
+import {
+  CORE_RADIUS,
+  DIFFUSE_HALO_RADIUS,
+  HALO_ALPHA,
+  HALO_TEXTURE_SIZE,
+  NEAR_HALO_RADIUS,
+  radialFalloff,
+} from "../_lib/node-visual";
 
-// 코어는 opaque 패스에 있어야 한다. `transparent: true` 는 three.js 를
-// world-origin 거리 하나로 정렬하는 transparent 큐로 옮기는데, Field 의
-// 모든 shell 도 transparent+depthWrite:false 라 같은 큐에서 겹친다. 사람은
-// Field 중심에서 벗어난 위치에 흩어지므로(positionFor), 카메라-사람 거리가
-// 카메라-Field중심 거리보다 가까운 경우가 흔하다 — 그러면 Field 가 "더 멀다"고
-// 정렬돼 먼저 그려지고, depthWrite 가 없으니 나중에 그려지는 코어가 뒤에서도
-// 뚫고 나온다. `transparent` 를 빼면 코어는 항상 먼저 그려지는 opaque 패스로
-// 가고, 그 뒤에 그려지는 모든 transparent Field 레이어가 코어를 대상으로
-// 실제 픽셀 단위 depth test 를 받는다 — 양방향 가림이 그제서야 성립한다.
-// opaque 라 opacity 는 더 이상 효과가 없다. selected/dimmed 상태는 대신
-// color 를 lerp 해서 표현한다(밝을수록 선택, 어두울수록 dim).
-const CORE_NORMAL = new THREE.Color("#e2e8f0");
-const CORE_DIMMED = new THREE.Color("#334155");
-const CORE_SELECTED = new THREE.Color("#dbeafe");
+/**
+ * 21명이 공유하는 halo 텍스처 한 장. 모듈 스코프에서 딱 한 번 만든다.
+ *
+ * DataTexture 는 데이터 홀더일 뿐이라 렌더러가 업로드하기 전까지 DOM 을
+ * 건드리지 않는다 — SSR 프리렌더에서 이 모듈이 평가돼도 안전하다.
+ */
+const HALO_TEXTURE = (() => {
+  const texture = new THREE.DataTexture(
+    radialFalloff(HALO_TEXTURE_SIZE),
+    HALO_TEXTURE_SIZE,
+    HALO_TEXTURE_SIZE,
+  );
+  texture.needsUpdate = true;
+  return texture;
+})();
 
 export function PersonNode({
   position,
+  pillarKey,
   selected,
   dimmed,
+  coreScale = 1,
 }: {
   position: Vec3;
+  pillarKey: string;
   selected: boolean;
   dimmed: boolean;
+  coreScale?: number;
 }) {
-  const halo = useRef<THREE.Mesh>(null);
   const coreMat = useRef<THREE.MeshBasicMaterial>(null);
-  const haloMat = useRef<THREE.MeshBasicMaterial>(null);
+  const nearMat = useRef<THREE.SpriteMaterial>(null);
+  const diffuseMat = useRef<THREE.SpriteMaterial>(null);
 
-  useFrame((state, delta) => {
-    const t = state.clock.elapsedTime;
-    if (halo.current) halo.current.scale.setScalar(1 + Math.sin(t * 1.4) * 0.06);
+  // pillarKey 는 사람마다 고정이라 사실상 한 번만 계산된다. THREE.Color 로 미리
+  // 바꿔두는 이유는 useFrame 안에서 lerp 대상이 필요하기 때문이다.
+  const palette = useMemo(() => {
+    const p = paletteFor(pillarKey);
+    return {
+      glow: new THREE.Color(p.glow),
+      core: new THREE.Color(p.core),
+      coreSelected: new THREE.Color(p.coreSelected),
+      coreDimmed: new THREE.Color(p.coreDimmed),
+    };
+  }, [pillarKey]);
+
+  useFrame((_, delta) => {
     const k = Math.min(1, delta * 6);
-    const coreTarget = selected ? CORE_SELECTED : dimmed ? CORE_DIMMED : CORE_NORMAL;
-    const ring = selected ? 0.5 : dimmed ? 0.06 : 0.2;
-    if (coreMat.current) {
-      coreMat.current.color.lerp(coreTarget, k);
+
+    // 코어는 opaque 라 opacity 로 상태를 표현할 수 없다. 색을 lerp 한다.
+    const target = selected
+      ? palette.coreSelected
+      : dimmed
+        ? palette.coreDimmed
+        : palette.core;
+    if (coreMat.current) coreMat.current.color.lerp(target, k);
+
+    const state = selected ? "selected" : dimmed ? "dimmed" : "base";
+    if (nearMat.current) {
+      nearMat.current.opacity +=
+        (HALO_ALPHA.near[state] - nearMat.current.opacity) * k;
     }
-    if (haloMat.current) {
-      haloMat.current.opacity += (ring - haloMat.current.opacity) * k;
+    if (diffuseMat.current) {
+      diffuseMat.current.opacity +=
+        (HALO_ALPHA.diffuse[state] - diffuseMat.current.opacity) * k;
     }
   });
 
   return (
     <group position={position as unknown as [number, number, number]}>
+      {/*
+        코어만 opaque 다. transparent 로 두면 three 의 transparent 큐로 가는데,
+        그 큐는 픽셀이 아니라 오브젝트 원점 거리로 정렬된다 — 앞뒤 가림이
+        오브젝트 단위로 뭉개진다. opaque 패스에 남겨야 깊이 버퍼를 채우고,
+        뒤따르는 모든 halo 가 이 코어를 상대로 진짜 depth test 를 받는다.
+        "카메라를 돌리면 앞뒤가 실제로 느껴져야 한다"는 요구가 여기서만 선다.
+      */}
       <mesh>
-        <sphereGeometry args={[0.075, 12, 12]} />
-        <meshBasicMaterial ref={coreMat} color={CORE_NORMAL} />
+        <sphereGeometry args={[CORE_RADIUS * coreScale, 12, 12]} />
+        <meshBasicMaterial ref={coreMat} color={palette.core} />
       </mesh>
-      <mesh ref={halo}>
-        <sphereGeometry args={[0.17, 12, 12]} />
-        <meshBasicMaterial
-          ref={haloMat}
-          color={selected ? "#93c5fd" : "#cbd5e1"}
+
+      {/* sprite 는 three 가 알아서 카메라를 향하게 한다. scale 은 지름이다. */}
+      <sprite scale={[NEAR_HALO_RADIUS * 2, NEAR_HALO_RADIUS * 2, 1]}>
+        <spriteMaterial
+          ref={nearMat}
+          map={HALO_TEXTURE}
+          color={palette.glow}
           transparent
-          opacity={0.2}
+          opacity={HALO_ALPHA.near.base}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
-      </mesh>
+      </sprite>
+
+      {/* 이웃과 겹쳐서 Field 를 만드는 층. 혼자 있을 땐 거의 안 보인다. */}
+      <sprite scale={[DIFFUSE_HALO_RADIUS * 2, DIFFUSE_HALO_RADIUS * 2, 1]}>
+        <spriteMaterial
+          ref={diffuseMat}
+          map={HALO_TEXTURE}
+          color={palette.glow}
+          transparent
+          opacity={HALO_ALPHA.diffuse.base}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </sprite>
     </group>
   );
 }
