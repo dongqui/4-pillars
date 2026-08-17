@@ -27,6 +27,11 @@ const HALO_TEXTURE = (() => {
     HALO_TEXTURE_SIZE,
   );
   texture.needsUpdate = true;
+  // DataTexture 는 일반 Texture 와 달리 min/magFilter 기본값이 둘 다
+  // NearestFilter 다. 그대로 두면 가까이서 동심 사각 계단이 보이고,
+  // 멀어지면 밉맵 없는 점 샘플링이라 카메라를 돌릴 때마다 밝기가 튄다.
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearFilter;
   return texture;
 })();
 

@@ -47,7 +47,9 @@ describe("radialFalloff", () => {
     for (const [x, y] of [
       [10, 32],
       [20, 18],
-      [5, 5],
+      // falloff 범위(정규화 거리 <=1) 안쪽이어야 한다. [5,5]는 거리 1.19라
+      // 알파가 항상 0 이라 미러/전치 단언이 0 === 0 으로만 통과했다.
+      [12, 24],
     ]) {
       const base = alphaAt(data, x, y);
       expect(alphaAt(data, SIZE - 1 - x, y), `x 미러 (${x},${y})`).toBe(base);
@@ -69,9 +71,11 @@ describe("시각 상수", () => {
     expect(NEAR_HALO_RADIUS).toBeLessThan(DIFFUSE_HALO_RADIUS);
   });
 
-  it("확산 halo 는 사람 간 최소 간격(0.4354)보다 커서 이웃과 겹친다", () => {
-    // 겹치지 않으면 '사람들이 Field 를 만든다'가 성립하지 않는다.
-    expect(DIFFUSE_HALO_RADIUS).toBeGreaterThan(0.4354);
+  it("확산 halo 는 최근접 거리 중앙값(1.93)의 절반을 넘어 이웃과 실제로 겹친다", () => {
+    // 최소 간격(0.4354)을 기준으로 삼으면 안 된다 — 210개 쌍 중 가장 가까운
+    // 한 쌍의 값이라, 그걸 통과해도 중앙값 사람은 아무와도 겹치지 않는다.
+    // 겹치지 않으면 이 브랜치의 핵심 메커니즘이 성립하지 않는다.
+    expect(DIFFUSE_HALO_RADIUS * 2).toBeGreaterThan(1.93);
   });
 
   it("확산 halo 는 근접 halo 보다 훨씬 옅다", () => {
@@ -85,9 +89,10 @@ describe("시각 상수", () => {
     }
   });
 
-  it("가장 붐비는 fill 그룹 6명이 다 겹쳐도 확산 halo 가 화면을 덮지 않는다", () => {
-    // additive 라 합이 그대로 쌓인다. 0.5 를 넘으면 직전 스파이크의 '흰 덩어리'가
-    // 색깔만 바뀐 채 돌아온다.
-    expect(HALO_ALPHA.diffuse.base * 6).toBeLessThan(0.5);
+  it("겹침이 가장 많은 자리에서도 확산 halo 가 화면을 덮지 않는다", () => {
+    // R=1.6 에서 한 사람 주위의 겹치는 이웃은 중앙값 2명, 최대 4명이다.
+    // additive 라 합이 그대로 쌓인다 — 자기 것까지 5겹이 0.5 를 넘으면
+    // 직전 스파이크의 '흰 덩어리'가 색깔만 바뀐 채 돌아온다.
+    expect(HALO_ALPHA.diffuse.base * 5).toBeLessThan(0.5);
   });
 });
