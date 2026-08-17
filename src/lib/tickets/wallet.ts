@@ -15,7 +15,7 @@ export async function getBalance(userId: string, client: SqlClient = sql): Promi
 
 /**
  * 결제 확정 + 이용권 적립. 갱신된 행이 있으면 true.
- * 기존 markPurchasePaid 의 자리를 그대로 받는다 — false 는 "pending 이 아니었다"는
+ * 이전의 결제 확정 함수가 갖던 반환 계약을 그대로 받는다 — false 는 "pending 이 아니었다"는
  * 뜻이고, 그게 paid 인지 refunded 인지는 호출자(confirmPayment)가 다시 읽어 가린다.
  *
  * ⚠️ CTE 한 문장인 것이 이 함수의 존재 이유다. Neon HTTP 드라이버에는 대화형
