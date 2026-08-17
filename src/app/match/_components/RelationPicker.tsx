@@ -1,0 +1,93 @@
+"use client";
+
+import {
+  RELATION_TYPES,
+  ROLE_MAX_LENGTH,
+  type RelationInput,
+  type RelationTypeId,
+} from "@/lib/matches/relation-types";
+
+const CHIP = "rounded-full border px-4 py-2 text-sm transition-colors";
+const CHIP_ON = "border-slate-900 bg-slate-900 text-white";
+const CHIP_OFF = "border-slate-200 text-slate-600 hover:border-slate-300";
+const FIELD =
+  "w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400";
+
+interface Props {
+  value: RelationInput;
+  onChange: (next: RelationInput) => void;
+  /** 역할 칸의 라벨에 쓰는 이름 — "김동진은" */
+  subjectName: string;
+  counterpartName: string;
+}
+
+/** 유형을 고르면 역할이 그 유형의 기본값으로 초기화된다 — 어긋난 조합은 API 가 막는다. */
+function withType(type: RelationTypeId | null): RelationInput {
+  if (type === null) return { type: null, subjectRole: null, counterpartRole: null };
+  const roles = RELATION_TYPES[type].roles;
+  if (roles === null) return { type, subjectRole: null, counterpartRole: null };
+  if (roles === "free") return { type, subjectRole: "", counterpartRole: "" };
+  return { type, subjectRole: roles[0], counterpartRole: roles[1] };
+}
+
+export function RelationPicker({ value, onChange, subjectName, counterpartName }: Props) {
+  const roles = value.type === null ? null : RELATION_TYPES[value.type].roles;
+
+  return (
+    <section>
+      <h2 className="mb-1 text-[15px] font-bold tracking-[-0.02em]">두 사람은 어떤 관계인가요?</h2>
+      <p className="mb-3 text-[13px] text-gray-500">관계에 따라 더 맞춤 해석을 드려요</p>
+
+      <div className="flex flex-wrap gap-2">
+        {(Object.keys(RELATION_TYPES) as RelationTypeId[]).map((id) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={value.type === id}
+            onClick={() => onChange(withType(value.type === id ? null : id))}
+            className={`${CHIP} ${value.type === id ? CHIP_ON : CHIP_OFF}`}
+          >
+            {RELATION_TYPES[id].label}
+          </button>
+        ))}
+      </div>
+
+      {Array.isArray(roles) && (
+        <button
+          type="button"
+          onClick={() =>
+            onChange({ ...value, subjectRole: value.counterpartRole, counterpartRole: value.subjectRole })
+          }
+          className="mt-3 text-sm font-bold text-accent"
+        >
+          {subjectName}이 {value.subjectRole} · 바꾸기 ↔
+        </button>
+      )}
+
+      {roles === "free" && (
+        <div className="mt-3 space-y-2 rounded-2xl bg-slate-50 p-4">
+          <label className="flex items-center gap-3">
+            <span className="w-20 shrink-0 text-[13px] text-gray-500">{subjectName}은</span>
+            <input
+              className={FIELD}
+              maxLength={ROLE_MAX_LENGTH}
+              placeholder="예: 멘토"
+              value={value.subjectRole ?? ""}
+              onChange={(e) => onChange({ ...value, subjectRole: e.target.value })}
+            />
+          </label>
+          <label className="flex items-center gap-3">
+            <span className="w-20 shrink-0 text-[13px] text-gray-500">{counterpartName}은</span>
+            <input
+              className={FIELD}
+              maxLength={ROLE_MAX_LENGTH}
+              placeholder="예: 멘티"
+              value={value.counterpartRole ?? ""}
+              onChange={(e) => onChange({ ...value, counterpartRole: e.target.value })}
+            />
+          </label>
+        </div>
+      )}
+    </section>
+  );
+}
