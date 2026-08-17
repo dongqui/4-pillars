@@ -9,8 +9,12 @@ export function TypingDots() {
         {[0, 1, 2].map((i) => (
           <span
             key={i}
-            className="h-[6px] w-[6px] rounded-full bg-slate-400"
-            style={{ animation: `pv-dot 1.2s ease-in-out ${i * 160}ms infinite` }}
+            // opacity-60 은 reduced-motion 이 pv-dot 을 꺼도(animation: none) 점이
+            // 안 보이거나 완전 불투명해지지 않고 정지된 세 점으로 보이게 하는 기본값이다.
+            // "답을 쓰고 있어요" 의미는 위 role="status" aria-label 이 전달하므로,
+            // 이건 시각적인 보정일 뿐이다.
+            className="h-[6px] w-[6px] rounded-full bg-slate-400 opacity-60 pv-dot"
+            style={{ animationDelay: `${i * 160}ms` }}
           />
         ))}
       </span>

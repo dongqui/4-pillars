@@ -150,7 +150,9 @@ body {
   .pv-breathe,
   .pv-cardin,
   .pv-handoff,
-  .saju-fade {
+  .saju-fade,
+  .pv-bubble-in,
+  .pv-dot {
     animation: none;
   }
 }
@@ -176,4 +178,18 @@ body {
   30% {
     opacity: 1;
   }
+}
+
+/*
+ * 재생 자체(이름·길이·이징·반복)는 클래스로 걸고, 요소마다 다른 지연(delay)만
+ * 인라인 style 의 animation-delay 로 준다. 인라인 style 에 animation shorthand를
+ * 통째로 쓰면 위 prefers-reduced-motion 블록의 `animation: none` 이(클래스
+ * 선택자라 특정도가 낮음) 인라인 style 을 못 이겨 꺼지지 않는다.
+ */
+.pv-bubble-in {
+  animation: pv-bubble-in 220ms ease-out both;
+}
+
+.pv-dot {
+  animation: pv-dot 1.2s ease-in-out infinite;
 }
