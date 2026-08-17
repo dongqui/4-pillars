@@ -40,6 +40,52 @@ function daysInMonth(y: number, m: number): number {
   return new Date(y, m, 0).getDate();
 }
 
+/** 생년월일 세 칸. 덜 찼거나 범위를 벗어나면 null. */
+function parseBirth(
+  draft: Draft,
+  currentYear: number,
+): { year: number; month: number; day: number } | null {
+  if (draft.y.length < 4 || !draft.m || !draft.d) return null;
+  const yy = parseInt(draft.y, 10);
+  const mm = parseInt(draft.m, 10);
+  const dd = parseInt(draft.d, 10);
+  if (Number.isNaN(yy) || Number.isNaN(mm) || Number.isNaN(dd)) return null;
+  if (yy < 1900 || yy > currentYear) return null;
+  if (mm < 1 || mm > 12 || dd < 1 || dd > daysInMonth(yy, mm)) return null;
+  return { year: yy, month: mm, day: dd };
+}
+
+/** 시·분 두 칸. timeKnown 일 때만 의미가 있다. */
+function parseTime(draft: Draft): { hour: number; minute: number } | null {
+  if (!draft.h || !draft.min) return null;
+  const hh = parseInt(draft.h, 10);
+  const mn = parseInt(draft.min, 10);
+  if (Number.isNaN(hh) || hh < 0 || hh > 23) return null;
+  if (Number.isNaN(mn) || mn < 0 || mn > 59) return null;
+  return { hour: hh, minute: mn };
+}
+
+/** 화면이 안내를 붙일 칸 묶음 — 입력칸 하나가 아니라 사용자가 보는 한 줄 단위다. */
+export type DraftField = "name" | "birth" | "time";
+
+/**
+ * 아직 덜 찬 칸. toCounterpart 가 null 인 **이유**를 화면이 말할 수 있게 있다 —
+ * 이유를 모르면 사용자는 제출 버튼이 왜 안 눌리는지 알 방법이 없다.
+ *
+ * 판정 규칙을 여기서 다시 쓰지 않고 toCounterpart 와 같은 parse 함수를 쓴다.
+ * 두 벌로 두면 "폼은 다 됐다고 하는데 제출은 막힌 상태" 가 반드시 생긴다.
+ */
+export function draftIssues(
+  draft: Draft,
+  currentYear: number = new Date().getFullYear(),
+): DraftField[] {
+  const issues: DraftField[] = [];
+  if (!draft.name.trim()) issues.push("name");
+  if (!parseBirth(draft, currentYear)) issues.push("birth");
+  if (draft.timeKnown && !parseTime(draft)) issues.push("time");
+  return issues;
+}
+
 /**
  * 입력이 완전하지 않거나 범위를 벗어나면 null — NewPersonForm 은 이 값을 그대로
  * 부모에 올리고, CounterpartPicker 는 null 인 동안 제출을 막는다.
@@ -54,21 +100,13 @@ export function toCounterpart(
   const name = draft.name.trim();
   if (!name) return null;
 
-  if (draft.y.length < 4 || !draft.m || !draft.d) return null;
-  const yy = parseInt(draft.y, 10);
-  const mm = parseInt(draft.m, 10);
-  const dd = parseInt(draft.d, 10);
-  if (Number.isNaN(yy) || Number.isNaN(mm) || Number.isNaN(dd)) return null;
-  if (yy < 1900 || yy > currentYear) return null;
-  if (mm < 1 || mm > 12 || dd < 1 || dd > daysInMonth(yy, mm)) return null;
+  const birth = parseBirth(draft, currentYear);
+  if (birth === null) return null;
 
   let time: { hour: number; minute: number } | null = null;
   if (draft.timeKnown) {
-    if (!draft.h || !draft.min) return null;
-    const hh = parseInt(draft.h, 10);
-    const mn = parseInt(draft.min, 10);
-    if (Number.isNaN(hh) || hh < 0 || hh > 23 || Number.isNaN(mn) || mn < 0 || mn > 59) return null;
-    time = { hour: hh, minute: mn };
+    time = parseTime(draft);
+    if (time === null) return null;
   }
 
   return {
@@ -76,7 +114,7 @@ export function toCounterpart(
     gender: draft.gender,
     calendar: draft.calendar,
     isLeapMonth: draft.calendar === "lunar" && draft.isLeapMonth,
-    birth: { year: yy, month: mm, day: dd },
+    birth,
     timeKnown: draft.timeKnown,
     time,
     // 출생지는 이 화면에서 묻지 않는다 — 몰라도 saju-core 가 서울 경도로 물러선다.

@@ -2,9 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { RelationInput } from "@/lib/matches/relation-types";
+import { isRelationComplete, type RelationInput } from "@/lib/matches/relation-types";
 import type { PersonOption } from "../_lib/to-person-option";
-import { CounterpartPicker, type CounterpartValue } from "./CounterpartPicker";
+import {
+  counterpartAfterSubjectChange,
+  type CounterpartValue,
+} from "../_lib/resync-counterpart";
+import { CounterpartPicker } from "./CounterpartPicker";
 import { PersonList } from "./PersonList";
 import { RelationPicker } from "./RelationPicker";
 
@@ -27,9 +31,22 @@ export function MatchForm({ people }: { people: PersonOption[] }) {
   const [error, setError] = useState<string | null>(null);
 
   const subject = subjects.find((p) => p.id === subjectId) ?? null;
+  // 관계까지 봐야 한다 — 여기서 빠뜨리면 '기타' 의 빈 역할 칸이 400 으로만 드러난다.
+  const canSubmit = !pending && subjectId !== "" && counterpart !== null && isRelationComplete(relation);
+
+  /**
+   * "나" 를 바꾸면 상대도 다시 본다. 상대로 골라 둔 사람을 "나" 로 고르면 그 사람은
+   * 상대 후보에서 빠지는데, 선택값을 그대로 두면 아무 카드도 강조되지 않은 채
+   * 제출이 열려 서버가 "다른 사람을 선택해 주세요" 로 되돌린다.
+   */
+  function selectSubject(person: PersonOption) {
+    setSubjectId(person.id);
+    setCounterpart((prev) => counterpartAfterSubjectChange(prev, person.id));
+  }
 
   async function submit() {
-    if (!subjectId || !counterpart) return;
+    // 버튼이 이미 막혀 있지만 한 번 더 본다 — 조건이 한 곳(canSubmit)에서만 나오게 둔다.
+    if (!canSubmit || !counterpart) return;
     setPending(true);
     setError(null);
     const res = await fetch("/api/matches", {
@@ -60,7 +77,7 @@ export function MatchForm({ people }: { people: PersonOption[] }) {
       <section>
         <h2 className="mb-1 text-[15px] font-bold tracking-[-0.02em]">나는 누구인가요?</h2>
         <p className="mb-3 text-[13px] text-gray-500">저장된 내 사주 중에서 골라주세요</p>
-        <PersonList people={subjects} selectedId={subjectId} onSelect={(p) => setSubjectId(p.id)} />
+        <PersonList people={subjects} selectedId={subjectId} onSelect={selectSubject} />
       </section>
 
       <CounterpartPicker
@@ -84,7 +101,7 @@ export function MatchForm({ people }: { people: PersonOption[] }) {
       <button
         type="button"
         onClick={submit}
-        disabled={pending || !subjectId || !counterpart}
+        disabled={!canSubmit}
         className="w-full rounded-[14px] bg-accent px-7 py-4 text-base font-semibold text-white transition-colors hover:bg-accent-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
       >
         {pending ? "만드는 중..." : "궁합 보기"}

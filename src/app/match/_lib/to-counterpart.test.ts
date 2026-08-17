@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { digitsOnly, emptyDraft, toCounterpart, type Draft } from "./to-counterpart";
+import { digitsOnly, draftIssues, emptyDraft, toCounterpart, type Draft } from "./to-counterpart";
 
 const valid: Draft = {
   ...emptyDraft,
@@ -94,6 +94,57 @@ describe("toCounterpart", () => {
   it("음력 윤달 플래그는 그대로 반영한다", () => {
     const result = toCounterpart({ ...valid, calendar: "lunar", isLeapMonth: true }, 2026);
     expect(result?.isLeapMonth).toBe(true);
+  });
+});
+
+describe("draftIssues", () => {
+  it("완전한 입력이면 안내할 것이 없다", () => {
+    expect(draftIssues(valid, 2026)).toEqual([]);
+  });
+
+  it("이름이 비면 name 을 짚는다", () => {
+    expect(draftIssues({ ...valid, name: "  " }, 2026)).toEqual(["name"]);
+  });
+
+  it("생년월일이 덜 찼으면 birth 를 짚는다", () => {
+    expect(draftIssues({ ...valid, d: "" }, 2026)).toEqual(["birth"]);
+  });
+
+  it("범위를 벗어난 날짜도 birth 다 — 빈 칸과 틀린 값을 사용자에게 같은 자리로 안내한다", () => {
+    expect(draftIssues({ ...valid, m: "4", d: "31" }, 2026)).toEqual(["birth"]);
+  });
+
+  it("시간을 안다면서 시·분이 비면 time 을 짚는다", () => {
+    expect(draftIssues({ ...valid, h: "", min: "" }, 2026)).toEqual(["time"]);
+  });
+
+  it("시간을 모르면 시·분은 묻지 않는다", () => {
+    expect(draftIssues({ ...valid, timeKnown: false, h: "", min: "" }, 2026)).toEqual([]);
+  });
+
+  it("여러 칸이 비면 여러 개를 짚는다 — 하나씩 고쳐 가며 오가지 않게", () => {
+    expect(draftIssues({ ...emptyDraft }, 2026)).toEqual(["name", "birth", "time"]);
+  });
+
+  // 두 함수가 갈라지면 "폼은 다 됐다는데 제출은 막힌 상태" 가 된다. 그 회귀를 여기서 잡는다.
+  it("toCounterpart 가 null 인 경우와 정확히 일치한다", () => {
+    const drafts: Draft[] = [
+      valid,
+      { ...valid, name: "" },
+      { ...valid, y: "189" },
+      { ...valid, y: "1899" },
+      { ...valid, y: "2027" },
+      { ...valid, m: "0" },
+      { ...valid, m: "13" },
+      { ...valid, d: "31", m: "4" },
+      { ...valid, h: "24" },
+      { ...valid, min: "60" },
+      { ...valid, timeKnown: false, h: "", min: "" },
+      emptyDraft,
+    ];
+    for (const draft of drafts) {
+      expect(draftIssues(draft, 2026).length > 0).toBe(toCounterpart(draft, 2026) === null);
+    }
   });
 });
 

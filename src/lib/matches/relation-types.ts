@@ -139,6 +139,20 @@ export const relationInputSchema = rawRelation.superRefine((v, ctx) => {
   if (!forward && !swapped) fail("이 관계 유형에 없는 역할입니다");
 }) as z.ZodType<RelationInput>;
 
+/**
+ * 제출할 수 있는 관계 값인가.
+ *
+ * 조건을 화면에서 다시 쓰지 않고 스키마에 물어보는 이유: 조건이 두 벌이 되면 어긋나고,
+ * 그 어긋남이 `기타` 를 막다른 길로 만들었다. 역할 칸이 빈 문자열이면 `roleText` 의
+ * `.min(1)` 도 `.nullable()` 도 통과하지 못해 서버는 400 을 내는데, 화면은 relation 을
+ * 보지 않고 제출 버튼을 열어 두어 사용자가 "요청을 확인해 주세요" 만 받았다.
+ *
+ * 유형을 늘려도 이 함수는 고칠 필요가 없다 — superRefine 이 이미 짝을 알고 있다.
+ */
+export function isRelationComplete(input: RelationInput): boolean {
+  return relationInputSchema.safeParse(input).success;
+}
+
 /** 유형이 없으면 범용 시선으로 물러선다 — 건너뛰기가 막다른 길이 되면 안 된다. */
 export function relationLens(input: RelationInput): string {
   if (input.type === null) {
