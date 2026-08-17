@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { ProfileRow } from "@/lib/profiles/store";
+import type { ProfileRow } from "./store";
 import { toBirthInput } from "./to-birth-input";
 
 const base: ProfileRow = {
@@ -52,7 +52,7 @@ describe("toBirthInput", () => {
   });
 
   it("시간을 모르면 hour·minute 이 undefined — 시주가 생기지 않는다", () => {
-    // timeKnown 은 ReportSubject 에 없다 — 시각을 버리는 판단은 프로필 행·드래프트를
+    // timeKnown 은 BirthInputSource 에 없다 — 시각을 버리는 판단은 프로필 행·드래프트를
     // 옮기는 쪽(toProfileRow · draftToSubject)에서 이미 끝나고, 여기는 time 만 본다.
     const input = toBirthInput({ ...base, time: null });
     expect(input.hour).toBeUndefined();

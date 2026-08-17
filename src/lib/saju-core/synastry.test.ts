@@ -57,7 +57,7 @@ describe("analyzeSynastry", () => {
 
   it("시주가 없으면 그 자리는 관계 판정에서 빠진다", () => {
     // BirthInput.hour 는 number|undefined 라 "없음"은 null 이 아니라 undefined 로 표현한다
-    // (src/app/report/_lib/to-birth-input.ts 의 time?.hour 와 동일한 관례).
+    // (src/lib/profiles/to-birth-input.ts 의 time?.hour 와 동일한 관례).
     const noHour = analyze({ ...birth(1993, 4, 12), hour: undefined });
     const s = analyzeSynastry(A, noHour);
     expect(s.ties.every((t) => t.counterpartPosition !== "hour")).toBe(true);
