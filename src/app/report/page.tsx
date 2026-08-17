@@ -55,7 +55,7 @@ async function ProfileReport({
   /** 비로그인 경로만 한도를 씌운 생성기를 넘긴다 */
   generator: InterpretationGenerator;
 }) {
-  // ?paid=true를 다시 붙이지 않는다 — 유료 판정은 이제 profile.isPaid(purchases 조인)가
+  // ?paid=true를 다시 붙이지 않는다 — 유료 판정은 이제 profile.isUnlocked(entitlements 조인)가
   // 서버에서 내리므로 URL에 실을 이유가 없고, 프로덕션에서는 이 토글이 무시되니
   // 붙여봤자 유료 프로필의 재시도가 무료 리포트로 떨어지는 결과만 낳는다.
   const retryHref = profileId ? `/report?profile=${profileId}` : "/report";
@@ -78,7 +78,7 @@ async function ProfileReport({
       putCached,
       getLuckCached,
       putLuckSections,
-      sectionKeys: access.isPaid ? SECTION_KEYS : FREE_SECTION_KEYS,
+      sectionKeys: access.isUnlocked ? SECTION_KEYS : FREE_SECTION_KEYS,
       year,
     }));
   } catch (e) {
@@ -168,12 +168,12 @@ export default async function ReportPage({
   // 없는 프로필과 남의 프로필을 구분하지 않는다 — 구분하면 id 로 존재 여부를 훑을 수 있다.
   if (profile === null) notFound();
 
-  // 결제한 프로필이면 유료 섹션을 연다. profile.isPaid 는 purchases 조인에서 온다.
+  // 이용권을 쓴 프로필이면 유료 섹션을 연다. profile.isUnlocked 는 entitlements 조인에서 온다.
   // /home 카드가 같은 값으로 "전체 리포트" 배지를 띄우므로 두 화면이 어긋나지
   // 않게 여기서도 읽는다.
   const profileAccess: ReportAccess = {
     ...access,
-    isPaid: access.isPaid || profile.isPaid,
+    isUnlocked: access.isUnlocked || profile.isUnlocked,
   };
 
   return (

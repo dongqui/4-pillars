@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { LockedSectionMeta } from "../_lib/report-content";
+import { useUnlock } from "../_hooks/use-unlock";
 
 export function LockedSections({
   sections,
@@ -9,10 +10,10 @@ export function LockedSections({
 }: {
   sections: LockedSectionMeta[];
   isLoggedIn: boolean;
-  /** 픽스처 데모에는 없다. 없으면 결제로 보낼 대상이 없어 CTA 가 제자리에 머문다. */
+  /** 픽스처 데모에는 없다. 없으면 열 대상이 없어 CTA 가 제자리에 머문다. */
   profileId?: string;
 }) {
-  const inlineRef = useRef<HTMLAnchorElement>(null);
+  const inlineRef = useRef<HTMLDivElement>(null);
   const [showBar, setShowBar] = useState(false);
   useEffect(() => {
     const onScroll = () => {
@@ -25,15 +26,33 @@ export function LockedSections({
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // 결제하려면 계정이 있어야 한다. 비로그인에게는 이 버튼의 첫 단계가 로그인이고,
+  const { unlock, status, error } = useUnlock(profileId);
+  const pending = status === "pending";
+
+  // 이용권을 쓰려면 계정이 있어야 한다. 비로그인에게는 이 버튼의 첫 단계가 로그인이고,
   // 로그인하는 순간 퍼널에서 맡겨둔 드래프트가 프로필로 승격된다.
-  // 로그인했는데 profileId 가 없는 경우는 픽스처 데모뿐이다 — 살 대상이 없으니 그대로 둔다.
-  const ctaHref = !isLoggedIn
-    ? `/login?next=${encodeURIComponent("/report")}`
-    : profileId
-      ? `/checkout?profile=${profileId}`
-      : "#";
-  const ctaLabel = isLoggedIn ? "전체 결과 보기" : "로그인하고 전체 결과 보기";
+  // 로그인했는데 profileId 가 없는 경우는 픽스처 데모뿐이다 — 열 대상이 없으니 그대로 둔다.
+  const loginHref = `/login?next=${encodeURIComponent("/report")}`;
+  const label = pending
+    ? "여는 중이에요…"
+    : isLoggedIn
+      ? "이용권 1장으로 전체 보기"
+      : "로그인하고 전체 결과 보기";
+
+  const CTA_CLASS =
+    "block w-full max-w-[360px] text-base font-semibold text-white bg-accent py-4 rounded-[14px] shadow-[0_8px_20px_rgba(37,99,235,.28)] text-center hover:bg-accent-700 disabled:opacity-60";
+
+  // 비로그인은 링크, 로그인은 버튼이다 — 링크로 두면 차감이 GET 이 되고,
+  // 버튼으로 두면 비로그인이 로그인 화면으로 못 간다.
+  const cta = !isLoggedIn ? (
+    <a href={loginHref} className={CTA_CLASS}>
+      {label}
+    </a>
+  ) : (
+    <button type="button" onClick={unlock} disabled={pending || !profileId} className={CTA_CLASS}>
+      {label}
+    </button>
+  );
 
   return (
     <>
@@ -47,15 +66,22 @@ export function LockedSections({
             <div className="flex-none w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-[13px]">🔒</div>
           </div>
         ))}
-        <div className="mt-5 text-center flex flex-col items-center gap-3.5">
-          <p className="text-[15px] text-slate-500 m-0 [text-wrap:pretty]">나머지 결과가 궁금하신가요?</p>
-          <a ref={inlineRef} href={ctaHref} className="block w-full max-w-[360px] text-base font-semibold text-white bg-accent py-4 rounded-[14px] shadow-[0_8px_20px_rgba(37,99,235,.28)] text-center hover:bg-accent-700">{ctaLabel}</a>
+        <div ref={inlineRef} className="mt-5 text-center flex flex-col items-center gap-3.5">
+          <p className="text-[15px] text-slate-500 m-0 [text-wrap:pretty]">
+            나머지 결과가 궁금하신가요?
+          </p>
+          {cta}
+          {error && (
+            <p role="alert" className="m-0 text-[13.5px] font-semibold text-red-600">
+              {error}
+            </p>
+          )}
         </div>
       </section>
       {showBar && (
         <div className="fixed bottom-0 left-0 right-0 z-30 px-[clamp(20px,5vw,24px)] pt-7 pb-[18px] bg-gradient-to-b from-transparent to-white to-[55%] pointer-events-none">
-          <div className="max-w-[720px] mx-auto flex justify-center">
-            <a href={ctaHref} className="pointer-events-auto block w-full max-w-[360px] text-base font-semibold text-white bg-accent py-[15px] rounded-[14px] shadow-[0_8px_20px_rgba(37,99,235,.32)] text-center hover:bg-accent-700">{ctaLabel}</a>
+          <div className="max-w-[720px] mx-auto flex justify-center [&>*]:pointer-events-auto">
+            {cta}
           </div>
         </div>
       )}

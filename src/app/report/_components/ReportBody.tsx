@@ -35,7 +35,7 @@ export function ReportBody({
       <OuterInnerSection data={content.outerVsInner} />
       <StrengthsSection items={content.strengths} />
       <CautionsSection cautions={content.cautions} tip={content.cautionTip} />
-      {access.isPaid ? (
+      {access.isUnlocked ? (
         <>
           {content.emotion && <EmotionSection items={content.emotion} />}
           {content.relating && <RelatingSection rows={content.relating} />}
