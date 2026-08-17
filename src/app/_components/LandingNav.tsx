@@ -24,7 +24,7 @@ export function LandingNav({ displayName }: LandingNavProps) {
                 로그인
               </Link>
               <Link
-                href="/start"
+                href="/funnel?step=name"
                 className="whitespace-nowrap rounded-xl bg-accent px-[18px] py-2.5 text-[14.5px] font-semibold text-white hover:bg-accent-700"
               >
                 내 캐릭터 알아보기

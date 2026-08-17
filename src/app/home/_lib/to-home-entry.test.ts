@@ -1,7 +1,7 @@
 import { test, expect, vi } from "vitest";
 import type { ProfileRow } from "@/lib/profiles/store";
-import { characterById } from "@/lib/saju-core/character";
-import { toAnonEntry, toHomeEntry } from "./to-home-entry";
+import { createProfileSchema } from "@/lib/profiles/input";
+import { toDraftEntry, toHomeEntry } from "./to-home-entry";
 
 function row(overrides: Partial<ProfileRow> = {}): ProfileRow {
   return {
@@ -43,10 +43,16 @@ test("계산할 수 없는 생년월일이면 캐릭터만 비우고 프로필�
   spy.mockRestore();
 });
 
-test("이름 없는 익명 캐릭터는 '나'로 선다", () => {
-  const entry = toAnonEntry(characterById(0), null);
-  expect(entry.name).toBe("나");
-  expect(entry.initial).toBe("나");
+test("드래프트도 프로필과 같은 줄로 선다 — 저장 전이라 profileId 만 없다", () => {
+  const draft = createProfileSchema.parse({
+    name: "지우",
+    gender: "female",
+    birth: { year: 1988, month: 3, day: 7 },
+  });
+  const entry = toDraftEntry(draft);
+
+  expect(entry.name).toBe("지우");
+  expect(entry.initial).toBe("지");
+  expect(entry.character?.key).toBe("신유");
   expect(entry.profileId).toBeNull();
-  expect(entry.character?.key).toBe("갑자");
 });

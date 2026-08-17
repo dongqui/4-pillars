@@ -15,7 +15,7 @@ export function Hero() {
         <div className="flex flex-col gap-10 px-5 md:grid md:grid-cols-2 md:items-center md:gap-12 md:px-8">
           <div className="max-w-[540px]">
             <div className="mb-[26px] inline-flex items-center gap-2 rounded-full bg-accent-50 px-3.5 py-[7px] text-[13px] font-semibold text-accent">
-              생년월일 하나로 시작해요
+              태어난 날과 시간으로 시작해요
             </div>
             <h1 className="mb-[22px] text-[40px] font-bold leading-[1.06] tracking-[-0.045em] [text-wrap:balance] md:text-[clamp(46px,5.4vw,68px)]">
               당신은 어떤
@@ -30,13 +30,13 @@ export function Hero() {
               서비스예요.
             </p>
             <Link
-              href="/start"
+              href="/funnel?step=name"
               className="inline-block rounded-[14px] bg-accent px-[30px] py-[17px] text-[16.5px] font-semibold text-white shadow-[0_14px_30px_-12px_rgba(37,99,235,.55)] hover:bg-accent-700"
             >
               내 캐릭터 알아보기
             </Link>
             <p className="mt-[15px] text-[13.5px] text-gray-400">
-              로그인 없이 30초 · 생년월일만 입력해요
+              로그인 없이 1분 · 생년월일시를 입력해요
             </p>
           </div>
 

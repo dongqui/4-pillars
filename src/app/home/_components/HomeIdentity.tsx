@@ -18,11 +18,11 @@ interface Props {
 const ADD_HREF = "/funnel?step=name";
 
 /**
- * 저장되지 않은(익명) 캐릭터의 리포트 진입점. `from=character` 가 붙어야 퍼널이
- * 쿠키에 있는 생년월일을 미리 채운다 — 캐릭터를 만들 때 이미 받은 값을 다시 묻지 않는다.
- * 프로필 추가(ADD_HREF)에는 붙이지 않는다. 그쪽은 다른 사람을 넣는 자리다.
+ * 아직 계정이 없는 사람의 리포트 진입점. 리포트는 실제 데이터를 계정에 붙여 놓고
+ * 보여주므로 로그인이 필요하다 — 로그인하는 순간 드래프트가 프로필로 올라가고
+ * 입력을 다시 받지 않는다.
  */
-const REPORT_FROM_CHARACTER = "/funnel?step=name&from=character";
+const REPORT_NEEDS_LOGIN = "/login";
 
 /**
  * 프로필 셀렉터 + 캐릭터 카드 + 탐색 그리드.
@@ -225,7 +225,7 @@ export function HomeIdentity({ entries, canAdd }: Props) {
 
       <ExploreGrid
         reportHref={
-          active.profileId ? `/report?profile=${active.profileId}` : REPORT_FROM_CHARACTER
+          active.profileId ? `/report?profile=${active.profileId}` : REPORT_NEEDS_LOGIN
         }
         saved={active.profileId !== null}
       />

@@ -34,8 +34,8 @@ export function ExploreGrid({ reportHref, saved }: Props) {
           <div className={EYEBROW}>나를 더 깊이</div>
           <div className={TITLE}>리포트</div>
           <p className={DESC}>기질과 사고방식, 감정의 결까지 더 깊이 살펴보세요.</p>
-          {/* 저장 전이면 성별·시간·출생지가 더 필요하다. 생년월일은 이미 받았으므로 다시 묻지 않는다 */}
-          <span className={CTA}>{saved ? "리포트 보기 →" : "리포트 만들기 →"}</span>
+          {/* 입력은 이미 다 받았다. 저장 전이면 계정에 붙이는 일만 남는다 */}
+          <span className={CTA}>{saved ? "리포트 보기 →" : "로그인하고 리포트 보기 →"}</span>
         </Link>
 
         <Link href="/map" className={CARD}>

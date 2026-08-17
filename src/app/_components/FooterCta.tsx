@@ -18,10 +18,10 @@ export function FooterCta() {
           만나볼까요?
         </h2>
         <p className="mb-8 text-[16.5px] text-gray-400 [text-wrap:pretty]">
-          생년월일만 있으면 됩니다.
+          태어난 날과 시간만 있으면 됩니다.
         </p>
         <Link
-          href="/start"
+          href="/funnel?step=name"
           className="inline-block rounded-[14px] bg-accent px-8 py-[17px] text-[16.5px] font-semibold text-white shadow-[0_14px_30px_-12px_rgba(37,99,235,.55)] hover:bg-accent-700"
         >
           내 캐릭터 알아보기

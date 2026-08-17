@@ -38,24 +38,14 @@ interface FunnelContextValue {
 
 const FunnelContext = createContext<FunnelContextValue | null>(null);
 
-export function FunnelProvider({
-  children,
-  initial,
-}: {
-  children: React.ReactNode;
-  /** 라이트 퍼널에서 넘어온 값. 없으면 빈 퍼널이다 */
-  initial?: Partial<FunnelData>;
-}) {
-  // initial 은 서버가 첫 렌더에 정해 주는 값이라 이후 바뀌지 않는다 — 초기값으로만 쓴다.
-  const seeded = useMemo(() => ({ ...initialData, ...initial }), [initial]);
-  const [data, setData] = useState<FunnelData>(seeded);
+export function FunnelProvider({ children }: { children: React.ReactNode }) {
+  const [data, setData] = useState<FunnelData>(initialData);
 
   const update = useCallback((patch: Partial<FunnelData>) => {
     setData((prev) => ({ ...prev, ...patch }));
   }, []);
 
-  // 되돌릴 자리는 "빈 퍼널"이 아니라 "들어올 때의 상태"다.
-  const reset = useCallback(() => setData(seeded), [seeded]);
+  const reset = useCallback(() => setData(initialData), []);
 
   const value = useMemo(() => ({ data, update, reset }), [data, update, reset]);
 

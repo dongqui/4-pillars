@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { getSession } from "@/lib/auth/session";
 import { getUser } from "@/lib/auth/users";
 import { resolveDisplayName } from "@/lib/auth/display-name";
-import { readAnonCharacter } from "@/lib/characters/anon";
+import { readCurrentDraft } from "@/lib/drafts/current";
 import { MAX_PROFILES, listProfiles } from "@/lib/profiles/store";
-import { toAnonEntry, toHomeEntry, type HomeEntry } from "./_lib/to-home-entry";
+import { toDraftEntry, toHomeEntry, type HomeEntry } from "./_lib/to-home-entry";
 import { HomeHeader } from "./_components/HomeHeader";
 import { HomeIdentity } from "./_components/HomeIdentity";
 import { EmptyState } from "./_components/EmptyState";
@@ -49,11 +49,11 @@ export default async function HomePage({
     canAdd = rows.length < MAX_PROFILES;
   }
 
-  // 저장된 프로필이 하나라도 있으면 익명 캐릭터는 덮어쓰지 않는다 — 로그인한 사람에게
-  // 저장된 것과 저장되지 않은 것이 한 목록에 섞여 보이면 무엇이 남는지 알기 어렵다.
+  // 로그인했는데 프로필이 없는 경우에도 드래프트는 볼 수 있어야 한다(승격이 실패했거나
+  // 한도에 걸린 경우). 프로필이 하나라도 있으면 드래프트는 이미 승격됐거나 곧 사라진다.
   if (entries.length === 0) {
-    const anon = await readAnonCharacter();
-    if (anon) entries = [toAnonEntry(anon.character, anon.birth.name)];
+    const draft = await readCurrentDraft();
+    if (draft) entries = [toDraftEntry(draft)];
   }
 
   return (

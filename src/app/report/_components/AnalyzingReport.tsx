@@ -1,6 +1,6 @@
 /**
  * 리포트 본문 Suspense fallback. <main> 안에 들어가므로 min-h-screen 을 쓰지 않는다.
- * 퍼널의 AnalyzingScreen 과 문구가 다른 이유: 여기서 오래 걸리는 건 만세력이 아니라
+ * 퍼널의 CalculatingScreen 과 문구가 다른 이유: 여기서 오래 걸리는 건 만세력이 아니라
  * LLM 해석 생성이다.
  */
 export function AnalyzingReport({ name }: { name: string }) {
