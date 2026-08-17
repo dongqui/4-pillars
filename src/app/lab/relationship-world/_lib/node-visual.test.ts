@@ -90,9 +90,9 @@ describe("시각 상수", () => {
   });
 
   it("겹침이 가장 많은 자리에서도 확산 halo 가 화면을 덮지 않는다", () => {
-    // R=1.6 에서 한 사람 주위의 겹치는 이웃은 중앙값 2명, 최대 4명이다.
-    // additive 라 합이 그대로 쌓인다 — 자기 것까지 5겹이 0.5 를 넘으면
+    // R=1.6 에서 한 사람 주위의 겹치는 이웃은 중앙값 2명, 최대 5명이다.
+    // additive 라 합이 그대로 쌓인다 — 자기 것까지 6겹이 0.5 를 넘으면
     // 직전 스파이크의 '흰 덩어리'가 색깔만 바뀐 채 돌아온다.
-    expect(HALO_ALPHA.diffuse.base * 5).toBeLessThan(0.5);
+    expect(HALO_ALPHA.diffuse.base * 6).toBeLessThan(0.5);
   });
 });
