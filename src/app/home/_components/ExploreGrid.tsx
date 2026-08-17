@@ -3,6 +3,11 @@ import Link from "next/link";
 interface Props {
   /** 저장된 프로필이면 그 리포트로, 아직 계정이 없으면 드래프트 리포트(/report)로 */
   reportHref: string;
+  /**
+   * 상담 입구. 비로그인이어도 링크를 잠그지 않는다 — /consult 가 로그인으로
+   * 넘긴다. 로그인 벽에서 흐름을 끊지 않는 피벗 정책과 같은 이유다.
+   */
+  consultHref: string;
 }
 
 const CARD =
@@ -23,7 +28,7 @@ function Dot({ size, style }: { size: number; style: string }) {
   );
 }
 
-export function ExploreGrid({ reportHref }: Props) {
+export function ExploreGrid({ reportHref, consultHref }: Props) {
   return (
     <section className="mx-auto max-w-[780px] px-5 pb-9 pt-5 md:px-8 md:pb-[52px] md:pt-[26px]">
       <div className="mb-[11px] text-[14.5px] font-bold tracking-[-0.02em]">이어서 살펴보기</div>
@@ -34,6 +39,18 @@ export function ExploreGrid({ reportHref }: Props) {
           <div className={TITLE}>리포트</div>
           <p className={DESC}>기질과 사고방식, 감정의 결까지 더 깊이 살펴보세요.</p>
           <span className={CTA}>리포트 보기 →</span>
+        </Link>
+
+        <Link href={consultHref} className={CARD}>
+          <div className={EYEBROW}>나에게 묻고 싶을 때</div>
+          <div className={TITLE}>고민상담</div>
+          <p className={DESC}>털어놓고 싶은 이야기, 사주를 아는 상대와 나눠보세요.</p>
+          <span className={CTA}>상담 시작하기 →</span>
+          <span aria-hidden className={ART}>
+            <Dot size={7} style="bg-slate-300" />
+            <Dot size={9} style="bg-slate-400" />
+            <Dot size={11} style="bg-slate-900" />
+          </span>
         </Link>
 
         <Link href="/map" className={CARD}>
