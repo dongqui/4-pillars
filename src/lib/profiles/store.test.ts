@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
+  CounterpartLimitError,
+  MAX_COUNTERPARTS,
   MAX_PROFILES,
   ProfileLimitError,
   countProfiles,
@@ -155,6 +157,30 @@ describe("createProfile", () => {
     await expect(createProfile("7", newProfile, client)).rejects.toBeInstanceOf(ProfileLimitError);
     expect(calls).toHaveLength(1);
   });
+
+  // 궁합 상대는 내 사주 한도와 따로 센다. 세지 않고 두면 한 계정이 영구 행을 끝없이 쌓는다.
+  it("궁합 상대는 'other' 카운터만 본다 — 내 사주 20개와 섞이지 않는다", async () => {
+    const { client, calls } = fakeClient([{ n: 30 }], [{ id: 42 }]);
+    await createProfile("7", { ...newProfile, kind: "other" }, client);
+
+    expect(calls[0].values).toEqual(["7", "other"]);
+    // 30 은 MAX_PROFILES 를 넘지만 MAX_COUNTERPARTS 안이라 그대로 들어간다.
+    expect(calls[1].sql).toContain("INSERT INTO profiles");
+  });
+
+  it("궁합 상대 상한에 도달하면 CounterpartLimitError 를 던지고 INSERT 하지 않는다", async () => {
+    const { client, calls } = fakeClient([{ n: MAX_COUNTERPARTS }]);
+    await expect(
+      createProfile("7", { ...newProfile, kind: "other" }, client),
+    ).rejects.toBeInstanceOf(CounterpartLimitError);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("내 사주는 'other' 가 몇이든 자기 카운터만 본다", async () => {
+    const { client, calls } = fakeClient([{ n: 1 }], [{ id: 42 }]);
+    await createProfile("7", newProfile, client);
+    expect(calls[0].values).toEqual(["7", "self"]);
+  });
 });
 
 describe("getProfile", () => {
@@ -221,5 +247,18 @@ describe("kind", () => {
   it("promoteProfileToSelf 는 이미 self 면 false 를 낸다", async () => {
     const client = (() => Promise.resolve([])) as unknown as SqlClient;
     expect(await promoteProfileToSelf("1", "2", client)).toBe(false);
+  });
+
+  // user_id 조건이 없으면 남의 궁합 상대를 내 사주 목록으로 끌어올 수 있다 —
+  // getMatch 의 같은 회귀 테스트(src/lib/matches/store.test.ts)와 같은 자리다.
+  it("promoteProfileToSelf 는 user_id 를 함께 필터한다", async () => {
+    const { client, calls } = fakeClient([{ id: 2 }]);
+    expect(await promoteProfileToSelf("1", "2", client)).toBe(true);
+
+    expect(calls[0].sql).toContain("user_id =");
+    // 'other' 만 올린다 — 이미 self 인 행을 건드려 봤자 할 일이 없다.
+    expect(calls[0].sql).toContain("kind = 'other'");
+    // 바인딩 순서는 템플릿에 나타난 순서다 — id → user_id.
+    expect(calls[0].values).toEqual(["2", "1"]);
   });
 });

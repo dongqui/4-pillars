@@ -3,7 +3,7 @@ import { createProfileSchema } from "@/lib/profiles/input";
 import { relationInputSchema } from "@/lib/matches/relation-types";
 import type { CreateMatchInput } from "@/lib/matches/store";
 import type { MatchAccess } from "@/lib/matches/access";
-import type { CreateProfileInput } from "@/lib/profiles/store";
+import { CounterpartLimitError, type CreateProfileInput } from "@/lib/profiles/store";
 import { parseProfileParam } from "@/lib/profiles/param";
 
 const bodySchema = z.object({
@@ -71,8 +71,16 @@ export async function handleCreateMatch(
     counterpartId = found.id;
   } else {
     // kind 는 항상 'other' 다. 내 목록으로 올리는 건 결과 화면의 저장 모달이 한다.
-    const created = await d.createProfile(userId, { ...counterpart!, kind: "other" });
-    counterpartId = created.id;
+    try {
+      const created = await d.createProfile(userId, { ...counterpart!, kind: "other" });
+      counterpartId = created.id;
+    } catch (e) {
+      // 상한은 예견된 상태다 — 500 으로 흘리면 "서버 오류" 라는 엉뚱한 안내가 나간다.
+      if (e instanceof CounterpartLimitError) {
+        return { status: 409, body: { error: e.message } };
+      }
+      throw e;
+    }
   }
 
   // 자기 자신과의 궁합은 계산은 되지만 서술이 성립하지 않는다.

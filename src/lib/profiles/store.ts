@@ -6,13 +6,34 @@ export type { SqlClient };
 
 const sql = neonSql as unknown as SqlClient;
 
-/** 한 계정이 저장할 수 있는 프로필 수. 화면 문구와 같이 움직인다. */
+/** 한 계정이 저장할 수 있는 내 사주(kind='self') 수. 화면 문구와 같이 움직인다. */
 export const MAX_PROFILES = 20;
+
+/**
+ * 궁합 상대(kind='other')의 상한. 훨씬 높은 별도 값이다.
+ *
+ * 두 상한이 갈리는 이유: MAX_PROFILES 는 "내 사주를 몇 개까지 관리할 것인가" 라는
+ * 제품 판단이고(홈 캐러셀에 늘어서는 카드 수다), 이쪽은 "행이 무한히 늘지 않게" 라는
+ * 자원 상한이다. 궁합은 볼 때마다 상대가 하나 늘 수 있어서, 세지 않고 두면 한 계정이
+ * 영구 행을 끝없이 쌓는다.
+ */
+export const MAX_COUNTERPARTS = 100;
 
 export class ProfileLimitError extends Error {
   constructor() {
     super(`프로필은 최대 ${MAX_PROFILES}개까지 저장할 수 있습니다`);
     this.name = "ProfileLimitError";
+  }
+}
+
+/**
+ * 궁합 상대 상한. ProfileLimitError 와 다른 타입인 이유: 문구가 다르고(사용자가 지울
+ * 대상이 내 사주가 아니라 궁합 상대다) 호출부가 갈라 다뤄야 한다.
+ */
+export class CounterpartLimitError extends Error {
+  constructor() {
+    super(`궁합 상대는 최대 ${MAX_COUNTERPARTS}명까지 저장할 수 있습니다`);
+    this.name = "CounterpartLimitError";
   }
 }
 
@@ -166,11 +187,18 @@ export async function createProfile(
   input: CreateProfileInput,
   client: SqlClient = sql,
 ): Promise<{ id: string }> {
-  // 한도는 'self' 만 센다. 궁합 상대까지 세면 궁합을 몇 번 본 것만으로
-  // 내 사주를 더 저장할 수 없게 된다 — 한도의 취지와 무관한 결과다.
+  // 한 카운터로 둘을 같이 세지 않는다. 궁합 상대까지 MAX_PROFILES 에 넣으면 궁합을
+  // 몇 번 본 것만으로 내 사주를 더 저장할 수 없게 된다 — 한도의 취지와 무관한 결과다.
+  //
+  // 그렇다고 상대를 세지 않고 두면 상한이 아예 없어진다. 그래서 kind 별로 자기
+  // 카운터를 본다. 값이 다른 이유는 MAX_COUNTERPARTS 주석에 있다: 하나는 제품 판단,
+  // 다른 하나는 자원 상한이다.
   if (input.kind === "self") {
     const count = await countProfiles(userId, "self", client);
     if (count >= MAX_PROFILES) throw new ProfileLimitError();
+  } else {
+    const count = await countProfiles(userId, "other", client);
+    if (count >= MAX_COUNTERPARTS) throw new CounterpartLimitError();
   }
 
   const rows = await client`

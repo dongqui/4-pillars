@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { CounterpartLimitError } from "@/lib/profiles/store";
 import { handleCreateMatch } from "./handler";
 
 const NONE = { type: null, subjectRole: null, counterpartRole: null };
@@ -63,6 +64,30 @@ describe("handleCreateMatch", () => {
       deps(),
     );
     expect(r.status).toBe(400);
+  });
+
+  // 오래된 클라이언트 빌드가 우연히 밟는 쪽은 이 절반이다 — 상대를 아예 안 싣는 경우.
+  it("상대를 둘 다 안 주면 400 — 궁합은 상대 없이 성립하지 않는다", async () => {
+    const findOrCreate = vi.fn();
+    const r = await handleCreateMatch(
+      { subjectProfileId: "2", relation: NONE },
+      deps({ findOrCreate }),
+    );
+    expect(r.status).toBe(400);
+    expect(findOrCreate).not.toHaveBeenCalled();
+  });
+
+  it("궁합 상대 상한에 걸리면 409 로 그 이유를 말한다 — 500 이 아니다", async () => {
+    const r = await handleCreateMatch(
+      { subjectProfileId: "2", counterpart: newCounterpart, relation: NONE },
+      deps({
+        createProfile: async () => {
+          throw new CounterpartLimitError();
+        },
+      }),
+    );
+    expect(r.status).toBe(409);
+    expect(r.body).toEqual({ error: new CounterpartLimitError().message });
   });
 
   it("남의 프로필이면 404 — 없는 것과 구분하지 않는다", async () => {
