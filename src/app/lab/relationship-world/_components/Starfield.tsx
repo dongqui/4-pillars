@@ -79,9 +79,9 @@ export function Starfield() {
         420개와 160개가 1번 레이어의 점들과 '완전히 같은 반직선' 위에 반지름
         비율만 다르게 놓였다 — 돌려봐야 강체 껍질이 통째로 도는 것처럼 보인다.
       */}
-      <DustLayer count={900} radius={142} size={0.43} opacity={0.35} drift={0.004} seed={101} />
-      <DustLayer count={420} radius={80} size={0.62} opacity={0.5} drift={0.011} seed={5003} />
-      <DustLayer count={160} radius={46} size={0.86} opacity={0.65} drift={0.022} seed={9001} />
+      <DustLayer count={420} radius={142} size={0.43} opacity={0.35} drift={0.004} seed={101} />
+      <DustLayer count={200} radius={80} size={0.62} opacity={0.5} drift={0.011} seed={5003} />
+      <DustLayer count={80} radius={46} size={0.86} opacity={0.65} drift={0.022} seed={9001} />
 
       {/* 황도면. 의식되지 않되 위/아래는 느껴지는 수준으로만. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
