@@ -4,6 +4,7 @@ import { getUser } from "@/lib/auth/users";
 import { resolveDisplayName } from "@/lib/auth/display-name";
 import { readCurrentDraft } from "@/lib/drafts/current";
 import { MAX_PROFILES, listProfiles } from "@/lib/profiles/store";
+import { getBalance } from "@/lib/tickets/wallet";
 import { toDraftEntry, toHomeEntry, type HomeEntry } from "./_lib/to-home-entry";
 import { HomeHeader } from "./_components/HomeHeader";
 import { HomeIdentity } from "./_components/HomeIdentity";
@@ -36,17 +37,20 @@ export default async function HomePage({
   const session = await getSession();
 
   let displayName: string | null = null;
+  let balance: number | null = null;
   let entries: HomeEntry[] = [];
   let canAdd = true;
 
   if (session) {
-    const [user, rows] = await Promise.all([
+    const [user, rows, tickets] = await Promise.all([
       getUser(session.userId),
       listProfiles(session.userId),
+      getBalance(session.userId),
     ]);
     displayName = resolveDisplayName(user);
     entries = rows.map(toHomeEntry);
     canAdd = rows.length < MAX_PROFILES;
+    balance = tickets;
   }
 
   // 로그인했는데 프로필이 없는 경우에도 드래프트는 볼 수 있어야 한다(승격이 실패했거나
@@ -58,7 +62,7 @@ export default async function HomePage({
 
   return (
     <div className="min-h-screen flex-1 bg-white">
-      <HomeHeader displayName={displayName} />
+      <HomeHeader displayName={displayName} balance={balance} />
 
       {error === "limit" && (
         // 퍼널의 409 와 로그인 시 드래프트 승격 실패가 둘 다 여기로 온다.
