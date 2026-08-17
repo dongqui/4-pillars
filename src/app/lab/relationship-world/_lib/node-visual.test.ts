@@ -92,9 +92,17 @@ describe("광량 불변식", () => {
   // 설계 문서 4.3. 브리프 §3.2 가 "沖이 가장 강하고 六合이 가장 약한 등급처럼
   // 읽힐 수 있다"고 직접 경고한 것을, 부탁이 아니라 숫자로 막는다.
   it("세 상태의 적분 광량이 서로 2% 이내다", () => {
+    // 실측 spread 는 0.00027%(none 0.222320 / yukhap 0.222319 / chung
+    // 0.222320) 다. 설계 문서의 상한은 2% 지만, 그 값을 그대로 쓰면 이 테스트
+    // 하나만으로는 회귀를 못 잡는다 — stateLight() 에서 breatheAmplitude 보정
+    // (1 + d²/2) 을 통째로 빼도 spread 가 1.28% 로, 2% 밑을 통과해버린다.
+    // 0.5% 로 조이면 실측치 대비 네 자릿수 여유를 남기면서도(정당한 상수
+    // 재조정은 통과) 1.28% 짜리 회귀는 반드시 잡는다. "호흡의 시간 평균이
+    // 광량에 반영된다" 테스트가 같은 회귀를 직접 검사하지만, 이 테스트도
+    // 독립적으로 걸리도록 조인다.
     const lights = FEATURES.map(stateLight);
     const spread = (Math.max(...lights) - Math.min(...lights)) / Math.min(...lights);
-    expect(spread, `T = ${lights.map((v) => v.toFixed(6)).join(" / ")}`).toBeLessThan(0.02);
+    expect(spread, `T = ${lights.map((v) => v.toFixed(6)).join(" / ")}`).toBeLessThan(0.005);
   });
 
   it("호흡의 시간 평균이 광량에 반영된다", () => {

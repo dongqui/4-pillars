@@ -5,8 +5,12 @@
  * THREE.DataTexture 조립은 PersonNode.tsx 가 한다 — 그래야 이 규칙들이 node
  * 환경 테스트로 잠긴다.
  *
- * 아래 값 중 DIFFUSE_HALO_* 두 개는 계산으로 정했을 뿐 렌더된 화면에서
- * 검증되지 않았다. 실물을 보고 조절할 곳이 여기 하나다.
+ * 이 값들은 서로 독립이 아니다 — STATE_VISUAL.nearAlpha 는 각 상태의
+ * nearRadius/diffuseAlpha 와 DIFFUSE_HALO_RADIUS 로부터 stateLight() 가
+ * 세 상태에서 같아지도록 역산한 값이라, 반지름이나 확산 알파를 하나만
+ * 만져도 nearAlpha 를 전부 다시 풀어야 한다. 실물을 보고 조절할 값은
+ * DIFFUSE_HALO_RADIUS 하나뿐이었던 이전 버전과 달리, 지금은 계산으로
+ * 검증되지 않은 값이 STATE_VISUAL 전체로 퍼져 있다.
  */
 
 import type { Feature } from "../_data/roles";
