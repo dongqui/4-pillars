@@ -11,13 +11,14 @@
  * 색 규칙 전부가 그 테스트로 잠긴다.
  */
 
+import { hslToHex, type Hsl } from "./hsl";
+
 export const STEMS = ["갑", "을", "병", "정", "무", "기", "경", "신", "임", "계"] as const;
 export const BRANCHES = [
   "자", "축", "인", "묘", "진", "사", "오", "미", "신", "유", "술", "해",
 ] as const;
 
 type Stem = (typeof STEMS)[number];
-type Hsl = { readonly h: number; readonly s: number; readonly l: number };
 
 /**
  * 오행이 hue, 음양이 밝기다. 같은 오행 형제(갑/을)는 hue 가 완전히 같아서
@@ -60,20 +61,6 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
  */
 const satOffset = (i: number) => ((i % 4) - 1.5) * 4; //      -6, -2, +2, +6
 const lightOffset = (i: number) => (Math.floor(i / 4) - 1) * 4; // -4, 0, +4
-
-function hslToHex({ h, s, l }: Hsl): string {
-  const sat = s / 100;
-  const light = l / 100;
-  const a = sat * Math.min(light, 1 - light);
-  const f = (n: number) => {
-    const k = (n + h / 30) % 12;
-    const v = light - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)));
-    return Math.round(v * 255)
-      .toString(16)
-      .padStart(2, "0");
-  };
-  return `#${f(0)}${f(8)}${f(4)}`;
-}
 
 export type NodePalette = {
   readonly glow: string;
