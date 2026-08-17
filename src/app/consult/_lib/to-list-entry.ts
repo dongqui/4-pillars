@@ -11,11 +11,28 @@ export interface ConsultationEntry {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
 
-/** 자정 기준으로 며칠 전인지. 시각 차가 아니라 날짜 차를 센다 */
+/**
+ * 서비스가 쓰는 표준시(UTC+9). 한국과 일본이 같은 오프셋이고 둘 다 서머타임이 없어서
+ * 상수 하나로 두 시장을 덮는다 — 다른 오프셋의 시장이 열리면 그때 사용자별로 바꾼다.
+ *
+ * UTC 로 그냥 자르면 안 되는 이유: KST 00:00~08:59 는 UTC 로 전날이라, 오늘 아침에
+ * 연 상담이 "어제"로 뜬다. 하루의 9시간이 걸리는 문제다.
+ */
+const SERVICE_UTC_OFFSET_HOURS = 9;
+
+/** UTC 시각을 서비스 표준시로 옮긴다. 연/월/일을 그 지역 달력 기준으로 읽기 위한 용도로만 쓴다 */
+function toServiceLocal(d: Date): Date {
+  return new Date(d.getTime() + SERVICE_UTC_OFFSET_HOURS * HOUR_MS);
+}
+
+/** 자정(서비스 표준시) 기준으로 며칠 전인지. 시각 차가 아니라 날짜 차를 센다 */
 function daysAgo(then: Date, now: Date): number {
-  const a = Date.UTC(then.getUTCFullYear(), then.getUTCMonth(), then.getUTCDate());
-  const b = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const t = toServiceLocal(then);
+  const n = toServiceLocal(now);
+  const a = Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate());
+  const b = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate());
   return Math.round((b - a) / DAY_MS);
 }
 
@@ -26,6 +43,7 @@ function daysAgo(then: Date, now: Date): number {
 export function toListEntry(row: ConsultationListItem, now: Date): ConsultationEntry {
   const created = new Date(row.createdAt);
   const d = daysAgo(created, now);
+  const createdLocal = toServiceLocal(created);
 
   return {
     id: row.id,
@@ -39,6 +57,6 @@ export function toListEntry(row: ConsultationListItem, now: Date): ConsultationE
         ? "오늘"
         : d === 1
           ? "어제"
-          : `${created.getUTCMonth() + 1}월 ${created.getUTCDate()}일`,
+          : `${createdLocal.getUTCMonth() + 1}월 ${createdLocal.getUTCDate()}일`,
   };
 }

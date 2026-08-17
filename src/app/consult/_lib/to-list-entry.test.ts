@@ -49,4 +49,30 @@ describe("toListEntry", () => {
   it("말풍선이 없으면 미리보기를 비운다", () => {
     expect(toListEntry(row({ lastBubble: null }), now).preview).toBe("");
   });
+
+  it("KST 자정을 갓 넘겨 만든 상담을 같은 날 저녁에 보면 오늘로 적는다", () => {
+    // 생성 2026-08-17T23:00:00Z = 2026-08-18 08:00 KST
+    // 조회 2026-08-18T08:30:00Z = 2026-08-18 17:30 KST — 같은 서울 날짜
+    const viewedLater = new Date("2026-08-18T08:30:00.000Z");
+    expect(
+      toListEntry(row({ createdAt: "2026-08-17T23:00:00.000Z" }), viewedLater).when,
+    ).toBe("오늘");
+  });
+
+  it("KST 자정 전에 만든 상담을 다음 날 저녁에 보면 어제로 적는다", () => {
+    // 생성 2026-08-17T14:00:00Z = 2026-08-17 23:00 KST
+    // 조회 2026-08-18T08:30:00Z = 2026-08-18 17:30 KST — 서울 날짜로 하루 차이
+    const viewedLater = new Date("2026-08-18T08:30:00.000Z");
+    expect(
+      toListEntry(row({ createdAt: "2026-08-17T14:00:00.000Z" }), viewedLater).when,
+    ).toBe("어제");
+  });
+
+  it("KST 새벽에 만든 상담은 UTC 날짜가 아니라 서울 날짜로 적는다", () => {
+    // 생성 2026-08-11T22:00:00Z = 2026-08-12 07:00 KST → UTC 로는 8/11 이지만
+    // 서울 날짜는 8/12 다. 오늘로부터 충분히 멀어 "N월 N일" 분기로 떨어진다.
+    expect(toListEntry(row({ createdAt: "2026-08-11T22:00:00.000Z" }), now).when).toBe(
+      "8월 12일",
+    );
+  });
 });
