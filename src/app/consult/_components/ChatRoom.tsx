@@ -41,7 +41,13 @@ export function ChatRoom({
     setError(null);
     setPending(true);
     // 낙관적으로 내 말풍선을 먼저 붙인다. 실패하면 되돌린다.
-    const optimistic: ChatTurn = { key: `pending-${turns.length}`, role: "user", bubbles: [text] };
+    // 사용자 말풍선은 애니메이션 대상이 아니므로 isNew 는 항상 false 다.
+    const optimistic: ChatTurn = {
+      key: `pending-${turns.length}`,
+      role: "user",
+      bubbles: [text],
+      isNew: false,
+    };
     setTurns((prev) => [...stripSuggestions(prev), optimistic]);
 
     try {
@@ -65,6 +71,8 @@ export function ChatRoom({
           key: `counselor-${prev.length}`,
           role: "counselor",
           bubbles: json.reply.bubbles,
+          // 방금 API 에서 온 답만 진입 애니메이션을 태운다.
+          isNew: true,
           ...(json.reply.suggestions?.length ? { suggestions: json.reply.suggestions } : {}),
         },
       ]);
@@ -97,8 +105,12 @@ export function ChatRoom({
               key={`${t.key}-${i}`}
               role={t.role}
               text={text}
-              // 저장된 이력은 즉시, 방금 온 답만 순차로 띄운다.
-              delay={t.role === "counselor" && t.key.startsWith("counselor-") ? i * BUBBLE_STAGGER_MS : 0}
+              // 저장된 이력은 즉시, 방금 온 답만 순차로 띄운다. "태울지"(animate)와
+              // "얼마나 늦게"(delay)는 다른 질문이다 — 첫 말풍선(i===0)도 새 답이면
+              // 반드시 애니메이션이 걸려야 하므로 delay===0 을 애니메이션 여부로
+              // 겸용하지 않는다.
+              animate={t.isNew}
+              delay={i * BUBBLE_STAGGER_MS}
             />
           )),
         )}
@@ -149,5 +161,5 @@ export function ChatRoom({
  * no-unused-vars 에 걸린다 — 그래서 남길 필드만 직접 골라 새 객체를 만든다.
  */
 function stripSuggestions(turns: ChatTurn[]): ChatTurn[] {
-  return turns.map((t) => ({ key: t.key, role: t.role, bubbles: t.bubbles }));
+  return turns.map((t) => ({ key: t.key, role: t.role, bubbles: t.bubbles, isNew: t.isNew }));
 }
