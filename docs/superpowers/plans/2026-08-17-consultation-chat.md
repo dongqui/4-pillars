@@ -850,7 +850,16 @@ git add src/lib/consultations/input.ts src/lib/consultations/input.test.ts && gi
 
 **Interfaces:**
 - Consumes: `zod`
-- Produces: `COUNSEL_TOOL_NAME`, `MIN_BUBBLES`, `MAX_BUBBLES`, `BUBBLE_MAX_CHARS`, `SUGGESTION_MAX_CHARS`, `TITLE_MAX_CHARS`, `SUGGESTION_COUNT`, `MAX_REPLY_TOKENS`, `CounselorReply`, `replyToolSchema(opts)`, `parseReply(raw, opts)`
+- Produces: `COUNSEL_TOOL_NAME`, `MIN_BUBBLES`, `MAX_BUBBLES`, `BUBBLE_MAX_CHARS`, `SUGGESTION_MAX_CHARS`, `TITLE_MAX_CHARS`, `SUGGESTION_COUNT`, `MAX_REPLY_TOKENS`, `CounselorReply`, `replyToolSchema(opts)`, `parseReply(raw, opts)`, `fallbackTitle(utterance)`
+
+**결정 (2026-08-17, 리뷰 후 확정):** 개수·필수 강제는 **JSON tool 스키마 쪽에만** 둔다. zod 파싱은 모양이 깨진 응답만 거르고, 사양을 조금 어긴 응답은 통과시킨다.
+
+이유는 `parseReply` 가 던졌을 때의 대가다. 던지면 그 턴은 실패고, 첫 턴이면 `openConsultation` 이 이용권을 되돌리고 상담 개설 자체가 실패한다. 제목 한 줄이나 추천질문 한 개가 모자란 것 때문에 1,000원짜리 상담이 안 열리는 편이, 제목이 비어 있는 편보다 나쁘다. 모델이 사양을 어긴 잡음을 사용자가 치르게 하지 않는다.
+
+그래서:
+- `suggestions` 는 온 개수대로 쓴다 (`.min()` 을 걸지 않는다). 화면은 받은 만큼만 칩을 그린다.
+- `title` 은 빠질 수 있으므로 `fallbackTitle(utterance)` 로 메운다 — 목록에 "아직 시작하지 않은 상담"으로 뜨는 것은 첫 턴이 **실패한** 상담(`turns_used = 0`)에만 해당해야 하고, 성공한 상담이 그 문구로 뜨면 거짓말이 된다.
+- 메우는 자리는 `turn.ts`(Task 8)다 — 발화를 아는 곳이 거기다. `parseReply` 는 응답만 검증한다.
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
@@ -863,6 +872,8 @@ import {
   MAX_BUBBLES,
   MIN_BUBBLES,
   SUGGESTION_COUNT,
+  TITLE_MAX_CHARS,
+  fallbackTitle,
   replyToolSchema,
   parseReply,
 } from "./schema";
@@ -947,6 +958,45 @@ describe("parseReply", () => {
 
   it("도구 이름은 emit_reply 다", () => {
     expect(COUNSEL_TOOL_NAME).toBe("emit_reply");
+  });
+
+  it("추천질문이 하나만 와도 통과시킨다 — 칩 하나 때문에 턴을 버리지 않는다", () => {
+    const r = parseReply({ ...good, suggestions: ["하나만"] }, middle);
+    expect(r.suggestions).toEqual(["하나만"]);
+  });
+
+  it("첫 턴에 제목이 없어도 통과시킨다 — 메우는 것은 turn.ts 의 몫이다", () => {
+    const r = parseReply(good, { first: true, last: false });
+    expect(r.title).toBeUndefined();
+  });
+});
+
+describe("fallbackTitle", () => {
+  it("짧은 발화는 그대로 쓴다", () => {
+    expect(fallbackTitle("잠이 안 와요")).toBe("잠이 안 와요");
+  });
+
+  it("앞뒤 공백을 지운다", () => {
+    expect(fallbackTitle("  힘들어요  ")).toBe("힘들어요");
+  });
+
+  it("상한을 넘기면 잘라내고 줄임표를 붙인다", () => {
+    const long = "가".repeat(TITLE_MAX_CHARS + 10);
+    const title = fallbackTitle(long);
+    expect([...title]).toHaveLength(TITLE_MAX_CHARS);
+    expect(title.endsWith("…")).toBe(true);
+  });
+
+  it("상한 딱 맞는 길이는 줄임표 없이 그대로 쓴다", () => {
+    const exact = "가".repeat(TITLE_MAX_CHARS);
+    expect(fallbackTitle(exact)).toBe(exact);
+  });
+
+  it("서로게이트 쌍을 반으로 자르지 않는다", () => {
+    const emoji = "🙂".repeat(TITLE_MAX_CHARS + 5);
+    const title = fallbackTitle(emoji);
+    expect([...title]).toHaveLength(TITLE_MAX_CHARS);
+    expect(title).not.toContain("�");
   });
 });
 ```
@@ -1049,8 +1099,26 @@ const replyShape = z.object({
 });
 
 /**
+ * 제목이 빠진 첫 턴 응답을 메운다. 사용자 발화 앞부분을 잘라 쓴다.
+ *
+ * 모델이 title 을 안 주는 것을 실패로 볼 수도 있지만, 그러면 parseReply 가 던지고
+ * openConsultation 이 이용권을 되돌려 상담이 아예 안 열린다 — 제목 한 줄 때문에
+ * 치를 대가가 아니다. 목록에서 알아볼 수만 있으면 된다.
+ */
+export function fallbackTitle(utterance: string): string {
+  // 스프레드로 자르는 이유: 서로게이트 쌍이 반으로 잘리지 않게
+  // (src/app/home/_lib/to-home-entry.ts 의 initialOf 와 같은 이유).
+  const chars = [...utterance.trim()];
+  return chars.length <= TITLE_MAX_CHARS
+    ? chars.join("")
+    : `${chars.slice(0, TITLE_MAX_CHARS - 1).join("")}…`;
+}
+
+/**
  * 돌아온 tool 인자를 믿기 전에 한 번 거른다. 던지면 그 턴은 실패로 처리되고
  * 차감되지 않는다 — 깨진 응답에 이용권을 쓰게 두지 않는다.
+ *
+ * 개수·필수 강제는 여기 걸지 않는다 (위 "결정" 참고). 모양이 깨진 응답만 거른다.
  */
 export function parseReply(raw: unknown, opts: ReplyOptions): CounselorReply {
   const parsed = replyShape.parse(raw);
@@ -1686,8 +1754,10 @@ git add src/lib/consultations/model.ts src/lib/consultations/chat-transport.ts s
 - Test: `src/lib/consultations/turn.test.ts`
 
 **Interfaces:**
-- Consumes: `buildTurnMessages` from `./prompt`, `replyToolSchema`/`parseReply`/`COUNSEL_TOOL_NAME`/`MAX_REPLY_TOKENS` from `./schema`, `ChatTransport` from `./chat-transport`, `MessageRow` from `./store`
+- Consumes: `buildTurnMessages` from `./prompt`, `replyToolSchema`/`parseReply`/`fallbackTitle`/`COUNSEL_TOOL_NAME`/`MAX_REPLY_TOKENS` from `./schema`, `ChatTransport` from `./chat-transport`, `MessageRow` from `./store`
 - Produces: `RunTurnInput`, `TurnResult`, `runTurn(input, deps)`
+
+**Task 4 의 결정이 여기 걸린다:** 첫 턴 응답에 `title` 이 없으면 `runTurn` 이 `fallbackTitle(input.utterance)` 로 메운다. `parseReply` 는 응답만 검증하고, 발화를 아는 곳은 여기다.
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
@@ -1753,6 +1823,18 @@ describe("runTurn", () => {
     expect(r.reply.title).toBe("잠 못 드는 밤");
   });
 
+  it("첫 턴에 제목이 안 오면 발화에서 메운다 — 목록이 '아직 시작하지 않은 상담'으로 거짓말하면 안 된다", async () => {
+    const { transport } = fakeTransport(reply);
+    const r = await runTurn({ ...base, first: true }, { transport, model: "m" });
+    expect(r.reply.title).toBe("요즘 잠이 안 와요");
+  });
+
+  it("이후 턴에는 제목을 메우지 않는다 — 기존 제목을 덮어쓰면 안 된다", async () => {
+    const { transport } = fakeTransport(reply);
+    const r = await runTurn({ ...base, first: false }, { transport, model: "m" });
+    expect(r.reply.title).toBeUndefined();
+  });
+
   it("깨진 응답이면 던진다 — 차감 없이 실패해야 한다", async () => {
     const { transport } = fakeTransport({ bubbles: ["하나뿐"] });
     await expect(runTurn(base, { transport, model: "m" })).rejects.toThrow();
@@ -1790,6 +1872,7 @@ import { buildTurnMessages } from "./prompt";
 import {
   COUNSEL_TOOL_NAME,
   MAX_REPLY_TOKENS,
+  fallbackTitle,
   parseReply,
   replyToolSchema,
   type CounselorReply,
@@ -1832,7 +1915,15 @@ export async function runTurn(input: RunTurnInput, deps: TurnDeps): Promise<Turn
     maxTokens: MAX_REPLY_TOKENS,
   });
 
-  return { reply: parseReply(args, opts), usage };
+  const reply = parseReply(args, opts);
+
+  // 첫 턴에 제목이 안 왔으면 발화에서 메운다. parseReply 가 던지게 두면 제목 한 줄
+  // 때문에 이용권이 되돌려지고 상담이 아예 안 열린다 (Task 4 의 결정 참고).
+  if (input.first && !reply.title) {
+    return { reply: { ...reply, title: fallbackTitle(input.utterance) }, usage };
+  }
+
+  return { reply, usage };
 }
 ```
 
