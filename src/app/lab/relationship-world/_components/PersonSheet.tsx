@@ -2,15 +2,10 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/Badge";
-import { FEATURE_LABELS, ROLE_LABELS, type RelationRole } from "../_data/roles";
+import { DISPLAY_TITLES, FEATURE_LABELS, FEATURE_NOTE, ROLE_LABELS, type RelationRole } from "../_data/roles";
+import { roleColor } from "../_data/role-colors";
+import { paletteFor } from "../_data/saju-colors";
 import type { MockPerson } from "../_data/mock-people";
-
-// 六合 과 沖 의 설명은 길이와 무게를 맞춘다. 한쪽만 따뜻하게 쓰면
-// 그 순간 좋은 관계 / 나쁜 관계가 된다.
-const FEATURE_NOTE: Record<"yukhap" | "chung", string> = {
-  yukhap: "둘 사이의 흐름이 끊기지 않고 이어집니다.",
-  chung: "둘 사이의 흐름이 팽팽하게 맞물립니다.",
-};
 
 const ROLE_NOTE: Record<RelationRole, string> = {
   fill: "곁에 있으면 비어 있던 자리가 채워지는 사람입니다.",
@@ -57,8 +52,27 @@ export function PersonSheet({
 
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-2xl font-bold tracking-[-0.02em] m-0">{shown.name}</h2>
-              <p className="text-[15px] text-slate-500 mt-1 m-0">{shown.sceneName}</p>
+              {/*
+                브리프 §4.2: 관계 별명을 가장 먼저 보여준다. "민수는 내 라이벌" 처럼
+                캡처해서 공유했을 때 문장이 사는 것이 이 줄의 목적이다.
+              */}
+              <p className="text-[13px] font-semibold tracking-[0.08em] m-0"
+                 style={{ color: roleColor(shown.role) }}>
+                {DISPLAY_TITLES[shown.role][shown.feature]}
+              </p>
+              <h2 className="text-2xl font-bold tracking-[-0.02em] m-0 mt-0.5">{shown.name}</h2>
+              <p className="text-[15px] text-slate-500 mt-1 m-0 flex items-center gap-1.5">
+                {/*
+                  사주색은 노드에서 내려왔지만 사라지지 않았다. 그 사람이 누구인가는
+                  한 층 아래로 갈 뿐이다 (브리프 §8).
+                */}
+                <span
+                  aria-hidden
+                  className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: paletteFor(shown.pillarKey).core }}
+                />
+                {shown.sceneName}
+              </p>
             </div>
             <button
               type="button"
@@ -80,7 +94,8 @@ export function PersonSheet({
             {ROLE_NOTE[shown.role]}
           </p>
 
-          {shown.feature !== "none" && (
+          {/* 기본 상태의 FEATURE_NOTE 는 빈 문자열이라 아무것도 렌더링되지 않는다 */}
+          {FEATURE_NOTE[shown.feature] && (
             <p className="text-[15px] leading-relaxed text-slate-700 mt-2 m-0">
               {FEATURE_NOTE[shown.feature]}
             </p>
