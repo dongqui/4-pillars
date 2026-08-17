@@ -4,7 +4,6 @@ import {
   createPendingPurchase,
   findOrderByPaymentId,
   markPurchaseFailed,
-  markPurchasePaid,
   toPendingOrder,
 } from "./store";
 
@@ -22,8 +21,7 @@ function fakeClient(...responses: Record<string, unknown>[][]) {
 const dbRow = {
   payment_id: "saju-abc",
   user_id: 7,
-  profile_id: 3,
-  amount: 9900,
+  amount: 5000,
   status: "pending",
 };
 
@@ -32,8 +30,7 @@ describe("toPendingOrder", () => {
     expect(toPendingOrder(dbRow)).toEqual({
       paymentId: "saju-abc",
       userId: "7",
-      profileId: "3",
-      amount: 9900,
+      amount: 5000,
       status: "pending",
     });
   });
@@ -44,16 +41,25 @@ describe("toPendingOrder", () => {
 });
 
 describe("createPendingPurchase", () => {
-  it("product 는 상수를, status 는 pending 을, provider 는 portone 을 박는다", async () => {
+  it("상품·금액·장수를 호출자가 넘긴 값 그대로 박는다", async () => {
     const { client, calls } = fakeClient([]);
     await createPendingPurchase(
-      { userId: "7", profileId: "3", paymentId: "saju-abc", amount: 9900 },
+      { userId: "7", paymentId: "saju-abc", product: "t5", amount: 5000, tickets: 6 },
       client,
     );
     expect(calls[0].sql).toContain("INSERT INTO purchases");
-    expect(calls[0].values).toEqual(["7", "3", "full_report", 9900, "saju-abc"]);
+    expect(calls[0].values).toEqual(["7", "t5", 5000, 6, "saju-abc"]);
     expect(calls[0].sql).toContain("'pending'");
     expect(calls[0].sql).toContain("'portone'");
+  });
+
+  it("profile_id 를 쓰지 않는다 — 이용권 충전에는 대상 프로필이 없다", async () => {
+    const { client, calls } = fakeClient([]);
+    await createPendingPurchase(
+      { userId: "7", paymentId: "saju-abc", product: "t1", amount: 1000, tickets: 1 },
+      client,
+    );
+    expect(calls[0].sql).not.toContain("profile_id");
   });
 });
 
@@ -66,27 +72,8 @@ describe("findOrderByPaymentId", () => {
   it("payment_id 로 찾는다", async () => {
     const { client, calls } = fakeClient([dbRow]);
     const order = await findOrderByPaymentId("saju-abc", client);
-    expect(order?.profileId).toBe("3");
+    expect(order?.userId).toBe("7");
     expect(calls[0].values).toEqual(["saju-abc"]);
-  });
-});
-
-describe("markPurchasePaid", () => {
-  it("갱신된 행이 있으면 true", async () => {
-    const { client, calls } = fakeClient([{ id: 1 }]);
-    expect(await markPurchasePaid({ paymentId: "saju-abc", transactionId: "tx-1" }, client)).toBe(
-      true,
-    );
-    // status='pending' 조건이 빠지면 이미 확정된 행을 다시 뒤집어 멱등성이 깨진다.
-    expect(calls[0].sql).toContain("status = 'pending'");
-    expect(calls[0].values).toEqual(["tx-1", "saju-abc"]);
-  });
-
-  it("갱신된 행이 없으면 false — 그 사이 다른 경로가 먼저 확정했다는 뜻", async () => {
-    const { client } = fakeClient([]);
-    expect(await markPurchasePaid({ paymentId: "saju-abc", transactionId: null }, client)).toBe(
-      false,
-    );
   });
 });
 
