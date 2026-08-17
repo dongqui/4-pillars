@@ -1,11 +1,18 @@
 "use client";
 
 import { useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { extend, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { FIELD_CENTERS, FIELD_EXTENT, FILL_SHELLS } from "../../_lib/layout";
 import { FIELD_TINT } from "./tint";
 import { MistMaterial } from "./shaders/materials";
+
+// 카탈로그 등록은 반드시 마테리얼을 렌더하는 이 파일에 있어야 한다. materials.ts
+// 안에 두면 이 import 가 타입 위치(InstanceType<typeof MistMaterial>)에서만
+// 쓰이게 되어 트랜스파일 단계에서 통째로 삭제되고, materials.ts 가 로드되지 않아
+// extend 가 영영 실행되지 않는다 — 전말은 materials.ts 상단 주석에 있다.
+// 아래 객체 리터럴이 MistMaterial 을 '값'으로 쓰기 때문에 import 가 살아남는다.
+extend({ MistMaterial });
 
 // 매 렌더 new THREE.Color(...) 를 JSX 안에서 만들면 참조가 매번 바뀌어 R3F 가
 // 매번 다시 적용한다. 모듈 스코프에서 한 번만 만든다 — 나머지 네 Field 는 이미

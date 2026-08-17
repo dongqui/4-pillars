@@ -1,12 +1,16 @@
 "use client";
 
 import { useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { extend, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { FIELD_CENTERS, REFINE_SHARDS } from "../../_lib/layout";
 import { FIELD_TINT } from "./tint";
 import { FIELD_FADE_RADIUS } from "./geometry";
 import { ShardMaterial } from "./shaders/materials";
+
+// 렌더하는 쪽에서 등록한다 — materials.ts 안에 두면 이 import 가 타입 위치에서만
+// 쓰여 트랜스파일 단계에서 삭제되고 extend 가 실행되지 않는다(materials.ts 주석).
+extend({ ShardMaterial });
 
 // 매 렌더 new THREE.Color(...) 를 JSX 안에서 만들면 참조가 매번 바뀌어 R3F 가
 // 매번 다시 적용한다. 모듈 스코프에서 한 번만 만든다(다섯 Field 공통 패턴).

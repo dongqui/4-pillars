@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { extend, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import {
   BESIDE_LAYERS,
@@ -14,6 +14,10 @@ import {
 import { FIELD_TINT } from "./tint";
 import { FIELD_FADE_RADIUS } from "./geometry";
 import { LayerMaterial } from "./shaders/materials";
+
+// 렌더하는 쪽에서 등록한다 — materials.ts 안에 두면 이 import 가 타입 위치에서만
+// 쓰여 트랜스파일 단계에서 삭제되고 extend 가 실행되지 않는다(materials.ts 주석).
+extend({ LayerMaterial });
 
 // LAYERS 와 기울기 값은 _lib/layout.ts 에 있다(BESIDE_LAYERS, BESIDE_TILT) —
 // positionFor 가 사람을 이 평면 위에 앉히려면 같은 값을 봐야 하기 때문에,

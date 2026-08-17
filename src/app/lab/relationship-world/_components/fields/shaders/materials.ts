@@ -1,7 +1,26 @@
 import * as THREE from "three";
 import { shaderMaterial } from "@react-three/drei";
-import { extend, type ThreeElement } from "@react-three/fiber";
+import type { ThreeElement } from "@react-three/fiber";
 import { GLSL_FRESNEL, GLSL_HASH } from "./common";
+
+/**
+ * 이 파일은 마테리얼 클래스만 만든다. R3F 카탈로그 등록(`extend`)은 여기가 아니라
+ * **그 마테리얼을 실제로 렌더하는 컴포넌트 쪽**에 있다.
+ *
+ * 여기서 extend 를 부르면 조용히 통째로 죽는다. `<mistMaterial>` 같은 소문자 JSX
+ * 태그는 문자열 intrinsic 이라 MistMaterial 바인딩을 참조하지 않고, 컴포넌트가
+ * 그 바인딩을 쓰는 곳은 `InstanceType<typeof MistMaterial>` 뿐 — 전부 타입
+ * 위치다. 그러면 TS/SWC 의 import elision 이 `import { MistMaterial } from
+ * "./shaders/materials"` 를 트랜스파일 단계에서 **삭제**하고, 이 모듈은 런타임
+ * 모듈 그래프에 아예 들어오지 않는다. extend 가 한 번도 실행되지 않아
+ * "R3F: MistMaterial is not part of the THREE namespace!" 로 다섯 Field 가
+ * 전부 죽는다. 타입만 맞으면 되는 코드라 빌드도 테스트도 통과한다 — 실제로
+ * 그렇게 통과한 채 머지됐었다.
+ *
+ * 등록을 사용처에 두면 `extend({ MistMaterial })` 의 객체 리터럴이 **값** 사용이
+ * 되어 import 가 살아남는다. materials.test.ts 가 다섯 컴포넌트 전부에 대해
+ * 이 import 가 트랜스파일 후에도 남는지 잠근다.
+ */
 
 const VARYINGS = /* glsl */ `
 varying vec3 vNormalW;
@@ -73,7 +92,6 @@ export const MistMaterial = shaderMaterial(
  * 항상 ref 를 통해 uniforms.xxx.value 로만 건드리고, JSX prop 에는 상수만
  * 남겨 둔다 (uShellRadius 처럼 렌더마다 같은 값으로 재계산되는 리터럴은 안전).
  */
-extend({ MistMaterial });
 
 declare module "@react-three/fiber" {
   interface ThreeElements {
@@ -140,8 +158,6 @@ export const LayerMaterial = shaderMaterial(
   LAYER_FRAGMENT,
 );
 
-extend({ LayerMaterial });
-
 declare module "@react-three/fiber" {
   interface ThreeElements {
     layerMaterial: ThreeElement<typeof LayerMaterial>;
@@ -193,8 +209,6 @@ export const RayMaterial = shaderMaterial(
   RAY_FRAGMENT,
 );
 
-extend({ RayMaterial });
-
 declare module "@react-three/fiber" {
   interface ThreeElements {
     rayMaterial: ThreeElement<typeof RayMaterial>;
@@ -245,8 +259,6 @@ export const RibbonMaterial = shaderMaterial(
   LAYER_VERTEX,
   RIBBON_FRAGMENT,
 );
-
-extend({ RibbonMaterial });
 
 declare module "@react-three/fiber" {
   interface ThreeElements {
@@ -300,7 +312,6 @@ export const ShardMaterial = shaderMaterial(
 // SHELL_VERTEX 를 재사용한다(LAYER_VERTEX 가 아니다) — fresnel 에 법선과 시선이
 // 필요하고, 그건 FillVolume 의 안개 정점 셰이더가 이미 넘긴다. LAYER_VERTEX 는
 // uv 만 넘겨서 vNormalW/vViewDirW 가 undefined 로 남는다.
-extend({ ShardMaterial });
 
 declare module "@react-three/fiber" {
   interface ThreeElements {
