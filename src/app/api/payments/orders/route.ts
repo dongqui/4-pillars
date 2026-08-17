@@ -3,7 +3,6 @@ import { getSession } from "@/lib/auth/session";
 import { getAppOrigin, getChannel, getStoreId } from "@/lib/payments/config";
 import { newPaymentId } from "@/lib/payments/order-id";
 import { createPendingPurchase } from "@/lib/payments/store";
-import { getProfile } from "@/lib/profiles/store";
 import { handleCreateOrder } from "./_lib/handler";
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -19,7 +18,6 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const result = await handleCreateOrder(raw, {
       userId: session?.userId ?? null,
-      getProfile,
       getStoreId: () => getStoreId(),
       getChannel: (id) => getChannel(id),
       getAppOrigin: () => getAppOrigin(),

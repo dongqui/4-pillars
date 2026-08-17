@@ -4,117 +4,111 @@ import { handleCreateOrder, type CreateOrderDeps } from "./handler";
 function deps(over: Partial<CreateOrderDeps> = {}): CreateOrderDeps {
   return {
     userId: "7",
-    getProfile: vi.fn(async () => ({ id: "3", isPaid: false })),
     getStoreId: () => "store-1",
-    getChannel: vi.fn(() => ({ channelKey: "ch-card", payMethod: "CARD" as const })),
+    getChannel: () => ({ channelKey: "ch-1", payMethod: "CARD" }),
     getAppOrigin: () => "https://saju.example",
-    newPaymentId: () => "saju-fixed",
+    newPaymentId: () => "saju-abc",
     createPending: vi.fn(async () => {}),
     ...over,
   };
 }
 
-const body = { profileId: "3", method: "card" };
+const body = { packageId: "t5", method: "card" };
 
 describe("handleCreateOrder", () => {
-  it("성공하면 결제창에 넘길 값을 한 번에 돌려준다", async () => {
-    const d = deps();
-    const r = await handleCreateOrder(body, d);
-    expect(d.getChannel).toHaveBeenCalledWith("card");
+  it("금액과 장수를 서버 가격표에서 박는다 — 요청에는 그 필드가 아예 없다", async () => {
+    const createPending = vi.fn(async () => {});
+    const r = await handleCreateOrder(body, deps({ createPending }));
+
     expect(r.status).toBe(200);
-    expect(r.body).toEqual({
-      paymentId: "saju-fixed",
-      storeId: "store-1",
-      channelKey: "ch-card",
-      payMethod: "CARD",
-      orderName: "사주 전체 리포트",
-      totalAmount: 9900,
-      currency: "CURRENCY_KRW",
-      redirectUrl: "https://saju.example/checkout/complete?profile=3",
-    });
-  });
-
-  it("청구 금액은 요청이 아니라 서버 상수에서 온다", async () => {
-    const d = deps();
-    // 본문에 금액을 실어 보내도 무시된다 — 스키마에 그런 필드가 없다.
-    await handleCreateOrder({ ...body, totalAmount: 100 }, d);
-    expect(d.createPending).toHaveBeenCalledWith({
+    expect(createPending).toHaveBeenCalledWith({
       userId: "7",
-      profileId: "3",
-      paymentId: "saju-fixed",
-      amount: 9900,
+      paymentId: "saju-abc",
+      product: "t5",
+      amount: 5000,
+      tickets: 6,
     });
   });
 
-  it("비로그인은 401 이고 행을 만들지 않는다", async () => {
-    const d = deps({ userId: null });
-    expect((await handleCreateOrder(body, d)).status).toBe(401);
-    expect(d.createPending).not.toHaveBeenCalled();
+  it("응답 금액은 pending 행에 박은 금액과 같다 — 갈라지면 확정에서 금액 불일치가 난다", async () => {
+    const r = await handleCreateOrder(body, deps());
+    expect(r.body).toMatchObject({
+      paymentId: "saju-abc",
+      storeId: "store-1",
+      channelKey: "ch-1",
+      payMethod: "CARD",
+      orderName: "이용권 6장",
+      totalAmount: 5000,
+      currency: "CURRENCY_KRW",
+    });
   });
 
-  it("없는/남의 프로필은 404", async () => {
-    const d = deps({ getProfile: vi.fn(async () => null) });
-    expect((await handleCreateOrder(body, d)).status).toBe(404);
-    expect(d.createPending).not.toHaveBeenCalled();
+  it("로그인하지 않았으면 401", async () => {
+    const r = await handleCreateOrder(body, deps({ userId: null }));
+    expect(r.status).toBe(401);
   });
 
-  it("이미 결제한 프로필은 409 — 이중 결제를 결제창 열기 전에 막는다", async () => {
-    const d = deps({ getProfile: vi.fn(async () => ({ id: "3", isPaid: true })) });
-    const r = await handleCreateOrder(body, d);
-    expect(r.status).toBe(409);
-    expect(d.createPending).not.toHaveBeenCalled();
-  });
-
-  it("본문이 스키마에 맞지 않으면 400", async () => {
+  it("요청 모양이 어긋나면 400", async () => {
     const d = deps();
-    for (const bad of [null, {}, { profileId: "3" }, { profileId: "3", method: "paypal" }]) {
+    for (const bad of [
+      null,
+      {},
+      { packageId: "t5" },
+      { packageId: "t99", method: "card" },
+      { packageId: "t5", method: "paypal" },
+    ]) {
       expect((await handleCreateOrder(bad, d)).status).toBe(400);
     }
   });
 
-  it("profileId 가 순번 id 형태가 아니면 400 — ::bigint 캐스팅에 닿기 전에 막는다", async () => {
-    const d = deps();
-    for (const bad of ["0", "007", "abc", "-1", "9999999999999999999"]) {
-      expect((await handleCreateOrder({ profileId: bad, method: "card" }, d)).status).toBe(400);
+  it("검증에 걸리면 pending 행을 만들지 않는다", async () => {
+    const createPending = vi.fn(async () => {});
+    await handleCreateOrder({ packageId: "t99", method: "card" }, deps({ createPending }));
+    await handleCreateOrder(body, deps({ createPending, userId: null }));
+    expect(createPending).not.toHaveBeenCalled();
+  });
+
+  it("결제 설정이 없으면 503 — 장애가 아니라 미설정이다", async () => {
+    for (const over of [
+      { getStoreId: () => null },
+      { getChannel: () => null },
+      { getAppOrigin: () => null },
+    ] as Partial<CreateOrderDeps>[]) {
+      const r = await handleCreateOrder(body, deps(over));
+      expect(r.status).toBe(503);
     }
   });
 
-  it("채널키가 없으면 503 — 장애가 아니라 미설정이다", async () => {
-    const d = deps({ getChannel: () => null });
-    expect((await handleCreateOrder(body, d)).status).toBe(503);
-    expect(d.createPending).not.toHaveBeenCalled();
-  });
-
-  it("상점 ID 나 APP_ORIGIN 이 없어도 503", async () => {
-    const noStoreId = deps({ getStoreId: () => null });
-    expect((await handleCreateOrder(body, noStoreId)).status).toBe(503);
-    expect(noStoreId.createPending).not.toHaveBeenCalled();
-
-    const noAppOrigin = deps({ getAppOrigin: () => null });
-    expect((await handleCreateOrder(body, noAppOrigin)).status).toBe(503);
-    expect(noAppOrigin.createPending).not.toHaveBeenCalled();
-  });
-
-  it("간편결제 수단은 easyPayProvider 까지 실어 보낸다", async () => {
-    const d = deps({
-      getChannel: vi.fn(() => ({
-        channelKey: "ch-inicis",
-        payMethod: "EASY_PAY" as const,
-        easyPayProvider: "TOSSPAY" as const,
-      })),
-    });
-    const r = await handleCreateOrder({ profileId: "3", method: "toss" }, d);
-    expect(d.getChannel).toHaveBeenCalledWith("toss");
-    expect(r.status).toBe(200);
+  it("복귀 경로를 redirectUrl 에 싣는다", async () => {
+    const r = await handleCreateOrder({ ...body, next: "/report?profile=3" }, deps());
     expect(r.body).toMatchObject({
-      channelKey: "ch-inicis",
+      redirectUrl: `https://saju.example/checkout/complete?next=${encodeURIComponent("/report?profile=3")}`,
+    });
+  });
+
+  it("외부 URL 을 next 로 보내면 홈으로 접는다 — 오픈 리다이렉트를 막는다", async () => {
+    const r = await handleCreateOrder({ ...body, next: "https://evil.example" }, deps());
+    expect(r.body).toMatchObject({
+      redirectUrl: `https://saju.example/checkout/complete?next=${encodeURIComponent("/home")}`,
+    });
+  });
+
+  it("간편결제는 채널이 준 판별자를 그대로 싣는다 — 쪼개면 어긋난 조합이 나간다", async () => {
+    const r = await handleCreateOrder(
+      { packageId: "t10", method: "toss" },
+      deps({
+        getChannel: () => ({
+          channelKey: "ch-1",
+          payMethod: "EASY_PAY",
+          easyPayProvider: "TOSSPAY",
+        }),
+      }),
+    );
+    expect(r.body).toMatchObject({
       payMethod: "EASY_PAY",
       easyPayProvider: "TOSSPAY",
+      orderName: "이용권 13장",
+      totalAmount: 10000,
     });
-  });
-
-  it("카드는 easyPayProvider 를 싣지 않는다 — 브라우저가 카드창을 연다", async () => {
-    const r = await handleCreateOrder(body, deps());
-    expect(r.body).not.toHaveProperty("easyPayProvider");
   });
 });
