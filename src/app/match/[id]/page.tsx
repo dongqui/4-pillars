@@ -74,6 +74,12 @@ export default async function MatchResultPage({
 async function MatchSections({ matchId, ctx }: { matchId: string; ctx: Parameters<typeof produceMatchSections>[1] }) {
   let interpretation: Partial<MatchInterpretation>;
   try {
+    // report/page.tsx 처럼 sharedGenerator() 로 모듈 스코프에 캐시하지 않는다 — 그러면
+    // API 키 미설정 같은 생성기 구성 실패가 <Suspense> 밖, try 바깥에서 던져져 Next 의
+    // 기본 에러 화면으로 떨어진다(report 가 그렇다). 여기서는 그 생성 자체를 이 try
+    // 안에, <Suspense> 안에 두어 같은 실패가 catch 로 잡히고 이미 스트리밍된
+    // MatchShell/MatchHero 아래에 <MatchError /> 가 뜬다 — 헤더 없는 화면보다 낫다.
+    // 대가는 정직하게: 요청마다 새로 만들어 report 처럼 클라이언트를 공유하지 않는다.
     ({ interpretation } = await produceMatchSections(matchId, ctx, {
       generator: createMatchGenerator(),
       getStored: getMatchSections,
