@@ -49,19 +49,16 @@ export function ExploreGrid({ reportHref }: Props) {
           </span>
         </Link>
 
-        {/* 궁합은 아직 화면이 없다. 링크로 두면 막다른 길이 되므로 자리만 남긴다 */}
-        <div className={`${CARD} cursor-default hover:border-slate-200`} aria-disabled>
+        <Link href="/match" className={CARD}>
           <div className={EYEBROW}>두 사람의 관계</div>
           <div className={TITLE}>궁합</div>
           <p className={DESC}>한 사람과 나의 관계를 자세히 살펴봐요.</p>
-          <span className="mt-auto whitespace-nowrap text-sm font-bold text-slate-300">
-            준비 중이에요
-          </span>
+          <span className={CTA}>궁합 보기 →</span>
           <span aria-hidden className={ART}>
             <Dot size={26} style="relative z-[2] border-[1.5px] border-slate-900" />
             <span className="-ml-[13px] h-[26px] w-[26px] flex-none rounded-full border-[1.5px] border-dashed border-slate-300" />
           </span>
-        </div>
+        </Link>
       </div>
     </section>
   );

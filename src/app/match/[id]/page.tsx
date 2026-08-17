@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth/session";
 import { getMatch } from "@/lib/matches/store";
 import { getProfile } from "@/lib/profiles/store";
 import { toBirthInput } from "@/lib/profiles/to-birth-input";
+import { first, type SearchParams } from "@/lib/profiles/param";
 import { MATCH_SECTION_KEYS, type MatchInterpretation } from "@/app/api/matches/_lib/sections";
 import { createMatchGenerator } from "@/app/api/matches/_lib/generator";
 import { getMatchSections, putMatchSections } from "@/app/api/matches/_lib/store";
@@ -15,6 +16,7 @@ import { MatchHero } from "./_components/MatchHero";
 import { MatchBody } from "./_components/MatchBody";
 import { AnalyzingMatch } from "./_components/AnalyzingMatch";
 import { MatchError } from "./_components/MatchError";
+import { SaveCounterpartModal } from "./_components/SaveCounterpartModal";
 
 /**
  * 궁합은 저장된 것이 없으면 5섹션을 전부 새로 생성한다 — 리포트와 달리
@@ -24,10 +26,13 @@ export const maxDuration = 60;
 
 export default async function MatchResultPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
   const session = await getSession();
   if (!session) redirect(`/login?next=/match/${id}`);
 
@@ -51,9 +56,16 @@ export default async function MatchResultPage({
     counterpartName: counterpart.name,
   });
 
+  // 즉석 입력(?new=1)이었고 아직 내 목록에 없는(kind==='other') 상대일 때만 묻는다 —
+  // 이미 저장된 사람에게 같은 질문을 또 던지지 않는다.
+  const offerSave = first(sp.new) === "1" && counterpart.kind === "other";
+
   return (
     <MatchShell>
       <MatchHero view={hero} />
+      {offerSave && (
+        <SaveCounterpartModal counterpartId={counterpart.id} counterpartName={counterpart.name} />
+      )}
       <Suspense fallback={<AnalyzingMatch />}>
         <MatchSections
           matchId={match.id}
