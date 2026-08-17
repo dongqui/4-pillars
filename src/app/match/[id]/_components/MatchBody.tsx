@@ -5,6 +5,8 @@ import { InfoCard } from "@/app/report/_components/InfoCard";
 import { NoteCard } from "@/app/report/_components/NoteCard";
 
 const SECTION = "mt-[72px]";
+/** 한 섹션 안에서 카드 묶음을 가르는 눈썹 라벨 — report 의 OuterInnerSection 과 같은 자리다. */
+const GROUP = "text-xs font-bold text-slate-400 tracking-[0.05em] mb-2.5";
 
 /**
  * 다섯 섹션을 리포트의 카드 컴포넌트(SectionHeading·CardGrid·InfoCard·NoteCard)로
@@ -27,6 +29,13 @@ export function MatchBody({ interpretation }: { interpretation: Partial<MatchInt
       {interpretation.chemistry && (
         <section className={SECTION}>
           <SectionHeading no="02" category="케미" title="끌리는 지점과 부딪히는 지점" />
+          {/*
+            두 묶음에 라벨을 붙인다. 섹션 프롬프트가 "두 항목이 서로를 비추도록 써라"
+            라고 지시하므로 pull 과 friction 은 일부러 닮은 문장으로 나온다 — 라벨이
+            없으면 어느 카드가 어느 쪽인지 읽는 사람이 가릴 수 없고, 둘을 한 섹션으로
+            합친 이유(대비가 요점이다)가 그대로 사라진다.
+          */}
+          <div className={GROUP}>끌리는 지점</div>
           <CardGrid>
             {interpretation.chemistry.pull.map((item, i) => (
               <InfoCard key={`pull-${i}`} label={item.title}>
@@ -34,7 +43,8 @@ export function MatchBody({ interpretation }: { interpretation: Partial<MatchInt
               </InfoCard>
             ))}
           </CardGrid>
-          <div className="mt-3">
+          <div className="mt-7">
+            <div className={GROUP}>부딪히는 지점</div>
             <CardGrid>
               {interpretation.chemistry.friction.map((item, i) => (
                 <InfoCard key={`friction-${i}`} label={item.title}>
