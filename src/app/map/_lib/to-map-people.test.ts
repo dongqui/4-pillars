@@ -28,6 +28,15 @@ function firstWithBranch(branch: string): BirthLite {
   throw new Error(`일지 ${branch} 를 60일 안에서 못 찾았다`);
 }
 
+/** 일간이 stem 인 첫 날. 천간은 10일마다 돌아오므로 60일 안에 반드시 있다. */
+function firstWithStem(stem: string): BirthLite {
+  for (let n = 0; n < 60; n++) {
+    const b = shift(n);
+    if (buildPillars(b).day.stem === stem) return b;
+  }
+  throw new Error(`일간 ${stem} 를 60일 안에서 못 찾았다`);
+}
+
 // 1990-5-15 은 경진(庚辰)이다 — 브레인스토밍에서 실측했다.
 // 일간 경은 금(金)·양(陽)이고, 일지 진(辰)의 육합은 유(酉), 충은 술(戌)이다
 // (src/lib/saju-core/data/branches.ts 의 BRANCH_HAP·BRANCH_CHUNG).
@@ -68,6 +77,37 @@ describe("toMapPerson", () => {
       if (person) roles.add(person.role);
     }
     expect(roles).toEqual(new Set(["fill", "beside", "express", "move", "refine"]));
+  });
+
+  // 위 테스트는 다섯 Role 이 "어딘가에" 다 나오는지만 본다 — RelationKind 는
+  // 두 일간 오행의 생극만으로 갈리고 오행은 10일 주기로 도니 ROLE_OF 안의
+  // 짝을 통째로 바꿔치기해도(예: 생아↔비아) 같은 다섯 값의 집합이 나와 그
+  // 테스트를 통과한다. 아래는 중심 경진(일간 경, 金)을 기준으로 각 일간이
+  // 어느 Role 로 가는지 하나씩 못박는다 — ROLE_OF 항목 하나가 바뀌면 이름
+  // 붙은 테스트 하나가 정확히 진다.
+  it("일간 무·기(土, 금을 생함)는 fill", () => {
+    expect(toMapPerson(CENTER, row("mu", firstWithStem("무")))!.role).toBe("fill");
+    expect(toMapPerson(CENTER, row("gi", firstWithStem("기")))!.role).toBe("fill");
+  });
+
+  it("일간 경·신(金, 중심과 같은 오행)은 beside", () => {
+    expect(toMapPerson(CENTER, row("gyeong", firstWithStem("경")))!.role).toBe("beside");
+    expect(toMapPerson(CENTER, row("sin", firstWithStem("신")))!.role).toBe("beside");
+  });
+
+  it("일간 임·계(水, 금이 생함)는 express", () => {
+    expect(toMapPerson(CENTER, row("im", firstWithStem("임")))!.role).toBe("express");
+    expect(toMapPerson(CENTER, row("gye", firstWithStem("계")))!.role).toBe("express");
+  });
+
+  it("일간 갑·을(木, 금이 극함)은 move", () => {
+    expect(toMapPerson(CENTER, row("gap", firstWithStem("갑")))!.role).toBe("move");
+    expect(toMapPerson(CENTER, row("eul", firstWithStem("을")))!.role).toBe("move");
+  });
+
+  it("일간 병·정(火, 금을 극함)은 refine", () => {
+    expect(toMapPerson(CENTER, row("byeong", firstWithStem("병")))!.role).toBe("refine");
+    expect(toMapPerson(CENTER, row("jeong", firstWithStem("정")))!.role).toBe("refine");
   });
 
   it("일지가 육합(유)이면 feature 가 yukhap", () => {
