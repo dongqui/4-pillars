@@ -63,6 +63,7 @@ export default async function MapPage({ params }: Params) {
       center={center}
       isOwner={session?.userId === map.ownerUserId}
       shareId={map.shareId}
+      loggedIn={session !== null}
     />
   );
 }

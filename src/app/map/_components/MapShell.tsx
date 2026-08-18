@@ -8,6 +8,7 @@ import type { MapCenter, MapPerson } from "../_data/person";
 import { PersonSheet } from "./PersonSheet";
 import { PeopleList } from "./PeopleList";
 import { AddPersonSheet } from "./AddPersonSheet";
+import { MapHeader } from "./MapHeader";
 import type { CameraMode } from "../_lib/camera";
 
 const World = dynamic(() => import("./World").then((m) => m.World), {
@@ -24,11 +25,13 @@ export function MapShell({
   center,
   isOwner,
   shareId,
+  loggedIn,
 }: {
   people: readonly MapPerson[];
   center: MapCenter;
   isOwner: boolean;
   shareId: string;
+  loggedIn: boolean;
 }) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -36,8 +39,13 @@ export function MapShell({
   const [resetSignal, setResetSignal] = useState(0);
   const [listOpen, setListOpen] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [headerHidden, setHeaderHidden] = useState(false);
 
   const selected = people.find((p) => p.id === selectedId) ?? null;
+
+  // 판이 하나라도 열려 있으면 헤더를 강제로 보인다 — 나가는 길을 없애지 않는다.
+  const anyPanelOpen = selectedId !== null || listOpen || adding;
+  const hideHeader = headerHidden && !anyPanelOpen;
 
   // 목록·상세·추가 세 판은 서로 배타적이다 — 화면 아래에서 올라오는 판이 둘
   // 이상 함께 뜨면 어느 쪽을 닫는 탭인지 알 수 없다. 어디서 선택이 일어나든
@@ -67,19 +75,35 @@ export function MapShell({
         닫기 버튼을 향한 탭까지 가로챈다. 여기서 맥락을 끊으면 마커의 z 는
         이 div 안에서만 유효해지고, div 자체는 z-auto 라 시트와 토글이 항상 위다.
       */}
-      <div className="absolute inset-0 isolate">
+      <div
+        className="absolute inset-0 isolate"
+        // 지도에 손이 닿는 순간 헤더를 치운다. 카메라를 돌리는 동안 화면이 가장 넓어야 한다.
+        onPointerDown={() => setHeaderHidden(true)}
+      >
         <World
           people={people}
           center={center}
           selectedId={selectedId}
-          onSelect={selectPerson}
+          onSelect={(id) => {
+            selectPerson(id);
+            // 빈 곳을 탭하면(id === null) 선택이 풀리면서 헤더가 돌아온다.
+            if (id === null) setHeaderHidden(false);
+          }}
           mode={mode}
           resetSignal={resetSignal}
         />
       </div>
 
+      <MapHeader
+        hidden={hideHeader}
+        onReveal={() => setHeaderHidden(false)}
+        isOwner={isOwner}
+        shareId={shareId}
+        loggedIn={loggedIn}
+      />
+
       {/* 카메라 시점 전환 토글. 스파이크 시절부터 쓰던 A/B/C 세 모드를 제품 화면에서도 그대로 쓴다. */}
-      <div className="absolute top-[max(12px,env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-10">
+      <div className="absolute top-[calc(56px+max(12px,env(safe-area-inset-top)))] left-1/2 -translate-x-1/2 z-10">
         <CameraModeToggle
           mode={mode}
           onChange={setMode}
