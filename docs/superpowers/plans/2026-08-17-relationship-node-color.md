@@ -217,8 +217,13 @@ describe("paletteFor", () => {
         const { h, s, l } = toHsl(paletteFor(stem + b).core);
         return { h, key: `${Math.round(s)},${Math.round(l)}` };
       });
-      const hues = new Set(pairs.map((p) => Math.round(p.h)));
-      expect(hues.size, `${stem}: hue 가 지지에 따라 흔들리면 안 된다`).toBe(1);
+      // hex 는 채널당 8비트라 HSL 로 되돌리면 hue 가 조금 흔들린다. 그건 저장
+      // 형식의 반올림이지 규칙이 흔들린 게 아니다. 실측 최대는 1.53도(경)이고
+      // 여유를 둬 2도로 잡는다. 지지가 hue 를 실제로 건드리면 수십 도가
+      // 벌어지므로 이 허용치로도 남김없이 잡힌다.
+      const hues = pairs.map((p) => p.h);
+      const spread = Math.max(...hues) - Math.min(...hues);
+      expect(spread, `${stem}: hue 가 지지에 따라 흔들리면 안 된다`).toBeLessThanOrEqual(2);
       expect(new Set(pairs.map((p) => p.key)).size, `${stem}: 12개 조합`).toBe(12);
     }
   });
@@ -246,7 +251,9 @@ describe("paletteFor", () => {
   it("dim 에서도 hue 는 살아 있다 — 선택 중에 누가 누구인지 사라지면 안 된다", () => {
     for (const key of SEXAGENARY) {
       const p = paletteFor(key);
-      expect(Math.round(toHsl(p.coreDimmed).h)).toBe(Math.round(toHsl(p.core).h));
+      // 위와 같은 8비트 반올림이다. 실측 최대는 1.71도(신인, 실제 60갑자 밖의
+      // 조합까지 포함한 값)라 여기서도 2도로 잡는다.
+      expect(Math.abs(toHsl(p.coreDimmed).h - toHsl(p.core).h), key).toBeLessThanOrEqual(2);
     }
   });
 
@@ -1029,4 +1036,16 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 | Task 1 후 (fields 삭제) | 516 |
 | Task 2 후 (saju-colors) | 528 |
 | Task 3 후 (node-visual) | 539 |
-| 최종 | 539 |
+| 최종 리뷰 수정 후 | 540 |
+
+---
+
+## 실행 후 정정
+
+계획대로 되지 않은 두 곳을 남긴다. 둘 다 이 문서의 계산이 틀렸던 경우다.
+
+**1. Task 2 의 hue 단언 (실행 중 발견).** 위 Task 2 코드블록의 두 단언은 hex 왕복 반올림을 허용하지 않아 **올바른 구현을 상대로 실패했다.** 색을 8비트 hex 로 저장했다가 HSL 로 역산하면 hue 가 흔들린다. 실측 최대는 같은 천간 12지지 spread 1.5319도, coreDimmed↔core 차 1.7143도다. 두 곳 다 허용치 2도로 바꿨다 — 초록이 되는 최소값이 아니라 측정에서 유도한 값이다.
+
+**2. `DIFFUSE_HALO_RADIUS` 0.95 → 1.6 (최종 리뷰에서 발견).** 이 문서와 설계 문서가 "사람 간 최소 간격 0.4354 의 2배가 넘으므로 이웃 2~3명과 겹친다"를 근거로 0.95 를 정당화했는데, 0.4354 는 210개 쌍 중 **가장 가까운 한 쌍**의 값이었다. 최근접 거리의 중앙값은 1.93 이다. R=0.95 에서는 중앙값 사람의 겹치는 이웃이 0명이고 21명 중 12명이 아무와도 겹치지 않아 — **"사람들이 Field 를 만든다"는 이 브랜치의 핵심 메커니즘이 작동하지 않았다.** R=1.6 에서 중앙값 2명, 최대 5명, 고립 2/21 이다. 값은 사용자가 정했다.
+
+두 경우 다 타입도 맞고 빌드도 통과하는 상태였다. 이 스파이크에서 치명적 결함은 계속 그 형태로 나타난다.

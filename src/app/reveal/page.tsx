@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { characterOfBirth } from "@/lib/characters/of-birth";
 import { readCurrentDraft } from "@/lib/drafts/current";
 import { getProfile } from "@/lib/profiles/store";
+import { parseProfileParam, type ProfileParam, type SearchParams } from "@/lib/profiles/param";
 import { Reveal } from "./_components/Reveal";
 
 /**
@@ -15,12 +16,11 @@ import { Reveal } from "./_components/Reveal";
 export default async function RevealPage({
   searchParams,
 }: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<SearchParams>;
 }) {
-  const sp = await searchParams;
-  const profileParam = Array.isArray(sp.profile) ? sp.profile[0] : sp.profile;
+  const param = parseProfileParam(await searchParams);
 
-  const source = await readSource(profileParam);
+  const source = await readSource(param);
   if (!source) redirect("/home");
 
   const character = characterOfBirth(source);
@@ -30,12 +30,14 @@ export default async function RevealPage({
   return <Reveal character={character} name={source.name} />;
 }
 
-async function readSource(profileId: string | undefined) {
-  if (profileId) {
-    const session = await getSession();
-    // 없는 프로필과 남의 프로필을 구분하지 않는다 — 구분하면 id 로 존재 여부를 훑을 수 있다.
-    if (session) return await getProfile(session.userId, profileId);
-    return null;
-  }
-  return await readCurrentDraft();
+async function readSource(param: ProfileParam) {
+  // 형식이 깨진 ?profile 은 드래프트로 물러서지 않는다 — URL 이 가리킨 것과 다른
+  // 사람의 캐릭터가 서게 된다. 보여줄 것이 없다는 뜻이므로 홈으로 보낸다.
+  if (param.kind === "invalid") return null;
+  if (param.kind === "absent") return await readCurrentDraft();
+
+  const session = await getSession();
+  // 없는 프로필과 남의 프로필을 구분하지 않는다 — 구분하면 id 로 존재 여부를 훑을 수 있다.
+  if (session) return await getProfile(session.userId, param.id);
+  return null;
 }
