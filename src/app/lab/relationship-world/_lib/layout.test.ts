@@ -6,6 +6,9 @@ import {
   CAMERA_LIMITS,
   DEFAULT_CAMERA_POSITION,
   DEFAULT_TARGET,
+  FOCUS_BIAS,
+  FOCUS_DISTANCE,
+  FRAME_LIFT,
   type CameraMode,
 } from "./camera";
 import {
@@ -325,6 +328,54 @@ describe("진입 프레이밍 — 다섯 구역이 전부 보인다", () => {
       }
     }
   });
+});
+
+// ---------------------------------------------------------------------------
+// 포커스 뷰 프레이밍 잠금
+//
+// 위의 "진입 프레이밍" 은 오직 기본 뷰(아무도 선택하지 않은 상태)만 잠갔다.
+// CameraRig.tsx 의 FOCUS_DISTANCE·FOCUS_BIAS·FRAME_LIFT 는 사람을 선택했을
+// 때의 뷰를 겨냥하는데, 그 뷰에는 지금까지 테스트가 없었다 — 세 상수의
+// 주석이 인용하던 실측치가 15구역 재설계로 layout.ts 좌표가 통째로 바뀌는
+// 동안에도 조용히 틀려질 수 있었던 것이 바로 그 공백 때문이다. 이 테스트가
+// 그 공백을 메운다.
+//
+// CameraRig 의 useFrame 은 애니메이션 내내 "방향(dir)은 불변, target 과
+// distance 만 보간한다"는 불변식을 지킨다(CameraRig.tsx 주석 참고) — 그래서
+// 최종 정착 상태는 useFrame 루프를 흉내 내지 않고도 닫힌 형태로 계산된다:
+// dir 은 진입 카메라의 방향 그대로이고, eye = desiredTarget + dir·distance 다.
+
+describe("focus view — 사람을 선택했을 때 20명 전원이 화면 안에 있다", () => {
+  const initialDir = norm3(sub(DEFAULT_CAMERA_POSITION as V3, DEFAULT_TARGET as V3));
+  const placed = placePeople(FRIENDS);
+
+  for (const mode of ["a", "b", "c"] as CameraMode[]) {
+    it(`${mode} 모드`, () => {
+      const limits = CAMERA_LIMITS[mode];
+      const distance = Math.min(Math.max(FOCUS_DISTANCE, limits.minDistance), limits.maxDistance);
+
+      for (const person of FRIENDS) {
+        const focusOn = placed.get(person.id)! as V3;
+        const mid: V3 = [
+          SELF_POSITION[0] + (focusOn[0] - SELF_POSITION[0]) * FOCUS_BIAS,
+          SELF_POSITION[1] + (focusOn[1] - SELF_POSITION[1]) * FOCUS_BIAS,
+          SELF_POSITION[2] + (focusOn[2] - SELF_POSITION[2]) * FOCUS_BIAS,
+        ];
+        const desiredTarget: V3 = [mid[0], mid[1] - FRAME_LIFT, mid[2]];
+        const eye: V3 = [
+          desiredTarget[0] + initialDir[0] * distance,
+          desiredTarget[1] + initialDir[1] * distance,
+          desiredTarget[2] + initialDir[2] * distance,
+        ];
+
+        const n = projectToNdc(focusOn, eye, desiredTarget, CAMERA_FOV, PHONE_ASPECT);
+        expect(
+          n.depth > 0 && Math.abs(n.x) <= 1 && Math.abs(n.y) <= 1,
+          `${mode} 모드에서 ${person.id} 를 포커스`,
+        ).toBe(true);
+      }
+    });
+  }
 });
 
 describe("모든 Role 구역은 각 모드의 제한 안에서 도달 가능하다", () => {
