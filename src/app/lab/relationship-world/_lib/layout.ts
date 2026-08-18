@@ -79,6 +79,26 @@ export const ROLE_ANCHORS: Record<
 const STATE_INDEX: Record<Feature, number> = { none: 0, yukhap: 1, chung: 2 };
 
 /**
+ * 상태별로 나에게서 떨어진 거리. 세 껍질이 ANCHOR_RADIUS 를 가운데 두고
+ * 같은 간격으로 벌어진다(3등분).
+ *
+ * **이건 브리프 §2.2 를 의도적으로 뒤집은 것이다.** 그 조항은 "기본/六合/沖을
+ * 나와의 거리로 구분하지 않는다 — 가까움=좋음, 멂=나쁨 같은 오해를 만들 수
+ * 있기 때문"이라고 못박았고, subAnchor 가 회전만 쓰도록 만든 것도 그래서
+ * 궁합이 거리를 바꾸는 코드를 아예 쓸 수 없게 하려던 것이었다. 사용자가 그
+ * 위험을 듣고 六合 가까이 / 기본 중간 / 沖 멀리를 직접 골랐다. 되돌릴 때
+ * 필요한 것은 이 표 하나를 지우고 subAnchor 의 scaleTo 를 빼는 것뿐이다.
+ *
+ * 간격 1.5 는 화면에서 세 껍질이 갈라져 보이는 최소치이면서 20명 전원이
+ * 진입 프레임 안에 남는 최대치다(layout.test.ts 가 둘 다 잠근다).
+ */
+export const STATE_RADIUS: Record<Feature, number> = {
+  yukhap: ANCHOR_RADIUS - 1.5,
+  none: ANCHOR_RADIUS,
+  chung: ANCHOR_RADIUS + 1.5,
+};
+
+/**
  * 소구역 안에서 사람이 흩어지는 반경.
  *
  * 기본은 느슨한 무리, 六合·沖 은 또렷한 자리다. 六合 이 8%, 沖 이 8% 라
@@ -125,7 +145,7 @@ function rotate(v: Vec3, axis: Vec3, angle: number): Vec3 {
  * 소구역 중심. 앵커 방향을 SUB_TILT 만큼 기울인 뒤 앵커 축으로 120° 씩 돌린
  * 정삼각형의 한 꼭짓점이다.
  *
- * **회전만 쓴다.** 그래서 |subAnchor| == ANCHOR_RADIUS 가 부동소수점 오차
+ * 방향은 **회전만으로** 정한다. 그래서 세 소구역의 방향이 정삼각형을 이루는 것은 오차
  * 범위에서 성립하고, 궁합은 방향에만 영향을 주고 거리에는 영향을 줄 수 없다.
  * 스케일이나 평행이동을 섞으면 그 보증이 즉시 깨진다.
  *
@@ -141,7 +161,12 @@ export function subAnchor(role: RelationRole, feature: Feature): Vec3 {
   // 반드시 통과시켜야 한다.
   const ref: Vec3 = Math.abs(dir[1]) > 0.9 ? [1, 0, 0] : [0, 1, 0];
   const tilted = rotate(anchor, normalize(cross(dir, ref)), SUB_TILT);
-  return rotate(tilted, dir, phase + (STATE_INDEX[feature] * 2 * Math.PI) / 3);
+  const spun = rotate(tilted, dir, phase + (STATE_INDEX[feature] * 2 * Math.PI) / 3);
+  // 방향은 회전이 정하고, 길이만 상태별 껍질로 다시 맞춘다. 세 소구역의
+  // **방향**은 여전히 정삼각형이라(회전이 각도를 보존한다) 어느 시점에서도
+  // 셋 중 둘까지만 겹친다 — 달라진 것은 원점으로부터의 거리뿐이다.
+  const k = STATE_RADIUS[feature] / Math.hypot(spun[0], spun[1], spun[2]);
+  return [spun[0] * k, spun[1] * k, spun[2] * k];
 }
 
 const dist3 = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);

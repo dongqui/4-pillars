@@ -17,6 +17,7 @@ import {
   ROLE_ANCHORS,
   SELF_POSITION,
   SPREAD,
+  STATE_RADIUS,
   placePeople,
   positionFor,
   subAnchor,
@@ -75,24 +76,41 @@ describe("Role 앵커", () => {
 });
 
 describe("소구역", () => {
-  it("모든 소구역이 나로부터 앵커와 같은 거리다 — 궁합이 거리를 바꿀 수 없다", () => {
-    // 브리프 §2.2: 기본/六合/沖 을 나와의 거리로 구분하지 않는다.
-    // 회전은 길이를 보존하므로 이것이 기하학적으로 성립한다. 예전에는
-    // Placeable 타입이 배치가 feature 를 읽는 것 자체를 막았지만, 소구역이
-    // feature 로 갈리는 지금은 그 방어가 불가능하다 — 이 테스트가 그 자리를 지킨다.
+  it("소구역이 상태별 껍질 위에 정확히 놓인다", () => {
+    // 브리프 §2.2 는 "기본/六合/沖 을 나와의 거리로 구분하지 않는다"였고,
+    // 예전 이 테스트는 세 소구역이 전부 ANCHOR_RADIUS 에 있음을 잠갔다.
+    // 사용자가 그 조항을 뒤집어 六合 가까이 / 기본 중간 / 沖 멀리를 골랐으므로
+    // 이제 잠글 것은 "거리가 같다"가 아니라 "의도한 껍질에 정확히 있다"다.
     for (const role of ROLE_ORDER) {
       for (const feature of FEATURES) {
         expect(len(subAnchor(role, feature)), `${role}/${feature}`).toBeCloseTo(
-          ANCHOR_RADIUS,
+          STATE_RADIUS[feature],
           9,
         );
       }
     }
   });
 
-  it("한 역할의 세 소구역이 서로 등거리다 — 정삼각형이다", () => {
+  it("세 껍질이 같은 간격으로 벌어진다 — 3등분이다", () => {
+    // 한쪽 간격만 벌어지면 그 상태만 유난히 멀거나 가까워 보인다.
+    const gapNear = STATE_RADIUS.none - STATE_RADIUS.yukhap;
+    const gapFar = STATE_RADIUS.chung - STATE_RADIUS.none;
+    expect(gapNear).toBeCloseTo(gapFar, 9);
+    expect(gapNear).toBeGreaterThan(0);
+    expect(STATE_RADIUS.none).toBe(ANCHOR_RADIUS);
+  });
+
+  it("세 소구역의 방향이 정삼각형이다", () => {
+    // 껍질이 갈리기 전에는 세 점 자체가 정삼각형이었다. 지금은 반지름이
+    // 다르므로 점끼리는 등거리가 아니고, **방향**만 정삼각형이다 — 회전이
+    // 각도를 보존하기 때문이다. 이것이 유지되어야 어느 시점에서도 셋 중
+    // 둘까지만 겹친다(한 대원 위에 늘어서면 셋이 한 줄로 포개진다).
     for (const role of ROLE_ORDER) {
-      const [a, b, c] = FEATURES.map((f) => subAnchor(role, f));
+      const [a, b, c] = FEATURES.map((f) => {
+        const v = subAnchor(role, f);
+        const l = len(v);
+        return [v[0] / l, v[1] / l, v[2] / l] as const;
+      });
       const sides = [dist(a, b), dist(a, c), dist(b, c)];
       expect(Math.max(...sides) - Math.min(...sides), role).toBeLessThan(1e-9);
     }
@@ -320,7 +338,7 @@ describe("진입 프레이밍 — 다섯 구역이 전부 보인다", () => {
     // 누가 누군지 읽을 수 없었다. 3D 최소 간격(그때 0.2579)은 통과했다 —
     // 앵커에서 겪은 "3D 로는 떨어져 있어도 화면에서는 겹친다"가 사람 단위에서
     // 그대로 재현된 것이다.
-    // 지금 실측 최소는 23.62px(지현[fill/yukhap] ↔ 태호[fill/none], 깊이 ≈22.5) 다.
+    // 지금 실측 최소는 27.67px(은채 ↔ 예린, 둘 다 beside) 다.
     const placed = [...placePeople(FRIENDS).values(), SELF_POSITION].map((p) => p as V3);
     for (let i = 0; i < placed.length; i++) {
       for (let j = i + 1; j < placed.length; j++) {
