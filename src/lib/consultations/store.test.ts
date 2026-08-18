@@ -5,7 +5,6 @@ import {
   createConsultation,
   getConsultation,
   listConsultations,
-  listMessages,
   appendMessage,
   commitTurn,
   setTicketSpent,

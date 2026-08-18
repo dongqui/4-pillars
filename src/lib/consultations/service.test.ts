@@ -4,6 +4,8 @@ import {
   advanceConsultation,
   ConsultationClosedError,
   ConsultationRaceError,
+  type ServiceDeps,
+  type ServiceStore,
 } from "./service";
 import { InsufficientTicketsError, type TicketPort } from "./ticket-port";
 import type { ConsultationRow, MessageRow } from "./store";
@@ -41,26 +43,29 @@ function fakeTickets(over: Partial<TicketPort> = {}): TicketPort {
   };
 }
 
-function fakeStore(over: Record<string, unknown> = {}) {
+function fakeStore(over: Partial<ServiceStore> = {}): ServiceStore {
   return {
     createConsultation: vi.fn(async () => consultation),
     getConsultation: vi.fn(async () => consultation),
     listMessages: vi.fn(async (): Promise<MessageRow[]> => []),
     appendMessage: vi.fn(async () => ({}) as MessageRow),
-    commitTurn: vi.fn(async () => ({ ...consultation, turnsUsed: 1 })),
+    commitTurn: vi.fn(async (): Promise<ConsultationRow | null> => ({
+      ...consultation,
+      turnsUsed: 1,
+    })),
     setTicketSpent: vi.fn(async () => {}),
     ...over,
   };
 }
 
-function deps(over: Record<string, unknown> = {}) {
+function deps(over: Partial<ServiceDeps> = {}): ServiceDeps {
   return {
     store: fakeStore(),
     tickets: fakeTickets(),
     transport: fakeTransport(),
     model: "m",
     ...over,
-  } as any;
+  };
 }
 
 const openInput = { userId: "3", profileId: "12", facts: "일간: 갑목", utterance: "잠이 안 와요" };
@@ -141,8 +146,9 @@ describe("openConsultation", () => {
     const d = deps();
     await openConsultation(openInput, d);
     expect(d.store.appendMessage).toHaveBeenCalledTimes(2);
-    expect(d.store.appendMessage.mock.calls[0][0].role).toBe("user");
-    expect(d.store.appendMessage.mock.calls[1][0].role).toBe("counselor");
+    const appendMessage = vi.mocked(d.store.appendMessage);
+    expect(appendMessage.mock.calls[0][0].role).toBe("user");
+    expect(appendMessage.mock.calls[1][0].role).toBe("counselor");
   });
 
   it("토큰 사용량을 상담 행에 누적한다", async () => {

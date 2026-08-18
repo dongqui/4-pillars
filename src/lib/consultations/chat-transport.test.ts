@@ -2,6 +2,14 @@ import { describe, it, expect } from "vitest";
 import { CONSULT_MODEL } from "./model";
 import { DEEPSEEK_URL, createDeepSeekChatTransport } from "./chat-transport";
 
+/** doFetch 로 보내는 요청 본문에서 테스트가 실제로 읽는 필드만. */
+interface DeepSeekRequestBody {
+  messages: unknown[];
+  tool_choice: unknown;
+  max_tokens: unknown;
+  thinking: unknown;
+}
+
 const req = {
   model: CONSULT_MODEL,
   messages: [
@@ -46,31 +54,31 @@ describe("createDeepSeekChatTransport", () => {
   });
 
   it("메시지 배열을 그대로 싣고 tool 을 강제한다", async () => {
-    let body: any;
+    let body: DeepSeekRequestBody | undefined;
     const t = createDeepSeekChatTransport({
       apiKey: "k",
       fetch: async (_url, init) => {
-        body = JSON.parse(String(init?.body));
+        body = JSON.parse(String(init?.body)) as DeepSeekRequestBody;
         return okResponse({});
       },
     });
     await t(req);
-    expect(body.messages).toHaveLength(2);
-    expect(body.tool_choice).toEqual({ type: "function", function: { name: "emit_reply" } });
-    expect(body.max_tokens).toBe(900);
+    expect(body?.messages).toHaveLength(2);
+    expect(body?.tool_choice).toEqual({ type: "function", function: { name: "emit_reply" } });
+    expect(body?.max_tokens).toBe(900);
   });
 
   it("thinking 을 끈다 — 켜면 tool_choice 강제가 400 으로 거부된다", async () => {
-    let body: any;
+    let body: DeepSeekRequestBody | undefined;
     const t = createDeepSeekChatTransport({
       apiKey: "k",
       fetch: async (_url, init) => {
-        body = JSON.parse(String(init?.body));
+        body = JSON.parse(String(init?.body)) as DeepSeekRequestBody;
         return okResponse({});
       },
     });
     await t(req);
-    expect(body.thinking).toEqual({ type: "disabled" });
+    expect(body?.thinking).toEqual({ type: "disabled" });
   });
 
   it("HTTP 에러면 던진다", async () => {

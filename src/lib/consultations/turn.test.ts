@@ -18,6 +18,12 @@ function fakeTransport(args: unknown = reply) {
   return { transport, seen };
 }
 
+/** 테스트가 실제로 들여다보는 tool 파라미터 속성만. 나머지는 알 바 아니다. */
+interface ReplyToolProperties {
+  suggestions: { maxItems: number };
+  title?: unknown;
+}
+
 const base = {
   facts: "일간: 갑목",
   history: [],
@@ -46,14 +52,14 @@ describe("runTurn", () => {
   it("마지막 턴이면 추천질문 없는 스키마를 보낸다", async () => {
     const { transport, seen } = fakeTransport({ ...reply, suggestions: [] });
     await runTurn({ ...base, isLast: true, remaining: 1 }, { transport, model: "m" });
-    const props = seen[0].inputSchema.properties as Record<string, any>;
+    const props = seen[0].inputSchema.properties as ReplyToolProperties;
     expect(props.suggestions.maxItems).toBe(0);
   });
 
   it("첫 턴이면 제목을 요구하고 받아온다", async () => {
     const { transport, seen } = fakeTransport({ ...reply, title: "잠 못 드는 밤" });
     const r = await runTurn({ ...base, first: true }, { transport, model: "m" });
-    expect((seen[0].inputSchema.properties as Record<string, any>).title).toBeDefined();
+    expect((seen[0].inputSchema.properties as ReplyToolProperties).title).toBeDefined();
     expect(r.reply.title).toBe("잠 못 드는 밤");
   });
 

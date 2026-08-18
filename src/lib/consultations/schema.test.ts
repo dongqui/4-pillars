@@ -12,8 +12,16 @@ import {
 
 const middle = { first: false, last: false };
 
-function props(opts: { first: boolean; last: boolean }): Record<string, any> {
-  return replyToolSchema(opts).properties as Record<string, any>;
+/** 테스트가 실제로 들여다보는 tool 파라미터 속성만. 나머지는 알 바 아니다. */
+interface ReplyToolProperties {
+  bubbles: { minItems: number; maxItems: number };
+  suggestions: { minItems: number; maxItems: number };
+  title?: unknown;
+  crisis?: unknown;
+}
+
+function props(opts: { first: boolean; last: boolean }): ReplyToolProperties {
+  return replyToolSchema(opts).properties as ReplyToolProperties;
 }
 
 describe("replyToolSchema", () => {
@@ -80,7 +88,7 @@ describe("parseReply", () => {
   });
 
   it("crisis 가 빠지면 false 로 본다 — 없다고 무료 턴을 주면 안 된다", () => {
-    const { crisis, ...noCrisis } = good;
+    const noCrisis = { bubbles: good.bubbles, suggestions: good.suggestions };
     expect(parseReply(noCrisis, middle).crisis).toBe(false);
   });
 
