@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  DuplicatePersonError,
   MAX_MAP_PEOPLE,
   MapPeopleLimitError,
   addMapPerson,
@@ -120,19 +119,48 @@ describe("addMapPerson", () => {
     calendar: "lunar" as const, isLeapMonth: true,
   };
 
+  // 순서: 1) dedupe 키로 읽기(없음) 2) count 3) INSERT 4) (필요하면) 다시 읽기.
+  // 아래 테스트들의 fakeClient 응답 순서는 이 네 단계를 그대로 흉내낸다.
+
   it("한도에 다다르면 MapPeopleLimitError", async () => {
-    const { client } = fakeClient([{ n: MAX_MAP_PEOPLE }]);
+    const { client } = fakeClient([], [{ n: MAX_MAP_PEOPLE }]);
     await expect(addMapPerson("7", person, client)).rejects.toBeInstanceOf(MapPeopleLimitError);
   });
 
-  it("중복이면 DuplicatePersonError", async () => {
-    // count 는 여유가 있는데 INSERT 가 아무 행도 돌려주지 않는다 = 유니크 인덱스 충돌
-    const { client } = fakeClient([{ n: 3 }], []);
-    await expect(addMapPerson("7", person, client)).rejects.toBeInstanceOf(DuplicatePersonError);
+  // 이미 있는 사람은 더 이상 에러가 아니다 — 상태 코드가 "이 생년월일이 맞다" 는
+  // 오라클이 되지 않도록, 새로 더한 것과 이미 있던 것을 구별하지 않는다(handler.ts
+  // 의 오라클 카나리아 테스트가 이 성질을 라우트 경계까지 잇는다). 한도 검사도
+  // 건너뛴다는 것을 calls 길이로 함께 확인한다 — count(*) 쿼리가 불렸다면
+  // 순서가 뒤집힌 것이다.
+  it("이미 있는 사람이면 그 행을 그대로 돌려주고 한도 검사를 하지 않는다", async () => {
+    const { client, calls } = fakeClient([personDbRow]);
+    const row = await addMapPerson("7", person, client);
+    expect(row.id).toBe("11");
+    expect(calls).toHaveLength(1);
+    expect(calls[0].sql).not.toContain("count(*)");
+  });
+
+  // 가득 찬 지도(50명)라도 이미 그 안에 있는 사람은 거절하면 안 된다 — 아무것도
+  // 더해지는 게 아니므로 한도를 걸 이유가 없다. 이것이 dedupe 읽기가 한도 검사보다
+  // 먼저 와야 하는 이유이고, 위 테스트와 코드 경로는 같지만 그 이유를 이름으로 박아둔다.
+  it("이미 가득 찬 지도라도 이미 있는 사람이면 거절하지 않는다", async () => {
+    const { client, calls } = fakeClient([personDbRow]);
+    const row = await addMapPerson("7", person, client);
+    expect(row.id).toBe("11");
+    expect(calls).toHaveLength(1); // count(*) 로 한도를 보지 않았다
+  });
+
+  // 1)dedupe 읽기와 3)INSERT 사이에 동시 요청이 같은 사람을 먼저 넣으면 ON CONFLICT
+  // DO NOTHING 이 빈 RETURNING 을 준다 — 그때 4)다시 읽으면 그 행이 있어야 한다.
+  it("읽기와 INSERT 사이에 동시 요청이 먼저 넣었으면 다시 읽어 그 행을 돌려준다", async () => {
+    const { client, calls } = fakeClient([], [{ n: 3 }], [], [personDbRow]);
+    const row = await addMapPerson("7", person, client);
+    expect(row.id).toBe("11");
+    expect(calls).toHaveLength(4);
   });
 
   it("성공하면 저장된 행을 돌려준다", async () => {
-    const { client } = fakeClient([{ n: 3 }], [personDbRow]);
+    const { client } = fakeClient([], [{ n: 3 }], [personDbRow]);
     expect((await addMapPerson("7", person, client)).id).toBe("11");
   });
 });

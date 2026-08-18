@@ -1,6 +1,5 @@
 import { addPersonSchema } from "@/lib/maps/input";
 import {
-  DuplicatePersonError,
   MapPeopleLimitError,
   type BirthLite,
   type MapPersonRow,
@@ -51,13 +50,15 @@ export async function handleAddPerson(raw: unknown, deps: AddDeps): Promise<Hand
   }
 
   try {
+    // deps.add(store.addMapPerson) 는 이미 있는 사람이면 그 행을 그대로 돌려준다 —
+    // 새로 더한 것과 이미 있던 것을 여기서 가르지 않는다. 가르면 201/409 자체가
+    // "이 생년월일이 맞다" 는 오라클이 된다(익명 호출자가 이름은 지도에서 이미 봤다).
     const row = await deps.add(map.id, input);
     const person = toMapPerson(centerDay, row);
     if (!person) return { status: 400, body: { error: "실제로 있는 날짜인지 확인해 주세요" } };
     return { status: 201, body: { person } };
   } catch (e) {
     if (e instanceof MapPeopleLimitError) return { status: 409, body: { error: e.message } };
-    if (e instanceof DuplicatePersonError) return { status: 409, body: { error: e.message } };
     throw e;
   }
 }

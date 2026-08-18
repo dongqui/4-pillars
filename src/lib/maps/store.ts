@@ -25,14 +25,6 @@ export class MapPeopleLimitError extends Error {
   }
 }
 
-/** 같은 이름·생년월일이 이미 있다. 유니크 인덱스 map_people_dedupe 가 낸다. */
-export class DuplicatePersonError extends Error {
-  constructor() {
-    super("이미 지도에 있는 사람입니다");
-    this.name = "DuplicatePersonError";
-  }
-}
-
 function calendarOf(v: unknown): "solar" | "lunar" {
   return v === "lunar" ? "lunar" : "solar";
 }
@@ -147,17 +139,60 @@ export async function countMapPeople(
 }
 
 /**
- * 사람을 더한다. 한도 검사는 앱 레벨이라 동시 요청에서 한 명쯤 더 들어갈 수 있다 —
- * profiles/store.ts 의 createProfile 과 같은 판단이다(개수 한도는 UX 가드다).
+ * map_people_dedupe 유니크 인덱스와 같은 컬럼으로 이미 있는 사람을 찾는다.
+ * addMapPerson 이 두 번 쓴다 — 처음 볼 때, 그리고 INSERT 가 유니크 인덱스에
+ * 막혔을 때 레이스를 확인할 때.
+ */
+async function findMapPersonByDedupeKey(
+  mapId: string,
+  person: BirthLite & { name: string },
+  client: SqlClient,
+): Promise<MapPersonRow | null> {
+  const rows = await client`
+    SELECT * FROM map_people
+    WHERE map_id = ${mapId}::bigint
+      AND name = ${person.name}
+      AND calendar = ${person.calendar}
+      AND is_leap_month = ${person.isLeapMonth}
+      AND birth_year = ${person.year}
+      AND birth_month = ${person.month}
+      AND birth_day = ${person.day}
+  `;
+  const row = rows[0];
+  return row ? toMapPersonRow(row) : null;
+}
+
+/**
+ * 사람이 지도에 있게 한다 — 없으면 더하고, 이미 있으면 그 행을 그대로 돌려준다.
  *
- * 중복은 반대로 DB 가 막는다. 유니크 인덱스에 걸리면 ON CONFLICT DO NOTHING 이
- * 빈 RETURNING 을 주고, 그것이 곧 "이미 있다" 다.
+ * "추가" 가 아니라 "있게 한다" 인 이유: 링크를 가진 누구나 이름·생년월일을 추측해
+ * POST 할 수 있는데, 새로 더했을 때와 이미 있었을 때를 상태 코드로 가르면(201 대
+ * 409) 그 코드 자체가 "이 생년월일이 맞다" 는 오라클이 된다. 50명 한도가 추측
+ * 횟수를 얼마간 깎긴 하지만, 연·월을 이미 아는 추측자에게는 후보가 30개 안팎이라
+ * 한도 안에 들어온다. 그래서 이미 있는 사람은 에러가 아니라 그 사람을 돌려주는
+ * 성공이다 — 호출자 입장에서 새로 더한 것과 구별되지 않는다.
+ *
+ * 순서가 중요하다(설계 §1.3 대신 이 판단이 근거):
+ *  1) 먼저 dedupe 키로 읽는다. 있으면 한도 검사 없이 바로 돌려준다 — 가득 찬
+ *     지도라도 이미 그 안에 있는 사람은 거절하면 안 된다. 아무것도 더해지지
+ *     않으니 한도를 걸 이유가 없다.
+ *  2) 없을 때만 countMapPeople 로 한도를 본다. 한도 검사는 앱 레벨이라 동시
+ *     요청에서 한 명쯤 더 들어갈 수 있다 — profiles/store.ts 의 createProfile 과
+ *     같은 판단이다(개수 한도는 UX 가드다).
+ *  3) INSERT ... ON CONFLICT DO NOTHING. 행이 오면 그것을 돌려준다.
+ *  4) 행이 안 오면 1)과 3) 사이에 동시 요청이 같은 사람을 먼저 넣은 것이다 —
+ *     유니크 인덱스가 이 INSERT 를 막았다는 뜻이므로 다시 읽으면 반드시 있어야
+ *     한다. 그마저 없으면 유니크 인덱스와 읽기가 서로 다른 말을 하는 것이라
+ *     사용자 케이스가 아니라 버그이므로 그냥 던진다.
  */
 export async function addMapPerson(
   mapId: string,
   person: BirthLite & { name: string },
   client: SqlClient = sql,
 ): Promise<MapPersonRow> {
+  const existing = await findMapPersonByDedupeKey(mapId, person, client);
+  if (existing) return existing;
+
   const count = await countMapPeople(mapId, client);
   if (count >= MAX_MAP_PEOPLE) throw new MapPeopleLimitError();
 
@@ -172,8 +207,13 @@ export async function addMapPerson(
     RETURNING *
   `;
   const row = rows[0];
-  if (!row) throw new DuplicatePersonError();
-  return toMapPersonRow(row);
+  if (row) return toMapPersonRow(row);
+
+  const race = await findMapPersonByDedupeKey(mapId, person, client);
+  if (!race) {
+    throw new Error("addMapPerson: 유니크 인덱스가 INSERT 를 막았는데 다시 읽어도 없다");
+  }
+  return race;
 }
 
 /**

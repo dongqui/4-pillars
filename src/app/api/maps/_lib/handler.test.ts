@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DuplicatePersonError, MapPeopleLimitError } from "@/lib/maps/store";
+import { MapPeopleLimitError } from "@/lib/maps/store";
 import { handleAddPerson, handleDeletePerson } from "./handler";
 
 const map = {
@@ -37,12 +37,26 @@ describe("handleAddPerson", () => {
     expect(r.status).toBe(409);
   });
 
-  it("중복이면 409", async () => {
+  // store.addMapPerson 은 이미 있는 사람이면 그 행을 그대로 돌려준다(던지지 않는다) —
+  // 그래서 여기서도 deps.add 가 기존 행을 돌려주는 상황을 흉내내 201 이 되는지 본다.
+  it("중복(이미 있는 사람)이면 201로 기존 사람을 돌려준다", async () => {
     const r = await handleAddPerson(body, {
       findMap: async () => map,
-      add: async () => { throw new DuplicatePersonError(); },
+      add: async () => added,
     });
-    expect(r.status).toBe(409);
+    expect(r.status).toBe(201);
+    expect(r.body).toMatchObject({ person: { id: "11", name: "민수" } });
+  });
+
+  // 오라클 카나리아: 상태 코드로 "이 이름·생년월일 조합이 이미 지도에 있다" 를
+  // 구별할 수 있으면, 이름을 이미 아는 익명 호출자가 생년월일을 추측해 맞혔는지
+  // 확인하는 창이 열린다. 그래서 새로 더한 경우와 이미 있던 경우가 같은 상태를
+  // 돌려주는지 직접 비교한다 — 201 을 두 번 단언하면 성공 코드가 바뀌어도 이
+  // 테스트는 계속 통과해 의미를 잃으므로, 두 결과가 서로 같은지를 본다.
+  it("새로 더할 때와 이미 있는 사람을 다시 더할 때가 같은 상태 코드를 돌려준다", async () => {
+    const fresh = await handleAddPerson(body, { findMap: async () => map, add: async () => added });
+    const again = await handleAddPerson(body, { findMap: async () => map, add: async () => added });
+    expect(again.status).toBe(fresh.status);
   });
 
   it("성공하면 201 과 지도 위의 자리를 돌려준다", async () => {

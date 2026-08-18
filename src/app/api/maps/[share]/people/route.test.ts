@@ -3,9 +3,8 @@ import { NextRequest } from "next/server";
 
 const getMapByShareId = vi.fn();
 const addMapPerson = vi.fn();
-// importOriginal 로 감싸는 이유: MapPeopleLimitError/DuplicatePersonError 는 handler.ts 가
-// instanceof 로 분기하는 실제 클래스여야 한다 — 통째로 목으로 바꾸면 다른 클래스가 되어
-// 409 분기가 깨진다.
+// importOriginal 로 감싸는 이유: MapPeopleLimitError 는 handler.ts 가 instanceof 로
+// 분기하는 실제 클래스여야 한다 — 통째로 목으로 바꾸면 다른 클래스가 되어 409 분기가 깨진다.
 vi.mock("@/lib/maps/store", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/maps/store")>()),
   getMapByShareId: (...a: unknown[]) => getMapByShareId(...a),
