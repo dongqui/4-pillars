@@ -12,3 +12,4 @@
 | [japan.md](./japan.md) | Phase 5 - 일본 서비스 | ISSUE-016 ~ 017 |
 | [ai-report.md](./ai-report.md) | Phase 6 - AI 리포트 | ISSUE-018 |
 | [backlog.md](./backlog.md) | 향후 확장 (백로그) | - |
+| [db-transactions.md](./db-transactions.md) | 기술 노트 - Neon 드라이버와 트랜잭션 | - |
