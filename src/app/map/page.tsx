@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { WorldShell } from "./_components/WorldShell";
 
 export const metadata: Metadata = {
-  title: "관계 지도 스파이크",
+  title: "관계 지도",
   robots: { index: false, follow: false },
 };
 
