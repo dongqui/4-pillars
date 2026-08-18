@@ -1,6 +1,6 @@
 import { analyze } from "@/lib/saju-core";
 import { chartFacts } from "@/app/api/saju/_lib/prompt/facts";
-import { toBirthInput } from "@/app/report/_lib/to-birth-input";
+import { toBirthInput } from "@/lib/profiles/to-birth-input";
 import type { ProfileRow } from "@/lib/profiles/store";
 
 /**

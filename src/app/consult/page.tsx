@@ -22,7 +22,7 @@ export default async function ConsultPage({
   // 여기서 넘긴다 — 로그인 벽에서 흐름을 끊지 않는 피벗 정책과 같은 이유다.
   if (!session) redirect("/login?next=/consult");
 
-  const profiles = await listProfiles(session.userId);
+  const profiles = await listProfiles(session.userId, "self");
   if (profiles.length === 0) redirect("/funnel?step=name");
 
   const sp = await searchParams;

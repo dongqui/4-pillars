@@ -48,7 +48,7 @@ export async function POST(
   const profile =
     (consultation.profileId
       ? await getProfile(session.userId, consultation.profileId)
-      : null) ?? (await listProfiles(session.userId))[0];
+      : null) ?? (await listProfiles(session.userId, "self"))[0];
 
   if (!profile) {
     return Response.json({ error: "먼저 사주 정보를 입력해 주세요" }, { status: 409 });

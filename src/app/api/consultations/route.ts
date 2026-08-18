@@ -41,10 +41,14 @@ export async function POST(request: Request): Promise<Response> {
   const param = parseProfileParam(
     Object.fromEntries(new URL(request.url).searchParams),
   );
+  // getProfile 은 kind 를 가리지 않으므로 궁합 상대("other")도 잡힌다. 상담은 자기
+  // 사주를 놓고 하는 것이고 상담사는 프로필 주인에게 말한다 — 상대 프로필로 열면
+  // 상담사가 남의 원국을 근거로 나에게 말하는 화면이 된다. self 가 아니면 물러선다.
+  const picked = param.kind === "id" ? await getProfile(session.userId, param.id) : null;
   const profile =
-    param.kind === "id"
-      ? ((await getProfile(session.userId, param.id)) ?? (await listProfiles(session.userId))[0])
-      : (await listProfiles(session.userId))[0];
+    picked?.kind === "self"
+      ? picked
+      : (await listProfiles(session.userId, "self"))[0];
 
   if (!profile) {
     return Response.json({ error: "먼저 사주 정보를 입력해 주세요" }, { status: 409 });
