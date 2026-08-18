@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { openConsultation, advanceConsultation, ConsultationClosedError } from "./service";
 import { InsufficientTicketsError, type TicketPort } from "./ticket-port";
 import type { ConsultationRow, MessageRow } from "./store";
-import type { ChatTransport } from "./chat-transport";
+import type { ChatRequest, ChatTransport } from "./chat-transport";
 
 const consultation: ConsultationRow = {
   id: "7",
@@ -239,9 +239,35 @@ describe("advanceConsultation", () => {
   });
 
   it("이후 턴은 제목을 덮어쓰지 않는다", async () => {
-    const d = deps();
+    const d = deps({
+      store: fakeStore({
+        getConsultation: async () => ({ ...consultation, turnsUsed: 4 }),
+      }),
+    });
     await advanceConsultation(advInput, d);
     expect(d.store.commitTurn).toHaveBeenCalledWith(expect.objectContaining({ title: null }));
+  });
+
+  it("turns_used=0 으로 재개된 상담은 여전히 첫 턴이다 — 제목을 요청하고 받아 적는다", async () => {
+    const seen: ChatRequest[] = [];
+    const d = deps({
+      store: fakeStore({
+        getConsultation: async () => ({ ...consultation, turnsUsed: 0 }),
+      }),
+      transport: (async (req: ChatRequest) => {
+        seen.push(req);
+        return {
+          args: { ...reply, title: "잠 못 드는 밤" },
+          usage: { promptTokens: 1200, completionTokens: 300 },
+        };
+      }) as ChatTransport,
+    });
+    await advanceConsultation(advInput, d);
+    const props = seen[0].inputSchema.properties as { title?: unknown };
+    expect(props.title).toBeDefined();
+    expect(d.store.commitTurn).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "잠 못 드는 밤" }),
+    );
   });
 
   it("LLM 이 실패하면 사용자 발화도 남기지 않는다 — 유령 발화가 이력에 남으면 안 된다", async () => {

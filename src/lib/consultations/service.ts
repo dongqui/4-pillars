@@ -132,7 +132,11 @@ export async function advanceConsultation(
       utterance: input.utterance,
       remaining: decision.remaining,
       isLast: decision.isLast,
-      first: false,
+      // turnsUsed=0 인 채로 재개된 상담(첫 턴이 실패해 제목 없이 남은 경우)은
+      // 여전히 "첫 턴"이다. 여기를 항상 false 로 두면 그 상담은 제목을 영영
+      // 못 받아 목록에 "아직 시작하지 않은 상담"으로 계속 뜬다 — 열 턴을
+      // 끝내도 거짓말이 유지된다.
+      first: consultation.turnsUsed === 0,
     },
     { transport: deps.transport, model: deps.model },
   );
