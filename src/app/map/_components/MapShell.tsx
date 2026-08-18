@@ -7,6 +7,7 @@ import { CameraModeToggle } from "./CameraModeToggle";
 import type { MapCenter, MapPerson } from "../_data/person";
 import { PersonSheet } from "./PersonSheet";
 import { PeopleList } from "./PeopleList";
+import { AddPersonSheet } from "./AddPersonSheet";
 import type { CameraMode } from "../_lib/camera";
 
 const World = dynamic(() => import("./World").then((m) => m.World), {
@@ -34,8 +35,18 @@ export function MapShell({
   const [mode, setMode] = useState<CameraMode>("b");
   const [resetSignal, setResetSignal] = useState(0);
   const [listOpen, setListOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   const selected = people.find((p) => p.id === selectedId) ?? null;
+
+  // 목록·상세·추가 세 판은 서로 배타적이다 — 화면 아래에서 올라오는 판이 둘
+  // 이상 함께 뜨면 어느 쪽을 닫는 탭인지 알 수 없다. 어디서 선택이 일어나든
+  // (3D 월드를 직접 탭하든, 목록에서 고르든) 이 한 곳을 거쳐 나머지 둘을 접는다.
+  function selectPerson(id: string | null) {
+    setSelectedId(id);
+    setListOpen(false);
+    setAdding(false);
+  }
 
   async function handleDelete(id: string) {
     const res = await fetch(`/api/maps/${shareId}/people/${id}`, { method: "DELETE" });
@@ -61,7 +72,7 @@ export function MapShell({
           people={people}
           center={center}
           selectedId={selectedId}
-          onSelect={setSelectedId}
+          onSelect={selectPerson}
           mode={mode}
           resetSignal={resetSignal}
         />
@@ -82,31 +93,60 @@ export function MapShell({
       </div>
 
       {/*
-        목록과 시트는 둘 다 화면 아래에서 올라오는 판이라 동시에 열면 어느 쪽을
-        닫는 건지 알 수 없다. 목록을 펴면 선택을 풀고, 목록에서 사람을 고르면
-        목록이 접히면서 시트가 열린다 — 언제나 하나만 떠 있다.
+        목록·상세·추가 세 판은 다 화면 아래에서 올라오는 판이라 동시에 열면 어느
+        쪽을 닫는 건지 알 수 없다. 목록을 펴면 선택과 추가 폼을 접고, 목록에서
+        사람을 고르면 목록이 접히면서 시트가 열린다 — 언제나 하나만 떠 있다.
       */}
       <PeopleList
         people={people}
         open={listOpen}
         onToggle={() => {
           setListOpen((v) => {
-            if (!v) setSelectedId(null);
+            if (!v) {
+              setSelectedId(null);
+              setAdding(false);
+            }
             return !v;
           });
         }}
         selectedId={selectedId}
-        onSelect={(id) => {
-          setSelectedId(id);
-          setListOpen(false);
-        }}
+        onSelect={selectPerson}
         isOwner={isOwner}
         onDelete={handleDelete}
       />
 
+      {/*
+        추가 버튼. 소유자가 아니어도 보인다 — 링크를 받은 사람이 자기를 넣는 것이
+        이 기능의 전부다. 목록 손잡이 바로 위, 접힌 목록에 가리지 않는 자리다.
+      */}
+      <button
+        type="button"
+        onClick={() => {
+          setSelectedId(null);
+          setListOpen(false);
+          setAdding(true);
+        }}
+        className="fixed right-4 z-10 rounded-full bg-sky-500 px-4 py-3 text-[14px] font-bold text-white shadow-elevated bottom-[calc(max(56px,44px+env(safe-area-inset-bottom))+16px)]"
+      >
+        + 나도 추가하기
+      </button>
+
       <PersonSheet
         person={selected}
         onClose={() => setSelectedId(null)}
+      />
+
+      <AddPersonSheet
+        open={adding}
+        shareId={shareId}
+        onClose={() => setAdding(false)}
+        onAdded={(id) => {
+          setAdding(false);
+          // 서버가 목록의 진실이다. refresh 로 새 사람을 받아오고, 도착하면
+          // selectedId 가 그를 가리켜 카메라가 날아가고 상세가 열린다.
+          setSelectedId(id);
+          router.refresh();
+        }}
       />
     </div>
   );
