@@ -1,6 +1,6 @@
 "use client";
 
-import { FRIENDS, type MockPerson } from "../_data/mock-people";
+import type { MapPerson } from "../_data/person";
 import { roleColor } from "../_data/role-colors";
 import {
   DISPLAY_TITLES,
@@ -27,19 +27,26 @@ import {
  * 시트가 열린다.
  */
 export function PeopleList({
+  people,
   open,
   onToggle,
   selectedId,
   onSelect,
+  isOwner,
+  onDelete,
 }: {
+  people: readonly MapPerson[];
   open: boolean;
   onToggle: () => void;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** 소유자만 삭제 버튼을 본다. 누구나 추가할 수 있으니 지울 사람이 있어야 한다. */
+  isOwner: boolean;
+  onDelete: (id: string) => void;
 }) {
   const byRole = ROLE_ORDER.map((role) => ({
     role,
-    people: FRIENDS.filter((p) => p.role === role),
+    people: people.filter((p) => p.role === role),
   }));
 
   return (
@@ -58,7 +65,7 @@ export function PeopleList({
         className="shrink-0 flex items-center justify-between gap-3 px-5 h-14 cursor-pointer bg-transparent border-0 text-left"
       >
         <span className="text-[14px] font-semibold text-slate-100">
-          전체 {FRIENDS.length}명
+          전체 {people.length}명
         </span>
         <span className="flex items-center gap-2">
           {/* 접혀 있을 때도 구역별 인원은 보인다 — 펴야만 알 수 있으면 손잡이가 아니다. */}
@@ -69,7 +76,7 @@ export function PeopleList({
                 className="text-[11px] font-semibold tabular-nums"
                 style={{ color: roleColor(role) }}
               >
-                {FRIENDS.filter((p) => p.role === role).length}
+                {people.filter((p) => p.role === role).length}
               </span>
             ))}
           <span
@@ -97,6 +104,8 @@ export function PeopleList({
                     person={person}
                     selected={person.id === selectedId}
                     onSelect={onSelect}
+                    isOwner={isOwner}
+                    onDelete={onDelete}
                   />
                 ))}
               </ul>
@@ -112,10 +121,14 @@ function PersonRow({
   person,
   selected,
   onSelect,
+  isOwner,
+  onDelete,
 }: {
-  person: MockPerson;
+  person: MapPerson;
   selected: boolean;
   onSelect: (id: string) => void;
+  isOwner: boolean;
+  onDelete: (id: string) => void;
 }) {
   const color = roleColor(person.role);
 
@@ -155,6 +168,21 @@ function PersonRow({
             {ROLE_LABELS[person.role]}
           </span>
         </span>
+
+        {isOwner && (
+          <button
+            type="button"
+            aria-label={`${person.name} 지우기`}
+            onClick={(e) => {
+              // 행 전체가 선택 버튼이다 — 삭제가 선택으로 새면 지우자마자 시트가 열린다.
+              e.stopPropagation();
+              onDelete(person.id);
+            }}
+            className="ml-auto shrink-0 rounded-lg px-2 py-1 text-[12px] text-slate-500 hover:bg-white/10 hover:text-slate-300"
+          >
+            지우기
+          </button>
+        )}
       </button>
     </li>
   );

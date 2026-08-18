@@ -1,7 +1,7 @@
 "use client";
 
 import { Html } from "@react-three/drei";
-import { SELF } from "../_data/mock-people";
+import type { MapCenter } from "../_data/person";
 import { SELF_POSITION } from "../_lib/layout";
 import { SELF_NODE_SCALE } from "../_lib/node-visual";
 import { PersonNode } from "./PersonNode";
@@ -13,7 +13,7 @@ import { PersonNode } from "./PersonNode";
  * 색은 비겁(beside)이다. 나와 나란히 서는 관계가 비겁이므로 나 자신이 그
  * 색상 가족의 원점이다. 상태는 기본 — 나는 나 자신과 六合 하지도 沖 하지도 않는다.
  */
-export function SelfCore() {
+export function SelfCore({ center }: { center: MapCenter }) {
   return (
     <group>
       <PersonNode
@@ -31,7 +31,7 @@ export function SelfCore() {
         zIndexRange={[10, 0]}
       >
         <span className="block translate-y-[-34px] text-[12px] font-semibold tracking-[0.14em] text-slate-200/85 select-none">
-          {SELF.name}
+          {center.name}
         </span>
       </Html>
     </group>

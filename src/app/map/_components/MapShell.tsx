@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { CameraModeToggle } from "./CameraModeToggle";
-import { FRIENDS } from "../_data/mock-people";
+import type { MapCenter, MapPerson } from "../_data/person";
 import { PersonSheet } from "./PersonSheet";
 import { PeopleList } from "./PeopleList";
 import type { CameraMode } from "../_lib/camera";
@@ -17,13 +18,32 @@ const World = dynamic(() => import("./World").then((m) => m.World), {
   ),
 });
 
-export function WorldShell() {
+export function MapShell({
+  people,
+  center,
+  isOwner,
+  shareId,
+}: {
+  people: readonly MapPerson[];
+  center: MapCenter;
+  isOwner: boolean;
+  shareId: string;
+}) {
+  const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mode, setMode] = useState<CameraMode>("b");
   const [resetSignal, setResetSignal] = useState(0);
   const [listOpen, setListOpen] = useState(false);
 
-  const selected = FRIENDS.find((p) => p.id === selectedId) ?? null;
+  const selected = people.find((p) => p.id === selectedId) ?? null;
+
+  async function handleDelete(id: string) {
+    const res = await fetch(`/api/maps/${shareId}/people/${id}`, { method: "DELETE" });
+    if (!res.ok) return;
+    // 서버 컴포넌트가 목록의 진실이다. 로컬 상태로 낙관적 갱신을 하면 두 벌이 된다.
+    if (selectedId === id) setSelectedId(null);
+    router.refresh();
+  }
 
   return (
     <div className="relative w-full h-full">
@@ -38,6 +58,8 @@ export function WorldShell() {
       */}
       <div className="absolute inset-0 isolate">
         <World
+          people={people}
+          center={center}
           selectedId={selectedId}
           onSelect={setSelectedId}
           mode={mode}
@@ -45,7 +67,7 @@ export function WorldShell() {
         />
       </div>
 
-      {/* 스파이크 비교용 UI. 실제 제품 화면에는 없다. */}
+      {/* 카메라 시점 전환 토글. 스파이크 시절부터 쓰던 A/B/C 세 모드를 제품 화면에서도 그대로 쓴다. */}
       <div className="absolute top-[max(12px,env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-10">
         <CameraModeToggle
           mode={mode}
@@ -65,6 +87,7 @@ export function WorldShell() {
         목록이 접히면서 시트가 열린다 — 언제나 하나만 떠 있다.
       */}
       <PeopleList
+        people={people}
         open={listOpen}
         onToggle={() => {
           setListOpen((v) => {
@@ -77,6 +100,8 @@ export function WorldShell() {
           setSelectedId(id);
           setListOpen(false);
         }}
+        isOwner={isOwner}
+        onDelete={handleDelete}
       />
 
       <PersonSheet

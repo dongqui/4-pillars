@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import { FRIENDS } from "../_data/mock-people";
+import type { MapCenter, MapPerson } from "../_data/person";
 import { ROLE_ORDER, type Feature, type RelationRole } from "../_data/roles";
 import { placePeople } from "../_lib/layout";
 import { ConnectionLines } from "./ConnectionLines";
@@ -15,22 +15,26 @@ import { RelationThread } from "./RelationThread";
 import { CAMERA_FOV, DEFAULT_CAMERA_POSITION, type CameraMode } from "../_lib/camera";
 
 export function World({
+  people,
+  center,
   selectedId,
   onSelect,
   mode,
   resetSignal,
 }: {
+  people: readonly MapPerson[];
+  center: MapCenter;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   mode: CameraMode;
   resetSignal: number;
 }) {
-  const placed = useMemo(() => placePeople(FRIENDS), []);
+  const placed = useMemo(() => placePeople(people), [people]);
   // ConnectionLines 는 이 배열이 바뀔 때만 지오메트리를 다시 만든다. placed 가
-  // 고정이므로 이것도 고정이다 — 선택을 바꿔도 재생성되지 않는다.
-  const targets = useMemo(() => FRIENDS.map((p) => placed.get(p.id)!), [placed]);
-  const roles = useMemo(() => FRIENDS.map((p) => p.role), []);
-  // 15개 소구역 각각의 인원수. FRIENDS 가 모듈 상수라 한 번만 센다.
+  // people 에 종속이므로 이것도 people 이 바뀔 때만 재생성된다.
+  const targets = useMemo(() => people.map((p) => placed.get(p.id)!), [people, placed]);
+  const roles = useMemo(() => people.map((p) => p.role), [people]);
+  // 15개 소구역 각각의 인원수.
   const counts = useMemo(
     () =>
       Object.fromEntries(
@@ -39,14 +43,14 @@ export function World({
           Object.fromEntries(
             (["none", "yukhap", "chung"] as Feature[]).map((feature) => [
               feature,
-              FRIENDS.filter((p) => p.role === role && p.feature === feature).length,
+              people.filter((p) => p.role === role && p.feature === feature).length,
             ]),
           ),
         ]),
       ) as Record<RelationRole, Record<Feature, number>>,
-    [],
+    [people],
   );
-  const selected = FRIENDS.find((p) => p.id === selectedId) ?? null;
+  const selected = people.find((p) => p.id === selectedId) ?? null;
 
   return (
     <Canvas
@@ -100,7 +104,7 @@ export function World({
       <ShellRings />
 
       <ConnectionLines targets={targets} roles={roles} />
-      <SelfCore />
+      <SelfCore center={center} />
 
       {/* 어떤 관계의 구역이고 몇 명인지. 색은 "다섯으로 갈렸다"까지만 말한다. */}
       <RegionLabels counts={counts} />
@@ -110,7 +114,7 @@ export function World({
         단계 올린 명패가 흐려진 채 커지기만 해서, 선택했을 때 오히려 더 어지럽고
         덜 읽힌다.
       */}
-      {FRIENDS.map((person) => (
+      {people.map((person) => (
         <PersonMarker
           key={person.id}
           person={person}

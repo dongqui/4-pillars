@@ -5,7 +5,7 @@ import { Badge } from "@/components/Badge";
 import { DISPLAY_TITLES, FEATURE_LABELS, FEATURE_NOTE, ROLE_LABELS, type RelationRole } from "../_data/roles";
 import { roleColor } from "../_data/role-colors";
 import { paletteFor } from "../_data/saju-colors";
-import type { MockPerson } from "../_data/mock-people";
+import type { MapPerson } from "../_data/person";
 
 const ROLE_NOTE: Record<RelationRole, string> = {
   fill: "곁에 있으면 비어 있던 자리가 채워지는 사람입니다.",
@@ -19,7 +19,7 @@ export function PersonSheet({
   person,
   onClose,
 }: {
-  person: MockPerson | null;
+  person: MapPerson | null;
   onClose: () => void;
 }) {
   const open = person !== null;
@@ -30,7 +30,7 @@ export function PersonSheet({
   // 먼저 오므로 항상 새 사람이 보인다.
   // React 공식 "props 로 state 조정" 패턴이다. effect 도 ref 도 아니라
   // 렌더 중에 바로 맞춘 뒤 같은 렌더에서 쓴다 — 빈 카드가 한 프레임도 안 보인다.
-  const [lastShown, setLastShown] = useState<MockPerson | null>(null);
+  const [lastShown, setLastShown] = useState<MapPerson | null>(null);
   if (person !== null && person !== lastShown) setLastShown(person);
   const shown = person ?? lastShown;
 
@@ -104,6 +104,11 @@ export function PersonSheet({
             <p className="text-[15px] leading-relaxed text-slate-700 mt-2 m-0">
               {FEATURE_NOTE[shown.feature]}
             </p>
+          )}
+
+          {shown.sameDayPillar && (
+            // 六合 도 沖 도 아니라 배치로는 말할 수 없는 사실이다. 여기서만 말한다.
+            <p className="mt-1 text-[13px] text-slate-500">일주가 통째로 같아요.</p>
           )}
         </div>
       )}
