@@ -42,8 +42,10 @@ describe("connectionSegments", () => {
 describe("연결선 상수", () => {
   it("선택된 가닥(0.55)보다 훨씬 옅다", () => {
     // 20개가 동시에 떠 있는 기본 상태에서 선택한 하나가 가장 밝아야 한다.
-    // 최악의 겹침(3겹)까지 쌓여도 선택된 가닥을 넘지 않는 값이어야 한다.
-    expect(1 - Math.pow(1 - CONNECTION_OPACITY, 3)).toBeLessThan(0.55);
+    // 진입 카메라에서 20개 선분을 실제로 래스터화하면, 나의 opaque 코어
+    // 바깥에서 최악의 겹침은 반지름 ≈10px 지점의 4겹이다(합성
+    // 1-(1-0.14)^4 = 0.453) — 그래도 선택된 가닥을 넘지 않는다.
+    expect(1 - Math.pow(1 - CONNECTION_OPACITY, 4)).toBeLessThan(0.55);
   });
 });
 
@@ -55,6 +57,20 @@ function hexToUnit(hex: string): [number, number, number] {
   ];
 }
 
+// three 의 ColorManagement 가 쓰는 것과 같은 표준 sRGB→linear 조각별 전달
+// 함수를 이 테스트 안에서 독립적으로 다시 적는다. connections.ts 의
+// srgbToLinear 를 그대로 import 해서 비교하면 모듈이 자기 자신과만 일치하는지
+// 확인하는 공허한 테스트가 된다 — 변환 자체가 틀려도 통과해버린다.
+function srgbToLinearIndependent(c: number): number {
+  if (c <= 0.04045) return c / 12.92;
+  return Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+function hexToLinear(hex: string): [number, number, number] {
+  const [r, g, b] = hexToUnit(hex);
+  return [srgbToLinearIndependent(r), srgbToLinearIndependent(g), srgbToLinearIndependent(b)];
+}
+
 describe("connectionColors", () => {
   const roles: RelationRole[] = ["fill", "beside", "refine"];
 
@@ -62,23 +78,34 @@ describe("connectionColors", () => {
     expect(connectionColors(roles)).toHaveLength(roles.length * 6);
   });
 
-  it("사람 쪽 끝이 그 사람의 Role 색이다", () => {
+  it("사람 쪽 끝이 그 사람의 Role 색을 linear-sRGB 로 옮긴 값이다", () => {
+    // three 0.185 는 ColorManagement.enabled 라 정점 색을 linear-sRGB 로
+    // 읽는다. PersonNode 가 쓰는 THREE.Color(hex) 는 sRGB→linear 를 자동으로
+    // 하므로, 여기서도 변환한 값이어야 선과 노드의 색이 실제로 일치한다.
     const data = connectionColors(roles);
     roles.forEach((role, i) => {
-      const [r, g, b] = hexToUnit(roleColor(role));
+      const [r, g, b] = hexToLinear(roleColor(role));
       expect(data[i * 6 + 3]).toBeCloseTo(r, 5);
       expect(data[i * 6 + 4]).toBeCloseTo(g, 5);
       expect(data[i * 6 + 5]).toBeCloseTo(b, 5);
     });
   });
 
-  it("나 쪽 끝은 같은 색을 같은 비율로 죽인다 — 중심에서 20개가 뭉치지 않게", () => {
+  it("나 쪽 끝은 linear 값을 같은 비율로 죽인다 — 중심에서 20개가 뭉치지 않게", () => {
+    // 디밍은 광량 연산이라 linear 공간에서 걸려야 한다. sRGB 값에 먼저 곱하면
+    // 표시 밝기가 CONNECTION_SELF_DIM(0.25) 이 아니라 감마 곡선 때문에
+    // 훨씬 밝은 값(~0.53)으로 나온다 — 그 회귀를 이 테스트가 잡는다.
     const data = connectionColors(roles);
     roles.forEach((role, i) => {
-      const [r, g, b] = hexToUnit(roleColor(role));
+      const [r, g, b] = hexToLinear(roleColor(role));
       expect(data[i * 6]).toBeCloseTo(r * CONNECTION_SELF_DIM, 5);
       expect(data[i * 6 + 1]).toBeCloseTo(g * CONNECTION_SELF_DIM, 5);
       expect(data[i * 6 + 2]).toBeCloseTo(b * CONNECTION_SELF_DIM, 5);
+
+      // 나 쪽 끝이 정확히 사람 쪽 끝(이미 linear) 의 CONNECTION_SELF_DIM 배다.
+      expect(data[i * 6]).toBeCloseTo(data[i * 6 + 3] * CONNECTION_SELF_DIM, 5);
+      expect(data[i * 6 + 1]).toBeCloseTo(data[i * 6 + 4] * CONNECTION_SELF_DIM, 5);
+      expect(data[i * 6 + 2]).toBeCloseTo(data[i * 6 + 5] * CONNECTION_SELF_DIM, 5);
     });
   });
 
