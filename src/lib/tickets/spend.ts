@@ -1,5 +1,5 @@
 import { sql as neonSql, type SqlClient } from "@/lib/db";
-import type { Feature } from "./features";
+import { FEATURE_COST, type Feature } from "./features";
 
 const sql = neonSql as unknown as SqlClient;
 
@@ -11,7 +11,6 @@ interface SpendInput {
   userId: string;
   feature: Feature;
   subjectKey: string;
-  cost: number;
 }
 
 /** Postgres 가 0012 의 인라인 CHECK 에 자동으로 붙이는 제약 이름. */
@@ -49,27 +48,35 @@ function isBalanceCheckViolation(e: unknown): boolean {
  *
  * 단위 테스트로는 동시성을 재현할 수 없다. 정확성의 근거는 이 코드가 아니라
  * 0012 의 CHECK 와 0014 의 UNIQUE 다 — 둘을 지우면 방어선이 통째로 사라진다.
+ *
+ * cost 를 파라미터로 받지 않고 여기서 FEATURE_COST[a.feature] 로 직접 읽는 이유:
+ * 호출자가 넘긴 cost 가 음수면 이 CTE 는 잔액 검사(>= cost)를 통과시키고 차감
+ * UPDATE 가 잔액을 오히려 늘리며 ledger 에는 양수 delta 가 'spend' 로 찍힌다 —
+ * 차감 API 인데 적립이 되는 것이다. 지금은 FEATURE_COST 만이 유일한 출처라
+ * 도달 불가능하지만, 런타임 가드로 막는 대신 그 클래스의 버그 자체를 타입에서
+ * 지운다 — 이 브랜치가 FEATURE_COST/Feature 전반에서 쓰는 방식과 같다.
  */
 export async function spendTicket(
   a: SpendInput,
   client: SqlClient = sql,
 ): Promise<SpendResult> {
+  const cost = FEATURE_COST[a.feature];
   try {
     const rows = await client`
       WITH claim AS (
         INSERT INTO entitlements (user_id, feature, subject_key, cost)
-        SELECT ${a.userId}::bigint, ${a.feature}, ${a.subjectKey}, ${a.cost}
-         WHERE (SELECT balance FROM ticket_wallets WHERE user_id = ${a.userId}::bigint) >= ${a.cost}
+        SELECT ${a.userId}::bigint, ${a.feature}, ${a.subjectKey}, ${cost}
+         WHERE (SELECT balance FROM ticket_wallets WHERE user_id = ${a.userId}::bigint) >= ${cost}
         ON CONFLICT (user_id, feature, subject_key) DO NOTHING
         RETURNING id
       ), pay AS (
         UPDATE ticket_wallets
-           SET balance = balance - ${a.cost}, updated_at = now()
+           SET balance = balance - ${cost}, updated_at = now()
          WHERE user_id = ${a.userId}::bigint AND EXISTS (SELECT 1 FROM claim)
         RETURNING balance
       ), ledger AS (
         INSERT INTO ticket_entries (user_id, delta, reason, entitlement_id)
-        SELECT ${a.userId}::bigint, ${-a.cost}, 'spend', id FROM claim
+        SELECT ${a.userId}::bigint, ${-cost}, 'spend', id FROM claim
         RETURNING id
       )
       SELECT (SELECT id FROM claim) AS entitlement_id,

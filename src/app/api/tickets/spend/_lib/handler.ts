@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { FEATURE_COST, FEATURE_IDS, type Feature } from "@/lib/tickets/features";
+import { FEATURE_IDS, type Feature } from "@/lib/tickets/features";
 import type { SpendResult } from "@/lib/tickets/spend";
 
 // cost 를 받는 필드가 없는 것이 이 스키마의 요점이다 — 단가는 서버 표에서만 온다.
@@ -14,12 +14,7 @@ export interface SpendDeps {
   userId: string | null;
   /** feature 마다 대상 소유 규칙이 다르다. 없는 대상도 false 다. */
   ownsSubject(userId: string, feature: Feature, subjectKey: string): Promise<boolean>;
-  spend(a: {
-    userId: string;
-    feature: Feature;
-    subjectKey: string;
-    cost: number;
-  }): Promise<SpendResult>;
+  spend(a: { userId: string; feature: Feature; subjectKey: string }): Promise<SpendResult>;
 }
 
 export interface SpendApiResult {
@@ -41,12 +36,7 @@ export async function handleSpend(raw: unknown, d: SpendDeps): Promise<SpendApiR
     return { status: 404, body: { error: "대상을 찾을 수 없습니다" } };
   }
 
-  const result = await d.spend({
-    userId: d.userId,
-    feature,
-    subjectKey,
-    cost: FEATURE_COST[feature],
-  });
+  const result = await d.spend({ userId: d.userId, feature, subjectKey });
 
   // 402 는 완료 API 가 미결제에 쓰는 코드와 같다 — "돈이 더 필요하다"는 뜻이 같다.
   return {

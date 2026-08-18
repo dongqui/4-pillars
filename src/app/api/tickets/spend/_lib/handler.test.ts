@@ -66,14 +66,13 @@ describe("handleSpend", () => {
     expect(spend).not.toHaveBeenCalled();
   });
 
-  it("단가는 서버 표에서 온다 — 요청에 cost 필드가 없다", async () => {
-    const spend = vi.fn(async () => ({ ok: true as const, kind: "spent" as const, balance: 5 }));
+  it("요청에 cost 를 실어도 무시된다 — 단가는 spendTicket 이 FEATURE_COST 에서 직접 읽는다", async () => {
+    const spend = vi
+      .fn<SpendDeps["spend"]>()
+      .mockResolvedValue({ ok: true as const, kind: "spent" as const, balance: 5 });
     await handleSpend({ ...body, cost: 0 }, deps({ spend }));
-    expect(spend).toHaveBeenCalledWith({
-      userId: "7",
-      feature: "full_report",
-      subjectKey: "3",
-      cost: 1,
-    });
+    const call = spend.mock.calls[0][0];
+    expect(call).toEqual({ userId: "7", feature: "full_report", subjectKey: "3" });
+    expect(call).not.toHaveProperty("cost");
   });
 });

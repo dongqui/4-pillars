@@ -22,7 +22,7 @@ function checkViolation(constraint = "ticket_wallets_balance_check") {
   );
 }
 
-const input = { userId: "7", feature: "full_report" as const, subjectKey: "3", cost: 1 };
+const input = { userId: "7", feature: "full_report" as const, subjectKey: "3" };
 
 describe("spendTicket", () => {
   it("권한이 생기면 spent 와 차감된 잔액", async () => {
@@ -107,9 +107,10 @@ describe("spendTicket", () => {
 
   it("원장에 음수 delta 와 reason='spend' 를 남긴다", async () => {
     const { client, calls } = fakeClient([{ entitlement_id: 11, balance: 5 }]);
-    await spendTicket({ ...input, cost: 2 }, client);
+    await spendTicket(input, client);
     expect(calls[0].sql).toContain("INSERT INTO ticket_entries");
     expect(calls[0].sql).toContain("'spend'");
-    expect(calls[0].values).toContain(-2);
+    // cost 는 이제 FEATURE_COST[feature] 에서 읽는다 — full_report 단가 1의 음수.
+    expect(calls[0].values).toContain(-1);
   });
 });
