@@ -37,6 +37,11 @@ export function PersonSheet({
   return (
     <div
       aria-hidden={!open}
+      // 닫히는 300ms 동안에도 shown 이 마운트된 채 남아 있어(위 주석), 닫기
+      // 버튼이 aria-hidden 서브트리 안에서 여전히 focusable 로 남는다 — 닫은
+      // 뒤 Tab 을 누르면 화면 밖 시트로 포커스가 들어간다. inert 는 시각적
+      // 애니메이션과 무관하게 그 서브트리를 포커스·클릭 대상에서 완전히 뺀다.
+      inert={!open}
       className={`
         fixed z-20 bg-white text-slate-900 shadow-elevated
         transition-transform duration-300 ease-out

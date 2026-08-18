@@ -62,11 +62,15 @@ export function PersonMarker({
 }) {
   const [tier, setTier] = useState<Tier>("compact");
   const current = useRef<Tier>("compact");
-  const world = useRef(new THREE.Vector3(...position));
+  // 지연 초기화: useRef(new THREE.Vector3(...)) 로 쓰면 매 렌더마다 새
+  // Vector3 를 만들고 버리면서도(ref 는 첫 값만 쓴다) 그 할당 자체는 매번
+  // 일어난다. 아래 패턴은 최초 렌더에서 딱 한 번만 만든다.
+  const world = useRef<THREE.Vector3 | null>(null);
+  if (world.current === null) world.current = new THREE.Vector3(...position);
 
   useFrame((state) => {
     // 매 프레임 setState 하면 20개가 리렌더를 쏟아낸다. 단계가 바뀔 때만 올린다.
-    const next = tierFor(state.camera.position.distanceTo(world.current));
+    const next = tierFor(state.camera.position.distanceTo(world.current!));
     if (next !== current.current) {
       current.current = next;
       setTier(next);
@@ -94,6 +98,27 @@ export function PersonMarker({
         zIndexRange={[30, 0]}
         style={{ pointerEvents: "auto", transition: "opacity 220ms ease", opacity }}
       >
+        {/*
+          명패는 LABEL_LIFT_PX 만큼 위로 떠 있어 노드 자체는 히트 타깃이
+          없었다 — 화면에서 가장 크고 눈에 띄는 노드를 탭하면 아무것도 맞지
+          않고 World.tsx 의 onPointerMissed 로 빠져 선택이 풀렸다. Html 이
+          `center` 로 감싸는 wrapper 는 자기 자신의 bounding box 중심을 투영된
+          지점에 맞춘다(drei Html.js) — 그 중심(50%, 50%)에 absolute 로 얹으면
+          아래 라벨 div 의 크기와 무관하게 항상 노드의 실제 화면 위치에 온다.
+          화면상 사람 간 최소 간격이 23.62px 이므로(layout.test.ts), 두 히트
+          타깃이 서로 닿지 않으려면 지름이 그 절반(11.81px)보다 작아야 한다 —
+          10px 로 여유를 남긴다. 시각적으로는 아무것도 바뀌지 않는다(투명,
+          테두리 없음). 명패의 접근성 컨트롤과 중복되는 보조 히트존이라
+          aria-hidden + tabIndex=-1 로 스크린리더·Tab 순서에서는 뺀다.
+        */}
+        <button
+          type="button"
+          aria-hidden="true"
+          tabIndex={-1}
+          onClick={() => onSelect(person.id)}
+          className="absolute cursor-pointer bg-transparent border-0 p-0 rounded-full"
+          style={{ left: "50%", top: "50%", width: 10, height: 10, transform: "translate(-50%, -50%)" }}
+        />
         <div style={{ transform: `translateY(-${LABEL_LIFT_PX}px)` }}>
           {shown === "dot" ? (
             <button
