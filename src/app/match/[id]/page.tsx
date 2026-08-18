@@ -8,7 +8,12 @@ import { toBirthInput } from "@/lib/profiles/to-birth-input";
 import { first, type SearchParams } from "@/lib/profiles/param";
 import { MATCH_SECTION_KEYS, type MatchInterpretation } from "@/app/api/matches/_lib/sections";
 import { createMatchGenerator } from "@/app/api/matches/_lib/generator";
-import { gateMatchGeneration, isMatchRateLimited } from "@/app/api/matches/_lib/gated-generator";
+import {
+  gateMatchGeneration,
+  isMatchOutOfTickets,
+  isMatchRateLimited,
+  spendOnMatchGeneration,
+} from "@/app/api/matches/_lib/gated-generator";
 import { getMatchSections, putMatchSections } from "@/app/api/matches/_lib/store";
 import { MatchGenerationError, produceMatchSections } from "@/app/api/matches/_lib/produce";
 import { toMatchHeroView } from "./_lib/to-match-view";
@@ -18,6 +23,7 @@ import { MatchBody } from "./_components/MatchBody";
 import { AnalyzingMatch } from "./_components/AnalyzingMatch";
 import { MatchError } from "./_components/MatchError";
 import { MatchRateLimited } from "./_components/MatchRateLimited";
+import { MatchOutOfTickets } from "./_components/MatchOutOfTickets";
 import { SaveCounterpartModal } from "./_components/SaveCounterpartModal";
 
 /**
@@ -127,6 +133,7 @@ async function MatchSections({
 }) {
   let interpretation: Partial<MatchInterpretation>;
   let rateLimited = false;
+  let outOfTickets = false;
   try {
     // report/page.tsx 처럼 sharedGenerator() 로 모듈 스코프에 캐시하지 않는다 — 그러면
     // API 키 미설정 같은 생성기 구성 실패가 <Suspense> 밖, try 바깥에서 던져져 Next 의
@@ -137,17 +144,24 @@ async function MatchSections({
     //
     // 한도는 여기, 생성기를 감싸서 씌운다. produceMatchSections 는 저장소에 없는 섹션이
     // 있을 때만 생성기를 부르므로 이미 다 저장된 궁합을 다시 여는 것은 세지 않는다.
+    // 이용권도 같은 자리다 — 한도가 바깥, 이용권이 안쪽이다. 한도 확인은 Redis 한 번이고
+    // 차감은 DB 쓰기라, 싼 쪽이 먼저 막아야 한다.
     ({ interpretation } = await produceMatchSections(matchId, ctx, {
-      generator: gateMatchGeneration(createMatchGenerator(), userId),
+      generator: gateMatchGeneration(
+        spendOnMatchGeneration(createMatchGenerator(), { userId, matchId }),
+        userId,
+      ),
       getStored: getMatchSections,
       putStored: putMatchSections,
       sectionKeys: MATCH_SECTION_KEYS,
     }));
   } catch (e) {
     if (e instanceof MatchGenerationError) {
-      // 한도에 걸린 것은 실패가 아니다 — 이미 저장된 섹션만으로 이어가되, 보여줄 것이
-      // 하나도 없으면 아래에서 다른 문구로 안내한다(report/page.tsx 와 같은 처리).
+      // 한도에 걸린 것과 이용권이 없는 것은 실패가 아니다 — 이미 저장된 섹션만으로
+      // 이어가되, 보여줄 것이 하나도 없으면 아래에서 다른 문구로 안내한다
+      // (report/page.tsx 와 같은 처리).
       if (isMatchRateLimited(e)) rateLimited = true;
+      else if (isMatchOutOfTickets(e)) outOfTickets = true;
       else console.error("[/match/[id]] 해석 생성 실패", e);
       // 일부라도 확보했으면 그것까지는 보여준다 — 이용권을 쓴 결과다.
       interpretation = e.partial;
@@ -158,6 +172,7 @@ async function MatchSections({
     }
   }
   if (Object.keys(interpretation).length === 0) {
+    if (outOfTickets) return <MatchOutOfTickets matchId={matchId} />;
     return rateLimited ? <MatchRateLimited /> : <MatchError />;
   }
   return <MatchBody interpretation={interpretation} />;

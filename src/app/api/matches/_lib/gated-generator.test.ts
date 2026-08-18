@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { MatchRateLimitError } from "@/lib/matches/rate-limit";
-import { gateMatchGeneration, isMatchRateLimited } from "./gated-generator";
+import { MatchTicketsError } from "@/lib/matches/tickets";
+import {
+  gateMatchGeneration,
+  isMatchOutOfTickets,
+  isMatchRateLimited,
+  spendOnMatchGeneration,
+} from "./gated-generator";
 import { MatchGenerationError } from "./produce";
 import type { MatchGenerator } from "./generator";
 import type { MatchContext } from "./prompt";
@@ -68,5 +74,70 @@ describe("isMatchRateLimited", () => {
 
   it("맨몸으로 던져진 것도 알아본다", () => {
     expect(isMatchRateLimited(new MatchRateLimitError())).toBe(true);
+  });
+});
+
+describe("spendOnMatchGeneration", () => {
+  it("차감이 성사되면 안쪽 생성기를 부른다", async () => {
+    const inner = innerGenerator();
+    const spend = vi.fn(async () => ({ ok: true as const, kind: "spent" as const, balance: 5 }));
+    const gated = spendOnMatchGeneration(inner, { userId: "7", matchId: "42", spend });
+
+    await gated.generateSections(ctx, ["verdict"]);
+
+    expect(spend).toHaveBeenCalledWith({
+      userId: "7",
+      feature: "compatibility",
+      subjectKey: "42",
+    });
+    expect(inner.generateSections).toHaveBeenCalledTimes(1);
+  });
+
+  it("이미 차감된 궁합을 다시 열면 공짜다 — already 도 통과시킨다", async () => {
+    const inner = innerGenerator();
+    const gated = spendOnMatchGeneration(inner, {
+      userId: "7",
+      matchId: "42",
+      spend: async () => ({ ok: true as const, kind: "already" as const, balance: 5 }),
+    });
+
+    await gated.generateSections(ctx, ["verdict"]);
+
+    expect(inner.generateSections).toHaveBeenCalledTimes(1);
+  });
+
+  it("잔액이 없으면 던지고 안쪽 생성기를 부르지 않는다", async () => {
+    const inner = innerGenerator();
+    const gated = spendOnMatchGeneration(inner, {
+      userId: "7",
+      matchId: "42",
+      spend: async () => ({ ok: false as const, kind: "insufficient" as const, balance: 0 }),
+    });
+
+    await expect(gated.generateSections(ctx, ["verdict"])).rejects.toBeInstanceOf(
+      MatchTicketsError,
+    );
+    // 여기서 순서가 뒤집히면 게이트는 "비용을 막는 것"이 아니라 "비용을 쓴 뒤 보고하는 것"이 된다.
+    expect(inner.generateSections).not.toHaveBeenCalled();
+  });
+
+  it("model 은 안쪽 것을 그대로 넘긴다 — DB 에 기록되는 값이라 래퍼가 바꾸면 안 된다", () => {
+    const inner = innerGenerator();
+    const gated = spendOnMatchGeneration(inner, { userId: "7", matchId: "42", spend: vi.fn() });
+    expect(gated.model).toBe(inner.model);
+  });
+});
+
+describe("isMatchOutOfTickets", () => {
+  it("직접 던진 것과 cause 에 감싸인 것을 둘 다 잡는다", () => {
+    expect(isMatchOutOfTickets(new MatchTicketsError())).toBe(true);
+    expect(
+      isMatchOutOfTickets(new MatchGenerationError(new MatchTicketsError(), {})),
+    ).toBe(true);
+  });
+
+  it("한도 초과와 섞이지 않는다", () => {
+    expect(isMatchOutOfTickets(new MatchRateLimitError())).toBe(false);
+    expect(isMatchRateLimited(new MatchTicketsError())).toBe(false);
   });
 });

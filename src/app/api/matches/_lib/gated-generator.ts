@@ -1,4 +1,6 @@
 import { MatchRateLimitError, checkMatchLimit } from "@/lib/matches/rate-limit";
+import { MatchTicketsError } from "@/lib/matches/tickets";
+import { spendTicket, type SpendResult } from "@/lib/tickets/spend";
 import type { MatchGenerator } from "./generator";
 
 /**
@@ -40,4 +42,54 @@ export function gateMatchGeneration(
 export function isMatchRateLimited(e: unknown): boolean {
   if (e instanceof MatchRateLimitError) return true;
   return e instanceof Error && e.cause instanceof MatchRateLimitError;
+}
+
+/**
+ * 이용권을 씌운 궁합 생성기.
+ *
+ * 게이트를 생성기 자리에 두는 이유는 위 gateMatchGeneration 과 같다 —
+ * produceMatchSections 는 저장소에 없는 섹션이 있을 때만 생성기를 부르므로,
+ * 이 자리에 두면 실제로 비용이 드는 순간에만 차감된다. 이미 다 저장된 궁합을
+ * 다시 여는 것은 생성기에 닿지 않아 공짜다.
+ *
+ * subjectKey 가 matchId 인 것이 요점이다. matches_unique 가
+ * (두 프로필, 관계 유형, 두 역할) 로 잡혀 있어 같은 궁합은 항상 같은 행이고,
+ * entitlements_unique 가 그 행에 두 번 차감되는 것을 막는다.
+ *
+ * 생성이 실패해도 되돌리지 않는다 — 권한 행이 남아 재시도가 공짜이기 때문이다.
+ * (상담은 반대다: 그쪽은 상담 1건이 죽으면 되돌린다. consultations/service.ts 참조)
+ */
+export function spendOnMatchGeneration(
+  inner: MatchGenerator,
+  a: {
+    userId: string;
+    matchId: string;
+    spend?: (i: {
+      userId: string;
+      feature: "compatibility";
+      subjectKey: string;
+    }) => Promise<SpendResult>;
+  },
+): MatchGenerator {
+  const spend = a.spend ?? spendTicket;
+  return {
+    // 모델 식별자는 그대로 넘긴다 — DB 에 기록되는 값이라 래퍼가 바꾸면 안 된다.
+    model: inner.model,
+    async generateSections(ctx, keys) {
+      // 던지기 전에 inner 를 부르지 않는다. 여기서 순서가 뒤집히면 게이트는
+      // "비용을 막는 것" 이 아니라 "비용을 쓴 뒤 보고하는 것" 이 된다.
+      const r = await spend({ userId: a.userId, feature: "compatibility", subjectKey: a.matchId });
+      if (!r.ok) throw new MatchTicketsError();
+      return inner.generateSections(ctx, keys);
+    },
+  };
+}
+
+/**
+ * produceMatchSections 가 생성기 예외를 MatchGenerationError 로 감싸며 원인을
+ * cause 에 넣는다. isMatchRateLimited 와 같은 이유로 갈라낸다.
+ */
+export function isMatchOutOfTickets(e: unknown): boolean {
+  if (e instanceof MatchTicketsError) return true;
+  return e instanceof Error && e.cause instanceof MatchTicketsError;
 }
