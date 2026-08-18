@@ -59,6 +59,8 @@ describe("refundTicket", () => {
     await refundTicket(input, client);
     // 가격표가 바뀌어도 "이때 몇 장을 냈는가"는 그 행이 안다.
     expect(calls[0].sql).toContain("(SELECT cost FROM revoked)");
+    // + 가 아니라 - 로 바뀌면 환불이 두 번째 차감이 된다 — 연산자까지 못박는다.
+    expect(calls[0].sql).toContain("balance = balance + (SELECT cost FROM revoked)");
     // 바인딩되는 값은 사용자·feature·대상 셋뿐이다. 장수가 인자로 들어오면 안 된다.
     expect(calls[0].values).toEqual(["7", "consultation", "42", "7", "7"]);
   });
@@ -68,5 +70,7 @@ describe("refundTicket", () => {
     await refundTicket(input, client);
     expect(calls[0].sql).toContain("INSERT INTO ticket_entries");
     expect(calls[0].sql).toContain("'refund'");
+    // cost 가 -cost 로 바뀌면 제목의 "양수 delta" 가 거짓이 된다 — 부호까지 못박는다.
+    expect(calls[0].sql).toContain("SELECT user_id, cost, 'refund' FROM revoked");
   });
 });

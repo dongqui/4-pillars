@@ -231,6 +231,12 @@ describe("kind", () => {
 
     await listProfiles("1", "self", client);
     expect(queries[0]).toContain("p.kind =");
+    // 이 갈래가 실제로 쓰이는 쪽이다(홈·상담 두 경로). "all" 쪽 조인 단언과
+    // 같은 것을 여기서도 못박는다 — purchases 조인으로 되돌려도 위 단언만으로는
+    // 잡히지 않는다.
+    expect(queries[0]).toContain("LEFT JOIN entitlements");
+    expect(queries[0]).toContain("'full_report'");
+    expect(queries[0]).not.toContain("purchases");
   });
 
   it("listProfiles('all') 은 거르지 않는다 — 궁합 상대 선택 목록이 쓴다", async () => {
