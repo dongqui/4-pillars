@@ -31,6 +31,14 @@ interface RefundInput {
  * 원장의 entitlement_id 는 NULL 이다 — 참조하려던 행을 방금 지웠다.
  * reason='refund' 와 양수 delta 가 그 자체로 식별자다.
  *
+ * ledger 의 user_id 는 ${a.userId} 를 다시 바인딩하지 않고 revoked 의
+ * RETURNING user_id 를 그대로 쓴다. 계획 문서의 참고 SQL은 여기서 파라미터를
+ * 다시 바인딩했는데, 그러면 테스트가 기대하는 바인딩 개수와 어긋난다(자세한 경위는
+ * docs/superpowers/plans/2026-08-18-ticket-integration.md 의 해당 자리 메모 참고).
+ * WHERE 절이 이미 user_id 로 걸렀으니 두 값은 항상 같지만, 지워진 행에서 그대로
+ * 물려받는 쪽이 더 팽팽하다 — 원장 행이 "방금 삭제된 그 권한 행"에 증명 가능하게
+ * 묶이고, 우연히 같은 값을 두 번 바인딩한 것이 아니게 된다.
+ *
  * ok: false 갈래가 없다. 없는 권한을 되돌리는 것은 실패가 아니라 이미 되돌아간
  * 상태이고, 호출자가 원하던 결과다. 실제 장애는 예외로 나간다.
  */
@@ -38,6 +46,10 @@ export async function refundTicket(
   a: RefundInput,
   client: SqlClient = sql,
 ): Promise<RefundResult> {
+  // back 이 아무 것도 못 찾으면(ticket_wallets 에 그 user_id 행이 없으면) 권한은
+  // 지워지고 +cost 원장 행도 남지만 잔액은 복구되지 않는다 — 오늘은 닿지 않는다.
+  // entitlements 행이 존재하려면 spendTicket 이 성공했어야 하고, 그건 그때 wallet
+  // 행이 있었다는 뜻이며 wallet 행을 지우는 경로가 없다.
   const rows = await client`
     WITH revoked AS (
       DELETE FROM entitlements

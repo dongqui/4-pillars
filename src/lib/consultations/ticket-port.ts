@@ -1,8 +1,11 @@
-// 이용권 모듈과의 경계. 이 파일 하나가 다른 세션과의 유일한 접점이다.
+// 이용권 모듈과의 경계.
 //
-// 이용권 시스템(구매·잔액·원장)은 별도 작업이고 이 기능의 범위 밖이다. 여기서는
-// 고민상담이 필요로 하는 세 가지 동작의 타입만 선언하고, 구현은 그 작업이 끝난 뒤
-// stubTicketPort 를 실구현으로 갈아 끼운다.
+// 이 자리는 이제 채워졌다 — src/lib/consultations/deps.ts 의 makeTicketPort/
+// liveTicketPort 가 이 인터페이스를 spendTicket/refundTicket/getBalance 로 구현해
+// openConsultation 에 배선한다. 여기 남은 TicketPort 인터페이스와
+// InsufficientTicketsError 는 그 배선이 지키는 계약이고, stubTicketPort 는
+// 실구현이 없던 시절의 흔적이 아니라 ticket-port.test.ts 가 여전히 쓰는
+// 테스트 더블이다 — 지우거나 배선에 다시 끼우지 않는다.
 
 /** 잔액이 부족할 때. 라우트는 이 에러만 402 로 바꾼다 */
 export class InsufficientTicketsError extends Error {
@@ -24,7 +27,10 @@ export interface TicketPort {
 }
 
 /**
- * 배선 전 스텁. 동작이 갈리는 것은 의도된 것이다.
+ * 배선 전 시절의 스텁. 지금은 openConsultation 이 이 스텁이 아니라
+ * deps.ts 의 liveTicketPort 를 쓴다 — 아래 동작 차이는 배선 전 안전장치였던
+ * 이유를 남겨 두는 기록이고, ticket-port.test.ts 가 그 계약(둘의 동작이
+ * 다르다는 것)을 여전히 검증한다.
  *
  * - spend/refund 는 **던진다**. 배선 전에 상담이 공짜로 열리면 안 되고,
  *   던져야 그 사실이 즉시 드러난다.

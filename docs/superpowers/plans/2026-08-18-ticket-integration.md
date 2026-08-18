@@ -373,6 +373,20 @@ export async function refundTicket(
 }
 ```
 
+> **참고(리뷰에서 발견, 구현 뒤 기록):** 위 참고 SQL 의 `ledger` CTE 는
+> `SELECT ${a.userId}::bigint, cost, 'refund' FROM revoked` 로 `user_id` 를
+> 다시 바인딩한다 — 이대로면 이 쿼리 한 문장에 바인딩값이 6개(userId, feature,
+> subjectKey, userId, userId, userId) 들어가는데, 바로 아래 Step 4 가 참조하는
+> `refund.test.ts` 는 `calls[0].values` 를 5개짜리 배열로 기대한다
+> (`["7", "consultation", "42", "7", "7"]`). 이 문서를 문자 그대로 옮기면 테스트를
+> 통과할 수 없다.
+>
+> 실제 구현(`src/lib/tickets/refund.ts`)은 `revoked` 의 `RETURNING` 을
+> `id, cost, user_id` 로 넓히고, `ledger` 는 그 `user_id` 를 그대로 셀렉트해
+> 다섯 번째 바인딩을 없앴다 — 부수 효과로 원장 행이 "방금 지워진 그 권한 행"에
+> 증명 가능하게 묶이는 쪽이 되어 더 낫다(자세한 이유는 refund.ts 의 주석 참고).
+> 코드를 이 문서에 맞춰 "고치지" 말 것 — 이 문서 쪽이 틀렸다.
+
 - [ ] **Step 4: 테스트 통과 확인**
 
 ```bash

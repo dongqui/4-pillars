@@ -96,6 +96,10 @@ export async function openConsultation(
     // 곧 증거이므로 별도 보상 로직을 두지 않는다 — 사용자는 그 상담을 이용권 없이
     // 재개한다. 반대로 되돌리기가 성사되면 ticket_spent 를 false 로 되돌려, 아무도
     // 값을 치르지 않은 이 행이 재개 가능한 상담으로 남지 않게 한다.
+    // 궁합은 이 자리에서 일부러 반대로 간다 — 생성이 실패해도 되돌리지 않는다
+    // (src/app/api/matches/_lib/gated-generator.ts). 상담은 실패한 시도가 재개
+    // 가능한 상태로 남으면 안 되지만, 궁합은 권한이 남아 재시도가 공짜여도 문제가
+    // 없기 때문이다.
     try {
       await deps.tickets.refund(input.userId, consultation.id);
       await deps.store.setTicketSpent(consultation.id, false);
