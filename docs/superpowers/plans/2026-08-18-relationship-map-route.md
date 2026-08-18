@@ -2050,7 +2050,13 @@ export const emptyAddDraft: AddDraft = {
   name: "", calendar: "solar", isLeapMonth: false, y: "", m: "", d: "",
 };
 
-/** 숫자 입력칸 공용 필터. match/_lib/to-counterpart.ts 의 것과 같은 규칙이다. */
+/**
+ * 숫자 입력칸 공용 필터. match/_lib/to-counterpart.ts 에 같은 함수가 있지만
+ * import 하지 않는다 — 그쪽은 궁합 전용 파일이라 라우트를 가로지른다.
+ * home/page.tsx 가 report/_lib/access.ts 의 헬퍼를 두고 같은 판단을 적어뒀다:
+ * "레이어를 가로지른다 — 짧으니 그대로 복제한다". 아래 daysInMonth·parseBirth 도
+ * 같은 이유로 복제다(그쪽은 성별·시각까지 보므로 규칙 자체도 다르다).
+ */
 export function digitsOnly(raw: string, maxLen: number): string {
   return raw.replace(/\D/g, "").slice(0, maxLen);
 }
