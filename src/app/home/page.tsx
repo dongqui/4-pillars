@@ -44,7 +44,7 @@ export default async function HomePage({
   if (session) {
     const [user, rows, tickets] = await Promise.all([
       getUser(session.userId),
-      listProfiles(session.userId),
+      listProfiles(session.userId, "self"),
       getBalance(session.userId),
     ]);
     displayName = resolveDisplayName(user);

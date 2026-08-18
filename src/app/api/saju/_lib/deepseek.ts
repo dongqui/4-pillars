@@ -1,9 +1,25 @@
 // DeepSeek(OpenAI 호환) 어댑터. buildSectionRequest 가 만든 SectionRequest 를
 // 그대로 옮기기만 한다 — 프롬프트 조립은 여기서 하지 않는다.
 
-import type { SectionTransport } from "./prompted";
-
 export const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
+
+/**
+ * 이 어댑터가 실제로 읽는 필드만 담은 구조 타입. 리포트의 SectionRequest 와
+ * 궁합의 MatchSectionRequest 는 둘 다 이 다섯 필드를 가지되 key 의 유니온이
+ * 서로 달라서, 어느 한쪽 타입을 그대로 매개변수로 쓰면 다른 쪽이 캐스팅 없이는
+ * 안 맞는다. key 를 string 으로 넓혀 두 타입 모두가 구조적으로 이 타입의
+ * 부분집합이 되게 한다 — 반환 함수를 SectionTransport/MatchTransport 어느
+ * 자리에 대입해도 캐스팅이 필요 없다.
+ */
+export interface DeepSeekSectionRequest {
+  key: string;
+  system: string;
+  user: string;
+  toolName: string;
+  inputSchema: Record<string, unknown>;
+}
+
+export type DeepSeekTransport = (req: DeepSeekSectionRequest) => Promise<unknown>;
 
 export interface DeepSeekOptions {
   apiKey: string;
@@ -33,7 +49,7 @@ interface ChatCompletion {
   usage?: unknown;
 }
 
-export function createDeepSeekTransport(opts: DeepSeekOptions): SectionTransport {
+export function createDeepSeekTransport(opts: DeepSeekOptions): DeepSeekTransport {
   const doFetch = opts.fetch ?? fetch;
   const thinking = opts.thinking ?? false;
 

@@ -23,6 +23,9 @@ const ADD_HREF = "/funnel?step=name";
  */
 const DRAFT_REPORT_HREF = "/report";
 
+/** 아직 계정이 없는 사람의 상담 입구. /consult 가 로그인 → 퍼널 순으로 넘긴다 */
+const DRAFT_CONSULT_HREF = "/consult";
+
 /**
  * 프로필 셀렉터 + 캐릭터 카드 + 탐색 그리드.
  *
@@ -225,6 +228,9 @@ export function HomeIdentity({ entries, canAdd }: Props) {
       <ExploreGrid
         reportHref={
           active.profileId ? `/report?profile=${active.profileId}` : DRAFT_REPORT_HREF
+        }
+        consultHref={
+          active.profileId ? `/consult?profile=${active.profileId}` : DRAFT_CONSULT_HREF
         }
       />
     </>

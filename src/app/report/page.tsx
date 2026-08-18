@@ -15,7 +15,7 @@ import { getReportAccess, parseProfileParam, type ReportAccess } from "./_lib/ac
 import { extractClientIp } from "@/lib/reports/rate-limit";
 import { gateAnonGeneration, isRateLimited } from "./_lib/gated-generator";
 import { draftToSubject, type ReportSubject } from "./_lib/subject";
-import { toBirthInput } from "./_lib/to-birth-input";
+import { toBirthInput } from "@/lib/profiles/to-birth-input";
 import { toReportMeta } from "./_lib/to-meta";
 import { toReportContent } from "./_lib/to-report-content";
 import { sampleReport } from "./_lib/report-content.fixture";

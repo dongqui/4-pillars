@@ -3,6 +3,11 @@ import Link from "next/link";
 interface Props {
   /** 저장된 프로필이면 그 리포트로, 아직 계정이 없으면 드래프트 리포트(/report)로 */
   reportHref: string;
+  /**
+   * 상담 입구. 비로그인이어도 링크를 잠그지 않는다 — /consult 가 로그인으로
+   * 넘긴다. 로그인 벽에서 흐름을 끊지 않는 피벗 정책과 같은 이유다.
+   */
+  consultHref: string;
 }
 
 const CARD =
@@ -23,7 +28,7 @@ function Dot({ size, style }: { size: number; style: string }) {
   );
 }
 
-export function ExploreGrid({ reportHref }: Props) {
+export function ExploreGrid({ reportHref, consultHref }: Props) {
   return (
     <section className="mx-auto max-w-[780px] px-5 pb-9 pt-5 md:px-8 md:pb-[52px] md:pt-[26px]">
       <div className="mb-[11px] text-[14.5px] font-bold tracking-[-0.02em]">이어서 살펴보기</div>
@@ -34,6 +39,18 @@ export function ExploreGrid({ reportHref }: Props) {
           <div className={TITLE}>리포트</div>
           <p className={DESC}>기질과 사고방식, 감정의 결까지 더 깊이 살펴보세요.</p>
           <span className={CTA}>리포트 보기 →</span>
+        </Link>
+
+        <Link href={consultHref} className={CARD}>
+          <div className={EYEBROW}>나에게 묻고 싶을 때</div>
+          <div className={TITLE}>고민상담</div>
+          <p className={DESC}>털어놓고 싶은 이야기, 사주를 아는 상대와 나눠보세요.</p>
+          <span className={CTA}>상담 시작하기 →</span>
+          <span aria-hidden className={ART}>
+            <Dot size={7} style="bg-slate-300" />
+            <Dot size={9} style="bg-slate-400" />
+            <Dot size={11} style="bg-slate-900" />
+          </span>
         </Link>
 
         <Link href="/map" className={CARD}>
@@ -49,19 +66,16 @@ export function ExploreGrid({ reportHref }: Props) {
           </span>
         </Link>
 
-        {/* 궁합은 아직 화면이 없다. 링크로 두면 막다른 길이 되므로 자리만 남긴다 */}
-        <div className={`${CARD} cursor-default hover:border-slate-200`} aria-disabled>
+        <Link href="/match" className={CARD}>
           <div className={EYEBROW}>두 사람의 관계</div>
           <div className={TITLE}>궁합</div>
           <p className={DESC}>한 사람과 나의 관계를 자세히 살펴봐요.</p>
-          <span className="mt-auto whitespace-nowrap text-sm font-bold text-slate-300">
-            준비 중이에요
-          </span>
+          <span className={CTA}>궁합 보기 →</span>
           <span aria-hidden className={ART}>
             <Dot size={26} style="relative z-[2] border-[1.5px] border-slate-900" />
             <span className="-ml-[13px] h-[26px] w-[26px] flex-none rounded-full border-[1.5px] border-dashed border-slate-300" />
           </span>
-        </div>
+        </Link>
       </div>
     </section>
   );

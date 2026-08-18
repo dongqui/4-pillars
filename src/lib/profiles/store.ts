@@ -5,8 +5,18 @@ export type { SqlClient };
 
 const sql = neonSql as unknown as SqlClient;
 
-/** 한 계정이 저장할 수 있는 프로필 수. 화면 문구와 같이 움직인다. */
+/** 한 계정이 저장할 수 있는 내 사주(kind='self') 수. 화면 문구와 같이 움직인다. */
 export const MAX_PROFILES = 20;
+
+/**
+ * 궁합 상대(kind='other')의 상한. 훨씬 높은 별도 값이다.
+ *
+ * 두 상한이 갈리는 이유: MAX_PROFILES 는 "내 사주를 몇 개까지 관리할 것인가" 라는
+ * 제품 판단이고(홈 캐러셀에 늘어서는 카드 수다), 이쪽은 "행이 무한히 늘지 않게" 라는
+ * 자원 상한이다. 궁합은 볼 때마다 상대가 하나 늘 수 있어서, 세지 않고 두면 한 계정이
+ * 영구 행을 끝없이 쌓는다.
+ */
+export const MAX_COUNTERPARTS = 100;
 
 export class ProfileLimitError extends Error {
   constructor() {
@@ -14,6 +24,19 @@ export class ProfileLimitError extends Error {
     this.name = "ProfileLimitError";
   }
 }
+
+/**
+ * 궁합 상대 상한. ProfileLimitError 와 다른 타입인 이유: 문구가 다르고(사용자가 지울
+ * 대상이 내 사주가 아니라 궁합 상대다) 호출부가 갈라 다뤄야 한다.
+ */
+export class CounterpartLimitError extends Error {
+  constructor() {
+    super(`궁합 상대는 최대 ${MAX_COUNTERPARTS}명까지 저장할 수 있습니다`);
+    this.name = "CounterpartLimitError";
+  }
+}
+
+export type ProfileKind = "self" | "other";
 
 export interface ProfileRow {
   id: string;
@@ -32,6 +55,8 @@ export interface ProfileRow {
   createdAt: string;
   /** entitlements 조인에서 파생 — 이 프로필의 전체 리포트에 이용권을 쓴 적이 있으면 true. */
   isUnlocked: boolean;
+  /** 'other' 는 궁합 상대로 들어온 사람이다. 홈·프로필 목록은 'self' 만 본다. */
+  kind: ProfileKind;
 }
 
 export type CreateProfileInput = Omit<ProfileRow, "id" | "createdAt" | "isUnlocked">;
@@ -71,6 +96,7 @@ export function toProfileRow(r: Record<string, unknown>): ProfileRow {
     trueSolar: r.true_solar === true,
     createdAt: String(r.created_at),
     isUnlocked: r.is_unlocked === true,
+    kind: r.kind === "other" ? "other" : "self",
   };
 }
 
@@ -80,25 +106,45 @@ export function toProfileRow(r: Record<string, unknown>): ProfileRow {
  *
  * subject_key 가 text 라 p.id 를 ::text 로 맞춘다. 반대로 subject_key 를
  * ::bigint 로 캐스팅하면 궁합의 '12:34' 같은 키에서 터진다.
+ *
+ * ⚠️ kind 에 기본값을 주지 않는다. 기본값이 있으면 다음에 추가되는 호출부가
+ * 아무 생각 없이 지나가고, 그 한 번이 궁합 상대의 생년월일을 홈 캐러셀에 올린다.
+ * 컴파일러가 모든 호출부에서 이 선택을 강제하게 둔다.
  */
 export async function listProfiles(
   userId: string,
+  kind: ProfileKind | "all",
   client: SqlClient = sql,
 ): Promise<ProfileRow[]> {
   // 'full_report' 는 상수가 아니라 리터럴로 적는다 — @/lib/tickets/features 를
   // import 하면 profiles 가 tickets 에 의존하게 되고, 무엇보다 이 값은 이미
   // entitlements 테이블에 문자열로 나가 있는 값이라 리팩터로 상수 이름이
   // 바뀌어도 함께 움직이면 안 되는 영속 계약이다.
-  const rows = await client`
-    SELECT p.*, (e.id IS NOT NULL) AS is_unlocked
-    FROM profiles p
-    LEFT JOIN entitlements e
-      ON e.user_id = p.user_id
-     AND e.feature = 'full_report'
-     AND e.subject_key = p.id::text
-    WHERE p.user_id = ${userId}::bigint
-    ORDER BY p.created_at DESC
-  `;
+  //
+  // 조건을 문자열로 조립하지 않는다 — 태그드 템플릿의 이스케이프를 잃는다.
+  // 두 쿼리를 나란히 두는 편이 안전하고, 읽는 사람이 무엇이 다른지 바로 본다.
+  const rows =
+    kind === "all"
+      ? await client`
+          SELECT p.*, (e.id IS NOT NULL) AS is_unlocked
+          FROM profiles p
+          LEFT JOIN entitlements e
+            ON e.user_id = p.user_id
+           AND e.feature = 'full_report'
+           AND e.subject_key = p.id::text
+          WHERE p.user_id = ${userId}::bigint
+          ORDER BY p.created_at DESC
+        `
+      : await client`
+          SELECT p.*, (e.id IS NOT NULL) AS is_unlocked
+          FROM profiles p
+          LEFT JOIN entitlements e
+            ON e.user_id = p.user_id
+           AND e.feature = 'full_report'
+           AND e.subject_key = p.id::text
+          WHERE p.user_id = ${userId}::bigint AND p.kind = ${kind}
+          ORDER BY p.created_at DESC
+        `;
   return rows.map(toProfileRow);
 }
 
@@ -117,10 +163,6 @@ export async function getProfile(
   id: string,
   client: SqlClient = sql,
 ): Promise<ProfileRow | null> {
-  // 'full_report' 는 상수가 아니라 리터럴로 적는다 — @/lib/tickets/features 를
-  // import 하면 profiles 가 tickets 에 의존하게 되고, 무엇보다 이 값은 이미
-  // entitlements 테이블에 문자열로 나가 있는 값이라 리팩터로 상수 이름이
-  // 바뀌어도 함께 움직이면 안 되는 영속 계약이다.
   const rows = await client`
     SELECT p.*, (e.id IS NOT NULL) AS is_unlocked
     FROM profiles p
@@ -136,10 +178,12 @@ export async function getProfile(
 
 export async function countProfiles(
   userId: string,
+  kind: ProfileKind,
   client: SqlClient = sql,
 ): Promise<number> {
   const rows = await client`
-    SELECT count(*)::int AS n FROM profiles WHERE user_id = ${userId}::bigint
+    SELECT count(*)::int AS n FROM profiles
+    WHERE user_id = ${userId}::bigint AND kind = ${kind}
   `;
   return Number(rows[0]?.n ?? 0);
 }
@@ -154,24 +198,56 @@ export async function createProfile(
   input: CreateProfileInput,
   client: SqlClient = sql,
 ): Promise<{ id: string }> {
-  const count = await countProfiles(userId, client);
-  if (count >= MAX_PROFILES) throw new ProfileLimitError();
+  // 한 카운터로 둘을 같이 세지 않는다. 궁합 상대까지 MAX_PROFILES 에 넣으면 궁합을
+  // 몇 번 본 것만으로 내 사주를 더 저장할 수 없게 된다 — 한도의 취지와 무관한 결과다.
+  //
+  // 그렇다고 상대를 세지 않고 두면 상한이 아예 없어진다. 그래서 kind 별로 자기
+  // 카운터를 본다. 값이 다른 이유는 MAX_COUNTERPARTS 주석에 있다: 하나는 제품 판단,
+  // 다른 하나는 자원 상한이다.
+  if (input.kind === "self") {
+    const count = await countProfiles(userId, "self", client);
+    if (count >= MAX_PROFILES) throw new ProfileLimitError();
+  } else {
+    const count = await countProfiles(userId, "other", client);
+    if (count >= MAX_COUNTERPARTS) throw new CounterpartLimitError();
+  }
 
   const rows = await client`
     INSERT INTO profiles (
       user_id, name, gender, calendar, is_leap_month,
       birth_year, birth_month, birth_day,
       time_known, birth_hour, birth_minute,
-      birth_country, birth_region_id, true_solar
+      birth_country, birth_region_id, true_solar, kind
     ) VALUES (
       ${userId}::bigint, ${input.name}, ${input.gender}, ${input.calendar}, ${input.isLeapMonth},
       ${input.birth.year}, ${input.birth.month}, ${input.birth.day},
       ${input.timeKnown}, ${input.time?.hour ?? null}, ${input.time?.minute ?? null},
-      ${input.birthPlace?.country ?? null}, ${input.birthPlace?.regionId ?? null}, ${input.trueSolar}
+      ${input.birthPlace?.country ?? null}, ${input.birthPlace?.regionId ?? null}, ${input.trueSolar},
+      ${input.kind}
     )
     RETURNING id
   `;
   const row = rows[0] as { id: string | number } | undefined;
   if (!row) throw new Error("createProfile: no row returned");
   return { id: String(row.id) };
+}
+
+/**
+ * 궁합 상대를 내 사주 목록으로 올린다. 결과 화면의 저장 모달이 부른다.
+ *
+ * 이미 'self' 면 아무 행도 갱신되지 않아 false 다 — 호출자는 이걸 실패가 아니라
+ * "할 일 없음" 으로 읽는다. 한도를 여기서 보지 않는 이유: 행은 이미 존재하고,
+ * 승격을 막아도 데이터는 그대로라 사용자에게는 버튼이 먹지 않는 것으로만 보인다.
+ */
+export async function promoteProfileToSelf(
+  userId: string,
+  id: string,
+  client: SqlClient = sql,
+): Promise<boolean> {
+  const rows = await client`
+    UPDATE profiles SET kind = 'self'
+     WHERE id = ${id}::bigint AND user_id = ${userId}::bigint AND kind = 'other'
+    RETURNING id
+  `;
+  return rows.length > 0;
 }

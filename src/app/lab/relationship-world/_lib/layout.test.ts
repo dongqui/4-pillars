@@ -40,10 +40,11 @@ function distToSegment(p: readonly number[], a: readonly number[], b: readonly n
 }
 
 // BESIDE_LAYERS / BESIDE_TILT / REFINE_GRID_STEP / REFINE_Y_COMPRESSION 은
-// _lib/layout.ts 에 정의된 단일 소스다. BesideLayers.tsx 와 RefineShards.tsx
-// 도 이 값을 그대로 import 해서 렌더링에 쓴다 — 여기서 리터럴로 다시 베끼면
-// layout.ts 를 layout.ts 자기 자신하고만 비교하는 테스트가 되어, 렌더링
-// 컴포넌트가 이 값에서 벗어나도 아무것도 잡아내지 못한다.
+// _lib/layout.ts 에 정의된 단일 소스이자, positionFor 의 배치 계산이 직접
+// 쓰는 값이다(더 이상 렌더링 컴포넌트와 맞출 대상은 없다 — Field 오브젝트가
+// 삭제되면서 BesideLayers.tsx / RefineShards.tsx 도 함께 사라졌다). 여기서
+// 리터럴로 다시 베끼면 layout.ts 를 layout.ts 자기 자신하고만 비교하는
+// 테스트가 되어, positionFor 가 이 값에서 벗어나도 아무것도 잡아내지 못한다.
 
 describe("positionFor", () => {
   it("같은 역할·인덱스면 항상 같은 좌표를 준다", () => {
@@ -86,13 +87,15 @@ describe("placePeople", () => {
 });
 
 describe("positionFor — Field 형태를 따른다", () => {
-  it("beside: 사람이 BesideLayers.tsx 가 실제로 그리는 '기울어진' 평면 위에 있다", () => {
-    // BesideLayers.tsx 는 평면들을 만든 뒤 group 전체를 Z축으로 BESIDE_TILT
-    // 만큼 돌린다. 그러므로 '평면 위'라는 말은 기울어지기 전의 로컬 y 가
-    // tier*extent 라는 뜻이다 — world 좌표를 center 만큼 빼고 -BESIDE_TILT
-    // 만큼 역회전해서 그 로컬 프레임으로 되돌린 뒤 검사해야, 실제로 렌더되는
-    // 평면과 맞는지가 증명된다. (world y 를 그대로 비교하면 회전을 빼먹은
-    // 버그를 이 테스트가 놓친다 — 1차 수정에서 실제로 벌어졌던 일이다.)
+  it("beside: 사람이 '기울어진' 평면 위에 있다", () => {
+    // beside 의 평면은 로컬 y = tier*extent 에 있다가 group 전체가 Z축으로
+    // BESIDE_TILT 만큼 돌아간 것이다(렌더링 컴포넌트는 삭제됐지만
+    // positionFor 자신이 이 회전을 그대로 적용해 사람을 앉힌다). 그러므로
+    // '평면 위'라는 말은 기울어지기 전의 로컬 y 가 tier*extent 라는 뜻이다 —
+    // world 좌표를 center 만큼 빼고 -BESIDE_TILT 만큼 역회전해서 그 로컬
+    // 프레임으로 되돌린 뒤 검사해야, positionFor 가 실제로 의도한 평면과
+    // 맞는지가 증명된다. (world y 를 그대로 비교하면 회전을 빼먹은 버그를 이
+    // 테스트가 놓친다 — 1차 수정에서 실제로 벌어졌던 일이다.)
     const center = FIELD_CENTERS.beside;
     const extent = FIELD_EXTENT.beside;
     const cos = Math.cos(-BESIDE_TILT);
@@ -170,7 +173,9 @@ describe("positionFor — Field 형태를 따른다", () => {
   it("refine: 사람이 조각 안에 파묻히지 않는다", () => {
     // 예전 셀 [-1,0,1]·[1,0,-1] 은 26개 조각이 이미 차지한 칸이라, 두 사람이
     // 각각 조각 중심에서 0.030 / 0.041 거리에 — 즉 팔면체 안에 통째로 —
-    // 들어가 있었다. 노드(r 0.075)도 헤일로(r 0.17)도 보이지 않는다.
+    // 들어가 있었다. 그 정도로 가까우면 코어(r 0.075)는 물론 근접 halo(r
+    // 0.28)도 조각 속에 묻혀 보이지 않는다. 이 테스트는 사람과 모든 조각
+    // 사이의 거리가 조각 반경보다 커서 그 파묻힘이 다시 생기지 않음을 잠근다.
     const center = FIELD_CENTERS.refine;
     for (let i = 0; i < 2; i++) {
       const p = positionFor("refine", i);

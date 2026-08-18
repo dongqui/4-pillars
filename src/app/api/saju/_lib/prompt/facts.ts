@@ -34,8 +34,12 @@ const join = (parts: string[]): string => parts.join(" · ");
 /**
  * chart 저장소 섹션(overview~wealth)용 사실 블록.
  * chartKey 안에 있는 값 = 4기둥 · 성별 과 거기서 순수하게 파생되는 것만 담는다.
+ *
+ * label 은 헤더에 붙는 이름표다. 기본값 "원국" 은 리포트 파이프라인의 출력을
+ * 그대로 유지하고, 궁합 쪽(matches/_lib/prompt/facts.ts)은 "나"/"상대" 를 넘겨
+ * 한 사람 몫의 사실 블록을 두 번 재사용한다.
  */
-export function chartFacts(analysis: SajuAnalysis): string {
+export function chartFacts(analysis: SajuAnalysis, label = "원국"): string {
   const { chart, elements, tenGods, strength, yongsin } = analysis;
   const dm = STEMS[chart.dayMaster];
 
@@ -43,7 +47,7 @@ export function chartFacts(analysis: SajuAnalysis): string {
     tenGods.cells.find((c) => c.position === position && c.kind === kind)?.tenGod;
 
   const lines: string[] = [
-    "[사실 · 원국]",
+    `[사실 · ${label}]`,
     `일간: ${chart.dayMaster} (${dm.element}·${dm.yinYang})`,
     `성별: ${chart.gender === "male" ? "남성" : "여성"}`,
   ];

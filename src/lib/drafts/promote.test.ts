@@ -42,7 +42,7 @@ describe("promoteDraft", () => {
   it("성공하면 프로필을 만들고 드래프트를 지운다", async () => {
     const d = deps();
     expect(await promoteDraft("tok", "7", d)).toEqual({ kind: "promoted", id: "42" });
-    expect(d.createProfile).toHaveBeenCalledWith("7", draft);
+    expect(d.createProfile).toHaveBeenCalledWith("7", { ...draft, kind: "self" });
     expect(d.deleteDraft).toHaveBeenCalledWith("tok");
   });
 

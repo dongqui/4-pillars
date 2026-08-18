@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseProfileParam } from "./param";
+import { isSequentialId, parseProfileParam } from "./param";
 
 describe("parseProfileParam", () => {
   it("파라미터가 없으면 absent — 호출자가 알아서 다룬다", () => {
@@ -31,5 +31,35 @@ describe("parseProfileParam", () => {
 
   it("bigint 상한을 하나 넘으면(9223372036854775808) invalid — ::bigint 캐스팅이 넘치지 않게", () => {
     expect(parseProfileParam({ profile: "9223372036854775808" })).toEqual({ kind: "invalid" });
+  });
+});
+
+describe("isSequentialId", () => {
+  it("보통의 순번 id 는 통과한다", () => {
+    expect(isSequentialId("12")).toBe(true);
+  });
+
+  it("0 은 거부한다", () => {
+    expect(isSequentialId("0")).toBe(false);
+  });
+
+  it("선행 0 이 붙은 id 는 거부한다", () => {
+    expect(isSequentialId("007")).toBe(false);
+  });
+
+  it("숫자가 아닌 문자열은 거부한다", () => {
+    expect(isSequentialId("abc")).toBe(false);
+  });
+
+  it("bigint 상한(9223372036854775807)은 정확히 통과한다", () => {
+    expect(isSequentialId("9223372036854775807")).toBe(true);
+  });
+
+  it("bigint 상한을 하나 넘으면(9223372036854775808) 거부한다", () => {
+    expect(isSequentialId("9223372036854775808")).toBe(false);
+  });
+
+  it("훨씬 긴 자릿수 문자열도 거부한다 — 자릿수만 세는 검사로는 못 거른다", () => {
+    expect(isSequentialId("9".repeat(30))).toBe(false);
   });
 });
