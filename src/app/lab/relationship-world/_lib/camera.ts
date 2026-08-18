@@ -12,23 +12,22 @@ const deg = (d: number) => (d * Math.PI) / 180;
 export const CAMERA_FOV = 50;
 
 /**
- * 기본 뷰는 월드를 전부 담지 않는다. 나와 인접 Field 2~4개가 크게 보이고,
- * 나머지는 드래그해서 찾아가는 것이 이번 설계의 의도다(설계 문서 6절).
- * 전부 담으려면 거리 41 이 필요한데, 그러면 Field 하나하나가 작아져
- * "성질이 다른 공간"이 보이지 않는다 — 재설계의 목적 자체가 사라진다.
+ * 이번 설계(구면 앵커 5개 × 소구역 3개, layout.ts)는 기본 뷰에서 다섯 Role
+ * 구역과 21명(나 포함) 전원이 375×812 진입 화면 안에 들어오는 것을 목표로
+ * 한다 — 직전 설계는 나와 인접 Field 2~4개만 보이고 나머지는 드래그해야
+ * 찾을 수 있었고, 그것이 "위치가 아무 정보도 주지 않는다"는 실패로
+ * 이어졌다. layout.test.ts 의 "5개 앵커가 전부 화면 안에 있다" 와
+ * "20명 전원이 화면 안에 투영된다" 가 이 목표를 잠근다.
  *
- * 방향은 예전 [0, 3.2, 13] 과 완전히 같고(3.2:13 비율 유지) 거리만 2 배 밀었다.
- * 거리 26 에서는 나(원점)가 화면 안에 있고, Field 중심 5개 중 2~4개가
- * 보인다(layout.test.ts 가 잠근다) — 나머지는 화면 밖에 있어 드래그해야 한다.
- *
- * 월드 좌표(layout.ts)는 건드리지 않았다. 거리만 바꾸면 화면상 배치는 데스크톱
- * 기준 뷰와 동일한 구도가 그대로 축소돼 들어오고, 좌표 규칙 테스트도 그대로 산다.
+ * 방향은 예전 [0, 3.2, 13] 과 완전히 같다(3.2:13 비율 유지). 거리(DEFAULT_BASE_Z)
+ * 는 이 폭을 벌기 위해 조정된 값이고, ANCHOR_RADIUS(layout.ts, 7)를 포함해
+ * 화면에 다섯 구역이 다 들어오도록 함께 맞춰졌다.
  */
 const DEFAULT_BASE_Z = 26;
 export const DEFAULT_CAMERA_POSITION: [number, number, number] = [0, 6.4, DEFAULT_BASE_Z];
 export const DEFAULT_TARGET: [number, number, number] = [0, 0, 0];
 
-/** 설계 문서 10절의 zoom 배율. 기준 길이만 13 → 40 으로 옮겼다. */
+/** 설계 문서 10절의 zoom 배율. 기준 길이만 13 → 26 으로 옮겼다. */
 const zoom = (factor: number) => +(DEFAULT_BASE_Z * factor).toFixed(2);
 
 export const CAMERA_LIMITS: Record<

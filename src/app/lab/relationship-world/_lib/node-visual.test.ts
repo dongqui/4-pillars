@@ -10,6 +10,8 @@ import {
   stateLight,
 } from "./node-visual";
 import type { Feature } from "../_data/roles";
+import { FRIENDS } from "../_data/mock-people";
+import { SELF_POSITION, placePeople, type Vec3 } from "./layout";
 
 const SIZE = HALO_TEXTURE_SIZE;
 const alphaAt = (data: Uint8Array, x: number, y: number) => data[(y * SIZE + x) * 4 + 3];
@@ -82,10 +84,26 @@ describe("시각 상수", () => {
     expect(SELF_NODE_SCALE).toBeGreaterThanOrEqual(2);
   });
 
-  it("확산 halo 는 최근접 거리 중앙값의 절반을 넘어 이웃과 실제로 겹친다", () => {
+  it("확산 halo 는 최근접 거리 중앙값을 넘어 이웃과 실제로 겹친다", () => {
     // 겹치지 않으면 "사람들이 Field 를 만든다"가 성립하지 않는다.
-    // 새 배치의 실측: 겹치는 이웃 중앙값 4명, 고립 1/21.
-    expect(DIFFUSE_HALO_RADIUS * 2).toBeGreaterThan(1.93);
+    //
+    // 예전에는 두 리터럴(DIFFUSE_HALO_RADIUS*2 와 1.93)을 비교했다 — 양쪽 다
+    // 상수라 layout.ts 의 SPREAD 가 넓어지거나 앵커가 멀어져 실제 겹침이
+    // 깨져도 이 테스트는 통과했다(1.93 은 그 시점의 중앙값을 손으로 옮겨 적은
+    // 값일 뿐 layout.ts 와 아무 연결이 없었다). 대신 placePeople(FRIENDS) 에서
+    // 최근접 거리 중앙값을 직접 계산해 비교한다 — layout 이 바뀌면 이 값도
+    // 같이 바뀌어 겹침이 실제로 깨지는 순간 실패한다.
+    const dist3 = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+    const placed: Vec3[] = [...placePeople(FRIENDS).values(), SELF_POSITION];
+    const nearestNeighborDistances = placed.map((p, i) =>
+      Math.min(...placed.filter((_, j) => j !== i).map((q) => dist3(p, q))),
+    );
+    const sorted = [...nearestNeighborDistances].sort((a, b) => a - b);
+    const mid = sorted.length / 2;
+    const median =
+      sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[Math.floor(mid)];
+
+    expect(DIFFUSE_HALO_RADIUS * 2, `최근접 거리 중앙값 = ${median}`).toBeGreaterThan(median);
   });
 });
 
