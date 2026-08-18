@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+</helmet>
+<div style="min-height:100vh; background:#fff; padding:40px 32px; font-family:'Pretendard',-apple-system,system-ui,sans-serif;">
+  <div style="font-size:12px; font-weight:700; letter-spacing:0.09em; color:#94A3B8; margin-bottom:16px;">LIGHT</div>
+  <dc-import name="Character Card" w="{{ 900 }}" zoom-w="{{ 460 }}" light="{{ true }}" hint-size="900px,300px"></dc-import>
+  <div style="font-size:12px; font-weight:700; letter-spacing:0.09em; color:#94A3B8; margin:40px 0 16px;">DARK</div>
+  <dc-import name="Character Card" w="{{ 900 }}" zoom-w="{{ 460 }}" hint-size="900px,300px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}"></script>
+</body>
+</html>

@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700&display=swap">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0; background:#EEF0F3;}
+  a{color:#2563EB; text-decoration:none;}
+  a:hover{color:#1D4ED8;}
+  ::selection{background:#DBEAFE;}
+  @keyframes m2spin{to{transform:rotate(360deg);}}
+  @keyframes m2rise{from{opacity:0; transform:translateY(8px);}to{opacity:1; transform:translateY(0);}}
+  .m2scroll::-webkit-scrollbar{height:6px;}
+  .m2scroll::-webkit-scrollbar-thumb{background:#D5D9DF; border-radius:999px;}
+  .m2scroll::-webkit-scrollbar-track{background:transparent;}
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#EEF0F3; font-family:'Pretendard','Pretendard Variable',-apple-system,system-ui,sans-serif; color:#0F172A; -webkit-font-smoothing:antialiased; line-height:1.5;">
+
+  <header style="position:sticky; top:0; z-index:80; background:rgba(238,240,243,.9); backdrop-filter:blur(16px); border-bottom:1px solid #E1E4E9;">
+    <div style="max-width:1240px; margin:0 auto; padding:11px 24px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:9px; flex:none;">
+        <div style="width:26px; height:26px; border-radius:8px; background:#0F172A; display:flex; align-items:center; justify-content:center;">
+          <span style="display:flex; align-items:flex-end; gap:2.5px; height:13px;">
+            <span style="width:2.5px; height:6.5px; border-radius:1.25px; background:rgba(255,255,255,.42);"></span>
+            <span style="width:2.5px; height:10.5px; border-radius:1.25px; background:rgba(255,255,255,.62);"></span>
+            <span style="width:2.5px; height:8.5px; border-radius:1.25px; background:rgba(255,255,255,.52);"></span>
+            <span style="width:2.5px; height:13px; border-radius:1.25px; background:#fff;"></span>
+          </span>
+        </div>
+        <span style="font-size:11px; font-weight:700; color:#94A3B8; letter-spacing:0.09em;">M2</span>
+      </div>
+
+      <div style="display:flex; gap:2px; background:#E2E5EA; border-radius:11px; padding:3px;">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+          <button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ showVp }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; gap:2px; background:#E2E5EA; border-radius:11px; padding:3px;">
+          <button onClick="{{ setMobile }}" style="{{ vpMobileStyle }}">모바일</button>
+          <button onClick="{{ setDesktop }}" style="{{ vpDesktopStyle }}">데스크탑</button>
+        </div>
+      </sc-if>
+
+      <span style="margin-left:auto; font-size:12.5px; color:#94A3B8; white-space:nowrap;">{{ statusNote }}</span>
+    </div>
+  </header>
+
+  <main style="max-width:1240px; margin:0 auto; padding:36px 24px 120px;">
+
+    <!-- ============ 01 · 카드 ============ -->
+    <sc-if value="{{ isCards }}" hint-placeholder-val="{{ true }}">
+    <section>
+      <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:24px;">
+        <div>
+          <div style="font-size:11.5px; font-weight:700; letter-spacing:0.09em; color:#94A3B8; margin-bottom:8px;">산출물 01</div>
+          <h1 style="font-size:30px; font-weight:700; letter-spacing:-0.03em; margin:0 0 8px;">캐릭터 카드</h1>
+          <p style="font-size:15px; color:#64748B; margin:0; max-width:620px; text-wrap:pretty;">파라미터는 오행 · 음양 · 간지 한자 · 카피 4종. 이 조합만으로 60장이 자동 생성됩니다. 폭 고정 · 높이는 카피 분량을 따릅니다.</p>
+        </div>
+        <div style="display:flex; gap:2px; background:#E2E5EA; border-radius:11px; padding:3px;">
+          <button onClick="{{ setSheet1 }}" style="{{ sheet1Style }}">기준 1종</button>
+          <button onClick="{{ setSheet10 }}" style="{{ sheet10Style }}">대표 10종</button>
+          <button onClick="{{ setSheet60 }}" style="{{ sheet60Style }}">전체 60종</button>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(176px,1fr)); gap:12px; margin-bottom:30px;">
+        <sc-for list="{{ specs }}" as="s" hint-placeholder-count="4">
+          <div style="background:#fff; border:1px solid #E5E8ED; border-radius:14px; padding:15px 17px;">
+            <div style="font-size:12px; font-weight:600; color:#94A3B8; margin-bottom:5px;">{{ s.k }}</div>
+            <div style="font-size:14px; font-weight:600; letter-spacing:-0.01em; color:#0F172A;">{{ s.v }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ isSheet1 }}" hint-placeholder-val="{{ true }}">
+      <div style="background:#fff; border:1px solid #E5E8ED; border-radius:20px; padding:28px;">
+        <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:22px;">
+          <h2 style="font-size:17px; font-weight:700; letter-spacing:-0.02em; margin:0;">갑자 · 두 사이즈, 같은 비율</h2>
+          <span style="font-size:13px; color:#94A3B8;">같은 컴포넌트, w 값만 다름</span>
+        </div>
+        <div style="display:flex; gap:34px; flex-wrap:wrap; align-items:flex-start;">
+          <div>
+            <dc-import name="Character Card" w="{{ shareW }}" desc="{{ hero.desc }}" shadow="{{ hero.shadow }}" basis="{{ hero.basis }}" element="{{ hero.element }}" yy="{{ hero.yy }}" hanja="{{ hero.hanja }}" family="{{ hero.family }}" family-hanja="{{ hero.familyHanja }}" scene="{{ hero.scene }}" hook="{{ hero.hook }}" chips="{{ hero.chips }}" hint-size="432px,278px"></dc-import>
+            <div style="font-size:12.5px; color:#94A3B8; margin-top:10px;">공유용 1080 폭 · 40% 축소 표시</div>
+          </div>
+          <div>
+            <dc-import name="Character Card" w="{{ screenW }}" desc="{{ hero.desc }}" shadow="{{ hero.shadow }}" basis="{{ hero.basis }}" element="{{ hero.element }}" yy="{{ hero.yy }}" hanja="{{ hero.hanja }}" family="{{ hero.family }}" family-hanja="{{ hero.familyHanja }}" scene="{{ hero.scene }}" hook="{{ hero.hook }}" chips="{{ hero.chips }}" hint-size="400px,258px"></dc-import>
+            <div style="font-size:12.5px; color:#94A3B8; margin-top:10px;">화면용 400 폭 · 실측</div>
+          </div>
+          <div style="flex:1; min-width:230px; display:flex; flex-direction:column; gap:15px; padding-top:2px;">
+            <sc-for list="{{ layers }}" as="l" hint-placeholder-count="5">
+              <div style="display:flex; gap:12px; align-items:flex-start;">
+                <span style="flex:none; width:22px; height:22px; border-radius:7px; background:#F1F5F9; color:#64748B; font-size:11.5px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:1px;">{{ l.n }}</span>
+                <span style="font-size:13.5px; color:#475569; line-height:1.6; text-wrap:pretty;">{{ l.t }}</span>
+              </div>
+            </sc-for>
+            <div style="border-top:1px solid #F1F5F9; padding-top:15px; margin-top:2px;">
+              <div style="font-size:12.5px; font-weight:600; color:#94A3B8; margin-bottom:8px;">음간 대조 · 점선 인셋 프레임</div>
+              <dc-import name="Character Card" w="{{ tinyW }}" desc="{{ contrast.desc }}" shadow="{{ contrast.shadow }}" basis="{{ contrast.basis }}" element="{{ contrast.element }}" yy="{{ contrast.yy }}" hanja="{{ contrast.hanja }}" family="{{ contrast.family }}" family-hanja="{{ contrast.familyHanja }}" scene="{{ contrast.scene }}" hook="{{ contrast.hook }}" chips="{{ contrast.chips }}" hint-size="240px,155px"></dc-import>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isSheet10 }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fff; border:1px solid #E5E8ED; border-radius:20px; padding:28px;">
+        <h2 style="font-size:17px; font-weight:700; letter-spacing:-0.02em; margin:0 0 4px;">대표 10종 · 패밀리별 1장</h2>
+        <p style="font-size:13.5px; color:#94A3B8; margin:0 0 24px;">오행 5색 × 음양 2종. 서피스와 액센트만으로 계열이 구분됩니다.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:20px;">
+          <sc-for list="{{ reps }}" as="c" hint-placeholder-count="10">
+            <dc-import name="Character Card" w="{{ screenW }}" element="{{ c.element }}" yy="{{ c.yy }}" hanja="{{ c.hanja }}" family="{{ c.family }}" family-hanja="{{ c.familyHanja }}" basis="{{ c.basis }}" scene="{{ c.scene }}" hook="{{ c.hook }}" chips="{{ c.chips }}" desc="{{ c.desc }}" shadow="{{ c.shadow }}" hint-size="400px,258px"></dc-import>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isSheet60 }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fff; border:1px solid #E5E8ED; border-radius:20px; padding:28px;">
+        <h2 style="font-size:17px; font-weight:700; letter-spacing:-0.02em; margin:0 0 4px;">전체 60종 자동 렌더</h2>
+        <p style="font-size:13.5px; color:#94A3B8; margin:0 0 26px;">개별 수작업 없이 데이터만으로 생성된 결과입니다. 10패밀리 × 6장.</p>
+        <div style="display:flex; flex-direction:column; gap:30px;">
+          <sc-for list="{{ families }}" as="f" hint-placeholder-count="10">
+            <div>
+              <div style="display:flex; align-items:center; gap:9px; margin-bottom:12px;">
+                <span style="{{ f.dotStyle }}"></span>
+                <span style="font-size:14px; font-weight:700; letter-spacing:-0.01em;">{{ f.name }}</span>
+                <span style="font-size:13px; color:#B6BAC1;">{{ f.meta }}</span>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:14px;">
+                <sc-for list="{{ f.cards }}" as="c" hint-placeholder-count="6">
+                  <dc-import name="Character Card" w="{{ tinyW }}" element="{{ c.element }}" yy="{{ c.yy }}" hanja="{{ c.hanja }}" family="{{ c.family }}" family-hanja="{{ c.familyHanja }}" basis="{{ c.basis }}" scene="{{ c.scene }}" hook="{{ c.hook }}" chips="{{ c.chips }}" desc="{{ c.desc }}" shadow="{{ c.shadow }}" hint-size="240px,155px"></dc-import>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+    </section>
+    </sc-if>
+
+    <!-- ============ 02 · 랜딩 히어로 ============ -->
+    <sc-if value="{{ isHero }}" hint-placeholder-val="{{ false }}">
+    <section>
+      <div style="margin-bottom:22px;">
+        <div style="font-size:11.5px; font-weight:700; letter-spacing:0.09em; color:#94A3B8; margin-bottom:8px;">산출물 02</div>
+        <h1 style="font-size:30px; font-weight:700; letter-spacing:-0.03em; margin:0 0 8px;">랜딩 히어로 교체</h1>
+        <p style="font-size:15px; color:#64748B; margin:0; max-width:620px; text-wrap:pretty;">히어로 블록만 캐릭터 기준으로 교체합니다. 아래 섹션과 푸터는 기존 랜딩을 그대로 둡니다.</p>
+      </div>
+
+      <div style="background:#fff; border:1px solid #E5E8ED; border-radius:20px; overflow:hidden;">
+        <div style="border-bottom:1px solid #F1F5F9; padding:0 32px; height:66px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:30px; height:30px; border-radius:10px; background:#111827; display:flex; align-items:center; justify-content:center;">
+              <span style="display:flex; align-items:flex-end; gap:2.5px; height:15px;">
+                <span style="width:2.5px; height:7.5px; border-radius:1.25px; background:rgba(255,255,255,.42);"></span>
+                <span style="width:2.5px; height:12px; border-radius:1.25px; background:rgba(255,255,255,.62);"></span>
+                <span style="width:2.5px; height:9.5px; border-radius:1.25px; background:rgba(255,255,255,.52);"></span>
+                <span style="width:2.5px; height:15px; border-radius:1.25px; background:#fff;"></span>
+              </span>
+            </div>
+            <span style="display:flex; align-items:baseline; gap:5px;">
+              <span style="font-size:12px; font-weight:600; color:#9CA3AF; letter-spacing:0.09em;">PROJECT</span>
+              <span style="font-size:16px; font-weight:700; letter-spacing:-0.03em;">사주</span>
+            </span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:14.5px; font-weight:500; color:#4B5563;">로그인</span>
+            <button style="font-family:inherit; font-size:14.5px; font-weight:600; color:#fff; background:#2563EB; border:none; padding:10px 18px; border-radius:12px; cursor:pointer;" style-hover="background:#1D4ED8;">무료로 내 캐릭터 보기</button>
+          </div>
+        </div>
+
+        <div style="{{ heroGridStyle }}">
+          <div style="max-width:520px; position:relative; z-index:2;">
+            <div style="display:inline-flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600; color:#2563EB; background:#EFF6FF; padding:7px 14px; border-radius:999px; margin-bottom:26px;">생일 하나로 60종 중 한 장</div>
+            <h2 style="font-size:clamp(38px,4.4vw,60px); line-height:1.07; font-weight:700; letter-spacing:-0.045em; margin:0 0 22px; text-wrap:balance;">당신은 어떤<br>캐릭터인가요?</h2>
+            <p style="font-size:19px; line-height:1.55; color:#374151; font-weight:500; margin:0 0 12px; text-wrap:pretty;">태어난 날의 기운을 한 장의 캐릭터 카드로 정리해드려요.</p>
+            <p style="font-size:16px; line-height:1.6; color:#9CA3AF; margin:0 0 32px; max-width:420px; text-wrap:pretty;">장면과 성향, 그림자까지 전부 무료로 열려 있어요. 마음에 들면 그대로 공유하세요.</p>
+            <button style="font-family:inherit; font-size:16px; font-weight:600; color:#fff; background:#2563EB; border:none; padding:16px 28px; border-radius:14px; cursor:pointer; box-shadow:0 12px 28px -10px rgba(37,99,235,.5);" style-hover="background:#1D4ED8;">무료로 내 캐릭터 보기</button>
+            <p style="font-size:13.5px; color:#9CA3AF; margin:16px 0 0;">로그인 없음 · 30초</p>
+          </div>
+
+          <div style="{{ heroStackStyle }}">
+            <div style="{{ stackBackStyle }}">
+              <dc-import name="Character Card" w="{{ heroCardW }}" desc="{{ stack0.desc }}" shadow="{{ stack0.shadow }}" basis="{{ stack0.basis }}" element="{{ stack0.element }}" yy="{{ stack0.yy }}" hanja="{{ stack0.hanja }}" family="{{ stack0.family }}" family-hanja="{{ stack0.familyHanja }}" scene="{{ stack0.scene }}" hook="{{ stack0.hook }}" chips="{{ stack0.chips }}" hint-size="340px,219px"></dc-import>
+            </div>
+            <div style="{{ stackMidStyle }}">
+              <dc-import name="Character Card" w="{{ heroCardW }}" desc="{{ stack1.desc }}" shadow="{{ stack1.shadow }}" basis="{{ stack1.basis }}" element="{{ stack1.element }}" yy="{{ stack1.yy }}" hanja="{{ stack1.hanja }}" family="{{ stack1.family }}" family-hanja="{{ stack1.familyHanja }}" scene="{{ stack1.scene }}" hook="{{ stack1.hook }}" chips="{{ stack1.chips }}" hint-size="340px,219px"></dc-import>
+            </div>
+            <div style="{{ stackFrontStyle }}">
+              <dc-import name="Character Card" w="{{ heroCardW }}" desc="{{ stack2.desc }}" shadow="{{ stack2.shadow }}" basis="{{ stack2.basis }}" element="{{ stack2.element }}" yy="{{ stack2.yy }}" hanja="{{ stack2.hanja }}" family="{{ stack2.family }}" family-hanja="{{ stack2.familyHanja }}" scene="{{ stack2.scene }}" hook="{{ stack2.hook }}" chips="{{ stack2.chips }}" hint-size="340px,219px"></dc-import>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top:1px dashed #E2E8F0; padding:16px 32px; font-size:13px; color:#B6BAC1; text-align:center;">↓ 이 아래 섹션과 푸터는 기존 랜딩 그대로</div>
+      </div>
+    </section>
+    </sc-if>
+
+    <!-- ============ 03 · 라이트 퍼널 ============ -->
+    <sc-if value="{{ isFunnel }}" hint-placeholder-val="{{ false }}">
+    <section>
+      <div style="margin-bottom:26px;">
+        <div style="font-size:11.5px; font-weight:700; letter-spacing:0.09em; color:#94A3B8; margin-bottom:8px;">산출물 03</div>
+        <h1 style="font-size:30px; font-weight:700; letter-spacing:-0.03em; margin:0 0 8px;">라이트 퍼널 · 1스텝</h1>
+        <p style="font-size:15px; color:#64748B; margin:0; max-width:620px; text-wrap:pretty;">생년월일만 받습니다. 시간 · 출생지 · 성별 입력 없음, 로딩은 버튼 안에서 끝냅니다.</p>
+      </div>
+
+      <div style="display:flex; gap:22px; flex-wrap:wrap; align-items:flex-start;">
+        <sc-for list="{{ funnelStates }}" as="f" hint-placeholder-count="4">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+              <span style="{{ f.tagStyle }}">{{ f.tag }}</span>
+              <span style="font-size:13px; color:#94A3B8;">{{ f.note }}</span>
+            </div>
+
+            <div style="{{ f.shellStyle }}">
+              <div style="{{ f.padStyle }}">
+                <h3 style="font-size:23px; font-weight:700; letter-spacing:-0.03em; margin:0 0 8px;">생일을 알려주세요</h3>
+                <p style="font-size:14.5px; color:#94A3B8; margin:0 0 26px; text-wrap:pretty;">태어난 날 하나면 캐릭터가 나와요.</p>
+
+                <div style="display:flex; gap:2px; background:#F1F5F9; border-radius:11px; padding:3px; margin-bottom:16px;">
+                  <button style="{{ f.solarStyle }}">양력</button>
+                  <button style="{{ f.lunarStyle }}">음력</button>
+                </div>
+
+                <label style="display:block; font-size:13px; font-weight:600; color:#475569; margin-bottom:7px;">생년월일</label>
+                <div style="{{ f.inputStyle }}">
+                  <span style="{{ f.valueStyle }}">{{ f.dateValue }}</span>
+                </div>
+                <sc-if value="{{ f.hasError }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; align-items:center; gap:7px; margin-top:9px;">
+                    <span style="flex:none; width:15px; height:15px; border-radius:999px; background:#DC2626; color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center;">!</span>
+                    <span style="font-size:13px; font-weight:500; color:#DC2626;">{{ f.errorText }}</span>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ f.showLeap }}" hint-placeholder-val="{{ false }}">
+                  <label style="display:flex; align-items:center; gap:9px; margin-top:14px; cursor:pointer;">
+                    <span style="flex:none; width:19px; height:19px; border-radius:6px; border:1.5px solid #CBD5E1; background:#fff;"></span>
+                    <span style="font-size:14px; color:#475569;">윤달이에요</span>
+                  </label>
+                </sc-if>
+
+                <label style="display:block; font-size:13px; font-weight:600; color:#475569; margin:20px 0 7px;">이름 <span style="font-weight:500; color:#B6BAC1;">선택</span></label>
+                <div style="border:1px solid #CBD5E1; border-radius:12px; padding:14px 15px; background:#fff;">
+                  <span style="font-size:16px; color:#CBD5E1;">비워둬도 괜찮아요</span>
+                </div>
+
+                <button style="{{ f.ctaStyle }}">
+                  <sc-if value="{{ f.isLoading }}" hint-placeholder-val="{{ false }}">
+                    <span style="width:17px; height:17px; border-radius:999px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; animation:m2spin .8s linear infinite; display:inline-block;"></span>
+                  </sc-if>
+                  {{ f.ctaLabel }}
+                </button>
+                <p style="font-size:12.5px; color:#B6BAC1; margin:14px 0 0; text-align:center; text-wrap:pretty;">로그인 없음 · 생일은 캐릭터 계산에만 사용</p>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+    </sc-if>
+
+    <!-- ============ 04 · 결과 ============ -->
+    <sc-if value="{{ isResult }}" hint-placeholder-val="{{ false }}">
+    <section>
+      <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:26px;">
+        <div>
+          <div style="font-size:11.5px; font-weight:700; letter-spacing:0.09em; color:#94A3B8; margin-bottom:8px;">산출물 04</div>
+          <h1 style="font-size:30px; font-weight:700; letter-spacing:-0.03em; margin:0 0 8px;">결과 화면</h1>
+          <p style="font-size:15px; color:#64748B; margin:0; max-width:620px; text-wrap:pretty;">카드 본문은 전부 무료 공개입니다. 잠금 UI 없이 리포트 티저만 아래에 둡니다.</p>
+        </div>
+        <div style="display:flex; gap:2px; background:#E2E5EA; border-radius:11px; padding:3px;">
+          <button onClick="{{ setOwner }}" style="{{ ownerStyle }}">소유자</button>
+          <button onClick="{{ setGuest }}" style="{{ guestStyle }}">공유 수신자</button>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:center;">
+      <div style="{{ resultShellStyle }}">
+
+        <sc-if value="{{ isGuest }}" hint-placeholder-val="{{ false }}">
+          <div style="position:sticky; top:62px; z-index:40; background:rgba(255,255,255,.94); backdrop-filter:blur(14px); border-bottom:1px solid #EEF1F4; padding:11px 20px; display:flex; align-items:center; gap:12px;">
+            <span style="flex:1; font-size:14px; color:#475569; min-width:0; text-wrap:pretty;">지우님이 보낸 카드예요</span>
+            <button style="flex:none; font-family:inherit; font-size:14px; font-weight:600; color:#fff; background:#2563EB; border:none; padding:10px 16px; border-radius:11px; cursor:pointer; white-space:nowrap;" style-hover="background:#1D4ED8;">내 것도 보기</button>
+          </div>
+        </sc-if>
+
+        <div style="{{ resultPadStyle }}">
+
+          <!-- 1 카드 -->
+          <div style="display:flex; justify-content:center;">
+            <dc-import name="Character Card" w="{{ resultCardW }}" desc="{{ active.desc }}" shadow="{{ active.shadow }}" basis="{{ active.basis }}" element="{{ active.element }}" yy="{{ active.yy }}" hanja="{{ active.hanja }}" family="{{ active.family }}" family-hanja="{{ active.familyHanja }}" scene="{{ active.scene }}" hook="{{ active.hook }}" chips="{{ active.chips }}" hint-size="400px,258px"></dc-import>
+          </div>
+
+          <!-- 3 미니 도감 -->
+          <div style="margin-top:34px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:14px;">
+              <h3 style="font-size:17px; font-weight:700; letter-spacing:-0.02em; margin:0;">{{ codexTitle }}</h3>
+              <span style="font-size:12.5px; color:#B6BAC1; white-space:nowrap;">전부 열려 있어요</span>
+            </div>
+            <div class="m2scroll" style="display:flex; gap:12px; overflow-x:auto; padding-bottom:10px; margin:0 -20px; padding-left:20px; padding-right:20px;">
+              <sc-for list="{{ siblings }}" as="s" hint-placeholder-count="5">
+                <div onClick="{{ s.pick }}" style="{{ s.wrapStyle }}">
+                  <dc-import name="Character Card" w="{{ codexW }}" desc="{{ s.desc }}" shadow="{{ s.shadow }}" basis="{{ s.basis }}" element="{{ s.element }}" yy="{{ s.yy }}" hanja="{{ s.hanja }}" family="{{ s.family }}" family-hanja="{{ s.familyHanja }}" scene="{{ s.scene }}" hook="{{ s.hook }}" chips="{{ s.chips }}" hint-size="176px,113px"></dc-import>
+                  <div style="{{ s.labelStyle }}">{{ s.scene }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <sc-if value="{{ hasExpanded }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:16px; border:1px solid #E5E8ED; border-radius:18px; padding:20px; background:#FBFCFD; animation:m2rise .28s ease-out;">
+                <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start;">
+                  <dc-import name="Character Card" w="{{ expandedCardW }}" desc="{{ expanded.desc }}" shadow="{{ expanded.shadow }}" basis="{{ expanded.basis }}" element="{{ expanded.element }}" yy="{{ expanded.yy }}" hanja="{{ expanded.hanja }}" family="{{ expanded.family }}" family-hanja="{{ expanded.familyHanja }}" scene="{{ expanded.scene }}" hook="{{ expanded.hook }}" chips="{{ expanded.chips }}" hint-size="280px,180px"></dc-import>
+                  <div style="flex:1; min-width:200px;">
+                    <div style="font-size:15px; font-weight:700; letter-spacing:-0.02em; margin:0 0 14px;">{{ expanded.scene }}</div>
+                    <button onClick="{{ closeExpanded }}" style="font-family:inherit; font-size:13.5px; font-weight:600; color:#475569; background:#fff; border:1px solid #E2E8F0; padding:9px 15px; border-radius:10px; cursor:pointer;" style-hover="background:#F8FAFC;">접기</button>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+
+          <!-- 4 공유 -->
+          <div style="margin-top:40px;">
+            <h3 style="font-size:17px; font-weight:700; letter-spacing:-0.02em; margin:0 0 14px;">이 카드 보내기</h3>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button style="flex:1; min-width:150px; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:9px; font-size:15px; font-weight:600; color:#181600; background:#FEE500; border:none; padding:15px 18px; border-radius:13px; cursor:pointer;" style-hover="filter:brightness(.96);">
+                <span style="width:20px; height:20px; border-radius:6px; background:#181600; color:#FEE500; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center;">talk</span>카카오톡
+              </button>
+              <button style="flex:1; min-width:150px; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:9px; font-size:15px; font-weight:600; color:#334155; background:#fff; border:1px solid #D9DEE5; padding:15px 18px; border-radius:13px; cursor:pointer;" style-hover="background:#F8FAFC;">
+                <span style="width:15px; height:9px; border:1.5px solid #94A3B8; border-radius:999px; display:inline-block; transform:rotate(-30deg);"></span>링크 복사
+              </button>
+              <button style="flex:none; font-family:inherit; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600; color:#334155; background:#fff; border:1px solid #D9DEE5; padding:15px 18px; border-radius:13px; cursor:pointer;" style-hover="background:#F8FAFC;">공유…</button>
+            </div>
+          </div>
+
+          <!-- 5 리포트 티저 -->
+          <div style="margin-top:40px; border:1px solid #DBE7FB; background:#F4F8FF; border-radius:18px; padding:22px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+              <span style="font-size:11.5px; font-weight:700; letter-spacing:0.05em; color:#fff; background:#2563EB; padding:4px 9px; border-radius:999px;">리포트</span>
+              <span style="font-size:13px; color:#64748B;">여덟 글자 전체 해석</span>
+            </div>
+            <p style="font-size:16.5px; font-weight:600; line-height:1.55; color:#0F172A; margin:0 0 18px; letter-spacing:-0.015em; text-wrap:pretty;">일주까지 읽은 게 여기까지 — 여덟 글자 전체는 리포트에서</p>
+            <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+              <button style="flex:1; min-width:160px; font-family:inherit; font-size:15.5px; font-weight:700; color:#fff; background:#2563EB; border:none; padding:15px 20px; border-radius:13px; cursor:pointer; box-shadow:0 10px 22px -12px rgba(37,99,235,.8);" style-hover="background:#1D4ED8;">리포트 보기</button>
+              <div style="display:flex; align-items:baseline; gap:6px;">
+                <span style="font-size:19px; font-weight:700; letter-spacing:-0.02em;">₩1,000</span>
+                <span style="font-size:12.5px; color:#94A3B8;">1회</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 6 지도 크로스링크 -->
+          <div style="margin-top:14px; border:1px dashed #D9DEE5; border-radius:18px; padding:20px 22px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:190px;">
+              <div style="font-size:15px; font-weight:600; letter-spacing:-0.01em; margin-bottom:3px;">친구들과의 기운 지도 만들기</div>
+              <div style="font-size:13px; color:#B6BAC1;">준비 중이에요</div>
+            </div>
+            <button style="flex:none; font-family:inherit; font-size:13.5px; font-weight:600; color:#94A3B8; background:#F8FAFC; border:1px solid #E9EDF2; padding:10px 16px; border-radius:11px; cursor:not-allowed;">알림 받기</button>
+          </div>
+
+        </div>
+      </div>
+      </div>
+    </section>
+    </sc-if>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const ACCENT = '#2563EB';
+
+class Component extends DCLogic {
+  state = { screen: 'cards', sheet: 1, vp: 'mobile', result: 'owner', data: null, activeId: 0, expandedId: null };
+
+  componentDidMount() {
+    import('./characters-60.js')
+      .then(m => this.setState({ data: m.CHARACTERS }))
+      .catch(e => console.error('character data load failed', e));
+  }
+
+  seg(on) {
+    return 'font-family:inherit; font-size:13px; font-weight:600; border:none; padding:7px 14px; border-radius:9px; cursor:pointer; white-space:nowrap; transition:background .12s; ' +
+      (on ? 'background:#fff; color:#0F172A; box-shadow:0 1px 2px rgba(15,23,42,.1);' : 'background:transparent; color:#64748B;');
+  }
+
+  renderVals() {
+    const st = this.state;
+    const data = (st.data || []).map(c => Object.assign({}, c, { no: c.id + 1 }));
+    const screen = st.screen;
+    const mobile = st.vp === 'mobile';
+
+    const byKey = k => data.find(c => c.key === k) || data[0];
+    const blank = { no: 1, element: '목', yy: '양', hanja: '甲子', family: '', familyHanja: '', scene: '', hook: '', chips: [], desc: '', shadow: '' };
+
+    // 패밀리별 첫 카드
+    const reps = [];
+    const seen = {};
+    for (const c of data) { if (!seen[c.stem]) { seen[c.stem] = 1; reps.push(c); } }
+
+    const CHART = { 목: '#2E9E6B', 화: '#DC5A4B', 토: '#C99A3F', 금: '#8492A6', 수: '#3E6FB0' };
+    const famMap = {};
+    for (const c of data) {
+      if (!famMap[c.stem]) famMap[c.stem] = { name: c.family, element: c.element, yy: c.yy, familyHanja: c.familyHanja, cards: [] };
+      famMap[c.stem].cards.push(c);
+    }
+    const families = Object.keys(famMap).map(k => {
+      const f = famMap[k];
+      return {
+        name: f.name,
+        meta: f.familyHanja + ' · ' + f.element + ' · ' + f.yy + '간 · ' + f.cards.length + '장',
+        cards: f.cards,
+        dotStyle: 'width:9px; height:9px; border-radius:999px; flex:none; background:' + (CHART[f.element] || '#94A3B8') + ';'
+      };
+    });
+
+    const active = data[st.activeId] || blank;
+    const siblingsRaw = data.filter(c => c.stem === active.stem && c.key !== active.key);
+    const siblings = siblingsRaw.map(s => {
+      const on = st.expandedId === s.key;
+      return Object.assign({}, s, {
+        pick: () => this.setState({ expandedId: on ? null : s.key }),
+        wrapStyle: 'flex:none; width:176px; cursor:pointer; transition:transform .14s; transform:translateY(' + (on ? '-4px' : '0') + ');',
+        labelStyle: 'font-size:12px; font-weight:500; line-height:1.35; margin-top:8px; text-wrap:pretty; color:' + (on ? ACCENT : '#94A3B8') + ';'
+      });
+    });
+    const expanded = siblingsRaw.find(s => s.key === st.expandedId) || blank;
+
+    const tabDefs = [
+      { id: 'cards', label: '카드 시트' },
+      { id: 'hero', label: '랜딩 히어로' },
+      { id: 'funnel', label: '퍼널' },
+      { id: 'result', label: '결과' }
+    ];
+    const tabs = tabDefs.map(t => ({
+      label: t.label,
+      go: () => this.setState({ screen: t.id }),
+      style: this.seg(screen === t.id)
+    }));
+
+    const fieldBase = 'border-radius:12px; padding:14px 15px; background:#fff; ';
+    const mkFunnel = (o) => ({
+      tag: o.tag,
+      note: o.note,
+      tagStyle: 'font-size:11.5px; font-weight:700; letter-spacing:0.04em; padding:4px 9px; border-radius:999px; ' + (o.danger ? 'background:#FEF2F2; color:#DC2626;' : 'background:#E2E5EA; color:#475569;'),
+      shellStyle: 'width:' + (mobile ? '344px' : '420px') + '; background:#fff; border:1px solid #E5E8ED; border-radius:' + (mobile ? '30px' : '20px') + '; box-shadow:0 8px 24px -16px rgba(15,23,42,.3); overflow:hidden;',
+      padStyle: 'padding:' + (mobile ? '30px 22px 26px' : '32px 30px 28px') + ';',
+      solarStyle: this.seg(!o.lunar) + 'flex:1;',
+      lunarStyle: this.seg(!!o.lunar) + 'flex:1;',
+      showLeap: !!o.lunar,
+      hasError: !!o.error,
+      errorText: o.error || '',
+      isLoading: !!o.loading,
+      dateValue: o.value || 'YYYY.MM.DD',
+      valueStyle: 'font-size:16px; letter-spacing:0.01em; color:' + (o.value ? '#0F172A' : '#CBD5E1') + ';',
+      inputStyle: fieldBase + (o.error
+        ? 'border:1.5px solid #DC2626; box-shadow:0 0 0 3px #FEF2F2;'
+        : o.focus ? 'border:1.5px solid ' + ACCENT + '; box-shadow:0 0 0 3px #EFF6FF;' : 'border:1px solid #CBD5E1;'),
+      ctaLabel: o.loading ? '캐릭터를 고르는 중' : '무료로 내 캐릭터 보기',
+      ctaStyle: 'font-family:inherit; width:100%; display:flex; align-items:center; justify-content:center; gap:10px; font-size:16px; font-weight:700; padding:16px; border-radius:14px; border:none; margin-top:24px; letter-spacing:-0.01em; ' + (o.disabled
+        ? 'background:#F0F2F5; color:#B6BAC1; cursor:not-allowed;'
+        : o.loading
+          ? 'background:' + ACCENT + '; color:rgba(255,255,255,.85); cursor:wait;'
+          : 'background:' + ACCENT + '; color:#fff; cursor:pointer; box-shadow:0 12px 24px -14px rgba(37,99,235,.9);')
+    });
+
+    const funnelStates = [
+      mkFunnel({ tag: '기본', note: '빈 입력', disabled: true }),
+      mkFunnel({ tag: '기본 · 음력', note: '윤달 체크 노출', lunar: true, value: '1990.10.25', focus: true }),
+      mkFunnel({ tag: '에러', note: '미래 날짜', value: '2031.04.02', error: '아직 오지 않은 날짜예요' }),
+      mkFunnel({ tag: '로딩', note: '1~3초 · 버튼 안에서', value: '1990.10.25', loading: true })
+    ];
+
+    const statusMap = {
+      cards: data.length + '종 로드됨 · characters-60',
+      hero: '히어로 블록만 · 아래 섹션 유지',
+      funnel: '1스텝 · 상태 4종',
+      result: '무료 공개 · 잠금 UI 없음'
+    };
+
+    return {
+      tabs,
+      showVp: screen === 'funnel' || screen === 'result',
+      setMobile: () => this.setState({ vp: 'mobile' }),
+      setDesktop: () => this.setState({ vp: 'desktop' }),
+      vpMobileStyle: this.seg(mobile),
+      vpDesktopStyle: this.seg(!mobile),
+      statusNote: statusMap[screen],
+
+      isCards: screen === 'cards',
+      isHero: screen === 'hero',
+      isFunnel: screen === 'funnel',
+      isResult: screen === 'result',
+
+      specs: [
+        { k: '사이즈', v: '공유용 1080 / 화면용 400 · 높이 가변' },
+        { k: '재료', v: '배경색 · 타이포 · 한자 글리프' },
+        { k: '한자', v: '262px · opacity 0.11 · 우하단 크롭' },
+        { k: 'OG 1200×630', v: '장면명 + 한자만, hook·chips 제거' }
+      ],
+      layers: [
+        { n: '1', t: '서피스 — 오행 딥 서피스 + 상단 좌측 라디얼 광원(액센트 17% 혼합)' },
+        { n: '2', t: '한자 — 2글자 세로, 우하단 배치, 아래 크롭, 텍스트 뒤 레이어' },
+        { n: '3', t: '타이포 스택 — 장면명 84 / hook 38 / chips 28 / desc 31 / shadow 29' },
+        { n: '4', t: '상단 — 패밀리명 32 + 음양·오행 미니 배지, 아래 basis 24' },
+        { n: '5', t: '음양 마커 — 안전 여백 안쪽 인셋 프레임 (양간 실선 / 음간 점선)' }
+      ],
+
+      shareW: 432,
+      screenW: 400,
+      tinyW: 240,
+      heroCardW: mobile ? 300 : 340,
+      codexW: 176,
+      expandedCardW: 280,
+      resultCardW: mobile ? 327 : 460,
+
+      hero: byKey('갑자') || blank,
+      contrast: byKey('을축') || blank,
+      setSheet1: () => this.setState({ sheet: 1 }),
+      setSheet10: () => this.setState({ sheet: 10 }),
+      setSheet60: () => this.setState({ sheet: 60 }),
+      sheet1Style: this.seg(st.sheet === 1),
+      sheet10Style: this.seg(st.sheet === 10),
+      sheet60Style: this.seg(st.sheet === 60),
+      isSheet1: st.sheet === 1,
+      isSheet10: st.sheet === 10,
+      isSheet60: st.sheet === 60,
+      reps,
+      families,
+
+      stack0: byKey('임신') || blank,
+      stack1: byKey('병인') || blank,
+      stack2: byKey('갑자') || blank,
+      heroGridStyle: 'display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:40px; align-items:center; padding:clamp(40px,5vw,64px) 32px;',
+      heroStackStyle: 'position:relative; height:290px; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:0 12px; isolation:isolate;',
+      stackBackStyle: 'position:absolute; transform:rotate(-8deg) translate(-74px,12px); filter:drop-shadow(0 22px 40px rgba(15,23,42,.22));',
+      stackMidStyle: 'position:absolute; transform:rotate(4.5deg) translate(88px,-6px); filter:drop-shadow(0 22px 40px rgba(15,23,42,.22));',
+      stackFrontStyle: 'position:relative; z-index:2; filter:drop-shadow(0 30px 50px rgba(15,23,42,.3));',
+
+      funnelStates,
+
+      setOwner: () => this.setState({ result: 'owner' }),
+      setGuest: () => this.setState({ result: 'guest' }),
+      ownerStyle: this.seg(st.result === 'owner'),
+      guestStyle: this.seg(st.result === 'guest'),
+      isGuest: st.result === 'guest',
+      resultShellStyle: 'width:100%; max-width:' + (mobile ? '390px' : '600px') + '; background:#fff; border:1px solid #E5E8ED; border-radius:' + (mobile ? '30px' : '22px') + '; overflow:hidden; box-shadow:0 10px 30px -20px rgba(15,23,42,.35);',
+      resultPadStyle: 'padding:' + (mobile ? '26px 20px 40px' : '34px 40px 48px') + ';',
+      active,
+      siblings,
+      codexTitle: (active.family || '').replace('형', '') + ' 패밀리의 다른 다섯',
+      hasExpanded: !!st.expandedId,
+      expanded,
+      closeExpanded: () => this.setState({ expandedId: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

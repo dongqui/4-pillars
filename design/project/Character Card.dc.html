@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap">
+</helmet>
+
+<div style="{{ frameStyle }}">
+  <div style="{{ canvasStyle }}">
+
+    <div style="{{ glowStyle }}"></div>
+
+    <div style="{{ hanjaStyle }}">
+      <div style="{{ glyphStyle }}">{{ hanjaA }}</div>
+      <div style="{{ glyphStyle }}">{{ hanjaB }}</div>
+    </div>
+
+    <div style="position:relative; padding:72px;">
+
+      <div>
+        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+          <span style="font-size:32px; font-weight:500; letter-spacing:-0.01em; line-height:1.2; color:{{ accent }};">{{ familyLine }}</span>
+          <span style="{{ badgeStyle }}">{{ badge }}</span>
+        </div>
+        <div style="{{ basisStyle }}">{{ basis }}</div>
+      </div>
+
+      <div style="margin-top:38px;">
+        <h2 style="{{ sceneStyle }}">{{ scene }}</h2>
+        <p style="{{ hookStyle }}">{{ hook }}</p>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:26px;">
+        <sc-for list="{{ chips }}" as="chip" hint-placeholder-count="3">
+          <span style="{{ chipStyle }}">{{ chip }}</span>
+        </sc-for>
+      </div>
+
+      <div style="margin-top:26px;">
+        <p style="{{ descStyle }}">{{ desc }}</p>
+        <p style="{{ shadowStyle }}">{{ shadow }}</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:400,&quot;height&quot;:260},&quot;w&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:400,&quot;min&quot;:160,&quot;max&quot;:1200,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;크기&quot;},&quot;zoomW&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:400,&quot;min&quot;:160,&quot;max&quot;:1200,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;크기&quot;},&quot;light&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;크기&quot;},&quot;element&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;목&quot;,&quot;options&quot;:[&quot;목&quot;,&quot;화&quot;,&quot;토&quot;,&quot;금&quot;,&quot;수&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;캐릭터&quot;},&quot;yy&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;양&quot;,&quot;options&quot;:[&quot;양&quot;,&quot;음&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;캐릭터&quot;},&quot;hanja&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;甲子&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;캐릭터&quot;},&quot;family&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;큰나무형&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;캐릭터&quot;},&quot;familyHanja&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;甲木&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;캐릭터&quot;},&quot;basis&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;갑목 일간이 자(인성, 깊은 물·한밤) 위에 앉은 구조&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;카피&quot;},&quot;scene&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;깊은 물가의 큰나무&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;카피&quot;},&quot;hook&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;고요히 뿌리로 힘을 모으는 사람&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;카피&quot;},&quot;chips&quot;:{&quot;editor&quot;:null,&quot;default&quot;:[&quot;깊은 생각&quot;,&quot;조용한 흡수력&quot;,&quot;흔들리지 않는 속도&quot;],&quot;tsType&quot;:&quot;string[]&quot;,&quot;section&quot;:&quot;카피&quot;},&quot;desc&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;깊은 물가에 선 큰나무처럼, 보이지 않는 곳에서 꾸준히 양분을 끌어올려요. 겉으론 느긋해 보여도 속에서는 생각이 계속 자라고 있는 편이에요.&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;카피&quot;},&quot;shadow&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;충분히 찰 때까지 미루다, 좋은 때를 흘려보낼 때가 있어요.&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;카피&quot;}}">
+// 라이트 변형에서 쓰는 오행 차트색 (디자인 시스템 기존 값)
+const CHART = { 목: '#2E9E6B', 화: '#DC5A4B', 토: '#C99A3F', 금: '#8492A6', 수: '#3E6FB0' };
+const SURFACES = {
+  목: { s: '#14352A', a: '#34D399', h: '木' },
+  화: { s: '#351C16', a: '#F97362', h: '火' },
+  토: { s: '#322612', a: '#F0B542', h: '土' },
+  금: { s: '#1E262F', a: '#A9BCD0', h: '金' },
+  수: { s: '#0E2A45', a: '#4FA3E3', h: '水' }
+};
+
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const tone = SURFACES[p.element ?? '목'] || SURFACES['목'];
+    const w = Number(p.w) || 400;
+    // zoomW: 내부 요소 크기를 결정하는 기준 폭. w보다 작게 주면 높이·글자 크기는 유지하고 가로만 늘어남
+    const zoomW = Number(p.zoomW) || w;
+    const k = zoomW / 1080;
+    const CW = Math.round(w / k);
+    const radius = Math.max(10, Math.round(w * 0.05));
+    const yang = (p.yy ?? '양') === '양';
+
+    const rgb = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
+    const mix = (a, b, t) => {
+      const A = rgb(a), B = rgb(b);
+      return 'rgb(' + A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',') + ')';
+    };
+    const rgba = (c, al) => 'rgba(' + rgb(c).join(',') + ',' + al + ')';
+
+    const hanja = p.hanja ?? '甲子';
+    const glyph = 262;
+    const scene = p.scene ?? '깊은 물가의 큰나무';
+    const sceneSize = scene.length <= 9 ? 84 : 72;
+
+    const light = !!p.light;
+    const el = p.element ?? '목';
+    if (light) {
+      const acc = CHART[el] || CHART['목'];
+      return {
+        accent: acc,
+        scene,
+        hook: p.hook ?? '고요히 뿌리로 힘을 모으는 사람',
+        chips: p.chips ?? ['깊은 생각', '조용한 흡수력', '흔들리지 않는 속도'],
+        desc: p.desc ?? '깊은 물가에 선 큰나무처럼, 보이지 않는 곳에서 꾸준히 양분을 끌어올려요. 겉으론 느긋해 보여도 속에서는 생각이 계속 자라고 있는 편이에요.',
+        shadow: p.shadow ?? '충분히 찰 때까지 미루다, 좋은 때를 흘려보낼 때가 있어요.',
+        basis: p.basis ?? '갑목 일간이 자(인성, 깊은 물·한밤) 위에 앉은 구조',
+        hanjaA: hanja[0],
+        hanjaB: hanja[1],
+        familyLine: (p.family ?? '큰나무형') + ' · ' + (p.familyHanja ?? '甲木'),
+        badge: (yang ? '陽' : '陰') + ' · ' + tone.h,
+        badgeStyle: 'font-size:24px; font-weight:500; line-height:1; padding:9px 14px; border-radius:8px; white-space:nowrap; border:1.5px solid #E2E8F0; color:#94A3B8;',
+        basisStyle: 'font-size:27px; font-weight:400; line-height:1.4; color:#94A3B8; margin-top:20px; word-break:keep-all; text-wrap:pretty;',
+        sceneStyle: 'font-size:' + sceneSize + 'px; font-weight:700; letter-spacing:-0.03em; line-height:1.14; color:#0F172A; margin:0 0 20px; white-space:nowrap;',
+        hookStyle: 'font-size:38px; font-weight:400; line-height:1.4; color:#334155; margin:0; word-break:keep-all; text-wrap:pretty;',
+        chipStyle: 'font-size:28px; font-weight:500; letter-spacing:-0.01em; line-height:1; padding:16px 26px; border-radius:999px; border:1.5px solid #E2E8F0; color:' + acc + ';',
+        descStyle: 'font-size:31px; font-weight:400; line-height:1.55; color:#475569; margin:0; word-break:keep-all; text-wrap:pretty;',
+        shadowStyle: 'font-size:29px; font-weight:400; line-height:1.55; color:#8B98A9; margin:0; word-break:keep-all; text-wrap:pretty;',
+        frameStyle: 'position:relative; flex:none; width:' + w + 'px; border-radius:' + radius + 'px; overflow:hidden; background:#fff; border:1px solid #E5E8ED; font-family:\'Pretendard\',\'Pretendard Variable\',-apple-system,system-ui,sans-serif;',
+        canvasStyle: 'position:relative; width:' + CW + 'px; zoom:' + k + '; background:#fff;',
+        glowStyle: 'position:absolute; inset:0; background:radial-gradient(' + Math.round(CW * 0.7) + 'px 520px at 12% -12%, ' + rgba(acc, 0.07) + ' 0%, rgba(255,255,255,0) 66%);',
+        hanjaStyle: 'position:absolute; right:34px; bottom:-' + Math.round(glyph * 0.22) + 'px; width:' + glyph + 'px; font-family:\'Nanum Myeongjo\',\'Noto Serif KR\',serif; font-weight:700; font-size:' + glyph + 'px; text-align:center; color:#0F172A; opacity:0.055; pointer-events:none; user-select:none;',
+        glyphStyle: 'height:' + glyph + 'px; line-height:' + glyph + 'px;'
+      };
+    }
+
+    return {
+      accent: tone.a,
+      scene,
+      sceneStyle: 'font-size:' + sceneSize + 'px; font-weight:700; letter-spacing:-0.03em; line-height:1.14; color:#fff; margin:0 0 20px; white-space:nowrap;',
+      badgeStyle: 'font-size:24px; font-weight:500; line-height:1; padding:9px 14px; border-radius:8px; white-space:nowrap; border:1.5px solid rgba(255,255,255,.16); color:rgba(255,255,255,.5);',
+      basisStyle: 'font-size:27px; font-weight:400; line-height:1.4; color:rgba(255,255,255,.56); margin-top:20px; word-break:keep-all; text-wrap:pretty;',
+      hookStyle: 'font-size:38px; font-weight:400; line-height:1.4; color:rgba(255,255,255,.78); margin:0; word-break:keep-all; text-wrap:pretty;',
+      chipStyle: 'font-size:28px; font-weight:500; letter-spacing:-0.01em; line-height:1; padding:16px 26px; border-radius:999px; border:1.5px solid rgba(255,255,255,.18); color:' + tone.a + ';',
+      descStyle: 'font-size:31px; font-weight:400; line-height:1.55; color:rgba(255,255,255,.68); margin:0; word-break:keep-all; text-wrap:pretty;',
+      shadowStyle: 'font-size:29px; font-weight:400; line-height:1.55; color:rgba(255,255,255,.5); margin:0; word-break:keep-all; text-wrap:pretty;',
+      scene,
+      hook: p.hook ?? '고요히 뿌리로 힘을 모으는 사람',
+      chips: p.chips ?? ['깊은 생각', '조용한 흡수력', '흔들리지 않는 속도'],
+      desc: p.desc ?? '깊은 물가에 선 큰나무처럼, 보이지 않는 곳에서 꾸준히 양분을 끌어올려요. 겉으론 느긋해 보여도 속에서는 생각이 계속 자라고 있는 편이에요.',
+      shadow: p.shadow ?? '충분히 찰 때까지 미루다, 좋은 때를 흘려보낼 때가 있어요.',
+      basis: p.basis ?? '갑목 일간이 자(인성, 깊은 물·한밤) 위에 앉은 구조',
+      hanjaA: hanja[0],
+      hanjaB: hanja[1],
+      familyLine: (p.family ?? '큰나무형') + ' · ' + (p.familyHanja ?? '甲木'),
+      badge: (yang ? '陽' : '陰') + ' · ' + tone.h,
+
+      sceneStyle: 'font-size:' + sceneSize + 'px; font-weight:700; letter-spacing:-0.03em; line-height:1.14; color:#fff; margin:0 0 20px; white-space:nowrap;',
+      frameStyle: 'position:relative; flex:none; width:' + w + 'px; border-radius:' + radius + 'px; overflow:hidden; background:' + tone.s + '; font-family:\'Pretendard\',\'Pretendard Variable\',-apple-system,system-ui,sans-serif;',
+      canvasStyle: 'position:relative; width:' + CW + 'px; zoom:' + k + '; background:' + tone.s + ';',
+      glowStyle: 'position:absolute; inset:0; background:radial-gradient(' + Math.round(CW * 0.82) + 'px 600px at 13% -10%, ' + rgba(tone.a, 0.16) + ' 0%, ' + rgba(tone.a, 0.05) + ' 38%, rgba(0,0,0,0) 70%), linear-gradient(148deg, ' + mix(tone.s, tone.a, 0.05) + ' 0%, ' + tone.s + ' 58%, rgba(0,0,0,.55) 180%);',
+      hanjaStyle: 'position:absolute; right:34px; bottom:-' + Math.round(glyph * 0.22) + 'px; width:' + glyph + 'px; font-family:\'Nanum Myeongjo\',\'Noto Serif KR\',serif; font-weight:700; font-size:' + glyph + 'px; text-align:center; color:#fff; opacity:0.11; pointer-events:none; user-select:none;',
+      glyphStyle: 'height:' + glyph + 'px; line-height:' + glyph + 'px;'
+    };
+  }
+}
+</script>
+</body>
+</html>

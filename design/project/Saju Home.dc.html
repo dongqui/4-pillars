@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0; background:#fff;}
+  a{color:#2563EB; text-decoration:none;}
+  a:hover{color:#1D4ED8;}
+  ::selection{background:#DBEAFE;}
+  @keyframes pv-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes pv-handoff{0%{opacity:.55;transform:scale(1.16) translateY(-26px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#fff; font-family:'Pretendard','Pretendard Variable',-apple-system,system-ui,sans-serif; color:#0F172A; -webkit-font-smoothing:antialiased; line-height:1.5;">
+
+  <header style="position:sticky; top:0; z-index:50; background:rgba(255,255,255,.9); backdrop-filter:blur(14px); border-bottom:1px solid #F3F4F6;">
+    <div style="{{ navPadStyle }}">
+      <div style="display:flex; align-items:center; gap:9px; min-width:0;">
+        <div style="width:26px; height:26px; flex:none; border-radius:8px; background:#111827; display:flex; align-items:center; justify-content:center;">
+          <span style="display:flex; align-items:flex-end; gap:2.5px; height:13px;">
+            <span style="width:2.5px; height:6.5px; border-radius:1.25px; background:rgba(255,255,255,.42);"></span>
+            <span style="width:2.5px; height:10.5px; border-radius:1.25px; background:rgba(255,255,255,.62);"></span>
+            <span style="width:2.5px; height:8.5px; border-radius:1.25px; background:rgba(255,255,255,.52);"></span>
+            <span style="width:2.5px; height:13px; border-radius:1.25px; background:#fff;"></span>
+          </span>
+        </div>
+        <span style="display:flex; align-items:baseline; gap:5px; white-space:nowrap;">
+          <span style="font-size:11px; font-weight:600; color:#9CA3AF; letter-spacing:0.09em;">PROJECT</span>
+          <span style="font-size:14.5px; font-weight:700; letter-spacing:-0.03em;">사주</span>
+        </span>
+      </div>
+      <button style="font-family:inherit; width:34px; height:34px; flex:none; border-radius:10px; border:1px solid #E5E7EB; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:3px;" style-hover="background:#F9FAFB;">
+        <span style="width:3px; height:3px; border-radius:999px; background:#6B7280;"></span>
+        <span style="width:3px; height:3px; border-radius:999px; background:#6B7280;"></span>
+        <span style="width:3px; height:3px; border-radius:999px; background:#6B7280;"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 캐릭터 · compact identity -->
+  <section style="{{ heroStyle }}">
+    <div style="{{ heroInnerStyle }}">
+
+      <div style="{{ selectorWrapStyle }}">
+        <div style="font-size:11.5px; font-weight:700; letter-spacing:0.08em; color:#94A3B8; margin-bottom:8px;">보고 있는 사주</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button onClick="{{ toggleSelector }}" style="{{ selectorBtnStyle }}">
+            <span style="{{ selectorAvatarStyle }}">{{ meInitial }}</span>
+            <span style="display:flex; flex-direction:column; align-items:flex-start; min-width:0; gap:1px;">
+              <span style="font-size:15.5px; font-weight:700; letter-spacing:-0.025em; line-height:1.2;">{{ profileName }}</span>
+              <span style="font-size:12.5px; color:#94A3B8; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:190px;">{{ me.scene }}</span>
+            </span>
+            <span style="{{ caretStyle }}">▾</span>
+          </button>
+          <button style="font-family:inherit; flex:none; height:52px; padding:0 15px; display:flex; align-items:center; gap:7px; font-size:14px; font-weight:600; color:#374151; background:#fff; border:1px solid #E2E8F0; border-radius:14px; cursor:pointer; white-space:nowrap;" style-hover="border-color:#2563EB; color:#2563EB;">
+            <span style="font-size:17px; font-weight:400; line-height:1;">+</span>{{ addLabel }}
+          </button>
+        </div>
+
+        <sc-if value="{{ selectorOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ selectorPanelStyle }}">
+            <sc-for list="{{ profiles }}" as="p" hint-placeholder-count="3">
+              <div onClick="{{ p.pick }}" style="{{ p.rowStyle }}">
+                <span style="{{ p.checkStyle }}">✓</span>
+                <span style="flex:1; min-width:0;">
+                  <span style="display:block; font-size:15px; font-weight:600; letter-spacing:-0.02em; color:#0F172A;">{{ p.name }}</span>
+                  <span style="display:block; font-size:13px; color:#94A3B8; margin-top:1px;">{{ p.scene }}</span>
+                </span>
+              </div>
+            </sc-for>
+            <div style="border-top:1px solid #F1F5F9; padding:6px;">
+              <button style="width:100%; font-family:inherit; display:flex; align-items:center; gap:9px; font-size:14.5px; font-weight:600; color:#2563EB; background:transparent; border:none; padding:12px 12px; border-radius:11px; cursor:pointer; text-align:left;" style-hover="background:#F8FAFC;">
+                <span style="font-size:17px; font-weight:400; line-height:1;">+</span>새 프로필 추가
+              </button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="{{ cardAnimStyle }}">
+        <dc-import name="Character Card" w="{{ cardW }}" element="{{ me.element }}" yy="{{ me.yy }}" hanja="{{ me.hanja }}" family="{{ me.family }}" family-hanja="{{ me.familyHanja }}" basis="{{ me.basis }}" scene="{{ me.scene }}" hook="{{ me.hook }}" chips="{{ me.chips }}" desc="{{ me.desc }}" shadow="{{ me.shadow }}" hint-size="340px,220px"></dc-import>
+      </div>
+
+    </div>
+  </section>
+
+  <section style="{{ bodyStyle }}">
+    <div style="font-size:14.5px; font-weight:700; letter-spacing:-0.02em; margin-bottom:11px;">이어서 살펴보기</div>
+
+    <div style="{{ actionGridStyle }}">
+      <div style="{{ cardBaseStyle }}" style-hover="border-color:#CBD5E1;">
+        <div style="font-size:11.5px; font-weight:700; letter-spacing:0.08em; color:#B6BAC1; margin-bottom:9px;">나를 더 깊이</div>
+        <div style="font-size:16px; font-weight:700; letter-spacing:-0.025em; margin-bottom:5px;">리포트</div>
+        <p style="font-size:13.5px; line-height:1.55; color:#6B7280; margin:0 0 18px; text-wrap:pretty;">기질과 사고방식, 감정의 결까지 더 깊이 살펴보세요.</p>
+        <span style="font-size:14px; font-weight:700; color:#2563EB; white-space:nowrap; margin-top:auto;">리포트 보기 →</span>
+      </div>
+
+      <sc-for list="{{ starters }}" as="a" hint-placeholder-count="2">
+        <div style="{{ a.cardStyle }}" style-hover="border-color:#CBD5E1;">
+          <div style="font-size:11.5px; font-weight:700; letter-spacing:0.08em; color:#B6BAC1; margin-bottom:9px;">{{ a.eyebrow }}</div>
+          <div style="font-size:16px; font-weight:700; letter-spacing:-0.025em; margin-bottom:5px;">{{ a.title }}</div>
+          <p style="font-size:13.5px; line-height:1.55; color:#6B7280; margin:0 0 18px; text-wrap:pretty;">{{ a.desc }}</p>
+          <span style="font-size:14px; font-weight:700; color:#2563EB; white-space:nowrap; margin-top:auto;">{{ a.cta }}</span>
+          <span style="{{ a.artStyle }}">
+            <sc-for list="{{ a.nodes }}" as="n" hint-placeholder-count="3">
+              <span style="{{ n }}"></span>
+            </sc-for>
+          </span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;name&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;동진&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;arriveFromReveal&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const ACCENT = '#2563EB';
+const SURF = { 목: '#14352A', 화: '#351C16', 토: '#322612', 금: '#1E262F', 수: '#0E2A45' };
+const GLOW = { 목: '#34D399', 화: '#F97362', 토: '#F0B542', 금: '#A9BCD0', 수: '#4FA3E3' };
+const NEUTRAL = '#0F172A';
+
+class Component extends DCLogic {
+  state = { data: null, w: 1200, selectorOpen: false, activeProfile: 0, handoff: false };
+
+  componentDidMount() {
+    import('./characters-60.js')
+      .then(m => this.setState({ data: m.CHARACTERS }))
+      .catch(e => console.error('character data load failed', e));
+    this._r = () => this.setState({ w: window.innerWidth });
+    this._r();
+    window.addEventListener('resize', this._r);
+    if (this.props.arriveFromReveal) {
+      this.setState({ handoff: true });
+      this._t = setTimeout(() => this.setState({ handoff: false }), 700);
+    }
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this._r);
+    clearTimeout(this._t);
+  }
+
+  renderVals() {
+    const st = this.state;
+    const data = st.data || [];
+    const w = st.w;
+    const mobile = w < 760;
+    const pad = mobile ? '20px' : '32px';
+    const maxW = 780;
+    const cardW = mobile ? Math.min(w - 40, 356) : 500;
+
+    const byKey = k => data.find(c => c.key === k);
+    const blank = { element: '목', yy: '양', hanja: '甲子', family: '큰나무형', familyHanja: '甲木', basis: '', scene: '', hook: '', chips: [], desc: '', shadow: '' };
+
+    const profileDefs = [
+      { name: this.props.name ?? '동진', key: '갑자' },
+      { name: '엄마', key: '정묘' },
+      { name: '민수', key: '임신' }
+    ];
+    const idx = Math.min(st.activeProfile, profileDefs.length - 1);
+    const me = byKey(profileDefs[idx].key) || byKey('갑자') || blank;
+    const surf = SURF[me.element] || SURF['목'];
+    const glow = GLOW[me.element] || GLOW['목'];
+
+    const profiles = profileDefs.map((p, i) => {
+      const on = i === idx;
+      const c = byKey(p.key) || blank;
+      return {
+        name: p.name,
+        scene: c.scene,
+        pick: () => this.setState({ activeProfile: i, selectorOpen: false }),
+        rowStyle: 'display:flex; align-items:flex-start; gap:10px; padding:12px 14px; cursor:pointer; background:' + (on ? '#F8FAFC' : '#fff') + ';',
+        checkStyle: 'flex:none; width:16px; font-size:12px; font-weight:700; padding-top:3px; color:' + (on ? ACCENT : 'transparent') + ';'
+      };
+    });
+
+    const dot = (bg, size, extra) => 'width:' + size + 'px; height:' + size + 'px; border-radius:999px; flex:none; ' + bg + (extra || '');
+    const cardBaseStyle = 'position:relative; display:flex; flex-direction:column; background:#fff; border:1px solid #E5E8ED; border-radius:18px; padding:' + (mobile ? '16px 17px' : '18px 20px') + '; cursor:pointer; transition:border-color .18s;';
+
+    const starters = [
+      {
+        eyebrow: '사람 사이의 나',
+        title: '관계 지도',
+        desc: '내 주변 사람들은 나에게 어떤 역할을 할까요?',
+        cta: '사람 추가하기 →',
+        nodes: [
+          dot('background:transparent; border:1.5px dashed #CBD5E1;', 10),
+          dot('background:' + NEUTRAL + ';', 13),
+          dot('background:transparent; border:1.5px dashed #CBD5E1;', 10),
+          dot('background:transparent; border:1.5px dashed #D9DEE5;', 8)
+        ]
+      },
+      {
+        eyebrow: '두 사람의 관계',
+        title: '궁합',
+        desc: '한 사람과 나의 관계를 자세히 살펴봐요.',
+        cta: '상대 고르기 →',
+        nodes: [
+          dot('background:transparent; border:1.5px solid ' + NEUTRAL + ';', 26, ' position:relative; z-index:2;'),
+          dot('background:transparent; border:1.5px dashed #CBD5E1;', 26, ' margin-left:-13px;')
+        ]
+      }
+    ].map(a => ({
+      eyebrow: a.eyebrow, title: a.title, desc: a.desc, cta: a.cta, nodes: a.nodes,
+      cardStyle: cardBaseStyle + ' overflow:hidden;',
+      artStyle: 'position:absolute; right:' + (mobile ? '16px' : '20px') + '; bottom:' + (mobile ? '15px' : '17px') + '; display:flex; align-items:center; gap:7px; opacity:.55; pointer-events:none;'
+    }));
+
+    return {
+      me,
+      profiles,
+      profileName: profileDefs[idx].name,
+      meInitial: (profileDefs[idx].name || '나').slice(0, 1),
+      selectorOpen: st.selectorOpen,
+      toggleSelector: () => this.setState(s => ({ selectorOpen: !s.selectorOpen })),
+      addLabel: mobile ? '프로필' : '프로필 추가',
+
+      navPadStyle: 'max-width:' + maxW + 'px; margin:0 auto; padding:0 ' + pad + '; height:56px; display:flex; align-items:center; justify-content:space-between; gap:12px;',
+      heroStyle: 'background:linear-gradient(180deg,#F7F9FB 0%,#FBFCFD 62%,#fff 100%); padding:' + (mobile ? '18px 0 14px' : '24px 0 20px') + ';',
+      heroInnerStyle: 'max-width:' + maxW + 'px; margin:0 auto; padding:0 ' + pad + '; display:flex; flex-direction:column; align-items:' + (mobile ? 'stretch' : 'center') + ';',
+      bodyStyle: 'max-width:' + maxW + 'px; margin:0 auto; padding:' + (mobile ? '20px ' + pad + ' 36px' : '26px ' + pad + ' 52px') + ';',
+
+      cardW,
+      cardAnimStyle: st.handoff ? 'animation:pv-handoff .52s cubic-bezier(.2,.8,.25,1) both;' : '',
+      selectorWrapStyle: 'position:relative; z-index:20; width:100%; max-width:' + cardW + 'px; margin-bottom:14px;',
+      selectorBtnStyle: 'flex:1; min-width:0; font-family:inherit; display:flex; align-items:center; gap:11px; height:52px; padding:0 14px; background:#fff; border:1px solid ' + (st.selectorOpen ? ACCENT : '#E2E8F0') + '; border-radius:14px; cursor:pointer; text-align:left; box-shadow:0 1px 2px rgba(15,23,42,.04);',
+      selectorAvatarStyle: 'flex:none; width:32px; height:32px; border-radius:999px; background:' + surf + '; color:' + glow + '; font-size:13.5px; font-weight:700; display:flex; align-items:center; justify-content:center;',
+      caretStyle: 'flex:none; margin-left:auto; font-size:11px; color:#9CA3AF; transition:transform .15s;' + (st.selectorOpen ? ' transform:rotate(180deg);' : ''),
+      selectorPanelStyle: 'position:absolute; top:calc(100% + 8px); left:0; right:0; background:#fff; border:1px solid #E2E8F0; border-radius:16px; overflow:hidden; box-shadow:0 20px 44px -20px rgba(15,23,42,.32); animation:pv-rise .18s ease-out;',
+
+      actionGridStyle: 'display:grid; grid-template-columns:repeat(' + (mobile ? '1' : '2') + ',minmax(0,1fr)); gap:10px; align-items:stretch;',
+      cardBaseStyle,
+      starters
+    };
+  }
+}
+</script>
+</body>
+</html>
