@@ -1,7 +1,7 @@
 // 상수는 src/lib/payments/pricing.ts 가 소유한다 — 주문 생성 API 가 같은 값으로
 // 청구 금액을 박아야 하는데, src/lib 이 이 폴더를 import 할 수는 없다.
 // 포맷 함수는 화면 관심사라 여기 남는다.
-export { creditedTickets, listPackages, type TicketPackage, type TicketPackageId } from "@/lib/payments/pricing";
+export { creditedTickets, type TicketPackage, type TicketPackageId } from "@/lib/payments/pricing";
 
 /**
  * 1234567 → "₩1,234,567".

@@ -68,14 +68,16 @@ describe("handleCreateOrder", () => {
     expect(createPending).not.toHaveBeenCalled();
   });
 
-  it("결제 설정이 없으면 503 — 장애가 아니라 미설정이다", async () => {
+  it("결제 설정이 없으면 503 — 장애가 아니라 미설정이다, pending 행도 만들지 않는다", async () => {
     for (const over of [
       { getStoreId: () => null },
       { getChannel: () => null },
       { getAppOrigin: () => null },
     ] as Partial<CreateOrderDeps>[]) {
-      const r = await handleCreateOrder(body, deps(over));
+      const createPending = vi.fn(async () => {});
+      const r = await handleCreateOrder(body, deps({ ...over, createPending }));
       expect(r.status).toBe(503);
+      expect(createPending).not.toHaveBeenCalled();
     }
   });
 

@@ -32,7 +32,7 @@ export function CheckoutView({
   const [method, setMethod] = useState<PaymentMethodId>(methods[0]?.id ?? "card");
   // 기본 선택은 가운데 패키지다 — 첫 항목을 고르면 가장 싼 것만 팔린다.
   const [packageId, setPackageId] = useState<TicketPackageId>(
-    packages[Math.floor(packages.length / 2)]?.id ?? packages[0].id,
+    packages[Math.floor(packages.length / 2)].id,
   );
   const [agreed, setAgreed] = useState(false);
   const { pay, status, error } = usePayment(next);

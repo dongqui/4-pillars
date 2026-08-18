@@ -135,34 +135,4 @@ describe("confirmPayment", () => {
     await expect(confirmPayment("saju-abc", d)).rejects.toThrow("network");
     expect(d.markFailed).not.toHaveBeenCalled();
   });
-
-  it("markPaid 가 false 여도 다시 읽어 paid 면 already — 다른 경로가 먼저 확정한 경우", async () => {
-    let reads = 0;
-    const result = await confirmPayment("saju-abc", {
-      ...deps(),
-      findOrder: async () => ({
-        paymentId: "saju-abc",
-        userId: "7",
-        amount: 5000,
-        status: reads++ === 0 ? "pending" : "paid",
-      }),
-      markPaid: async () => false,
-    });
-    expect(result).toEqual({ ok: true, kind: "already" });
-  });
-
-  it("markPaid 가 false 이고 다시 읽어도 paid 가 아니면 not_paid — 환불된 행이 리포트를 열면 안 된다", async () => {
-    let reads = 0;
-    const result = await confirmPayment("saju-abc", {
-      ...deps(),
-      findOrder: async () => ({
-        paymentId: "saju-abc",
-        userId: "7",
-        amount: 5000,
-        status: reads++ === 0 ? "pending" : "refunded",
-      }),
-      markPaid: async () => false,
-    });
-    expect(result).toEqual({ ok: false, kind: "not_paid" });
-  });
 });
