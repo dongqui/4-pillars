@@ -14,6 +14,8 @@ export interface ConsultationRow {
   turnsUsed: number;
   turnLimit: number;
   title: string | null;
+  /** 이 상담에 이용권이 실제로 쓰였는지. 행의 존재만으로는 결제됐다는 뜻이 아니다 */
+  ticketSpent: boolean;
   createdAt: string;
   closedAt: string | null;
 }
@@ -64,6 +66,7 @@ export function toConsultationRow(r: Record<string, unknown>): ConsultationRow {
     turnsUsed: Number(r.turns_used),
     turnLimit: Number(r.turn_limit),
     title: typeof r.title === "string" ? r.title : null,
+    ticketSpent: r.ticket_spent === true,
     createdAt: String(r.created_at),
     closedAt: r.closed_at === null || r.closed_at === undefined ? null : String(r.closed_at),
   };
@@ -114,6 +117,17 @@ export async function getConsultation(
   return rows[0] ? toConsultationRow(rows[0]) : null;
 }
 
+/** 차감이 실제로 성사된 뒤(또는 환불이 성사된 뒤) 그 사실을 행에 새긴다 */
+export async function setTicketSpent(
+  id: string,
+  spent: boolean,
+  client: SqlClient = sql,
+): Promise<void> {
+  await client`
+    UPDATE consultations SET ticket_spent = ${spent} WHERE id = ${id}::bigint
+  `;
+}
+
 export async function listConsultations(
   userId: string,
   client: SqlClient = sql,
@@ -126,6 +140,10 @@ export async function listConsultations(
     ) AS last_bubbles
     FROM consultations c
     WHERE c.user_id = ${userId}::bigint
+      -- 이용권이 안 쓰였고 한 턴도 안 나눈 행은 아무도 값을 치르지 않았고 아무도
+      -- 쓰지 않은 죽은 행이다. "아직 시작하지 않은 상담"으로 보여주면 클릭해도
+      -- ConsultationClosedError 만 돌아오는 막다른 길로 사용자를 보내는 셈이다.
+      AND NOT (c.ticket_spent = false AND c.turns_used = 0)
     ORDER BY (c.status = 'open') DESC, c.created_at DESC
   `;
   return rows.map((r) => ({

@@ -12,6 +12,7 @@ const consultation: ConsultationRow = {
   turnsUsed: 0,
   turnLimit: 10,
   title: null,
+  ticketSpent: true,
   createdAt: "2026-08-17T00:00:00.000Z",
   closedAt: null,
 };
@@ -42,6 +43,7 @@ function fakeStore(over: Record<string, unknown> = {}) {
     listMessages: vi.fn(async (): Promise<MessageRow[]> => []),
     appendMessage: vi.fn(async () => ({}) as MessageRow),
     commitTurn: vi.fn(async () => ({ ...consultation, turnsUsed: 1 })),
+    setTicketSpent: vi.fn(async () => {}),
     ...over,
   };
 }
@@ -81,6 +83,15 @@ describe("openConsultation", () => {
     });
     await expect(openConsultation(openInput, d)).rejects.toThrow(InsufficientTicketsError);
     expect(called).toBe(false);
+    // 차감이 실패했으니 이 행을 "쓸 수 있음"으로 표시하지 않는다 — ticket_spent 는
+    // DB 기본값 false 로 남고, 그 상담은 재개할 수 없다(아래 advanceConsultation 참고).
+    expect(d.store.setTicketSpent).not.toHaveBeenCalled();
+  });
+
+  it("차감이 성공하면 ticket_spent 를 true 로 남긴다", async () => {
+    const d = deps();
+    await openConsultation(openInput, d);
+    expect(d.store.setTicketSpent).toHaveBeenCalledWith("7", true);
   });
 
   it("첫 턴 LLM 이 실패하면 이용권을 되돌린다", async () => {
@@ -91,6 +102,9 @@ describe("openConsultation", () => {
     });
     await expect(openConsultation(openInput, d)).rejects.toThrow(/DeepSeek/);
     expect(d.tickets.refund).toHaveBeenCalledWith("3", "7");
+    // 환불이 성사됐으니 이 행도 "쓸 수 없음"으로 되돌린다 — 아무도 값을 치르지
+    // 않은 상담이 재개 가능한 채로 남으면 안 된다.
+    expect(d.store.setTicketSpent).toHaveBeenCalledWith("7", false);
   });
 
   it("되돌리기까지 실패해도 원래 에러를 올려보낸다 — turns_used=0 행이 증거다", async () => {
@@ -105,6 +119,9 @@ describe("openConsultation", () => {
       }),
     });
     await expect(openConsultation(openInput, d)).rejects.toThrow(/DeepSeek/);
+    // 환불이 실패했으니 ticket_spent 는 (차감 성공 때 적힌) true 로 남는다 —
+    // 그래야 그 증거 행을 이용권 없이 재개할 수 있다.
+    expect(d.store.setTicketSpent).not.toHaveBeenCalledWith("7", false);
   });
 
   it("첫 턴에서 받은 제목을 상담에 적는다", async () => {
@@ -144,6 +161,15 @@ describe("advanceConsultation", () => {
   it("없는 상담이면 null 이다", async () => {
     const d = deps({ store: fakeStore({ getConsultation: async () => null }) });
     expect(await advanceConsultation(advInput, d)).toBeNull();
+  });
+
+  it("이용권이 실제로 쓰이지 않은 상담은 재개할 수 없다 — turns_used=0 이라 decideTurn 만으로는 못 막는다", async () => {
+    const d = deps({
+      store: fakeStore({
+        getConsultation: async () => ({ ...consultation, ticketSpent: false }),
+      }),
+    });
+    await expect(advanceConsultation(advInput, d)).rejects.toThrow(ConsultationClosedError);
   });
 
   it("턴을 다 쓴 상담이면 던진다", async () => {

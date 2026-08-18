@@ -13,6 +13,7 @@ function row(over: Partial<ConsultationListItem> = {}): ConsultationListItem {
     turnsUsed: 3,
     turnLimit: 10,
     title: "직장에서의 답답함",
+    ticketSpent: true,
     createdAt: "2026-08-17T02:00:00.000Z",
     closedAt: null,
     lastBubble: "지금 자리에서 답답한 게…",

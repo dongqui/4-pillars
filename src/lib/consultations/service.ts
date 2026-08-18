@@ -29,6 +29,7 @@ export interface ServiceStore {
   listMessages(consultationId: string): Promise<MessageRow[]>;
   appendMessage(input: AppendMessageInput): Promise<MessageRow>;
   commitTurn(input: CommitTurnInput): Promise<ConsultationRow>;
+  setTicketSpent(id: string, spent: boolean): Promise<void>;
 }
 
 export interface ServiceDeps {
@@ -64,6 +65,10 @@ export async function openConsultation(
   });
 
   await deps.tickets.spend(input.userId, consultation.id);
+  // 차감이 실제로 성사된 뒤에만 이 행을 "쓸 수 있는 상담"으로 표시한다.
+  // spend 가 throw 했으면 이 줄에 닿지 않고, 행은 ticket_spent=false 인 채
+  // listConsultations 에서 걸러진다(store.ts) — 공짜 상담이 목록에 뜨지 않는다.
+  await deps.store.setTicketSpent(consultation.id, true);
 
   let result;
   try {
@@ -79,10 +84,13 @@ export async function openConsultation(
       { transport: deps.transport, model: deps.model },
     );
   } catch (e) {
-    // 되돌리기까지 실패하면 turns_used=0 인 행이 남는다. 그 행이 곧 증거이므로
-    // 별도 보상 로직을 두지 않는다 — 사용자는 그 상담을 이용권 없이 재개한다.
+    // 되돌리기까지 실패하면 turns_used=0, ticket_spent=true 인 행이 남는다. 그 행이
+    // 곧 증거이므로 별도 보상 로직을 두지 않는다 — 사용자는 그 상담을 이용권 없이
+    // 재개한다. 반대로 되돌리기가 성사되면 ticket_spent 를 false 로 되돌려, 아무도
+    // 값을 치르지 않은 이 행이 재개 가능한 상담으로 남지 않게 한다.
     try {
       await deps.tickets.refund(input.userId, consultation.id);
+      await deps.store.setTicketSpent(consultation.id, false);
     } catch (refundError) {
       console.error("[consult] 이용권 되돌리기 실패", consultation.id, refundError);
     }
@@ -103,6 +111,12 @@ export async function advanceConsultation(
 ): Promise<AdvanceResult | null> {
   const consultation = await deps.store.getConsultation(input.userId, input.id);
   if (!consultation) return null;
+
+  // 이용권이 실제로 쓰이지 않은 행(차감 실패, 또는 LLM 실패 뒤 환불 성공)은 아무도
+  // 값을 치르지 않았다. turns_used=0, status='open' 이라 decideTurn 은 통과시키므로
+  // 여기서 따로 막는다 — 아니면 이 행이 무료 상담이 된다(설계 §2 의 재개 규칙은
+  // ticket_spent=true 인 행에만 해당한다).
+  if (!consultation.ticketSpent) throw new ConsultationClosedError();
 
   const decision = decideTurn(consultation);
   if (decision.kind === "exhausted") throw new ConsultationClosedError();

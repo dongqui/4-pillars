@@ -7,6 +7,7 @@ import {
   createConsultation,
   getConsultation,
   listMessages,
+  setTicketSpent,
 } from "./store";
 import type { ServiceDeps } from "./service";
 
@@ -20,7 +21,14 @@ export function consultationDeps(): ServiceDeps {
   if (!apiKey) throw new Error("DEEPSEEK_API_KEY is not set");
 
   cached = {
-    store: { createConsultation, getConsultation, listMessages, appendMessage, commitTurn },
+    store: {
+      createConsultation,
+      getConsultation,
+      listMessages,
+      appendMessage,
+      commitTurn,
+      setTicketSpent,
+    },
     // 이용권 배선 전이다. spend 가 던지므로 상담 개설은 아직 실패한다 —
     // 의도된 상태다 (ticket-port.ts 주석 참고).
     tickets: stubTicketPort,

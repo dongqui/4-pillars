@@ -8,6 +8,7 @@ import {
   listMessages,
   appendMessage,
   commitTurn,
+  setTicketSpent,
   type SqlClient,
 } from "./store";
 
@@ -30,6 +31,7 @@ const dbConsultation = {
   turns_used: 2,
   turn_limit: 10,
   title: "직장에서의 답답함",
+  ticket_spent: true,
   created_at: "2026-08-17T00:00:00.000Z",
   closed_at: null,
 };
@@ -60,6 +62,11 @@ describe("toConsultationRow", () => {
   it("모르는 status 는 closed 로 본다 — 열린 것으로 잘못 보면 공짜 턴이 열린다", () => {
     const row = toConsultationRow({ ...dbConsultation, status: "weird" });
     expect(row.status).toBe("closed");
+  });
+
+  it("ticket_spent 를 boolean 으로 읽는다", () => {
+    expect(toConsultationRow(dbConsultation).ticketSpent).toBe(true);
+    expect(toConsultationRow({ ...dbConsultation, ticket_spent: false }).ticketSpent).toBe(false);
   });
 });
 
@@ -113,6 +120,12 @@ describe("listConsultations", () => {
     const rows = await listConsultations("3", client);
     expect(rows[0].lastBubble).toBeNull();
   });
+
+  it("이용권이 안 쓰였고 한 턴도 없는 죽은 행은 거른다", async () => {
+    const { client, calls } = fakeClient([{ ...dbConsultation, last_bubbles: null }]);
+    await listConsultations("3", client);
+    expect(calls[0].sql).toContain("ticket_spent = false AND c.turns_used = 0");
+  });
 });
 
 describe("createConsultation", () => {
@@ -137,6 +150,15 @@ describe("appendMessage", () => {
     expect(calls[0].values[1]).toBe("user");
     expect(calls[0].values[2]).toBe(JSON.stringify(["회사가 힘들어요"]));
     expect(calls[0].values[3]).toBeNull();
+  });
+});
+
+describe("setTicketSpent", () => {
+  it("ticket_spent 를 지정한 값으로 적는다", async () => {
+    const { client, calls } = fakeClient([]);
+    await setTicketSpent("7", true, client);
+    expect(calls[0].values).toEqual([true, "7"]);
+    expect(calls[0].sql).toContain("ticket_spent");
   });
 });
 
