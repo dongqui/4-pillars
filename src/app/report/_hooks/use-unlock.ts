@@ -38,6 +38,15 @@ export function useUnlock(profileId: string | undefined) {
         );
         return;
       }
+      // 401 은 렌더 이후 세션이 끊긴 경우다(만료·다른 탭 로그아웃). 그대로 두면
+      // "리포트를 열지 못했습니다"로만 뜨고 사용자는 왜인지 알 방법이 없다 —
+      // 402 와 같은 모양으로 돌아올 자리를 실어 로그인으로 보낸다.
+      if (res.status === 401) {
+        router.push(
+          `/login?next=${encodeURIComponent(`/report?profile=${profileId}`)}`,
+        );
+        return;
+      }
       if (!res.ok) throw new Error("리포트를 열지 못했습니다");
 
       // 200 은 spent 와 already 둘 다다. 화면이 할 일은 같다 — 다시 그린다.

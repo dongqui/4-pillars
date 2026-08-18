@@ -10,7 +10,10 @@ export function LockedSections({
 }: {
   sections: LockedSectionMeta[];
   isLoggedIn: boolean;
-  /** 픽스처 데모에는 없다. 없으면 열 대상이 없어 CTA 가 제자리에 머문다. */
+  /**
+   * 픽스처 데모, 그리고 로그인했지만 드래프트 승격이 실패했거나 프로필 한도를
+   * 채운 경우에 없다. 열 대상이 없으므로 로그인 버튼(cta)이 아예 사라진다.
+   */
   profileId?: string;
 }) {
   const inlineRef = useRef<HTMLDivElement>(null);
@@ -31,28 +34,25 @@ export function LockedSections({
 
   // 이용권을 쓰려면 계정이 있어야 한다. 비로그인에게는 이 버튼의 첫 단계가 로그인이고,
   // 로그인하는 순간 퍼널에서 맡겨둔 드래프트가 프로필로 승격된다.
-  // 로그인했는데 profileId 가 없는 경우는 픽스처 데모뿐이다 — 열 대상이 없으니 그대로 둔다.
   const loginHref = `/login?next=${encodeURIComponent("/report")}`;
-  const label = pending
-    ? "여는 중이에요…"
-    : isLoggedIn
-      ? "이용권 1장으로 전체 보기"
-      : "로그인하고 전체 결과 보기";
+  const label = pending ? "여는 중이에요…" : "이용권 1장으로 전체 보기";
 
   const CTA_CLASS =
     "block w-full max-w-[360px] text-base font-semibold text-white bg-accent py-4 rounded-[14px] shadow-[0_8px_20px_rgba(37,99,235,.28)] text-center hover:bg-accent-700 disabled:opacity-60";
 
   // 비로그인은 링크, 로그인은 버튼이다 — 링크로 두면 차감이 GET 이 되고,
   // 버튼으로 두면 비로그인이 로그인 화면으로 못 간다.
+  // 로그인했는데 profileId 가 없으면(드래프트 승격 실패, 프로필 한도 초과 등) 버튼을
+  // 아예 숨긴다 — 눌러도 아무것도 못 여는 버튼은 사용자가 오류로 읽는다.
   const cta = !isLoggedIn ? (
     <a href={loginHref} className={CTA_CLASS}>
-      {label}
+      로그인하고 전체 결과 보기
     </a>
-  ) : (
-    <button type="button" onClick={unlock} disabled={pending || !profileId} className={CTA_CLASS}>
+  ) : profileId ? (
+    <button type="button" onClick={unlock} disabled={pending} className={CTA_CLASS}>
       {label}
     </button>
-  );
+  ) : null;
 
   return (
     <>
