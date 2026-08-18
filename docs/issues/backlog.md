@@ -15,7 +15,7 @@
 
 2026-08-11 `feat/portone-payment` 로 결제가 붙었지만 아래 두 항목은 미처리 상태다. 프로필 삭제 기능이 없어(`src/`에 `DELETE FROM profiles` 또는 `deleteProfile` 없음) 1번은 현재 데이터 위험은 없다.
 
-- `purchases.profile_id`가 `ON DELETE CASCADE`다. 프로필 삭제가 생기면 결제 내역이 같이 지워진다 — 환불·분쟁·회계 때문에 결제 기록은 대상보다 오래 살아야 한다. `ON DELETE SET NULL`로 바꾸는 새 마이그레이션이 필요하다 (0007을 고치면 이미 적용된 DB에는 반영되지 않는다).
+- `purchases.profile_id`가 `ON DELETE CASCADE`다. 프로필 삭제가 생기면 결제 내역이 같이 지워진다 — 환불·분쟁·회계 때문에 결제 기록은 대상보다 오래 살아야 한다. `ON DELETE SET NULL`로 바꾸는 새 마이그레이션이 필요하다 (0007을 고치면 이미 적용된 DB에는 반영되지 않는다). (2026-08-17 참고: 이용권 전환 이후 신규 행은 `profile_id`가 항상 NULL이라 새로 생기는 행에는 더 이상 해당하지 않는다 — 과거에 프로필 단위로 쌓인 행에만 남는 위험이다.)
 - `purchases_paid_unique`는 `profile_id IS NULL` 행을 제약하지 못한다 (SQL은 NULL을 서로 다르게 본다). 프로필 단위가 아닌 상품(구독 등)은 `(user_id, product)` 기준 제약을 따로 걸어야 한다.
 
 **~~`/report` 실데이터 배선 때 처리~~ — 2026-08-04 해소**
@@ -111,9 +111,9 @@
 
 지금은 `Transaction.Paid` 가 아닌 이벤트를 전부 200 으로 흘려보낸다(`src/app/api/payments/webhook/_lib/handler.ts`) — 콘솔에서 환불해도 DB 에 반영되지 않는다.
 
-**3. 이중 결제 시 `purchases_paid_unique` 위반 처리**
+**~~3. 이중 결제 시 `purchases_paid_unique` 위반 처리~~ — 2026-08-17 무의미해짐**
 
-같은 프로필에 pending 주문 두 개가 생겨 둘 다 결제되면(409 가드는 `isPaid` 만 본다) 두 번째 확정이 `purchases_paid_unique` 위반으로 SQLSTATE 23505 를 던진다. 완료 API 는 500, 웹훅은 무한 재시도가 된다. 23505 를 잡아 행을 `failed` 로 내리고 수동 환불 대상임을 로그로 남겨야 한다.
+이용권 전환(`docs/superpowers/specs/2026-08-17-ticket-points-design.md`)에서 마이그레이션 0018 이 `purchases_paid_unique` 인덱스 자체를 지웠고, 주문 생성 API 도 `isPaid` 409 가드를 더 이상 두지 않는다 — 이용권은 같은 패키지를 반복 구매하는 게 정상이라 "프로필당 한 번" 전제가 사라졌다. 이 SQLSTATE 23505 는 이제 발생할 수 없다. 결제 인시던트를 파는 사람이 없는 코드를 쫓지 않도록 항목을 지운다.
 
 **4. 미결제 상태로 굳은 주문을 자동 정산하는 스크립트**
 
@@ -134,6 +134,19 @@ jsdom/RTL 이 설치돼 있지 않다. 수단 0개일 때 버튼 잠김과 이�
 **8. `/report` 의 `maxDuration = 60` 재검토**
 
 결제가 붙은 뒤 다시 보기로 했던 값인데 미뤄졌다(`src/app/report/page.tsx`). 유료 12섹션 경로가 가장 느린데, 결제 직후 첫 렌더가 바로 그 경로를 탄다.
+
+**9. 환불은 아직 전부 수기 처리다 (2026-08-17 추가)**
+
+`/checkout` 화면은 "사용하지 않은 이용권은 결제일로부터 7일 내 전액 환불 가능합니다"라고 안내하지만(`src/app/checkout/_components/CheckoutView.tsx`), 이 문구를 실행하는 코드가 없다 — `ticket_entries`의 `refund` reason 은 CHECK 목록에 자리만 있을 뿐 쓰는 곳이 없고, `Transaction.Cancelled` 웹훅은 여전히 200 으로 흘려보낸다(위 2번). 문구는 사람이 수기로 지키기로 하고 유지한다.
+
+CS 가 환불 요청을 받으면:
+
+1. 포트원 콘솔에서 해당 결제 건을 환불한다 (돈을 실제로 돌려주는 유일한 단계).
+2. `ticket_wallets.balance` 를 환불 장수만큼 수기로 차감한다 — 단, `entitlements` 로 이미 소비된 장수보다 적게 차감하면 안 된다(잔액이 음수가 될 수 있는 유일한 경로가 이 수기 UPDATE 다. `CHECK (balance >= 0)` 가 실수를 막아 준다).
+3. `ticket_entries` 에 `(user_id, delta: -N, reason: 'refund')` 행을 남긴다 — 원장에 남지 않으면 잔액이 왜 줄었는지 다음 CS 가 못 찾는다.
+4. 이미 그 이용권으로 발급된 `entitlements`(열람 권한)는 취소하지 않는다 — 환불은 "장수를 돌려준다"는 뜻이지 "본 걸 못 보게 한다"는 뜻이 아니다. 프로필을 이미 열람했다면 열람 권한은 그대로 둔다.
+
+자동화(포트원 환불 API 연동, 웹훅 반영, 잔액 조정 스크립트)는 여전히 하지 않는다 — 위 1·2번과 같은 미해결 항목이다.
 
 ## 이니시스 단일 채널 후속
 
