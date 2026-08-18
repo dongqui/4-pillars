@@ -320,7 +320,7 @@ describe("진입 프레이밍 — 다섯 구역이 전부 보인다", () => {
     // 누가 누군지 읽을 수 없었다. 3D 최소 간격(그때 0.2579)은 통과했다 —
     // 앵커에서 겪은 "3D 로는 떨어져 있어도 화면에서는 겹친다"가 사람 단위에서
     // 그대로 재현된 것이다.
-    // 지금 실측 최소는 23.62px(지현 ↔ 태호, 둘 다 fill/none, 깊이 ≈22.5) 다.
+    // 지금 실측 최소는 23.62px(지현[fill/yukhap] ↔ 태호[fill/none], 깊이 ≈22.5) 다.
     const placed = [...placePeople(FRIENDS).values(), SELF_POSITION].map((p) => p as V3);
     for (let i = 0; i < placed.length; i++) {
       for (let j = i + 1; j < placed.length; j++) {
