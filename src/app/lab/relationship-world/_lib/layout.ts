@@ -89,16 +89,17 @@ const STATE_INDEX: Record<Feature, number> = { none: 0, yukhap: 1, chung: 2 };
  * 위험을 듣고 六合 가까이 / 기본 중간 / 沖 멀리를 직접 골랐다. 되돌릴 때
  * 필요한 것은 이 표 하나를 지우고 subAnchor 의 scaleTo 를 빼는 것뿐이다.
  *
- * 간격 2 다. 1.5 로 시작했지만 세 밴드 사이의 빈 구간이 0.44/0.50 밖에 안 돼
+ * 간격 2.5 다. 1.5 → 2 → 2.5 로 두 번 벌렸다. 1.5 로 시작했지만 세 밴드 사이의 빈 구간이 0.44/0.50 밖에 안 돼
  * 화면에서 경계가 흐릿했다 — 밴드를 넓히는 주범은 간격이 아니라 사람의
  * 퍼짐이었다(SPREAD). 간격을 2 로 벌리고 퍼짐을 함께 좁혀 빈 구간을
- * 1.17/1.22 로 만들었다. 더 벌리면(2.5) 확산 halo 의 겹침 중앙값이 2 → 1 로
- * 떨어져 구역이 흩어진다 — 거기가 상한이다.
+ * 1.8 이상으로 만들었고, 접선/반경 분리 뒤에는 2.5 까지 벌려도 겹침이
+ * 버텨서 밴드 사이 빈 구간이 2.31/2.09 가 됐다. 3.0 부터 확산 halo 의 겹침
+ * 중앙값이 2 → 1 로 떨어져 구역이 흩어진다 — 거기가 상한이다.
  */
 export const STATE_RADIUS: Record<Feature, number> = {
-  yukhap: ANCHOR_RADIUS - 2,
+  yukhap: ANCHOR_RADIUS - 2.5,
   none: ANCHOR_RADIUS,
-  chung: ANCHOR_RADIUS + 2,
+  chung: ANCHOR_RADIUS + 2.5,
 };
 
 /**

@@ -3,12 +3,13 @@
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { FRIENDS } from "../_data/mock-people";
-import { ROLE_ORDER, type RelationRole } from "../_data/roles";
+import { ROLE_ORDER, type Feature, type RelationRole } from "../_data/roles";
 import { placePeople } from "../_lib/layout";
 import { ConnectionLines } from "./ConnectionLines";
 import { SelfCore } from "./SelfCore";
 import { PersonMarker } from "./PersonMarker";
 import { RegionLabels } from "./RegionLabels";
+import { ShellRings } from "./ShellRings";
 import { CameraRig } from "./CameraRig";
 import { RelationThread } from "./RelationThread";
 import { CAMERA_FOV, DEFAULT_CAMERA_POSITION, type CameraMode } from "../_lib/camera";
@@ -29,12 +30,20 @@ export function World({
   // 고정이므로 이것도 고정이다 — 선택을 바꿔도 재생성되지 않는다.
   const targets = useMemo(() => FRIENDS.map((p) => placed.get(p.id)!), [placed]);
   const roles = useMemo(() => FRIENDS.map((p) => p.role), []);
-  // 구역 배지가 쓰는 인원수. FRIENDS 가 모듈 상수라 한 번만 센다.
+  // 15개 소구역 각각의 인원수. FRIENDS 가 모듈 상수라 한 번만 센다.
   const counts = useMemo(
     () =>
       Object.fromEntries(
-        ROLE_ORDER.map((r) => [r, FRIENDS.filter((p) => p.role === r).length]),
-      ) as Record<RelationRole, number>,
+        ROLE_ORDER.map((role) => [
+          role,
+          Object.fromEntries(
+            (["none", "yukhap", "chung"] as Feature[]).map((feature) => [
+              feature,
+              FRIENDS.filter((p) => p.role === role && p.feature === feature).length,
+            ]),
+          ),
+        ]),
+      ) as Record<RelationRole, Record<Feature, number>>,
     [],
   );
   const selected = FRIENDS.find((p) => p.id === selectedId) ?? null;
@@ -87,6 +96,9 @@ export function World({
         역할이 다르다 — 이건 항상 떠 있고, 알파는 전원 동일하다. 색만은 그
         사람의 Role 을 담아 다섯 갈래 구역을 드러낸다.
       */}
+      {/* 세 껍질의 반지름. 원근에서는 거리가 눈으로 안 읽혀 선으로 준다. */}
+      <ShellRings />
+
       <ConnectionLines targets={targets} roles={roles} />
       <SelfCore />
 
