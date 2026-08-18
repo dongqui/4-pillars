@@ -102,8 +102,14 @@ export function MapShell({
         loggedIn={loggedIn}
       />
 
-      {/* 카메라 시점 전환 토글. 스파이크 시절부터 쓰던 A/B/C 세 모드를 제품 화면에서도 그대로 쓴다. */}
-      <div className="absolute top-[calc(56px+max(12px,env(safe-area-inset-top)))] left-1/2 -translate-x-1/2 z-10">
+      {/*
+        카메라 시점 전환 토글. 스파이크 시절부터 쓰던 A/B/C 세 모드를 제품
+        화면에서도 그대로 쓴다. 헤더 높이는 이제 56px + safe-area-inset-top
+        이다(헤더가 인셋을 padding 이 아니라 오프셋으로 먹는다) — 그래서
+        12px 간격을 max(12px, inset) 이 아니라 항상 더한다. max 를 쓰면
+        인셋이 12px 를 넘는 노치 기기에서 간격이 0으로 접힌다.
+      */}
+      <div className="absolute top-[calc(56px+env(safe-area-inset-top)+12px)] left-1/2 -translate-x-1/2 z-10">
         <CameraModeToggle
           mode={mode}
           onChange={setMode}

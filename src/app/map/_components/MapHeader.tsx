@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 
@@ -27,6 +27,24 @@ export function MapHeader({
   loggedIn: boolean;
 }) {
   const [toast, setToast] = useState<string | null>(null);
+  // 두 번째 탭이 1800ms 안에 들어오면 새 토스트가 이전 타이머에 맞아 일찍
+  // 지워진다. 타이머를 쥐고 있다가 새로 걸기 전에 먼저 지운다.
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(message: string) {
+    if (toastTimer.current !== null) clearTimeout(toastTimer.current);
+    setToast(message);
+    toastTimer.current = setTimeout(() => {
+      setToast(null);
+      toastTimer.current = null;
+    }, 1800);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current !== null) clearTimeout(toastTimer.current);
+    };
+  }, []);
 
   async function share() {
     const url = `${window.location.origin}/map/${shareId}`;
@@ -41,34 +59,46 @@ export function MapHeader({
     }
     try {
       await navigator.clipboard.writeText(url);
-      setToast("링크를 복사했어요");
-      setTimeout(() => setToast(null), 1800);
+      showToast("링크를 복사했어요");
     } catch {
-      setToast("링크를 복사하지 못했어요");
-      setTimeout(() => setToast(null), 1800);
+      showToast("링크를 복사하지 못했어요");
     }
   }
 
   return (
     <>
-      {/* 손잡이. 헤더가 숨어 있을 때만 눌린다. */}
+      {/*
+        손잡이. 헤더가 숨어 있을 때만 눌린다. top-0 이 아니라 노치 아래로
+        내린다 — 상태 바/노치 영역은 탭이 닿지 않는 기기가 많아, top-0 에
+        두면 노치가 있는 폰에서 손잡이 자체가 눌리지 않는 사각이 생긴다.
+      */}
       {hidden && (
         <button
           type="button"
           aria-label="헤더 보이기"
           onClick={onReveal}
-          className="fixed inset-x-0 top-0 z-30 h-1 bg-white/15"
+          className="fixed inset-x-0 top-[env(safe-area-inset-top)] z-30 h-1 bg-white/15"
         />
       )}
 
       <header
-        className={`fixed inset-x-0 top-0 z-30 border-b border-white/10 bg-slate-900/80 backdrop-blur-[14px] transition-transform duration-[180ms] motion-reduce:transition-none ${
+        // 세이프 에어리어 인셋은 헤더 높이(h-14, 56px) 를 늘리는 오프셋으로
+        // 얹는다 — 안쪽 padding 으로 넣으면 노치 기기(세이프 인셋 44~59px)에서
+        // 내부 flex 행이 h-14 박스보다 커져 블러 배경 밖, 캔버스 위로
+        // 삐져나온다. 이 라우트의 기준 기기(375×812)로는 이 코드만으로
+        // 실기기 확인을 못 했다 — 노치 폰을 가진 사람이 검증해 주면 좋겠다.
+        className={`fixed inset-x-0 top-0 z-30 border-b border-white/10 bg-slate-900/80 pt-[env(safe-area-inset-top)] backdrop-blur-[14px] transition-transform duration-[180ms] motion-reduce:transition-none ${
           hidden ? "-translate-y-full" : "translate-y-0"
         }`}
+        // 자리는 옮겨졌을 뿐 여전히 tab 으로 포커스가 간다 — inert 없이는
+        // 숨은 헤더의 로고 링크·공유 버튼이 화면 밖에서 여전히 포커스를 받아
+        // 키보드/스위치 사용자가 보이지 않는 곳으로 튄다. PersonSheet·
+        // AddPersonSheet 와 같은 패턴이다.
+        inert={hidden}
       >
-        <div className="flex h-14 items-center justify-between gap-3 px-4 pt-[env(safe-area-inset-top)]">
-          <Link href={loggedIn ? "/home" : "/"} className="shrink-0">
-            <BrandLogo size="xs" />
+        <div className="flex h-14 items-center justify-between gap-3 px-4">
+          <Link href={loggedIn ? "/home" : "/"} className="shrink-0 text-slate-100">
+            <BrandLogo size="xs" tone="light" />
           </Link>
 
           {isOwner && (
