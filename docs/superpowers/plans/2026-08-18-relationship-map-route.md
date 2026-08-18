@@ -31,8 +31,7 @@
 
 | 경로 | 책임 |
 |---|---|
-| `migrations/0020_maps.sql` | `maps` 테이블 |
-| `migrations/0021_map_people.sql` | `map_people` 테이블 |
+| `migrations/0020_maps.sql` … `0024_map_people_dedupe.sql` | `maps`·`map_people` 테이블과 인덱스. **파일 하나에 SQL 문장 하나**다 — `scripts/migrate.mts` 가 파일 전체를 한 prepared statement 로 보내고 Neon HTTP 드라이버가 다중 문장을 거부한다(러너 주석 참고). Task 4 가 실제로 `NeonDbError: cannot insert multiple commands` 를 맞고 5개로 나눴다 |
 | `src/lib/maps/types.ts` | `BirthLite`·`MapRow`·`MapPersonRow`. DB 도 zod 도 import 하지 않아 순수 모듈이 안전하게 쓴다 |
 | `src/lib/maps/input.ts` | 추가 요청 본문 zod 스키마. 컬럼도 SQL 도 모른다 |
 | `src/lib/maps/store.ts` | 컬럼 이름을 아는 유일한 곳. `profiles/store.ts` 와 같은 형태 |
