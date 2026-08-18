@@ -3601,9 +3601,26 @@ git add src/app/home .claude/launch.json && git commit -m "feat(consult): 홈에
 
 이 계획을 다 끝내도 **상담은 아직 열리지 않는다.** `stubTicketPort.spend` 가 던지기 때문이고, 이는 의도된 상태다 (배선 전에 상담이 공짜로 열리면 안 된다).
 
-이용권 시스템 작업이 끝나면 할 일은 두 가지다.
+이용권 시스템 작업이 끝나면 할 일은 네 가지다.
 
 1. `src/lib/consultations/deps.ts` 의 `tickets: stubTicketPort` 를 실구현으로 바꾼다.
 2. `src/app/consult/page.tsx` 의 주석 자리에 `getBalance` 로 잔액 배지를 켠다.
+3. **`consultations.ticket_spent` 를 백필한다.** `migrations/0016` 이 이 컬럼을 `DEFAULT false` 로
+   추가했다. 지금은 스텁 `spend` 가 항상 던져서 결제된 상담이 존재할 수 없으므로 문제가 없지만,
+   실구현이 붙은 뒤에 이 마이그레이션을 처음 적용하는 환경이 있다면 **이미 결제된 진행 중 상담이
+   모두 잠긴다** — `advanceConsultation` 이 `ticket_spent` 가 false 인 상담을 거부하기 때문이다.
+   메시지가 하나라도 있는 행은 `ticket_spent = true` 로 채우고 넘어가야 한다.
+4. **`spend` 실패가 무해하다고 가정하지 마라.** 이 기능은 "행이 있다 = 결제됐다" 로 판단하지 않고
+   `ticket_spent` 로 판단한다 — 차감이 실패한 상담 행은 남지만 쓸 수 없는 상태로 남는다.
+   그렇게 만든 이유는 그 반대가 실제 구멍이었기 때문이다: 행의 존재만으로 재개를 허용하면
+   차감 실패·환불 성공이 그대로 공짜 10턴 상담이 된다(최종 리뷰에서 잡혔다).
+
+## 남은 위험 하나
+
+`openConsultation` 에서 `deps.tickets.spend()` 와 그 직후의 `setTicketSpent(id, true)` 가 둘 다
+`try` 밖에 있다. 차감이 성공한 뒤 이 쓰기가 실패하면 이용권은 빠져나갔는데 행은
+`ticket_spent = false` 로 남아, 목록에서도 빠지고 재개도 거부된다 — 결제됐지만 보이지도 쓰이지도
+않는 상담이 된다. 지금은 스텁 `spend` 가 항상 던져서 도달할 수 없는 경로다. 이용권 실구현을
+붙이기 전에 `spend` + `setTicketSpent(true)` 를 `runTurn` 과 같은 `try` 로 감싸는 것을 권한다.
 
 그 전에 확인할 것: **DeepSeek V4 실단가**. 설계 §5 의 비용 계산은 입력 $0.28/M(캐시 미스)·출력 $0.42/M 을 가정한 값이고 가격표를 직접 본 값이 아니다. 첫 실제 상담 후 `consultations.tokens_in / tokens_out` 을 읽어 가정과 맞는지 본다.
