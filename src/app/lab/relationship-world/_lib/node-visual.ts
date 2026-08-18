@@ -44,10 +44,6 @@ export type StateVisual = {
   readonly breatheAmplitude: number;
   /** 초. breatheAmplitude 가 0 이면 의미 없다. */
   readonly breathePeriod: number;
-  /** 沖 전용. 월드 단위 위치 흔들림. 0 이면 떨지 않는다. */
-  readonly tremorAmplitude: number;
-  /** Hz. tremorAmplitude 가 0 이면 의미 없다. */
-  readonly tremorHz: number;
 };
 
 /**
@@ -64,8 +60,6 @@ export const STATE_VISUAL: Record<Feature, StateVisual> = {
     diffuseAlpha: 0.07,
     breatheAmplitude: 0,
     breathePeriod: 0,
-    tremorAmplitude: 0,
-    tremorHz: 0,
   },
   yukhap: {
     nearRadius: 0.42, // 넓고
@@ -73,8 +67,6 @@ export const STATE_VISUAL: Record<Feature, StateVisual> = {
     diffuseAlpha: 0.055,
     breatheAmplitude: 0.16,
     breathePeriod: 4.6,
-    tremorAmplitude: 0,
-    tremorHz: 0,
   },
   chung: {
     nearRadius: 0.2, // 좁고
@@ -82,8 +74,6 @@ export const STATE_VISUAL: Record<Feature, StateVisual> = {
     diffuseAlpha: 0.075,
     breatheAmplitude: 0,
     breathePeriod: 0,
-    tremorAmplitude: 0.02, // 진입 화면에서 0.5~0.8px
-    tremorHz: 6,
   },
 };
 

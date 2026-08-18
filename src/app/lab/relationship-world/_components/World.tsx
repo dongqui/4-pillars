@@ -34,7 +34,25 @@ export function World({
       camera={{ position: DEFAULT_CAMERA_POSITION, fov: CAMERA_FOV }}
       gl={{ antialias: true }}
       dpr={[1, 2]}
-      onPointerMissed={() => onSelect(null)}
+      /*
+        빈 곳을 탭했을 때만 선택을 푼다.
+
+        r3f 는 3D 오브젝트에 맞지 않은 클릭이면 무조건 onPointerMissed 를 부르는데,
+        drei <Html> 은 r3f 가 리스너를 붙인 그 div 안으로 portal 한다
+        (drei/web/Html.js 의 target = events.connected). 이 라우트에는 포인터
+        핸들러를 가진 3D 오브젝트가 하나도 없으므로 hits 는 언제나 비고, 결국
+        **명패를 탭해도 miss 가 발동해** 선택이 즉시 풀렸다. 실측: 명패 클릭 후
+        시트의 aria-hidden 이 한 번도 false 가 되지 못하고 lastShown 만 갱신됐다.
+
+        React 쪽에서 stopPropagation 으로는 못 막는다 — 네이티브 이벤트는 이미
+        이 div 를 지난 뒤에야 document 의 위임 핸들러로 전달되기 때문이다.
+        그래서 원인 지점에서 대상을 본다: 진짜 배경(캔버스) 클릭만 해제로 친다.
+      */
+      onPointerMissed={(event) => {
+        if (event.target === event.currentTarget || event.target instanceof HTMLCanvasElement) {
+          onSelect(null);
+        }
+      }}
     >
       <color attach="background" args={["#0F172A"]} />
       {/*

@@ -167,10 +167,13 @@ describe("광량 불변식", () => {
     expect(STATE_VISUAL.chung.nearAlpha).toBeGreaterThan(STATE_VISUAL.none.nearAlpha);
   });
 
-  it("움직임은 한 상태에 하나씩만 붙는다", () => {
+  it("움직이는 상태는 六合 하나뿐이다", () => {
+    // 沖 에는 미세한 떨림(6Hz)이 있었지만 화면에서 고장으로 읽혀 걷어냈다.
+    // 지금 움직임은 六合 의 느린 호흡 하나이고, stateLight 의 시간 평균 보정을
+    // 받는 것도 그 하나뿐이다. 두 번째 움직임이 붙으면 보정도 함께 들어와야
+    // 하므로, 그 순간 이 테스트가 먼저 걸린다.
+    expect(STATE_VISUAL.yukhap.breatheAmplitude).toBeGreaterThan(0);
     expect(STATE_VISUAL.none.breatheAmplitude).toBe(0);
-    expect(STATE_VISUAL.none.tremorAmplitude).toBe(0);
-    expect(STATE_VISUAL.yukhap.tremorAmplitude).toBe(0);
     expect(STATE_VISUAL.chung.breatheAmplitude).toBe(0);
   });
 });

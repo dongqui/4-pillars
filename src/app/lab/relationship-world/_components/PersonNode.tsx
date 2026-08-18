@@ -50,7 +50,6 @@ export function PersonNode({
   /** 코어와 근접 halo 에 함께 걸린다. 확산 halo 는 모두가 같은 크기다. */
   nodeScale?: number;
 }) {
-  const group = useRef<THREE.Group>(null);
   const nearSprite = useRef<THREE.Sprite>(null);
   const diffuseSprite = useRef<THREE.Sprite>(null);
   const nearMat = useRef<THREE.SpriteMaterial>(null);
@@ -85,21 +84,10 @@ export function PersonNode({
       nearSprite.current?.scale.set(nearDiameter * s, nearDiameter * s, 1);
       diffuseSprite.current?.scale.set(diffuseDiameter * s, diffuseDiameter * s, 1);
     }
-
-    // 沖: 미세한 떨림. 진폭은 작게 — 크면 고장으로 보인다.
-    if (visual.tremorAmplitude > 0 && group.current) {
-      const t = state.clock.elapsedTime * visual.tremorHz * 2 * Math.PI;
-      const a = visual.tremorAmplitude;
-      group.current.position.set(
-        position[0] + Math.sin(t) * a,
-        position[1] + Math.sin(t * 1.7) * a * 0.6,
-        position[2] + Math.cos(t * 1.3) * a,
-      );
-    }
   });
 
   return (
-    <group ref={group} position={position as unknown as [number, number, number]}>
+    <group position={position as unknown as [number, number, number]}>
       {/*
         코어만 opaque 다. transparent 로 두면 three 의 transparent 큐로 가는데,
         그 큐는 픽셀이 아니라 오브젝트 원점 거리로 정렬된다 — 앞뒤 가림이
