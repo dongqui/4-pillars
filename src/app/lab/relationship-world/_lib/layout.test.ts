@@ -16,6 +16,7 @@ import {
   ROLE_ANCHOR_LITERALS,
   ROLE_ANCHORS,
   SELF_POSITION,
+  RADIAL_JITTER,
   SPREAD,
   STATE_RADIUS,
   placePeople,
@@ -29,6 +30,15 @@ function dist(a: readonly number[], b: readonly number[]) {
   return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 }
 const len = (a: readonly number[]) => Math.hypot(a[0], a[1], a[2]);
+
+/**
+ * 소구역 중심에서 사람까지 허용되는 최대 거리.
+ *
+ * 오프셋이 접평면 원판(반지름 SPREAD)과 반경 지터(±RADIAL_JITTER)의 합이고
+ * 둘은 서로 수직이므로, 최대 거리는 두 변의 빗변이다. SPREAD 만으로 재면
+ * 반경 지터를 놓친다.
+ */
+const bound = (f: Feature) => Math.hypot(SPREAD[f], RADIAL_JITTER) + 1e-9;
 
 describe("Role 앵커", () => {
   it("5개 역할 전부에 앵커가 있다", () => {
@@ -145,7 +155,7 @@ describe("positionFor", () => {
       for (const feature of FEATURES) {
         for (let i = 0; i < 6; i++) {
           const d = dist(positionFor(role, feature, i), subAnchor(role, feature));
-          expect(d, `${role}/${feature}/${i}`).toBeLessThanOrEqual(SPREAD[feature] + 1e-9);
+          expect(d, `${role}/${feature}/${i}`).toBeLessThanOrEqual(bound(feature));
         }
       }
     }
@@ -169,10 +179,15 @@ describe("placePeople", () => {
     // express/none) 이다 — positionFor 의 MIN_SEPARATION(1.4) 재시도가 이
     // 하한을 만든다. 하한 1.2 는 그보다 낮되 진짜 충돌(재시도가 실패해
     // MIN_SEPARATION 밑으로 되돌아가는 경우)은 잡는 값이다.
+    // 이 테스트가 잠그는 것은 "두 사람이 같은 자리에 있지 않다" 뿐이다.
+    // 진짜 요구는 3D 거리가 아니라 **화면 거리**이고(아래 18px 테스트), 3D 로
+    // 1.4 를 요구하던 임계값은 오프셋이 구 안 균등이던 시절의 값이다. 지금은
+    // 접평면 원판이라 같은 칸 4명을 그만큼 벌릴 수 없다 — 2D 원판에 순차
+    // 배치하면 앞사람들이 자리를 막는다. 실측 최소는 1.047 이다.
     const placed = [...placePeople(FRIENDS).values(), SELF_POSITION];
     for (let i = 0; i < placed.length; i++) {
       for (let j = i + 1; j < placed.length; j++) {
-        expect(dist(placed[i], placed[j])).toBeGreaterThan(1.2);
+        expect(dist(placed[i], placed[j])).toBeGreaterThan(0.9);
       }
     }
   });
@@ -198,7 +213,7 @@ describe("placePeople", () => {
         // 엇갈리면 사람이 남의 소구역에 놓인다.
         for (const p of expected) {
           expect(dist(placed.get(p.id)!, subAnchor(role, feature)), p.id).toBeLessThanOrEqual(
-            SPREAD[feature] + 1e-9,
+            bound(feature),
           );
         }
       }

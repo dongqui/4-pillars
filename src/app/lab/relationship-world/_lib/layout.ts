@@ -68,11 +68,11 @@ export const ROLE_ANCHORS: Record<
   RelationRole,
   { readonly anchor: Vec3; readonly phase: number }
 > = {
-  move: { anchor: toAnchorRadius(ROLE_ANCHOR_LITERALS.move), phase: 0.4451 }, //    화면 (132, 195) 깊이 27.69
-  beside: { anchor: toAnchorRadius(ROLE_ANCHOR_LITERALS.beside), phase: 2.6878 }, //   화면 (238, 258) 깊이 20.86
-  refine: { anchor: toAnchorRadius(ROLE_ANCHOR_LITERALS.refine), phase: 3.8921 }, // 화면 (258, 432) 깊이 33.16
-  fill: { anchor: toAnchorRadius(ROLE_ANCHOR_LITERALS.fill), phase: 1.2479 }, //    화면 (222, 618) 깊이 22.52
-  express: { anchor: toAnchorRadius(ROLE_ANCHOR_LITERALS.express), phase: 1.946 }, // 화면 (118, 498) 깊이 32.32
+  move: { anchor: toAnchorRadius(ROLE_ANCHOR_LITERALS.move), phase: 0.9992 }, //    화면 (132, 195) 깊이 27.69
+  beside: { anchor: toAnchorRadius(ROLE_ANCHOR_LITERALS.beside), phase: 1.3657 }, //   화면 (238, 258) 깊이 20.86
+  refine: { anchor: toAnchorRadius(ROLE_ANCHOR_LITERALS.refine), phase: 2.5787 }, // 화면 (258, 432) 깊이 33.16
+  fill: { anchor: toAnchorRadius(ROLE_ANCHOR_LITERALS.fill), phase: 4.4157 }, //    화면 (222, 618) 깊이 22.52
+  express: { anchor: toAnchorRadius(ROLE_ANCHOR_LITERALS.express), phase: 5.7509 }, // 화면 (118, 498) 깊이 32.32
 };
 
 /** 소구역 삼각형에서 각 상태가 차지하는 꼭짓점. */
@@ -89,23 +89,29 @@ const STATE_INDEX: Record<Feature, number> = { none: 0, yukhap: 1, chung: 2 };
  * 위험을 듣고 六合 가까이 / 기본 중간 / 沖 멀리를 직접 골랐다. 되돌릴 때
  * 필요한 것은 이 표 하나를 지우고 subAnchor 의 scaleTo 를 빼는 것뿐이다.
  *
- * 간격 1.5 는 화면에서 세 껍질이 갈라져 보이는 최소치이면서 20명 전원이
- * 진입 프레임 안에 남는 최대치다(layout.test.ts 가 둘 다 잠근다).
+ * 간격 2 다. 1.5 로 시작했지만 세 밴드 사이의 빈 구간이 0.44/0.50 밖에 안 돼
+ * 화면에서 경계가 흐릿했다 — 밴드를 넓히는 주범은 간격이 아니라 사람의
+ * 퍼짐이었다(SPREAD). 간격을 2 로 벌리고 퍼짐을 함께 좁혀 빈 구간을
+ * 1.17/1.22 로 만들었다. 더 벌리면(2.5) 확산 halo 의 겹침 중앙값이 2 → 1 로
+ * 떨어져 구역이 흩어진다 — 거기가 상한이다.
  */
 export const STATE_RADIUS: Record<Feature, number> = {
-  yukhap: ANCHOR_RADIUS - 1.5,
+  yukhap: ANCHOR_RADIUS - 2,
   none: ANCHOR_RADIUS,
-  chung: ANCHOR_RADIUS + 1.5,
+  chung: ANCHOR_RADIUS + 2,
 };
 
 /**
- * 소구역 안에서 사람이 흩어지는 반경.
+ * 소구역 안에서 사람이 흩어지는 **접선 방향** 반지름.
+ *
+ * 반경 방향으로는 RADIAL_JITTER 만큼만 흔들린다 — 이 둘을 나눈 덕에 밴드를
+ * 얇게 유지하면서도 사람끼리는 넉넉히 벌릴 수 있다.
  *
  * 기본은 느슨한 무리, 六合·沖 은 또렷한 자리다. 六合 이 8%, 沖 이 8% 라
  * 그 두 칸은 대개 한 명이거나 비어 있다 — 반경을 크게 주면 한 명이 흩어진
  * 무리의 낙오자로 보인다. 六合 과 沖 은 언제나 같은 값이어야 한다.
  */
-export const SPREAD: Record<Feature, number> = { none: 1.15, yukhap: 0.5, chung: 0.5 };
+export const SPREAD: Record<Feature, number> = { none: 1.35, yukhap: 0.5, chung: 0.5 };
 
 /** seed 를 만들 때 쓰는 역할 순번. 값 자체에 의미는 없지만 바꾸면 배치가 통째로 달라진다. */
 const ROLE_INDEX: Record<RelationRole, number> = {
@@ -187,7 +193,10 @@ const dist3 = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - 
  * 안에 2명뿐)에서 MAX_ATTEMPTS 안에 유효한 자리를 못 찾아 실패로 되돌아간다.
  * 그래서 1.40 을 그 안전 구간의 위쪽 끝으로 잡았다.
  */
-const MIN_SEPARATION = 1.4;
+/** 껍질 두께. 접선 퍼짐과 달리 이 값만 밴드를 두껍게 만든다. */
+export const RADIAL_JITTER = 0.2;
+
+const MIN_SEPARATION = 1.0;
 
 /**
  * 재시도 상한. mock 데이터에서 가장 붐빈 칸은 4명(fill/none)이고, 그 재귀
@@ -195,7 +204,7 @@ const MIN_SEPARATION = 1.4;
  * 재시도 예산 안에 성공하는 것을 확인한 값이다(32 로는 fill/none 의 네 번째
  * 사람이 실패해 되돌아간다).
  */
-const MAX_ATTEMPTS = 48;
+const MAX_ATTEMPTS = 400;
 
 /** 재시도마다 시드를 벌리는 간격. 1회차(attempt 0)는 원래 시드를 그대로 써서
  * 재시도가 필요 없는 칸(대개 1명뿐인 六合·沖)의 좌표를 예전과 똑같이 지킨다. */
@@ -212,16 +221,30 @@ function sampleCandidate(
   const base = (ROLE_INDEX[role] * 97 + STATE_INDEX[feature] * 31 + indexInSubRegion) * 7;
   const s = attempt === 0 ? base : base + attempt * RETRY_STRIDE;
 
-  // 구 내부 균등 분포. cbrt 없이 반지름을 균등하게 뽑으면 중심에 몰린다.
-  const u = hash01(s + 1) * 2 - 1;
+  // 접평면 원판 + 얇은 반경 지터.
+  //
+  // 예전에는 구 안 균등 분포였다. 그러면 퍼짐이 반경 방향으로도 그대로 실려
+  // 껍질이 ±spread 만큼 두꺼워진다 — 기본 퍼짐 1.15 일 때 밴드 두께가 1.5 를
+  // 넘어 세 껍질의 경계가 화면에서 흐려졌다. 퍼짐을 줄여 밴드를 좁히면 이번엔
+  // 사람끼리 화면에서 8px 까지 붙는다(실제로 그렇게 깨졌다).
+  //
+  // 둘은 사실 다른 축이다. 사람을 벌리는 데 필요한 건 **접선 방향** 거리이고,
+  // 밴드를 좁히는 데 필요한 건 **반경 방향** 폭이다. 그래서 나눈다 — 접평면
+  // 안에서는 spread 만큼 넉넉히 흩고, 반경으로는 RADIAL_JITTER 만큼만 흔든다.
+  const dirOut = normalize(center);
+  const ref: Vec3 = Math.abs(dirOut[1]) > 0.9 ? [1, 0, 0] : [0, 1, 0];
+  const t1 = normalize(cross(dirOut, ref));
+  const t2 = cross(dirOut, t1); // 이미 단위벡터다(수직인 두 단위벡터의 외적)
+
+  // 원판 안 균등 분포. sqrt 없이 반지름을 균등하게 뽑으면 중심에 몰린다.
   const theta = hash01(s + 2) * Math.PI * 2;
-  const r = spread * Math.cbrt(hash01(s + 3));
-  const flat = Math.sqrt(1 - u * u);
+  const r = spread * Math.sqrt(hash01(s + 3));
+  const radial = (hash01(s + 1) * 2 - 1) * RADIAL_JITTER;
 
   return [
-    center[0] + r * flat * Math.cos(theta),
-    center[1] + r * u,
-    center[2] + r * flat * Math.sin(theta),
+    center[0] + t1[0] * r * Math.cos(theta) + t2[0] * r * Math.sin(theta) + dirOut[0] * radial,
+    center[1] + t1[1] * r * Math.cos(theta) + t2[1] * r * Math.sin(theta) + dirOut[1] * radial,
+    center[2] + t1[2] * r * Math.cos(theta) + t2[2] * r * Math.sin(theta) + dirOut[2] * radial,
   ];
 }
 

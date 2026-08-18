@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { CameraModeToggle } from "./CameraModeToggle";
 import { FRIENDS } from "../_data/mock-people";
 import { PersonSheet } from "./PersonSheet";
+import { PeopleList } from "./PeopleList";
 import type { CameraMode } from "../_lib/camera";
 
 const World = dynamic(() => import("./World").then((m) => m.World), {
@@ -20,6 +21,7 @@ export function WorldShell() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mode, setMode] = useState<CameraMode>("b");
   const [resetSignal, setResetSignal] = useState(0);
+  const [listOpen, setListOpen] = useState(false);
 
   const selected = FRIENDS.find((p) => p.id === selectedId) ?? null;
 
@@ -57,7 +59,30 @@ export function WorldShell() {
         />
       </div>
 
-      <PersonSheet person={selected} onClose={() => setSelectedId(null)} />
+      {/*
+        목록과 시트는 둘 다 화면 아래에서 올라오는 판이라 동시에 열면 어느 쪽을
+        닫는 건지 알 수 없다. 목록을 펴면 선택을 풀고, 목록에서 사람을 고르면
+        목록이 접히면서 시트가 열린다 — 언제나 하나만 떠 있다.
+      */}
+      <PeopleList
+        open={listOpen}
+        onToggle={() => {
+          setListOpen((v) => {
+            if (!v) setSelectedId(null);
+            return !v;
+          });
+        }}
+        selectedId={selectedId}
+        onSelect={(id) => {
+          setSelectedId(id);
+          setListOpen(false);
+        }}
+      />
+
+      <PersonSheet
+        person={selected}
+        onClose={() => setSelectedId(null)}
+      />
     </div>
   );
 }

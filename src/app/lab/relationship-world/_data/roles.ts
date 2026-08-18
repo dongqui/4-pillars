@@ -56,3 +56,31 @@ export const FEATURE_NOTE: Record<Feature, string> = {
   yukhap: "둘 사이의 흐름이 끊기지 않고 이어집니다.",
   chung: "둘 사이의 흐름이 팽팽하게 맞물립니다.",
 };
+
+/**
+ * 구역 배지에 붙는 아이콘. **자리를 잡아두는 임시값이다** — 사용자가 나중에
+ * 채운다. 이모지라 별도 에셋이 없고, 교체할 때 이 표만 고치면 된다.
+ */
+export const ROLE_ICON: Record<RelationRole, string> = {
+  fill: "🔋", //    인성 · 보조배터리
+  beside: "🤝", //  비겁 · 동지
+  express: "🎨", // 식상 · 놀이터
+  move: "⏰", //    재성 · 알람
+  refine: "🛡️", //  관성 · 가드레일
+};
+
+/**
+ * 구역 배지에 쓰는 짧은 이름.
+ *
+ * ROLE_LABELS 는 "나를 채워주는 사람"처럼 문장이라 배지에 안 들어간다.
+ * DISPLAY_TITLES[role].none 을 쓰는 것은 그것이 그 Role 의 기본 상태 별명이자
+ * 가장 흔한 이름이기 때문이다 — 구역 안에는 六合·沖 도 함께 있으므로 엄밀히는
+ * 그 구역 전체의 이름은 아니다. 사용자가 나중에 바꿀 수 있게 여기 따로 둔다.
+ */
+export const ROLE_REGION_NAME: Record<RelationRole, string> = {
+  fill: DISPLAY_TITLES.fill.none,
+  beside: DISPLAY_TITLES.beside.none,
+  express: DISPLAY_TITLES.express.none,
+  move: DISPLAY_TITLES.move.none,
+  refine: DISPLAY_TITLES.refine.none,
+};

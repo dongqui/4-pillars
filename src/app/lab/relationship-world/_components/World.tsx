@@ -3,10 +3,12 @@
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { FRIENDS } from "../_data/mock-people";
+import { ROLE_ORDER, type RelationRole } from "../_data/roles";
 import { placePeople } from "../_lib/layout";
 import { ConnectionLines } from "./ConnectionLines";
 import { SelfCore } from "./SelfCore";
 import { PersonMarker } from "./PersonMarker";
+import { RegionLabels } from "./RegionLabels";
 import { CameraRig } from "./CameraRig";
 import { RelationThread } from "./RelationThread";
 import { CAMERA_FOV, DEFAULT_CAMERA_POSITION, type CameraMode } from "../_lib/camera";
@@ -27,6 +29,14 @@ export function World({
   // 고정이므로 이것도 고정이다 — 선택을 바꿔도 재생성되지 않는다.
   const targets = useMemo(() => FRIENDS.map((p) => placed.get(p.id)!), [placed]);
   const roles = useMemo(() => FRIENDS.map((p) => p.role), []);
+  // 구역 배지가 쓰는 인원수. FRIENDS 가 모듈 상수라 한 번만 센다.
+  const counts = useMemo(
+    () =>
+      Object.fromEntries(
+        ROLE_ORDER.map((r) => [r, FRIENDS.filter((p) => p.role === r).length]),
+      ) as Record<RelationRole, number>,
+    [],
+  );
   const selected = FRIENDS.find((p) => p.id === selectedId) ?? null;
 
   return (
@@ -79,6 +89,9 @@ export function World({
       */}
       <ConnectionLines targets={targets} roles={roles} />
       <SelfCore />
+
+      {/* 어떤 관계의 구역이고 몇 명인지. 색은 "다섯으로 갈렸다"까지만 말한다. */}
+      <RegionLabels counts={counts} />
 
       {/*
         dim 은 '다른 role 그룹'에만 건다. 같은 그룹 사람까지 흐리면 boosted 로 한
