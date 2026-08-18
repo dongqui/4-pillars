@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
 import { listProfiles } from "@/lib/profiles/store";
 import { parseProfileParam, type SearchParams } from "@/lib/profiles/param";
 import { listConsultations } from "@/lib/consultations/store";
+import { getBalance } from "@/lib/tickets/wallet";
 import { toListEntry } from "./_lib/to-list-entry";
 import { ConsultationList } from "./_components/ConsultationList";
 import { StartConsultation } from "./_components/StartConsultation";
@@ -29,15 +31,26 @@ export default async function ConsultPage({
   const param = parseProfileParam(sp);
   const profileId = param.kind === "id" ? param.id : profiles[0].id;
 
-  const rows = await listConsultations(session.userId);
+  const [rows, balance] = await Promise.all([
+    listConsultations(session.userId),
+    getBalance(session.userId),
+  ]);
   const now = new Date();
 
   return (
     <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-[560px] px-5 py-6">
-        {/* 헤더 우측의 "이용권 N장"은 getBalance 가 실제로 배선된 뒤에 켠다.
-            스텁이 돌려주는 0 을 "0장"이라고 보여주면 거짓말이 된다. */}
-        <h1 className="mb-5 text-[19px] font-bold tracking-[-0.03em]">고민상담</h1>
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <h1 className="text-[19px] font-bold tracking-[-0.03em]">고민상담</h1>
+          {/* 로그인을 요구하는 페이지라 null 갈래가 없다 — 0장일 때도 보여준다,
+              없다는 사실이 곧 충전 유인이다. */}
+          <Link
+            href="/checkout?next=/consult"
+            className="rounded-full bg-slate-100 px-3 py-1.5 text-[12.5px] font-bold text-slate-600 hover:bg-slate-200"
+          >
+            이용권 {balance}장
+          </Link>
+        </div>
         <StartConsultation profileId={profileId} />
         <ConsultationList entries={rows.map((r) => toListEntry(r, now))} />
       </div>
