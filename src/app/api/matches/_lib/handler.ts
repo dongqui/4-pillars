@@ -28,10 +28,13 @@ export interface CreateMatchResult {
   body: { matchId: string } | { error: string };
 }
 
-const ACCESS_STATUS = { unauthenticated: 401, rate_limited: 429 } as const;
+// insufficient_tickets 는 402 — 차감 API(tickets/spend)가 잔액 부족에 쓰는 코드와 같다.
+// rate_limited(429)와 갈라야 한다: 한도는 기다리면 풀리지만 잔액 부족은 충전이 필요하다.
+const ACCESS_STATUS = { unauthenticated: 401, rate_limited: 429, insufficient_tickets: 402 } as const;
 const ACCESS_MESSAGE = {
   unauthenticated: "로그인이 필요합니다",
   rate_limited: "잠시 후 다시 시도해 주세요",
+  insufficient_tickets: "이용권이 부족해요",
 } as const;
 
 export async function handleCreateMatch(

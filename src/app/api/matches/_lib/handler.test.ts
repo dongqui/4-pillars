@@ -46,6 +46,21 @@ describe("handleCreateMatch", () => {
     expect(getProfile).not.toHaveBeenCalled();
   });
 
+  // rate_limited(429)와 다른 코드여야 한다 — 한도는 기다리면 풀리지만 잔액 부족은
+  // 충전이 필요해, 화면이 두 상황을 구분해서 안내해야 한다.
+  it("이용권이 부족하면 402 — 프로필을 들여다보기 전에 막는다", async () => {
+    const getProfile = vi.fn();
+    const r = await handleCreateMatch(
+      { subjectProfileId: "2", counterpartProfileId: "3", relation: NONE },
+      deps({
+        checkAccess: async () => ({ ok: false, reason: "insufficient_tickets" }),
+        getProfile,
+      }),
+    );
+    expect(r.status).toBe(402);
+    expect(getProfile).not.toHaveBeenCalled();
+  });
+
   it("body 가 어긋나면 400", async () => {
     expect((await handleCreateMatch({}, deps())).status).toBe(400);
   });

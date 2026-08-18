@@ -4,8 +4,7 @@ import { redis } from "@/lib/redis";
  * 궁합 생성 한도.
  *
  * 궁합은 리포트와 달리 **항상** LLM 을 부른다 — 결과가 match_id 에 묶여 있어
- * 사람 사이에 재사용되는 캐시가 없다. 이용권 게이트가 붙기 전까지 이 카운터가
- * 유일한 방어선이다.
+ * 사람 사이에 재사용되는 캐시가 없다.
  *
  * 구조는 src/lib/reports/rate-limit.ts 와 같다(고정 윈도, incr + expire NX).
  * 키가 IP 가 아니라 userId 인 이유: 궁합은 로그인 필수라 계정이 이미 식별자이고,
@@ -15,8 +14,16 @@ import { redis } from "@/lib/redis";
  * 부르는 자리에서만 부르고(app/api/matches/_lib/gated-generator.ts), 읽기만 하는 쪽
  * (peekMatchLimit)은 만들기 경로가 미리 안내하는 데 쓴다 — 두 자리에서 다 차감하면
  * 한 번의 생성이 두 번 세진다.
+ *
+ * 이용권이 붙은 뒤로 이 카운터는 매출을 제한하는 장치가 아니다 — 돈을 내고 쓰는
+ * 사용자를 막을 이유가 없다. 남은 쓸모는 **돈이 걸리지 않은 경로**다:
+ * ticket_entries.reason 의 grant(수기·프로모션 지급)로 이용권이 잘못 풀리거나,
+ * 차감 게이트 자체에 버그가 생기면 막을 것이 없다.
+ *
+ * 그래서 숫자는 "정상 사용자를 세는" 값이 아니라 "사고만 걸리는" 값이다. 가장 큰
+ * 충전 패키지가 13장이므로 한 번 충전한 사용자는 60 에 닿을 수 없다.
  */
-export const MATCH_HOURLY_LIMIT = 5;
+export const MATCH_HOURLY_LIMIT = 60;
 
 const WINDOW_SECONDS = 60 * 60;
 
