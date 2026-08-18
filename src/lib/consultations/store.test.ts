@@ -168,6 +168,7 @@ describe("commitTurn", () => {
     const row = await commitTurn(
       {
         id: "7",
+        expectedTurnsUsed: 2,
         turnsUsed: 3,
         status: "open",
         title: null,
@@ -176,8 +177,8 @@ describe("commitTurn", () => {
       },
       client,
     );
-    expect(row.turnsUsed).toBe(3);
-    expect(calls[0].values).toEqual([3, "open", null, 1200, 300, "7"]);
+    expect(row?.turnsUsed).toBe(3);
+    expect(calls[0].values).toEqual([3, "open", null, 1200, 300, "7", 2]);
   });
 
   it("닫는 턴이면 closed_at 을 채운다", async () => {
@@ -185,10 +186,36 @@ describe("commitTurn", () => {
       { ...dbConsultation, status: "closed", closed_at: "2026-08-17T00:09:00.000Z" },
     ]);
     const row = await commitTurn(
-      { id: "7", turnsUsed: 10, status: "closed", title: null, tokensIn: 1, tokensOut: 1 },
+      {
+        id: "7",
+        expectedTurnsUsed: 9,
+        turnsUsed: 10,
+        status: "closed",
+        title: null,
+        tokensIn: 1,
+        tokensOut: 1,
+      },
       client,
     );
-    expect(row.status).toBe("closed");
+    expect(row?.status).toBe("closed");
     expect(calls[0].sql).toContain("closed_at");
+  });
+
+  it("기대한 turns_used 와 다르면(동시 요청에 밀리면) 아무 행도 못 찾아 null 이다", async () => {
+    const { client, calls } = fakeClient([]);
+    const row = await commitTurn(
+      {
+        id: "7",
+        expectedTurnsUsed: 2,
+        turnsUsed: 3,
+        status: "open",
+        title: null,
+        tokensIn: 1200,
+        tokensOut: 300,
+      },
+      client,
+    );
+    expect(row).toBeNull();
+    expect(calls[0].sql).toContain("turns_used =");
   });
 });

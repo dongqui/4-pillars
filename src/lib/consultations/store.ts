@@ -202,6 +202,14 @@ export async function appendMessage(
 
 export interface CommitTurnInput {
   id: string;
+  /**
+   * 이 턴을 시작할 때 읽었던 turns_used. Neon HTTP 드라이버는 트랜잭션도
+   * SELECT ... FOR UPDATE 도 못 쓰므로, 이 값이 지금 행의 turns_used 와 같을
+   * 때만 UPDATE 가 걸리게 해 낙관적 동시성을 한 문장 안에서 흉내낸다 — 두 요청이
+   * 같은 값을 읽고 동시에 LLM 을 부르면 먼저 커밋한 쪽만 반영되고, 나중 쪽은
+   * WHERE 절에서 걸러져 아무 행도 바뀌지 않는다.
+   */
+  expectedTurnsUsed: number;
   turnsUsed: number;
   status: "open" | "closed";
   /** 첫 턴에만 값이 있다. null 이면 기존 제목을 유지한다 */
@@ -212,16 +220,17 @@ export interface CommitTurnInput {
 
 /**
  * 턴 수·상태·제목·토큰을 한 번에 올린다. 닫는 턴이면 closed_at 도 채운다.
+ * expectedTurnsUsed 와 현재 turns_used 가 다르면(동시 요청에 밀렸으면) 아무 행도
+ * 바뀌지 않고 null 을 돌려준다 — 호출자가 이를 밀린 요청으로 처리한다.
  *
- * status 를 SET 절과 closed_at CASE 절에서 각각 새로 보간하면 바인딩이 7개가 되어
- * 테스트가 요구하는 6개(turnsUsed, status, title, tokensIn, tokensOut, id)와 어긋난다.
- * CTE(v)에 담아 FROM v 로 조인하면 status 를 한 번만 바인딩하고 SET status, CASE 양쪽에서
- * v.status 를 재사용할 수 있어 바인딩 수가 6개로 맞는다.
+ * status 를 SET 절과 closed_at CASE 절에서 각각 새로 보간하면 바인딩이 하나 더
+ * 늘어난다. CTE(v)에 담아 FROM v 로 조인하면 status 를 한 번만 바인딩하고
+ * SET status, CASE 양쪽에서 v.status 를 재사용할 수 있다.
  */
 export async function commitTurn(
   input: CommitTurnInput,
   client: SqlClient = sql,
-): Promise<ConsultationRow> {
+): Promise<ConsultationRow | null> {
   const rows = await client`
     WITH v AS (
       SELECT
@@ -240,7 +249,9 @@ export async function commitTurn(
       closed_at  = CASE WHEN v.status = 'closed' THEN now() ELSE consultations.closed_at END
     FROM v
     WHERE consultations.id = ${input.id}::bigint
+      AND consultations.turns_used = ${input.expectedTurnsUsed}::int
+      AND consultations.status = 'open'
     RETURNING consultations.*
   `;
-  return toConsultationRow(rows[0]);
+  return rows[0] ? toConsultationRow(rows[0]) : null;
 }

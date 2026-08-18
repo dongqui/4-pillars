@@ -22,13 +22,21 @@ export class ConsultationClosedError extends Error {
   }
 }
 
+/** 같은 상담에 동시 요청이 겹쳐 이번 턴이 밀렸을 때 */
+export class ConsultationRaceError extends Error {
+  constructor() {
+    super("다른 요청이 먼저 처리됐습니다");
+    this.name = "ConsultationRaceError";
+  }
+}
+
 /** service 가 쓰는 저장소 동작만. 테스트가 통째로 가짜를 넣는다 */
 export interface ServiceStore {
   createConsultation(input: CreateConsultationInput): Promise<ConsultationRow>;
   getConsultation(userId: string, id: string): Promise<ConsultationRow | null>;
   listMessages(consultationId: string): Promise<MessageRow[]>;
   appendMessage(input: AppendMessageInput): Promise<MessageRow>;
-  commitTurn(input: CommitTurnInput): Promise<ConsultationRow>;
+  commitTurn(input: CommitTurnInput): Promise<ConsultationRow | null>;
   setTicketSpent(id: string, spent: boolean): Promise<void>;
 }
 
@@ -162,6 +170,27 @@ async function persistTurn(
   const state = nextState(consultation, { crisis: result.reply.crisis, crisisSoFar });
   const turnNo = consultation.turnsUsed + 1;
 
+  // commitTurn 을 먼저 부르고 메시지는 그 다음에 남긴다. 순서를 뒤집으면 두 요청이
+  // 같은 turns_used 를 읽고 동시에 LLM 을 부른 뒤, 밀린 쪽도 메시지는 그대로 남겨
+  // 질문·답 한 쌍이 이력에 남는데 카운터는 그걸 모르는 채가 된다 — 또 다른 경로로
+  // 뚫리는 같은 구멍이다. 커밋을 먼저 하면 밀린 요청은 아무것도 남기지 않는다.
+  //
+  // 트레이드오프: commitTurn 이 성공한 뒤 appendMessage 가 실패하면 턴은 소모됐는데
+  // 그 대화는 이력에 안 보이는 창이 생긴다. 이 창은 INSERT 두 번만큼만 넓다
+  // (LLM 호출 5~10초에 비하면 훨씬 좁다) 그리고 안전한 방향으로 실패한다 — 공짜
+  // 턴이 아니라, 이미 낸 값에 비해 안 보이는 대화가 생기는 쪽이다.
+  const after = await deps.store.commitTurn({
+    id: consultation.id,
+    expectedTurnsUsed: consultation.turnsUsed,
+    turnsUsed: state.turnsUsed,
+    status: state.status,
+    // 첫 턴에만 값이 있다. store 가 COALESCE 로 기존 제목을 지킨다.
+    title: result.reply.title ?? null,
+    tokensIn: result.usage.promptTokens,
+    tokensOut: result.usage.completionTokens,
+  });
+  if (!after) throw new ConsultationRaceError();
+
   await deps.store.appendMessage({
     consultationId: consultation.id,
     role: "user",
@@ -179,13 +208,5 @@ async function persistTurn(
     turnNo,
   });
 
-  return deps.store.commitTurn({
-    id: consultation.id,
-    turnsUsed: state.turnsUsed,
-    status: state.status,
-    // 첫 턴에만 값이 있다. store 가 COALESCE 로 기존 제목을 지킨다.
-    title: result.reply.title ?? null,
-    tokensIn: result.usage.promptTokens,
-    tokensOut: result.usage.completionTokens,
-  });
+  return after;
 }

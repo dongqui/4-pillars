@@ -4,7 +4,11 @@ import { isSequentialId } from "@/lib/profiles/param";
 import { utteranceSchema } from "@/lib/consultations/input";
 import { factsForProfile } from "@/lib/consultations/facts";
 import { consultationDeps } from "@/lib/consultations/deps";
-import { advanceConsultation, ConsultationClosedError } from "@/lib/consultations/service";
+import {
+  advanceConsultation,
+  ConsultationClosedError,
+  ConsultationRaceError,
+} from "@/lib/consultations/service";
 import { getConsultation } from "@/lib/consultations/store";
 
 export const maxDuration = 60;
@@ -65,6 +69,12 @@ export async function POST(
   } catch (e) {
     if (e instanceof ConsultationClosedError) {
       return Response.json({ error: "이 상담은 이미 마무리됐어요" }, { status: 409 });
+    }
+    if (e instanceof ConsultationRaceError) {
+      return Response.json(
+        { error: "다른 곳에서 대화가 먼저 진행됐어요. 새로고침하고 다시 시도해 주세요." },
+        { status: 409 },
+      );
     }
     console.error("[POST /api/consultations/:id/messages]", e);
     return Response.json({ error: "답변을 받지 못했어요" }, { status: 500 });

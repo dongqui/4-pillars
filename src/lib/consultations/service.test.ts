@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { openConsultation, advanceConsultation, ConsultationClosedError } from "./service";
+import {
+  openConsultation,
+  advanceConsultation,
+  ConsultationClosedError,
+  ConsultationRaceError,
+} from "./service";
 import { InsufficientTicketsError, type TicketPort } from "./ticket-port";
 import type { ConsultationRow, MessageRow } from "./store";
 import type { ChatRequest, ChatTransport } from "./chat-transport";
@@ -277,6 +282,14 @@ describe("advanceConsultation", () => {
       }) as ChatTransport,
     });
     await expect(advanceConsultation(advInput, d)).rejects.toThrow(/DeepSeek/);
+    expect(d.store.appendMessage).not.toHaveBeenCalled();
+  });
+
+  it("동시 요청에 밀리면(commitTurn 이 null) 아무 메시지도 남기지 않고 던진다", async () => {
+    const d = deps({
+      store: fakeStore({ commitTurn: vi.fn(async () => null) }),
+    });
+    await expect(advanceConsultation(advInput, d)).rejects.toThrow(ConsultationRaceError);
     expect(d.store.appendMessage).not.toHaveBeenCalled();
   });
 });
