@@ -60,6 +60,14 @@ export function MatchForm({ people }: { people: PersonOption[] }) {
         relation,
       }),
     });
+    // 402 는 잔액 부족이다. 이 폼이 실제로 잔액이 모자란 흔한 경로다(canCreateMatch 가
+    // 여기서 먼저 걸러 낸다 — /match/[id] 의 MatchOutOfTickets 는 그 사이 다른 탭에서
+    // 다 썼거나 링크를 직접 연 드문 경우에만 닿는다). report 의 use-unlock.ts 와 같은
+    // 모양으로, 메시지를 보여주는 대신 충전 뒤 돌아올 자리를 실어 보낸다.
+    if (res.status === 402) {
+      router.push(`/checkout?next=${encodeURIComponent("/match")}`);
+      return;
+    }
     const body = (await res.json()) as { matchId?: string; error?: string };
     if (!res.ok || !body.matchId) {
       setPending(false);
