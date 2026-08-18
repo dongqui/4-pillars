@@ -250,32 +250,52 @@ function sampleCandidate(
 }
 
 /**
+ * 한 소구역(role × feature)에 count 명을 배치한다.
+ *
+ * 앞서 놓은 사람들과 MIN_SEPARATION 이상 떨어지지 않으면 시드를 바꿔 다시 뽑는다.
+ * MAX_ATTEMPTS 를 다 써도 못 찾으면 마지막 후보를 그대로 쓴다 — 이 함수는 항상 끝나야 한다.
+ *
+ * 예전에는 positionFor 가 "앞선 사람들" 을 자기 자신을 다시 불러 구했다. 순수
+ * 함수라 상태 없이 계산된다는 것이 근거였고, 가장 붐빈 칸이 4명인 mock 에서는
+ * 실제로 문제가 없었다. 하지만 그 재귀는 T(n) ≈ 2^n 이라 한 소구역 20명에서
+ * 4.7초가 걸린다(설계 문서 §1.2 의 실측표). 지도에 누구나 추가할 수 있게 되면서
+ * 그 전제가 깨졌으므로, 같은 샘플링 순서를 유지한 채 순회로 편다.
+ */
+export function placeSubRegion(
+  role: RelationRole,
+  feature: Feature,
+  count: number,
+): Vec3[] {
+  const placed: Vec3[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const farEnough = (p: Vec3) => placed.every((o) => dist3(p, o) >= MIN_SEPARATION);
+
+    let candidate = sampleCandidate(role, feature, i, 0);
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS && !farEnough(candidate); attempt++) {
+      candidate = sampleCandidate(role, feature, i, attempt);
+    }
+    placed.push(candidate);
+  }
+
+  return placed;
+}
+
+/**
  * 사람 한 명의 좌표.
  *
  * indexInSubRegion 은 **(role, feature) 쌍 안에서** 0부터 센다. Role 안 전체
  * 순번으로 세면 한 사람이 빠졌을 때 같은 소구역의 다른 사람들이 전부 자리를 옮긴다.
  *
- * 같은 소구역의 앞선 사람들(0..indexInSubRegion-1)과 MIN_SEPARATION 이상
- * 떨어지지 않으면 시드를 바꿔 다시 뽑는다. "앞선 사람들"은 이 함수를 그
- * 인덱스로 다시 부른 값이라 — 순수 함수라서 언제 불러도 같은 좌표가 나온다 —
- * 상태를 두지 않고도 계산할 수 있다. mock 데이터에서 가장 붐빈 칸이 4명이라
- * 재귀는 항상 얕다. MAX_ATTEMPTS 를 다 써도 못 찾으면 마지막 후보를 그대로
- * 쓴다 — 이 함수는 항상 끝나야 한다.
+ * 여러 명을 놓을 때는 이걸 반복해 부르지 말고 placeSubRegion 을 한 번 불러라 —
+ * 이 함수는 index+1 명을 매번 처음부터 다시 배치한다.
  */
 export function positionFor(
   role: RelationRole,
   feature: Feature,
   indexInSubRegion: number,
 ): Vec3 {
-  const earlier: Vec3[] = [];
-  for (let j = 0; j < indexInSubRegion; j++) earlier.push(positionFor(role, feature, j));
-  const farEnough = (p: Vec3) => earlier.every((o) => dist3(p, o) >= MIN_SEPARATION);
-
-  let candidate = sampleCandidate(role, feature, indexInSubRegion, 0);
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS && !farEnough(candidate); attempt++) {
-    candidate = sampleCandidate(role, feature, indexInSubRegion, attempt);
-  }
-  return candidate;
+  return placeSubRegion(role, feature, indexInSubRegion + 1)[indexInSubRegion];
 }
 
 /**
@@ -293,14 +313,21 @@ export type Placeable = {
 };
 
 export function placePeople(people: readonly Placeable[]): Map<string, Vec3> {
-  const seen = new Map<string, number>();
-  const out = new Map<string, Vec3>();
-
+  // 칸별로 몇 명인지 먼저 세고, 칸마다 placeSubRegion 을 딱 한 번 부른다.
+  // 사람마다 positionFor 를 부르면 같은 칸을 인원수만큼 다시 배치하게 된다.
+  const order = new Map<string, string[]>();
   for (const person of people) {
     const key = `${person.role}/${person.feature}`;
-    const index = seen.get(key) ?? 0;
-    seen.set(key, index + 1);
-    out.set(person.id, positionFor(person.role, person.feature, index));
+    const ids = order.get(key);
+    if (ids) ids.push(person.id);
+    else order.set(key, [person.id]);
+  }
+
+  const out = new Map<string, Vec3>();
+  for (const [key, ids] of order) {
+    const [role, feature] = key.split("/") as [RelationRole, Feature];
+    const points = placeSubRegion(role, feature, ids.length);
+    ids.forEach((id, i) => out.set(id, points[i]));
   }
 
   return out;
