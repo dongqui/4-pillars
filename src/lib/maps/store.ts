@@ -140,8 +140,8 @@ export async function countMapPeople(
 
 /**
  * map_people_dedupe 유니크 인덱스와 같은 컬럼으로 이미 있는 사람을 찾는다.
- * addMapPerson 이 두 번 쓴다 — 처음 볼 때, 그리고 INSERT 가 유니크 인덱스에
- * 막혔을 때 레이스를 확인할 때.
+ * addMapPerson 이 INSERT 뒤에 딱 한 번 쓴다 — 새로 넣었든 이미 있었든 돌려줄
+ * 행을 읽는 유일한 경로다.
  */
 async function findMapPersonByDedupeKey(
   mapId: string,
@@ -163,7 +163,8 @@ async function findMapPersonByDedupeKey(
 }
 
 /**
- * 사람이 지도에 있게 한다 — 없으면 더하고, 이미 있으면 그 행을 그대로 돌려준다.
+ * 사람이 지도에 있게 한다 — 한도 안이면, 없으면 더하고 이미 있으면 그 행을 그대로
+ * 돌려준다. 한도를 넘었으면 있든 없든 똑같이 MapPeopleLimitError 다.
  *
  * "추가" 가 아니라 "있게 한다" 인 이유: 링크를 가진 누구나 이름·생년월일을 추측해
  * POST 할 수 있는데, 새로 더했을 때와 이미 있었을 때를 상태 코드로 가르면(201 대
@@ -172,31 +173,45 @@ async function findMapPersonByDedupeKey(
  * 한도 안에 들어온다. 그래서 이미 있는 사람은 에러가 아니라 그 사람을 돌려주는
  * 성공이다 — 호출자 입장에서 새로 더한 것과 구별되지 않는다.
  *
- * 순서가 중요하다(설계 §1.3 대신 이 판단이 근거):
- *  1) 먼저 dedupe 키로 읽는다. 있으면 한도 검사 없이 바로 돌려준다 — 가득 찬
- *     지도라도 이미 그 안에 있는 사람은 거절하면 안 된다. 아무것도 더해지지
- *     않으니 한도를 걸 이유가 없다.
- *  2) 없을 때만 countMapPeople 로 한도를 본다. 한도 검사는 앱 레벨이라 동시
- *     요청에서 한 명쯤 더 들어갈 수 있다 — profiles/store.ts 의 createProfile 과
- *     같은 판단이다(개수 한도는 UX 가드다).
- *  3) INSERT ... ON CONFLICT DO NOTHING. 행이 오면 그것을 돌려준다.
- *  4) 행이 안 오면 1)과 3) 사이에 동시 요청이 같은 사람을 먼저 넣은 것이다 —
- *     유니크 인덱스가 이 INSERT 를 막았다는 뜻이므로 다시 읽으면 반드시 있어야
- *     한다. 그마저 없으면 유니크 인덱스와 읽기가 서로 다른 말을 하는 것이라
- *     사용자 케이스가 아니라 버그이므로 그냥 던진다.
+ * ⚠️ 순서를 바꾸지 마라. 한도 검사가 **반드시 맨 먼저**다.
+ *
+ * dedupe 읽기를 먼저 두는 편이 더 자연스럽게 읽힌다("이미 있으면 아무것도 더해지지
+ * 않으니 한도를 걸 이유가 없다"). 실제로 한 번 그렇게 고쳤고, 그것이 위에서 막
+ * 닫은 오라클을 그대로 다시 열었다: 50명이 찬 지도에서 이미 있는 사람은 201,
+ * 새 사람은 한도 409 가 된다. 빗나간 추측은 INSERT 를 아예 시도하지 않으므로
+ * 슬롯도 안 줄고 행도 안 남는다 — 흔적 없이 무제한으로 생일을 물어볼 수 있다.
+ * 연도를 아는 상대에게는 365번이면 끝난다. 설계 §6.1 이 고른 트레이드가 바로
+ * 이것이다: "차고 나면 모든 추가가 한도 409 로 바뀌어 신호가 죽는다."
+ *
+ * 그 대가로 가득 찬 지도에 이미 있는 사람이 다시 제출하면 201 이 아니라 409 를
+ * 받는다. 받아들이는 손해다 — 가득 찬 뒤에는 모든 추가가 똑같이 답하는 것이
+ * 요점이고, 그때 지도에는 이미 쓰레기 50명이 훤히 보인다.
+ *
+ * 순서:
+ *  1) countMapPeople. 한도면 던진다. 한도 검사는 앱 레벨이라 동시 요청에서 한 명쯤
+ *     더 들어갈 수 있다 — profiles/store.ts 의 createProfile 과 같은 판단이다.
+ *  2) INSERT ... ON CONFLICT DO NOTHING. RETURNING 을 쓰지 않고 결과도 보지 않는다.
+ *  3) dedupe 키로 읽어 그 행을 돌려준다. 새로 넣었으면 방금 넣은 행이고, 이미
+ *     있었거나 동시 요청이 먼저 넣었으면 그 행이다 — 호출자는 구별하지 못한다.
+ *     비어 있으면 유니크 인덱스와 읽기가 서로 다른 말을 하는 것이라 사용자
+ *     케이스가 아니라 버그다. 그냥 던진다.
+ *
+ * 이 모양이 타이밍 오라클도 함께 줄인다. 예전에는 중복이 왕복 1회, 신규가 왕복
+ * 3회 + INSERT 라 둘 다 201 이어도 지연이 수십 ms 갈렸다. 이제는 두 경우가 같은
+ * 문장 3개를 같은 순서로 지난다. 정직하게 말하면 **없어진 것이 아니라 줄어든**
+ * 것이다 — INSERT 한 문장 안에서 "행을 썼는가, 아무 일도 안 했는가" 차이는 남는다.
+ * 다만 그 차이는 왕복 하나가 아니라 한 문장 내부의 차이라 훨씬 작고, 관측하려면
+ * 표본이 훨씬 많이 필요하다.
  */
 export async function addMapPerson(
   mapId: string,
   person: BirthLite & { name: string },
   client: SqlClient = sql,
 ): Promise<MapPersonRow> {
-  const existing = await findMapPersonByDedupeKey(mapId, person, client);
-  if (existing) return existing;
-
   const count = await countMapPeople(mapId, client);
   if (count >= MAX_MAP_PEOPLE) throw new MapPeopleLimitError();
 
-  const rows = await client`
+  await client`
     INSERT INTO map_people (
       map_id, name, calendar, is_leap_month, birth_year, birth_month, birth_day
     ) VALUES (
@@ -204,16 +219,13 @@ export async function addMapPerson(
       ${person.year}, ${person.month}, ${person.day}
     )
     ON CONFLICT DO NOTHING
-    RETURNING *
   `;
-  const row = rows[0];
-  if (row) return toMapPersonRow(row);
 
-  const race = await findMapPersonByDedupeKey(mapId, person, client);
-  if (!race) {
-    throw new Error("addMapPerson: 유니크 인덱스가 INSERT 를 막았는데 다시 읽어도 없다");
+  const row = await findMapPersonByDedupeKey(mapId, person, client);
+  if (!row) {
+    throw new Error("addMapPerson: INSERT 뒤에도 dedupe 키로 사람을 찾지 못했다");
   }
-  return race;
+  return row;
 }
 
 /**

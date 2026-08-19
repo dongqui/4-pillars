@@ -119,48 +119,82 @@ describe("addMapPerson", () => {
     calendar: "lunar" as const, isLeapMonth: true,
   };
 
-  // 순서: 1) dedupe 키로 읽기(없음) 2) count 3) INSERT 4) (필요하면) 다시 읽기.
-  // 아래 테스트들의 fakeClient 응답 순서는 이 네 단계를 그대로 흉내낸다.
+  // 순서: 1) count 2) INSERT ... ON CONFLICT DO NOTHING 3) dedupe 키로 읽기.
+  // 세 문장이 언제나 이 순서로 전부 실행된다 — 아래 fakeClient 응답 순서가 그것이다.
 
   it("한도에 다다르면 MapPeopleLimitError", async () => {
-    const { client } = fakeClient([], [{ n: MAX_MAP_PEOPLE }]);
+    const { client } = fakeClient([{ n: MAX_MAP_PEOPLE }]);
     await expect(addMapPerson("7", person, client)).rejects.toBeInstanceOf(MapPeopleLimitError);
   });
 
-  // 이미 있는 사람은 더 이상 에러가 아니다 — 상태 코드가 "이 생년월일이 맞다" 는
-  // 오라클이 되지 않도록, 새로 더한 것과 이미 있던 것을 구별하지 않는다(handler.ts
-  // 의 오라클 카나리아 테스트가 이 성질을 라우트 경계까지 잇는다). 한도 검사도
-  // 건너뛴다는 것을 calls 길이로 함께 확인한다 — count(*) 쿼리가 불렸다면
-  // 순서가 뒤집힌 것이다.
-  it("이미 있는 사람이면 그 행을 그대로 돌려주고 한도 검사를 하지 않는다", async () => {
-    const { client, calls } = fakeClient([personDbRow]);
-    const row = await addMapPerson("7", person, client);
-    expect(row.id).toBe("11");
+  // 한도 검사가 맨 앞이라는 것을 쿼리 순서로 못 박는다. dedupe 읽기가 앞에 오면
+  // 가득 찬 지도가 "이미 있음/없음" 을 상태 코드로 흘리는 오라클이 된다.
+  it("한도 검사가 dedupe 읽기보다 먼저다", async () => {
+    const { client, calls } = fakeClient([{ n: MAX_MAP_PEOPLE }]);
+    await expect(addMapPerson("7", person, client)).rejects.toBeInstanceOf(MapPeopleLimitError);
     expect(calls).toHaveLength(1);
-    expect(calls[0].sql).not.toContain("count(*)");
+    expect(calls[0].sql).toContain("count(*)");
   });
 
-  // 가득 찬 지도(50명)라도 이미 그 안에 있는 사람은 거절하면 안 된다 — 아무것도
-  // 더해지는 게 아니므로 한도를 걸 이유가 없다. 이것이 dedupe 읽기가 한도 검사보다
-  // 먼저 와야 하는 이유이고, 위 테스트와 코드 경로는 같지만 그 이유를 이름으로 박아둔다.
-  it("이미 가득 찬 지도라도 이미 있는 사람이면 거절하지 않는다", async () => {
-    const { client, calls } = fakeClient([personDbRow]);
-    const row = await addMapPerson("7", person, client);
-    expect(row.id).toBe("11");
-    expect(calls).toHaveLength(1); // count(*) 로 한도를 보지 않았다
+  // 이미 있는 사람은 에러가 아니다 — 상태 코드가 "이 생년월일이 맞다" 는 오라클이
+  // 되지 않도록, 새로 더한 것과 이미 있던 것을 구별하지 않는다(handler.ts 의 오라클
+  // 카나리아 테스트가 이 성질을 라우트 경계까지 잇는다). 중복이어도 INSERT 를 건너뛰지
+  // 않는다 — ON CONFLICT DO NOTHING 이 받아내고, 그래야 두 경우의 왕복 수가 같다.
+  it("이미 있는 사람이면 그 행을 그대로 돌려주고, 신규와 같은 문장 수를 쓴다", async () => {
+    const dup = fakeClient([{ n: 3 }], [], [personDbRow]);
+    const fresh = fakeClient([{ n: 3 }], [], [personDbRow]);
+    expect((await addMapPerson("7", person, dup.client)).id).toBe("11");
+    expect((await addMapPerson("7", person, fresh.client)).id).toBe("11");
+    // 타이밍 오라클을 줄이는 성질: 중복도 신규도 같은 SQL 을 같은 순서로 지난다.
+    expect(dup.calls.map((c) => c.sql)).toEqual(fresh.calls.map((c) => c.sql));
+    expect(dup.calls).toHaveLength(3);
   });
 
-  // 1)dedupe 읽기와 3)INSERT 사이에 동시 요청이 같은 사람을 먼저 넣으면 ON CONFLICT
-  // DO NOTHING 이 빈 RETURNING 을 준다 — 그때 4)다시 읽으면 그 행이 있어야 한다.
-  it("읽기와 INSERT 사이에 동시 요청이 먼저 넣었으면 다시 읽어 그 행을 돌려준다", async () => {
-    const { client, calls } = fakeClient([], [{ n: 3 }], [], [personDbRow]);
+  // 가득 찬 지도에서는 이미 있는 사람과 새 사람이 **같은** 결과를 받는다. 이것이
+  // 오라클을 닫는 성질 그 자체다. 리터럴(409·MapPeopleLimitError)이 아니라 두 결과를
+  // 서로 비교한다 — 에러가 바뀌어도 "둘이 구별되지 않는다" 는 뜻이 살아 있어야 한다.
+  it("가득 찬 지도에서는 이미 있는 사람과 새 사람이 구별되지 않는다", async () => {
+    async function outcome(client: SqlClient) {
+      try {
+        return { kind: "ok" as const, id: (await addMapPerson("7", person, client)).id };
+      } catch (e) {
+        return { kind: "throw" as const, name: (e as Error).name, message: (e as Error).message };
+      }
+    }
+
+    // 이미 있는 사람: dedupe 읽기까지 갔다면 personDbRow 가 나올 준비가 되어 있다.
+    const existing = fakeClient([{ n: MAX_MAP_PEOPLE }], [], [personDbRow]);
+    // 새 사람: 같은 자리에서 빈 결과가 나온다.
+    const newcomer = fakeClient([{ n: MAX_MAP_PEOPLE }], [], []);
+
+    const a = await outcome(existing.client);
+    const b = await outcome(newcomer.client);
+
+    expect(a).toEqual(b);
+    // 그리고 둘 다 dedupe 읽기 자체에 닿지 못한다 — count 한 문장에서 끝난다.
+    expect(existing.calls.map((c) => c.sql)).toEqual(newcomer.calls.map((c) => c.sql));
+    expect(existing.calls).toHaveLength(1);
+  });
+
+  // INSERT 와 dedupe 읽기 사이에 동시 요청이 같은 사람을 먼저 넣어도(ON CONFLICT 가
+  // 우리 INSERT 를 무음 처리해도) 마지막 읽기가 그 행을 준다.
+  it("동시 요청이 먼저 넣었어도 마지막 읽기가 그 행을 돌려준다", async () => {
+    const { client, calls } = fakeClient([{ n: 3 }], [], [personDbRow]);
     const row = await addMapPerson("7", person, client);
     expect(row.id).toBe("11");
-    expect(calls).toHaveLength(4);
+    expect(calls).toHaveLength(3);
+    expect(calls[1].sql).toContain("INSERT INTO map_people");
+    // RETURNING 을 쓰지 않는다 — 돌려줄 행은 언제나 3)의 읽기가 준다.
+    expect(calls[1].sql).not.toContain("RETURNING");
+  });
+
+  it("INSERT 뒤에도 못 찾으면 던진다", async () => {
+    const { client } = fakeClient([{ n: 3 }], [], []);
+    await expect(addMapPerson("7", person, client)).rejects.toThrow(/dedupe/);
   });
 
   it("성공하면 저장된 행을 돌려준다", async () => {
-    const { client } = fakeClient([], [{ n: 3 }], [personDbRow]);
+    const { client } = fakeClient([{ n: 3 }], [], [personDbRow]);
     expect((await addMapPerson("7", person, client)).id).toBe("11");
   });
 });
