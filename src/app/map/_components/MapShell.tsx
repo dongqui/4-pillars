@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { CameraModeToggle } from "./CameraModeToggle";
@@ -41,6 +41,28 @@ export function MapShell({
   const [adding, setAdding] = useState(false);
   const [headerHidden, setHeaderHidden] = useState(false);
 
+  // 토스트는 여기가 갖는다. 공유(MapHeader)와 삭제 실패(handleDelete) 둘 다
+  // 같은 자리에 떠야 하는데, 헤더 안에 두면 삭제 쪽에서 닿을 수 없다.
+  const [toast, setToast] = useState<string | null>(null);
+  // 두 번째 메시지가 1800ms 안에 들어오면 새 토스트가 이전 타이머에 맞아 일찍
+  // 지워진다. 타이머를 쥐고 있다가 새로 걸기 전에 먼저 지운다.
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(message: string) {
+    if (toastTimer.current !== null) clearTimeout(toastTimer.current);
+    setToast(message);
+    toastTimer.current = setTimeout(() => {
+      setToast(null);
+      toastTimer.current = null;
+    }, 1800);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current !== null) clearTimeout(toastTimer.current);
+    };
+  }, []);
+
   const selected = people.find((p) => p.id === selectedId) ?? null;
 
   // 판이 하나라도 열려 있으면 헤더를 강제로 보인다 — 나가는 길을 없애지 않는다.
@@ -56,9 +78,33 @@ export function MapShell({
     setAdding(false);
   }
 
+  /**
+   * 실패를 조용히 삼키지 않는다. 지우기는 남이 채워 넣은 쓰레기에 대한 소유자의
+   * 유일한 대응 수단이라, 403 도 500 도 오프라인도 "아무 일 없음" 으로 보이면
+   * 사용자는 같은 버튼을 계속 누르면서 지도가 왜 그대로인지 알 수 없다.
+   */
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/maps/${shareId}/people/${id}`, { method: "DELETE" });
-    if (!res.ok) return;
+    let res: Response;
+    try {
+      res = await fetch(`/api/maps/${shareId}/people/${id}`, { method: "DELETE" });
+    } catch {
+      // fetch 가 던지는 것은 네트워크가 끊긴 경우다 — 상태 코드가 아예 없다.
+      showToast("연결이 끊겼어요. 잠시 뒤 다시 시도해 주세요");
+      return;
+    }
+
+    if (res.status === 404) {
+      // 이미 없는 사람이다. 실패로 알리되 목록은 새로고침한다 — 화면에만 남아 있던
+      // 유령이 사라지는 것이 사용자가 원한 결과다.
+      showToast("이미 지워진 사람이에요");
+    } else if (res.status === 403) {
+      showToast("지도 주인만 지울 수 있어요");
+      return;
+    } else if (!res.ok) {
+      showToast("지우지 못했어요. 잠시 뒤 다시 시도해 주세요");
+      return;
+    }
+
     // 서버 컴포넌트가 목록의 진실이다. 로컬 상태로 낙관적 갱신을 하면 두 벌이 된다.
     if (selectedId === id) setSelectedId(null);
     router.refresh();
@@ -100,6 +146,7 @@ export function MapShell({
         isOwner={isOwner}
         shareId={shareId}
         loggedIn={loggedIn}
+        onToast={showToast}
       />
 
       {/*
@@ -185,6 +232,16 @@ export function MapShell({
           router.refresh();
         }}
       />
+
+      {/* z-40 — 판(z-20·z-30)보다 위다. 목록에서 지운 결과를 목록이 가리면 안 된다. */}
+      {toast && (
+        <p
+          role="status"
+          className="fixed left-1/2 top-[72px] z-40 -translate-x-1/2 rounded-full bg-slate-800/95 px-4 py-2 text-[13px] text-slate-100"
+        >
+          {toast}
+        </p>
+      )}
     </div>
   );
 }

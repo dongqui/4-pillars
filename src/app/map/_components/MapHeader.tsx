@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 
@@ -12,6 +11,9 @@ import { BrandLogo } from "@/components/BrandLogo";
  *
  * 숨겨진 상태에서도 위쪽 4px 손잡이를 남긴다 — 숨겨졌다는 사실 자체를 모르면
  * 되돌릴 방법도 알 수 없다.
+ *
+ * 토스트는 더 이상 여기가 갖고 있지 않다. 삭제 실패도 같은 자리에 떠야 하는데
+ * 그것을 아는 곳은 MapShell 이라, 두 벌을 만들지 않고 MapShell 로 올렸다.
  */
 export function MapHeader({
   hidden,
@@ -19,33 +21,15 @@ export function MapHeader({
   isOwner,
   shareId,
   loggedIn,
+  onToast,
 }: {
   hidden: boolean;
   onReveal: () => void;
   isOwner: boolean;
   shareId: string;
   loggedIn: boolean;
+  onToast: (message: string) => void;
 }) {
-  const [toast, setToast] = useState<string | null>(null);
-  // 두 번째 탭이 1800ms 안에 들어오면 새 토스트가 이전 타이머에 맞아 일찍
-  // 지워진다. 타이머를 쥐고 있다가 새로 걸기 전에 먼저 지운다.
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  function showToast(message: string) {
-    if (toastTimer.current !== null) clearTimeout(toastTimer.current);
-    setToast(message);
-    toastTimer.current = setTimeout(() => {
-      setToast(null);
-      toastTimer.current = null;
-    }, 1800);
-  }
-
-  useEffect(() => {
-    return () => {
-      if (toastTimer.current !== null) clearTimeout(toastTimer.current);
-    };
-  }, []);
-
   async function share() {
     const url = `${window.location.origin}/map/${shareId}`;
     // OS 공유 시트가 있으면 그쪽이 낫다 — 사용자가 이미 아는 UI 다.
@@ -59,9 +43,9 @@ export function MapHeader({
     }
     try {
       await navigator.clipboard.writeText(url);
-      showToast("링크를 복사했어요");
+      onToast("링크를 복사했어요");
     } catch {
-      showToast("링크를 복사하지 못했어요");
+      onToast("링크를 복사하지 못했어요");
     }
   }
 
@@ -112,15 +96,6 @@ export function MapHeader({
           )}
         </div>
       </header>
-
-      {toast && (
-        <p
-          role="status"
-          className="fixed left-1/2 top-[72px] z-40 -translate-x-1/2 rounded-full bg-slate-800/95 px-4 py-2 text-[13px] text-slate-100"
-        >
-          {toast}
-        </p>
-      )}
     </>
   );
 }
