@@ -28,8 +28,7 @@ export interface MenuItem {
   /** 가격표에 찍히는 문구. 무료 항목은 "무료" 그대로다. */
   price: string;
   paid: boolean;
-  /** 아직 화면이 없으면 null — 링크 대신 "준비 중" 으로 그린다. */
-  href: string | null;
+  href: string;
 }
 
 /**
@@ -55,10 +54,7 @@ const PAID: Record<Feature, { title: string; desc: string; href: string }> = {
   },
 };
 
-/**
- * 무료 항목. 관계 지도는 화면이 아직 없어서 href 가 null 이다 —
- * 랜딩에서 열리는 척하면 들어온 사람이 곧바로 없는 화면을 본다.
- */
+/** 무료 항목. 이용권을 쓰지 않는 것만 여기 있다. */
 const FREE: MenuItem[] = [
   {
     title: "내 캐릭터",
@@ -72,7 +68,7 @@ const FREE: MenuItem[] = [
     desc: "주변 사람이 나에게 어떤 역할인지. 몇 명이든.",
     price: "무료",
     paid: false,
-    href: null,
+    href: "/map",
   },
 ];
 

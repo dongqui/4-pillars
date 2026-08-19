@@ -26,10 +26,10 @@ export function Hero({ displayName }: HeroProps) {
       <p className="mx-auto mb-3.5 max-w-[560px] text-[clamp(19px,2.4vw,23px)] font-medium leading-[1.5] text-slate-700 [text-wrap:pretty]">
         한 번에 다 알 필요는 없어요. 알고 싶은 것부터 하나씩.
       </p>
-      {/* 시안은 "내 캐릭터와 관계 지도는 무료" 였지만 관계 지도는 아직 화면이 없다 */}
       <p className="mx-auto mb-[30px] max-w-[460px] text-[16.5px] leading-[1.6] text-slate-400 [text-wrap:pretty]">
-        내 캐릭터는 <strong className="whitespace-nowrap font-semibold text-slate-600">무료</strong>.
-        더 깊이 보고 싶은 것만{" "}
+        내 캐릭터와 관계 지도는{" "}
+        <strong className="whitespace-nowrap font-semibold text-slate-600">무료</strong>. 더 깊이
+        보고 싶은 것만{" "}
         <strong className="whitespace-nowrap font-semibold text-slate-600">
           개당 {TICKET_PRICE_LABEL}
         </strong>

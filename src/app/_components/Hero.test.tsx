@@ -21,4 +21,5 @@ test("로그인은 홈으로 보내고 이름으로 맞이한다", () => {
 test("가격을 문자열로 박지 않는다 — 이용권 한 장 값에서 나온다", () => {
   const html = renderToStaticMarkup(<Hero displayName={null} />);
   expect(html).toContain("개당 1,000원");
+  expect(html).toContain("내 캐릭터와 관계 지도는");
 });

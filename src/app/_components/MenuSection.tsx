@@ -10,14 +10,7 @@ function Body({ item }: { item: MenuItem }) {
   return (
     <>
       <div>
-        <div className="mb-[7px] text-[16.5px] font-bold tracking-[-0.015em]">
-          {item.title}
-          {item.href === null && (
-            <span className="ml-2 align-middle text-[11px] font-bold tracking-[0.06em] text-slate-400">
-              준비 중
-            </span>
-          )}
-        </div>
+        <div className="mb-[7px] text-[16.5px] font-bold tracking-[-0.015em]">{item.title}</div>
         <p className="m-0 text-[13.5px] leading-[1.6] text-slate-400 [text-wrap:pretty]">
           {item.desc}
         </p>
@@ -47,17 +40,11 @@ export function MenuSection() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {MENU_ITEMS.map((item) =>
-          item.href === null ? (
-            <div key={item.title} className={CARD}>
-              <Body item={item} />
-            </div>
-          ) : (
-            <Link key={item.title} href={item.href} className={`${CARD} ${HOVER}`}>
-              <Body item={item} />
-            </Link>
-          ),
-        )}
+        {MENU_ITEMS.map((item) => (
+          <Link key={item.title} href={item.href} className={`${CARD} ${HOVER}`}>
+            <Body item={item} />
+          </Link>
+        ))}
       </div>
 
       <p className="mt-[34px] text-center text-sm text-slate-400">

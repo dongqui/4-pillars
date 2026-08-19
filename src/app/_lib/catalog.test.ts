@@ -18,10 +18,9 @@ test("유료 항목은 실제 판매 기능과 개수·순서가 같다", () => 
   ]);
 });
 
-test("화면이 없는 항목은 링크를 갖지 않는다", () => {
-  expect(MENU_ITEMS.find((m) => m.title === "관계 지도")?.href).toBeNull();
-  // 나머지는 전부 갈 곳이 있다
-  expect(MENU_ITEMS.filter((m) => m.href === null)).toHaveLength(1);
+test("모든 항목이 갈 곳을 갖는다 — 랜딩에서 눌리면 열려야 한다", () => {
+  expect(MENU_ITEMS.every((m) => m.href.startsWith("/"))).toBe(true);
+  expect(MENU_ITEMS.find((m) => m.title === "관계 지도")?.href).toBe("/map");
 });
 
 test("천 단위 구분자 — 서버·브라우저가 같은 문자열을 낸다", () => {

@@ -1,10 +1,5 @@
-/**
- * 관계 지도 섹션.
- *
- * 시안의 "+ 사람 추가 · 무료" 버튼을 링크로 만들지 않는다 — /map 화면이 아직 없다.
- * 랜딩에서 열리는 척하면 눌러 본 사람이 곧바로 없는 화면을 본다. 대신 "준비 중"을
- * 붙여 무엇이 오는지만 보여준다(홈의 이어서 살펴보기와 같은 정책).
- */
+import Link from "next/link";
+
 const LEFT = [
   { who: "어머니", role: "나를 자라게 한 뿌리", tag: "기운을 주는 사람", tone: "calm" },
   { who: "직장 상사", role: "자꾸 부딪히는 자리", tag: "나를 단련시키는 사람", tone: "warm" },
@@ -47,20 +42,19 @@ function PersonCard({
   );
 }
 
+/**
+ * 관계 지도 섹션. /map 은 로그인만 하면 열리고 이용권을 쓰지 않아 무료로 적는다
+ * (비로그인은 /map 이 알아서 로그인으로 넘긴다 — 여기서 흐름을 끊지 않는다).
+ */
 export function RelationMapSection() {
   return (
     <section id="relmap" className="mx-auto max-w-[1120px] px-5 py-[clamp(56px,8vw,96px)] md:px-8">
       <div className="mb-[52px] text-center">
-        <div className="mb-4 flex items-center justify-center gap-2.5">
-          <h2 className="text-[clamp(28px,4vw,46px)] font-bold leading-[1.14] tracking-[-0.035em]">
-            사람 사이에 놓인 나
-          </h2>
-          <span className="mt-1 flex-none rounded-md border border-slate-200 px-[9px] py-1 text-[11px] font-bold tracking-[0.06em] text-slate-400">
-            준비 중
-          </span>
-        </div>
+        <h2 className="mb-4 text-[clamp(28px,4vw,46px)] font-bold leading-[1.14] tracking-[-0.035em]">
+          사람 사이에 놓인 나
+        </h2>
         <p className="text-[clamp(16px,2vw,18px)] text-slate-400 [text-wrap:pretty]">
-          한 사람씩 추가하면, 그 사람이 나에게 어떤 역할인지 보입니다. 몇 명이든 무료로 열 계획이에요.
+          한 사람씩 추가하면, 그 사람이 나에게 어떤 역할인지 보입니다. 몇 명이든 무료입니다.
         </p>
       </div>
 
@@ -77,9 +71,12 @@ export function RelationMapSection() {
             <span className="text-[11px] text-white/50">큰나무형</span>
           </div>
           <div className="text-[12.5px] font-semibold text-slate-400">4명 추가됨</div>
-          <span className="whitespace-nowrap rounded-full bg-slate-100 px-4 py-2.5 text-[13.5px] font-semibold text-slate-500">
-            + 사람 추가 · 준비 중
-          </span>
+          <Link
+            href="/map"
+            className="whitespace-nowrap rounded-full bg-accent-50 px-4 py-2.5 text-[13.5px] font-semibold text-accent hover:bg-accent-100"
+          >
+            + 사람 추가 · 무료
+          </Link>
         </div>
 
         <div className="flex flex-col gap-4">
