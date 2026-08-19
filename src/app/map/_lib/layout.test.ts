@@ -20,6 +20,7 @@ import {
   SPREAD,
   STATE_RADIUS,
   placePeople,
+  placeSubRegion,
   positionFor,
   subAnchor,
 } from "./layout";
@@ -468,4 +469,40 @@ describe("기본 진입 뷰는 A·B·C 세 모드의 제한 안에 있다", () =
       expect(azimuth).toBeLessThanOrEqual(l.maxAzimuth);
     });
   }
+});
+
+describe("placeSubRegion", () => {
+  it("positionFor 와 좌표가 정확히 같다", () => {
+    for (const role of ROLE_ORDER) {
+      for (const feature of ["none", "yukhap", "chung"] as Feature[]) {
+        const batch = placeSubRegion(role, feature, 10);
+        for (let i = 0; i < 10; i++) {
+          expect(batch[i]).toEqual(positionFor(role, feature, i));
+        }
+      }
+    }
+  });
+
+  // 재귀 회귀 방지. 고치기 전에는 한 소구역 20명이 4.7초였다(설계 §1.2).
+  // 넉넉히 200ms 를 둔다 — CI 가 느려도 지수와 다항의 차이는 이 문턱에서 갈린다.
+  it("50명을 200ms 안에 배치한다", () => {
+    const t = performance.now();
+    placeSubRegion("fill", "none", 50);
+    expect(performance.now() - t).toBeLessThan(200);
+  });
+
+  // 상한 50명의 근거(설계 §1.3). 기본 칸 8명까지는 두 사람이 한 점으로
+  // 읽히지 않아야 한다 — 문턱은 코어 지름(0.075 * 2)의 2배인 0.30 월드다.
+  it("기본 칸 8명이 코어 지름 2배 이상 떨어진다", () => {
+    const pts = placeSubRegion("fill", "none", 8);
+    let min = Infinity;
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = 0; j < i; j++) {
+        min = Math.min(min, Math.hypot(
+          pts[i][0] - pts[j][0], pts[i][1] - pts[j][1], pts[i][2] - pts[j][2],
+        ));
+      }
+    }
+    expect(min).toBeGreaterThanOrEqual(0.3);
+  });
 });
