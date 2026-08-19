@@ -1,6 +1,6 @@
 "use client";
 
-import { FRIENDS, type MockPerson } from "../_data/mock-people";
+import type { MapPerson } from "../_data/person";
 import { roleColor } from "../_data/role-colors";
 import {
   DISPLAY_TITLES,
@@ -27,19 +27,26 @@ import {
  * 시트가 열린다.
  */
 export function PeopleList({
+  people,
   open,
   onToggle,
   selectedId,
   onSelect,
+  isOwner,
+  onDelete,
 }: {
+  people: readonly MapPerson[];
   open: boolean;
   onToggle: () => void;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** 소유자만 삭제 버튼을 본다. 누구나 추가할 수 있으니 지울 사람이 있어야 한다. */
+  isOwner: boolean;
+  onDelete: (id: string) => void;
 }) {
   const byRole = ROLE_ORDER.map((role) => ({
     role,
-    people: FRIENDS.filter((p) => p.role === role),
+    people: people.filter((p) => p.role === role),
   }));
 
   return (
@@ -58,7 +65,7 @@ export function PeopleList({
         className="shrink-0 flex items-center justify-between gap-3 px-5 h-14 cursor-pointer bg-transparent border-0 text-left"
       >
         <span className="text-[14px] font-semibold text-slate-100">
-          전체 {FRIENDS.length}명
+          전체 {people.length}명
         </span>
         <span className="flex items-center gap-2">
           {/* 접혀 있을 때도 구역별 인원은 보인다 — 펴야만 알 수 있으면 손잡이가 아니다. */}
@@ -69,7 +76,7 @@ export function PeopleList({
                 className="text-[11px] font-semibold tabular-nums"
                 style={{ color: roleColor(role) }}
               >
-                {FRIENDS.filter((p) => p.role === role).length}
+                {people.filter((p) => p.role === role).length}
               </span>
             ))}
           <span
@@ -97,6 +104,8 @@ export function PeopleList({
                     person={person}
                     selected={person.id === selectedId}
                     onSelect={onSelect}
+                    isOwner={isOwner}
+                    onDelete={onDelete}
                   />
                 ))}
               </ul>
@@ -112,18 +121,38 @@ function PersonRow({
   person,
   selected,
   onSelect,
+  isOwner,
+  onDelete,
 }: {
-  person: MockPerson;
+  person: MapPerson;
   selected: boolean;
   onSelect: (id: string) => void;
+  isOwner: boolean;
+  onDelete: (id: string) => void;
 }) {
   const color = roleColor(person.role);
 
   return (
     <li>
-      <button
-        type="button"
+      {/*
+        행이 <button> 이 아니라 role="button" 인 div 인 이유: 소유자에게는 안에
+        지우기 버튼이 들어간다. HTML5 는 button 안의 button 을 금지하고, 파서가
+        고쳐 놓은 결과가 브라우저마다 달라 안쪽 컨트롤이 보조기기에 어떻게
+        노출되는지가 정의되지 않는다. 그래서 바깥을 div 로 내리고 키보드 동작을
+        직접 단다 — 지우기는 그 안의 진짜 형제 button 으로 남는다.
+      */}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => onSelect(person.id)}
+        onKeyDown={(e) => {
+          // 안쪽 지우기 버튼에서 올라온 키는 무시한다 — 그쪽은 자기 클릭을 낸다.
+          if (e.target !== e.currentTarget) return;
+          if (e.key !== "Enter" && e.key !== " ") return;
+          // Space 의 기본 동작(스크롤)을 막는다. 진짜 button 이 하는 일이다.
+          e.preventDefault();
+          onSelect(person.id);
+        }}
         className={`
           w-full flex items-start gap-3 text-left px-2 py-2.5 rounded-xl cursor-pointer border-0
           ${selected ? "bg-slate-700/50" : "bg-transparent"}
@@ -155,7 +184,22 @@ function PersonRow({
             {ROLE_LABELS[person.role]}
           </span>
         </span>
-      </button>
+
+        {isOwner && (
+          <button
+            type="button"
+            aria-label={`${person.name} 지우기`}
+            onClick={(e) => {
+              // 행 전체가 선택 버튼이다 — 삭제가 선택으로 새면 지우자마자 시트가 열린다.
+              e.stopPropagation();
+              onDelete(person.id);
+            }}
+            className="ml-auto shrink-0 rounded-lg px-2 py-1 text-[12px] text-slate-500 hover:bg-white/10 hover:text-slate-300"
+          >
+            지우기
+          </button>
+        )}
+      </div>
     </li>
   );
 }

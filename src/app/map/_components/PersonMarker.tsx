@@ -5,7 +5,7 @@ import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { roleColor } from "../_data/role-colors";
-import type { MockPerson } from "../_data/mock-people";
+import type { MapPerson } from "../_data/person";
 import type { Vec3 } from "../_lib/layout";
 import { PersonNode } from "./PersonNode";
 
@@ -53,7 +53,7 @@ export function PersonMarker({
   boosted,
   onSelect,
 }: {
-  person: MockPerson;
+  person: MapPerson;
   position: Vec3;
   selected: boolean;
   dimmed: boolean;
