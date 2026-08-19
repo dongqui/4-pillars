@@ -1,48 +1,64 @@
 import Link from "next/link";
-import { characterOf } from "@/lib/saju-core/character";
-import { HeroCardStack } from "./HeroCardStack";
+import { TICKET_PRICE_LABEL } from "../_lib/catalog";
+import { ReportPreview } from "./ReportPreview";
 
-/**
- * 스택에 세우는 세 장. 오행이 겹치지 않게 골라 서피스 색이 서로 다르게 보이도록 한다
- * (수 · 화 · 목). 앞장은 시안과 같은 갑자.
- */
-const STACK = [characterOf("임", "신"), characterOf("병", "인"), characterOf("갑", "자")] as const;
+interface HeroProps {
+  /** 로그인하지 않았으면 null. page.tsx 가 폴백까지 끝내고 넘긴다. */
+  displayName: string | null;
+}
 
-export function Hero() {
+const PRIMARY =
+  "rounded-[14px] bg-accent px-7 py-4 text-base font-semibold text-white shadow-[0_12px_28px_-8px_rgba(37,99,235,.4)] hover:bg-accent-700";
+const SECONDARY =
+  "rounded-[14px] border border-slate-200 bg-white px-6 py-4 text-base font-semibold text-slate-700 hover:bg-slate-50";
+
+export function Hero({ displayName }: HeroProps) {
   return (
-    <section className="overflow-x-clip pt-10 pb-2 md:pt-[clamp(56px,7vw,88px)] md:pb-6">
-      <div className="mx-auto max-w-[1120px]">
-        <div className="flex flex-col gap-10 px-5 md:grid md:grid-cols-2 md:items-center md:gap-12 md:px-8">
-          <div className="max-w-[540px]">
-            <div className="mb-[26px] inline-flex items-center gap-2 rounded-full bg-accent-50 px-3.5 py-[7px] text-[13px] font-semibold text-accent">
-              태어난 날과 시간으로 시작해요
-            </div>
-            <h1 className="mb-[22px] text-[40px] font-bold leading-[1.06] tracking-[-0.045em] [text-wrap:balance] md:text-[clamp(46px,5.4vw,68px)]">
-              당신은 어떤
-              <br />
-              캐릭터인가요?
-            </h1>
-            <p className="mb-3 text-[clamp(17px,2.1vw,20px)] font-medium leading-[1.55] text-gray-700 [text-wrap:pretty]">
-              태어난 날에서 시작해 나를 여러 관점으로 읽어봐요.
-            </p>
-            <p className="mb-[34px] max-w-[430px] text-[15.5px] leading-[1.65] text-gray-400 [text-wrap:pretty]">
-              먼저 캐릭터 한 장으로 나를 만나고, 이어서 나와 주변 사람들을 계속 탐색해나가는
-              서비스예요.
-            </p>
-            <Link
-              href="/funnel?step=name"
-              className="inline-block rounded-[14px] bg-accent px-[30px] py-[17px] text-[16.5px] font-semibold text-white shadow-[0_14px_30px_-12px_rgba(37,99,235,.55)] hover:bg-accent-700"
-            >
-              내 캐릭터 알아보기
-            </Link>
-            <p className="mt-[15px] text-[13.5px] text-gray-400">
-              로그인 없이 1분 · 생년월일시를 입력해요
-            </p>
-          </div>
-
-          <HeroCardStack cards={[STACK[0], STACK[1], STACK[2]]} />
-        </div>
+    <section className="mx-auto max-w-[1120px] px-5 pb-[72px] pt-[clamp(56px,9vw,120px)] text-center md:px-8">
+      <div className="mb-[30px] inline-flex items-center rounded-full bg-accent-50 px-3.5 py-[7px] text-[13.5px] font-semibold text-accent">
+        사주를, 나를 이해하는 언어로
       </div>
+      <h1 className="mb-[26px] text-[clamp(40px,7vw,78px)] font-bold leading-[1.04] tracking-[-0.045em]">
+        당신은
+        <br />
+        어떤 사람인가요?
+      </h1>
+      <p className="mx-auto mb-3.5 max-w-[560px] text-[clamp(19px,2.4vw,23px)] font-medium leading-[1.5] text-slate-700 [text-wrap:pretty]">
+        한 번에 다 알 필요는 없어요. 알고 싶은 것부터 하나씩.
+      </p>
+      {/* 시안은 "내 캐릭터와 관계 지도는 무료" 였지만 관계 지도는 아직 화면이 없다 */}
+      <p className="mx-auto mb-[30px] max-w-[460px] text-[16.5px] leading-[1.6] text-slate-400 [text-wrap:pretty]">
+        내 캐릭터는 <strong className="whitespace-nowrap font-semibold text-slate-600">무료</strong>.
+        더 깊이 보고 싶은 것만{" "}
+        <strong className="whitespace-nowrap font-semibold text-slate-600">
+          개당 {TICKET_PRICE_LABEL}
+        </strong>
+        .
+      </p>
+
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        {displayName === null ? (
+          <Link href="/funnel?step=name" className={PRIMARY}>
+            내 리포트 만들기
+          </Link>
+        ) : (
+          <>
+            <Link href="/home" className={PRIMARY}>
+              내 리포트 보기
+            </Link>
+            <Link href="/funnel?step=name" className={SECONDARY}>
+              다른 사람 사주 보기
+            </Link>
+          </>
+        )}
+      </div>
+      {displayName !== null && (
+        <p className="mt-4 text-[13.5px] text-slate-400">
+          {displayName}님, 다시 오셨네요 — 지난 리포트가 저장되어 있어요.
+        </p>
+      )}
+
+      <ReportPreview />
     </section>
   );
 }

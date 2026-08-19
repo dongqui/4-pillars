@@ -27,7 +27,7 @@ export function LandingNav({ displayName }: LandingNavProps) {
                 href="/funnel?step=name"
                 className="whitespace-nowrap rounded-xl bg-accent px-[18px] py-2.5 text-[14.5px] font-semibold text-white hover:bg-accent-700"
               >
-                내 캐릭터 알아보기
+                시작하기
               </Link>
             </>
           ) : (
@@ -36,7 +36,7 @@ export function LandingNav({ displayName }: LandingNavProps) {
                 href="/home"
                 className="ml-2.5 whitespace-nowrap rounded-xl bg-accent px-[18px] py-2.5 text-[14.5px] font-semibold text-white hover:bg-accent-700"
               >
-                홈으로
+                내 리포트 보기
               </Link>
               <UserMenu displayName={displayName} />
             </>

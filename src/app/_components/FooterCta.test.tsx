@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { FooterCta } from "./FooterCta";
 
 test("법률 링크와 사업자정보를 노출한다", () => {
-  const html = renderToStaticMarkup(<FooterCta />);
+  const html = renderToStaticMarkup(<FooterCta displayName={null} />);
   // 이용약관·개인정보처리방침은 링크로 유지
   expect(html).toContain('href="/terms"');
   expect(html).toContain('href="/privacy"');

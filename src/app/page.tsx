@@ -3,8 +3,10 @@ import { getUser } from "@/lib/auth/users";
 import { resolveDisplayName } from "@/lib/auth/display-name";
 import { LandingNav } from "./_components/LandingNav";
 import { Hero } from "./_components/Hero";
-import { FlowSteps } from "./_components/FlowSteps";
-import { JourneySection } from "./_components/JourneySection";
+import { CharacterSection } from "./_components/CharacterSection";
+import { RelationMapSection } from "./_components/RelationMapSection";
+import { MenuSection } from "./_components/MenuSection";
+import { TrustSection } from "./_components/TrustSection";
 import { FooterCta } from "./_components/FooterCta";
 
 /**
@@ -24,13 +26,18 @@ async function navDisplayName(): Promise<string | null> {
 }
 
 export default async function Home() {
+  // 한 번만 읽어서 내비 · 히어로 · 마지막 CTA 가 같은 상태를 본다.
+  const displayName = await navDisplayName();
+
   return (
     <div className="flex-1">
-      <LandingNav displayName={await navDisplayName()} />
-      <Hero />
-      <FlowSteps />
-      <JourneySection />
-      <FooterCta />
+      <LandingNav displayName={displayName} />
+      <Hero displayName={displayName} />
+      <CharacterSection />
+      <RelationMapSection />
+      <MenuSection />
+      <TrustSection />
+      <FooterCta displayName={displayName} />
     </div>
   );
 }
