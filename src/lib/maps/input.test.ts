@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { addPersonSchema } from "./input";
 
 const ok = { name: "민수", birth: { year: 1990, month: 5, day: 15 } };
@@ -46,21 +46,17 @@ describe("addPersonSchema 의 연도 상한", () => {
   // 사는 서버 프로세스가 새해 출생연도를 이유 없이 400 으로 거절한다. 클라이언트의
   // add-draft.ts 는 호출마다 다시 읽으므로 제출 버튼은 켜져 있다.
   it("검증할 때마다 현재 연도를 다시 읽는다", () => {
-    const real = Date;
     const nextYear = new Date().getFullYear() + 1;
-    // 시계를 다음 해로 옮긴다. 상한이 굳어 있으면 여기서도 여전히 거절한다.
-    class Frozen extends real {
-      constructor(...args: ConstructorParameters<typeof Date>) {
-        super(...(args.length ? args : [Date.UTC(nextYear, 5, 1)]) as []);
-      }
-    }
-    globalThis.Date = Frozen as unknown as DateConstructor;
+    // 시계를 다음 해로 옮긴다. 상한이 모듈 로드 시각에 굳어 있으면 시계를 옮겨도
+    // 여전히 거절하므로 이 단언이 깨진다.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(Date.UTC(nextYear, 5, 1)));
     try {
       expect(
         addPersonSchema.safeParse({ ...ok, birth: { year: nextYear, month: 1, day: 1 } }).success,
       ).toBe(true);
     } finally {
-      globalThis.Date = real;
+      vi.useRealTimers();
     }
   });
 });
