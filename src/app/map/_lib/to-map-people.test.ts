@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { buildPillars } from "@/lib/saju-core";
 import type { BirthLite, MapPersonRow } from "@/lib/maps/types";
-import { centerOf, dayPillarOf, toMapPerson } from "./to-map-people";
+import { centerOf, dayPillarOf, pickMapCenter, toMapPerson } from "./to-map-people";
 
 const BASE = { year: 1990, month: 5, day: 15 } as const;
 
@@ -166,5 +166,47 @@ describe("centerOf", () => {
 
   it("없는 날짜면 null", () => {
     expect(centerOf("김동진", solar(1990, 2, 31))).toBeNull();
+  });
+});
+
+describe("pickMapCenter", () => {
+  // listProfiles 와 같은 최신순 배열이다 — 앞이 최신, 뒤가 가장 오래된 것.
+  const newestFirst = [
+    { tag: "newest", birth: solar(2000, 1, 1) },
+    { tag: "middle", birth: solar(1995, 1, 1) },
+    { tag: "oldest", birth: solar(1990, 1, 1) },
+  ];
+  const toBirth = (p: { birth: BirthLite }) => p.birth;
+
+  it("가장 오래된 것을 고른다 — 배열은 최신순이다", () => {
+    expect(pickMapCenter(newestFirst, toBirth)?.tag).toBe("oldest");
+  });
+
+  // 여기가 이 함수의 존재 이유다. profiles 스키마는 2200년·2월 31일·없는 윤달을
+  // 통과시키는데, 그런 프로필로 지도를 만들면 되돌릴 수 없는 404 가 박힌다.
+  it("가장 오래된 것의 일주가 안 서면 그 다음으로 오래된 것을 고른다", () => {
+    const withBroken = [
+      { tag: "newest", birth: solar(2000, 1, 1) },
+      { tag: "middle", birth: solar(1995, 1, 1) },
+      { tag: "broken-2200", birth: solar(2200, 5, 1) },
+    ];
+    expect(pickMapCenter(withBroken, toBirth)?.tag).toBe("middle");
+  });
+
+  it("없는 날짜와 없는 윤달도 건너뛴다", () => {
+    const broken = [
+      { tag: "ok", birth: solar(1995, 1, 1) },
+      { tag: "no-leap", birth: { year: 1990, month: 1, day: 1, calendar: "lunar" as const, isLeapMonth: true } },
+      { tag: "feb31", birth: solar(1990, 2, 31) },
+    ];
+    expect(pickMapCenter(broken, toBirth)?.tag).toBe("ok");
+  });
+
+  it("하나도 서지 않으면 null — 호출부는 프로필이 없는 것과 같이 다룬다", () => {
+    expect(pickMapCenter([{ tag: "x", birth: solar(2200, 5, 1) }], toBirth)).toBeNull();
+  });
+
+  it("빈 배열이면 null", () => {
+    expect(pickMapCenter([], toBirth)).toBeNull();
   });
 });

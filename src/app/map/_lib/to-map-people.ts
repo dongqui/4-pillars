@@ -64,6 +64,30 @@ export function dayPillarOf(birth: BirthLite): DayPillarInput | null {
   }
 }
 
+/**
+ * 지도 중심으로 쓸 후보를 고른다 — **가장 오래된 것부터 훑어 일주가 실제로 서는
+ * 첫 항목**이다. 하나도 없으면 null.
+ *
+ * "가장 오래된 것" 이 규칙인 이유는 /map/page.tsx 에 있다(퍼널에서 만든 본인 사주가
+ * 그 자리다). 여기서 굳이 "서는지" 를 함께 보는 이유는 따로다: profiles/input.ts 의
+ * 스키마가 만세력(1900~2050)보다 헐거워 2200년·2월 31일·없는 윤달이 저장될 수 있고,
+ * 그런 값으로 지도를 만들면 /map/[share] 가 중심을 못 세워 영구 404 가 된다. 그 뒤로는
+ * getMapByOwner 가 그 행을 먼저 돌려주므로 다시 들어와도 같은 404 이고, 지도를 고치거나
+ * 지우는 길이 없다 — DB 를 손으로 지워야 풀린다. 만들기 전에 거르는 편이 유일한 답이다.
+ *
+ * ⚠️ 입력은 **최신순**이다(listProfiles 의 ORDER BY created_at DESC). 그래서 뒤에서
+ * 앞으로 훑는다.
+ */
+export function pickMapCenter<T>(
+  newestFirst: readonly T[],
+  toBirth: (item: T) => BirthLite,
+): T | null {
+  for (let i = newestFirst.length - 1; i >= 0; i -= 1) {
+    if (dayPillarOf(toBirth(newestFirst[i]))) return newestFirst[i];
+  }
+  return null;
+}
+
 /** 지도의 중심. 관계가 없으므로 일주 캐릭터만 담는다. */
 export function centerOf(name: string, birth: BirthLite): MapCenter | null {
   const day = dayPillarOf(birth);
