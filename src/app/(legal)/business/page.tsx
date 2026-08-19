@@ -4,7 +4,7 @@ import { COMPANY } from "@/lib/company";
 
 export const metadata: Metadata = {
   title: "사업자정보 | 프로젝트 사주",
-  description: "헤일메리랩스 사업자 정보",
+  description: "프로젝트엔 사업자 정보",
 };
 
 const ROWS: [string, string][] = [
@@ -19,7 +19,7 @@ const ROWS: [string, string][] = [
 
 export default function BusinessInfoPage() {
   return (
-    <LegalPage title="사업자정보" updatedAt="2026-08-12">
+    <LegalPage title="사업자정보" updatedAt="2026-08-18">
       <table className="w-full text-[15px] border-collapse">
         <tbody>
           {ROWS.map(([label, value]) => (
