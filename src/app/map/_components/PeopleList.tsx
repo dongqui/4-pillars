@@ -134,9 +134,25 @@ function PersonRow({
 
   return (
     <li>
-      <button
-        type="button"
+      {/*
+        행이 <button> 이 아니라 role="button" 인 div 인 이유: 소유자에게는 안에
+        지우기 버튼이 들어간다. HTML5 는 button 안의 button 을 금지하고, 파서가
+        고쳐 놓은 결과가 브라우저마다 달라 안쪽 컨트롤이 보조기기에 어떻게
+        노출되는지가 정의되지 않는다. 그래서 바깥을 div 로 내리고 키보드 동작을
+        직접 단다 — 지우기는 그 안의 진짜 형제 button 으로 남는다.
+      */}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => onSelect(person.id)}
+        onKeyDown={(e) => {
+          // 안쪽 지우기 버튼에서 올라온 키는 무시한다 — 그쪽은 자기 클릭을 낸다.
+          if (e.target !== e.currentTarget) return;
+          if (e.key !== "Enter" && e.key !== " ") return;
+          // Space 의 기본 동작(스크롤)을 막는다. 진짜 button 이 하는 일이다.
+          e.preventDefault();
+          onSelect(person.id);
+        }}
         className={`
           w-full flex items-start gap-3 text-left px-2 py-2.5 rounded-xl cursor-pointer border-0
           ${selected ? "bg-slate-700/50" : "bg-transparent"}
@@ -183,7 +199,7 @@ function PersonRow({
             지우기
           </button>
         )}
-      </button>
+      </div>
     </li>
   );
 }

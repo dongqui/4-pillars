@@ -148,9 +148,16 @@ export function MapShell({
       {/*
         추가 버튼. 소유자가 아니어도 보인다 — 링크를 받은 사람이 자기를 넣는 것이
         이 기능의 전부다. 목록 손잡이 바로 위, 접힌 목록에 가리지 않는 자리다.
+
+        판이 열리면 inert 다. 이 버튼은 z-10 이라 판(z-20·z-30) 아래로 완전히
+        덮이는데, inert 가 없으면 눈에 보이지 않는 채로 tab 순서에는 남는다 —
+        추가 시트를 열어둔 키보드/스위치 사용자가 시트 안에서 tab 을 돌리다
+        보이지 않는 이 버튼을 눌러 이미 있는 시트를 다시 여는 일이 생긴다.
+        MapHeader·PersonSheet·AddPersonSheet 가 쓰는 것과 같은 방식이다.
       */}
       <button
         type="button"
+        inert={anyPanelOpen}
         onClick={() => {
           setSelectedId(null);
           setListOpen(false);
