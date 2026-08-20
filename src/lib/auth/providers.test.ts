@@ -33,7 +33,15 @@ describe("fetchProfile", () => {
   it("kakao: kakao_account 중첩을 정규화", async () => {
     const fetchImpl = fakeFetch({ id: 12345, kakao_account: { email: "k@k.com", profile: { nickname: "카톡", profile_image_url: "http://img/k" } } });
     const p = await PROVIDERS.kakao.fetchProfile({ access_token: "t" }, fetchImpl);
-    expect(p).toEqual({ providerUserId: "12345", displayName: "카톡", avatarUrl: "http://img/k" });
+    expect(p).toEqual({ providerUserId: "12345", email: "k@k.com", displayName: "카톡", avatarUrl: "http://img/k" });
+  });
+  it("kakao: 이메일 동의를 요청한다 — 결제창이 구매자 이메일을 요구한다", () => {
+    expect(PROVIDERS.kakao.scope.split(" ")).toContain("account_email");
+  });
+  it("kakao: 동의를 거부하면 email 이 없다 — 없는 채로 통과시킨다, 막는 건 콜백의 일이다", async () => {
+    const fetchImpl = fakeFetch({ id: 12345, kakao_account: { email_needs_agreement: true, profile: { nickname: "카톡" } } });
+    const p = await PROVIDERS.kakao.fetchProfile({ access_token: "t" }, fetchImpl);
+    expect(p.email).toBeUndefined();
   });
   it("line: id_token 클레임을 정규화", async () => {
     const id_token = makeJwt({ sub: "l-9", name: "라인", email: "l@l.com", picture: "http://img/l" });

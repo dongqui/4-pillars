@@ -47,20 +47,26 @@ export interface UserProfile {
   id: string;
   /** 소셜 제공자가 이름을 안 줄 수 있어 null 을 허용한다. */
   displayName: string | null;
+  /**
+   * 결제창에 넘길 구매자 이메일. 지금은 로그인이 이메일을 요구하지만(MissingEmailError),
+   * 그 규칙 이전에 가입한 행은 비어 있어서 null 을 허용한다.
+   */
+  email: string | null;
 }
 
-/** 헤더에 표시할 최소 정보만 읽는다. 세션에는 userId 밖에 없다. */
+/** 헤더 표시와 결제 구매자 정보에 쓰는 최소 정보만 읽는다. 세션에는 userId 밖에 없다. */
 export async function getUser(
   id: string,
   client: SqlClient = sql,
 ): Promise<UserProfile | null> {
   const rows = await client`
-    SELECT id, display_name FROM users WHERE id = ${id}::bigint
+    SELECT id, display_name, email FROM users WHERE id = ${id}::bigint
   `;
   const row = rows[0];
   if (!row) return null;
   return {
     id: String(row.id),
     displayName: typeof row.display_name === "string" ? row.display_name : null,
+    email: typeof row.email === "string" ? row.email : null,
   };
 }

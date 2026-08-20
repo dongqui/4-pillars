@@ -45,9 +45,25 @@ test("zoomW 를 w 보다 작게 주면 캔버스만 넓어진다", () => {
   // 배율은 zoomW 가 정한다 — 같은 zoom 이면 글자 크기가 같다
   expect(same).toContain(`zoom:${500 / 1080}`);
   expect(wider).toContain(`zoom:${460 / 1080}`);
+  // 바깥 폭은 zoomW 와 무관하게 w 다 — 스택·리빌이 이 폭에 기대 카드를 배치한다
+  expect(same).toContain("width:500px");
+  expect(wider).toContain("width:500px");
   // 캔버스 폭은 w/배율로 역산되므로 zoomW 가 작을수록 넓다
   expect(same).toContain("width:1080px");
   expect(wider).toContain(`width:${Math.round(500 / (460 / 1080))}px`);
+});
+
+test('w="fill" 이면 바깥 폭을 부모에게 맡기고 캔버스가 따라 늘어난다', () => {
+  const c = characterOf("갑", "자");
+  const html = renderToStaticMarkup(<CharacterCard character={c} w="fill" />);
+
+  expect(html).toContain("width:100%");
+  // 캔버스에 폭이 박히면 부모를 따라 늘어나지 못한다 — auto 로 비어 있어야 한다
+  expect(html).not.toContain("width:1080px");
+  // 그래도 글자 크기는 기준 폭이 정한다 — 폭이 변해도 zoom 은 흔들리지 않는다
+  expect(html).toContain(`zoom:${400 / 1080}`);
+  // 글로우도 캔버스 폭을 몰라야 하므로 px 이 아니라 비율로 퍼진다
+  expect(html).toContain("radial-gradient(82% 600px");
 });
 
 test("라이트 변형은 흰 배경에 오행 차트색을 쓴다", () => {

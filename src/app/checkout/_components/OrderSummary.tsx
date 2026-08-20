@@ -104,7 +104,7 @@ export function OrderSummary({
 
         <div className="mt-0.5 flex items-center justify-center gap-[7px] text-xs text-slate-300 sm:mt-3.5">
           <LockGlyph className="h-3 w-[11px] border-slate-300" />
-          PortOne 보안 결제 · KG이니시스
+          토스페이먼츠 보안 결제
         </div>
       </div>
     </div>

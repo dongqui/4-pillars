@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getProvider } from "@/lib/auth/providers";
-import { completeOAuth } from "@/lib/auth/callback";
+import { completeOAuth, MissingEmailError } from "@/lib/auth/callback";
 import { upsertUser } from "@/lib/auth/users";
 import { SESSION_COOKIE, sessionCookieOptions } from "@/lib/auth/session";
 import { createProfile } from "@/lib/profiles/store";
@@ -72,7 +72,9 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ provider: s
     return res;
   } catch (e) {
     console.error("[oauth callback]", e instanceof Error ? e.message : e);
-    const res = NextResponse.redirect(new URL("/login?error=oauth", origin));
+    // 이메일 거부는 실패가 아니라 사용자의 선택이다 — "다시 시도" 대신 이유를 보여 준다.
+    const reason = e instanceof MissingEmailError ? "email" : "oauth";
+    const res = NextResponse.redirect(new URL(`/login?error=${reason}`, origin));
     res.cookies.delete("oauth_state");
     res.cookies.delete("oauth_verifier");
     res.cookies.delete("oauth_next");

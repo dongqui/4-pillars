@@ -31,8 +31,12 @@ describe("upsertUser", () => {
 
 describe("getUser", () => {
   it("id로 조회해 표시 이름을 반환", async () => {
-    const { client, calls } = fakeClient([{ id: 7, display_name: "김동진" }]);
-    expect(await getUser("7", client)).toEqual({ id: "7", displayName: "김동진" });
+    const { client, calls } = fakeClient([{ id: 7, display_name: "김동진", email: "a@g.com" }]);
+    expect(await getUser("7", client)).toEqual({
+      id: "7",
+      displayName: "김동진",
+      email: "a@g.com",
+    });
     expect(calls[0].sql).toContain("FROM users");
     expect(calls[0].values).toEqual(["7"]);
   });
@@ -43,7 +47,7 @@ describe("getUser", () => {
   });
 
   it("표시 이름이 비어 있으면 displayName은 null", async () => {
-    const { client } = fakeClient([{ id: 7, display_name: null }]);
-    expect(await getUser("7", client)).toEqual({ id: "7", displayName: null });
+    const { client } = fakeClient([{ id: 7, display_name: null, email: null }]);
+    expect(await getUser("7", client)).toEqual({ id: "7", displayName: null, email: null });
   });
 });
