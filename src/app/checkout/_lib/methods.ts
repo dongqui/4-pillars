@@ -15,13 +15,13 @@ export interface PaymentMethod {
 }
 
 /**
- * 순서가 곧 화면 순서다. PG 를 붙일 때 각 항목이 PortOne 결제수단 코드와 짝지어진다.
+ * 순서가 곧 화면 순서다. 각 항목은 config.ts 의 PaymentRequestKind 와 짝지어진다.
  */
 export const PAYMENT_METHODS: PaymentMethod[] = [
   {
     id: "card",
     name: "신용 · 체크카드",
-    desc: "KG이니시스 국내 카드결제",
+    desc: "국내 카드결제",
     logo: "카드",
     logoClass: "bg-slate-100 text-slate-500",
   },

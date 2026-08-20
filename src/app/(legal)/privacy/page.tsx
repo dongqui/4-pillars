@@ -44,7 +44,7 @@ export default function PrivacyPage() {
       <h2>4. 개인정보 처리의 위탁</h2>
       <p>회사는 서비스 제공을 위해 아래와 같이 개인정보 처리를 위탁합니다.</p>
       <ul>
-        <li>PortOne 및 연동 결제대행사(KG이니시스 등): 결제·환불 처리</li>
+        <li>토스페이먼츠(결제대행사): 결제·환불 처리</li>
         <li>Neon: 데이터베이스 저장·운영</li>
         <li>Upstash: 세션 관리 및 비회원 입력값 임시 보관</li>
         <li>소셜 로그인 제공자(카카오·LINE·Google): 로그인 인증</li>

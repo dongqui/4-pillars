@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { completeOAuth } from "./callback";
+import { completeOAuth, MissingEmailError } from "./callback";
 import { decodeSession } from "./session";
 import { PROVIDERS, type FetchLike } from "./providers";
 
@@ -68,5 +68,30 @@ describe("completeOAuth", () => {
     const { deps: d } = deps(googleFetch());
     const result = await completeOAuth(PROVIDERS.google, { ...baseParams, next: "https://evil.com" }, d);
     expect(result.redirectTo).toBe("/home");
+  });
+});
+
+describe("이메일 없는 로그인", () => {
+  // 제공자가 이메일을 안 주는 경우: 카카오에서 이메일 동의를 거부한 사용자.
+  function noEmailFetch(): FetchLike {
+    return (async (url: string) => {
+      if (url === "https://oauth2.googleapis.com/token") {
+        return { ok: true, status: 200, json: async () => ({ access_token: "AT" }) };
+      }
+      return { ok: true, status: 200, json: async () => ({ sub: "g-1", name: "지민" }) };
+    }) as unknown as FetchLike;
+  }
+
+  it("이메일이 없으면 MissingEmailError — 결제창이 구매자 이메일을 요구한다", async () => {
+    const { deps: d } = deps(noEmailFetch());
+    await expect(completeOAuth(PROVIDERS.google, baseParams, d)).rejects.toBeInstanceOf(
+      MissingEmailError,
+    );
+  });
+
+  it("이메일이 없으면 가입시키지 않는다 — 결제 못 하는 계정을 만들어 두지 않는다", async () => {
+    const { deps: d, upserts } = deps(noEmailFetch());
+    await completeOAuth(PROVIDERS.google, baseParams, d).catch(() => {});
+    expect(upserts).toEqual([]);
   });
 });

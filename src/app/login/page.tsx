@@ -75,6 +75,14 @@ export default async function LoginPage({
             </p>
           )}
 
+          {error === "email" && (
+            <p className="mb-4 rounded-lg bg-red-50 px-4 py-2 text-[13px] leading-[1.6] text-red-600 [word-break:keep-all]">
+              이메일 제공에 동의해야 가입할 수 있어요.
+              <br />
+              결제 영수증을 보내드리려면 이메일이 필요해요.
+            </p>
+          )}
+
           <div className="flex flex-col gap-2.5">
             {PROVIDERS.map((p) => (
               <a

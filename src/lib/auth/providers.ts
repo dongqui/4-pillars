@@ -78,7 +78,9 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     id: "kakao",
     authorizeUrl: "https://kauth.kakao.com/oauth/authorize",
     tokenUrl: "https://kauth.kakao.com/oauth/token",
-    scope: "profile_nickname",
+    // account_email 은 카카오 콘솔에서 동의항목을 켜야 실제로 내려온다(비즈앱 필요).
+    // 결제 영수증과 문의 대응에 이메일이 필요해서 로그인 단계에서 받아 둔다.
+    scope: "profile_nickname account_email",
     clientIdEnv: "KAKAO_CLIENT_ID",
     clientSecretEnv: "KAKAO_CLIENT_SECRET",
     async fetchProfile(token, fetchImpl) {
@@ -89,8 +91,11 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
       const d = (await res.json()) as Record<string, unknown>;
       const acc = (d.kakao_account ?? {}) as Record<string, unknown>;
       const prof = (acc.profile ?? {}) as Record<string, unknown>;
+      // 사용자가 이메일 동의를 거부하면 email 이 아예 없거나(email_needs_agreement)
+       // 미인증이라 안 내려온다. 여기서 막지 않는다 — 가입 차단은 completeOAuth 의 일이다.
       return {
         providerUserId: String(d.id),
+        email: str(acc.email),
         displayName: str(prof.nickname),
         avatarUrl: str(prof.profile_image_url),
       };

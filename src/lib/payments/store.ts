@@ -11,7 +11,7 @@ const STATUSES: readonly string[] = ["pending", "paid", "refunded", "failed"];
 export interface PendingOrder {
   paymentId: string;
   userId: string;
-  /** 주문 생성 시점에 서버가 박아 둔 청구 금액. 포트원 조회 결과와 대조하는 기준이다. */
+  /** 주문 생성 시점에 서버가 박아 둔 청구 금액. 토스 승인·조회 결과와 대조하는 기준이다. */
   amount: number;
   status: PurchaseStatus;
 }
@@ -54,7 +54,7 @@ export async function createPendingPurchase(
       user_id, product, amount, tickets, currency, status, provider, payment_id
     ) VALUES (
       ${input.userId}::bigint, ${input.product},
-      ${input.amount}, ${input.tickets}, 'KRW', 'pending', 'portone', ${input.paymentId}
+      ${input.amount}, ${input.tickets}, 'KRW', 'pending', 'tosspayments', ${input.paymentId}
     )
   `;
 }
@@ -71,7 +71,7 @@ export async function findOrderByPaymentId(
   return row ? toPendingOrder(row) : null;
 }
 
-/** 금액·통화가 어긋났거나 포트원이 실패로 끝낸 주문을 내린다. */
+/** 금액·통화가 어긋났거나 토스가 실패로 끝낸 주문을 내린다. */
 export async function markPurchaseFailed(
   paymentId: string,
   client: SqlClient = sql,

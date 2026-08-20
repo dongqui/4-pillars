@@ -50,7 +50,7 @@ describe("createPendingPurchase", () => {
     expect(calls[0].sql).toContain("INSERT INTO purchases");
     expect(calls[0].values).toEqual(["7", "t5", 5000, 6, "saju-abc"]);
     expect(calls[0].sql).toContain("'pending'");
-    expect(calls[0].sql).toContain("'portone'");
+    expect(calls[0].sql).toContain("'tosspayments'");
   });
 
   it("profile_id 를 쓰지 않는다 — 이용권 충전에는 대상 프로필이 없다", async () => {

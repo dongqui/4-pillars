@@ -50,7 +50,7 @@ export function creditedTickets(p: TicketPackage): number {
 }
 
 /**
- * 결제창·카드 명세서·포트원 콘솔에 뜨는 상품명.
+ * 결제창·카드 명세서·토스 콘솔에 뜨는 상품명.
  * 프로필 이름을 넣지 않는 기존 판단을 잇는다 — 명세서에 타인의 이름이 남을 이유가 없다.
  */
 export function packageOrderName(p: TicketPackage): string {
