@@ -3,7 +3,9 @@ import { FRIENDS } from "../_data/mock-people";
 import { ROLE_HUE, roleColor } from "../_data/role-colors";
 import type { RelationRole } from "../_data/roles";
 import {
+  CONNECTION_DIMMED_OPACITY,
   CONNECTION_OPACITY,
+  CONNECTION_SELECTED_OPACITY,
   CONNECTION_SELF_DIM,
   connectionColors,
   connectionSegments,
@@ -40,12 +42,28 @@ describe("connectionSegments", () => {
 });
 
 describe("연결선 상수", () => {
-  it("선택된 가닥(0.55)보다 훨씬 옅다", () => {
+  it("겹쳐 쌓여도 선택된 선을 넘지 않는다", () => {
     // 20개가 동시에 떠 있는 기본 상태에서 선택한 하나가 가장 밝아야 한다.
     // 진입 카메라에서 20개 선분을 실제로 래스터화하면, 나의 opaque 코어
     // 바깥에서 최악의 겹침은 반지름 ≈10px 지점의 4겹이다(합성
-    // 1-(1-0.14)^4 = 0.453) — 그래도 선택된 가닥을 넘지 않는다.
-    expect(1 - Math.pow(1 - CONNECTION_OPACITY, 4)).toBeLessThan(0.55);
+    // 1-(1-0.14)^4 = 0.453) — 그래도 선택된 선을 넘지 않는다.
+    expect(1 - Math.pow(1 - CONNECTION_OPACITY, 4)).toBeLessThan(
+      CONNECTION_SELECTED_OPACITY,
+    );
+  });
+
+  it("고르면 그 선만 오르고 나머지는 내려간다", () => {
+    // 이 순서가 깨지면 강조가 강조가 아니게 된다. 선택을 지운 뒤에도 기본
+    // 상태가 dim 보다 진해야 "아무도 고르지 않음" 과 "골랐는데 이 사람은
+    // 아님" 이 화면에서 구분된다.
+    expect(CONNECTION_DIMMED_OPACITY).toBeLessThan(CONNECTION_OPACITY);
+    expect(CONNECTION_OPACITY).toBeLessThan(CONNECTION_SELECTED_OPACITY);
+  });
+
+  it("강조된 선이 dim 된 선보다 최소 5배 진하다", () => {
+    // 20개가 남아 있는 화면에서 하나만 눈에 들어오려면 배수가 필요하다.
+    // 실제 비는 0.55 / 0.07 ≈ 7.9 배다.
+    expect(CONNECTION_SELECTED_OPACITY / CONNECTION_DIMMED_OPACITY).toBeGreaterThanOrEqual(5);
   });
 });
 

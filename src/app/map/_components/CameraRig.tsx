@@ -12,7 +12,6 @@ import {
   FOCUS_BIAS,
   FOCUS_DISTANCE,
   FRAME_LIFT,
-  type CameraMode,
 } from "../_lib/camera";
 import { SELF_POSITION, type Vec3 } from "../_lib/layout";
 
@@ -22,18 +21,10 @@ import { SELF_POSITION, type Vec3 } from "../_lib/layout";
 // 타깃/거리 오차가 이보다 작아지면 보간을 끈다.
 const SETTLE_EPSILON = 0.01;
 
-export function CameraRig({
-  mode,
-  resetSignal,
-  focusOn,
-}: {
-  mode: CameraMode;
-  resetSignal: number;
-  focusOn: Vec3 | null;
-}) {
+export function CameraRig({ focusOn }: { focusOn: Vec3 | null }) {
   const controls = useRef<OrbitControlsImpl>(null);
   const camera = useThree((s) => s.camera);
-  const limits = CAMERA_LIMITS[mode];
+  const limits = CAMERA_LIMITS;
 
   const desiredTarget = useMemo(() => {
     if (!focusOn) return new THREE.Vector3(...DEFAULT_TARGET);
@@ -49,20 +40,18 @@ export function CameraRig({
   const animating = useRef(false);
 
   useEffect(() => {
-    // resetSignal 이나 mode 가 바뀔 때마다 기본 뷰로 돌린다. 첫 마운트에도 한 번 돈다.
+    // 마운트할 때 한 번, 기본 뷰로 스냅한다.
+    //
+    // 예전에는 A/B/C 모드 전환과 "처음 위치로" 버튼도 이 이펙트를 다시 돌렸다.
+    // 모드 토글이 사라지면서 남은 트리거는 마운트뿐이다.
     camera.position.set(...DEFAULT_CAMERA_POSITION);
     controls.current?.target.set(...DEFAULT_TARGET);
     controls.current?.update();
-    // 래치를 여기서 다시 건다. focusOn 은 useMemo 로 얼린 Map 에서 나오는
-    // 참조라 모드를 바꿔도 그대로여서, 아래 useFrame 의 참조 비교만으로는
-    // 다시 켜지지 않는다 — 그러면 선택된 사람을 둔 채 A→B 로 바꿨을 때
-    // 카메라가 기본 뷰에 버려지고 시트만 그 사람을 계속 보여준다.
-    // 이 스파이크의 목적이 "같은 사람으로 A/B/C 를 비교"하는 것이라 치명적이다.
-    // 선택이 없으면 desiredTarget 이 기본 타깃이고 위에서 이미 스냅했으므로
-    // 첫 프레임에 오차 0 으로 곧장 꺼진다 → C 모드의 pan 은 그대로 살아남는다.
-    // 단순 리렌더에는 이 이펙트가 돌지 않으므로 래치도 다시 걸리지 않는다.
+    // 래치를 건다. 선택이 없으면 desiredTarget 이 기본 타깃이고 위에서 이미
+    // 스냅했으므로 첫 프레임에 오차 0 으로 곧장 꺼진다 — 그 뒤로는 사용자의
+    // 회전·줌을 매 프레임 되돌리지 않는다.
     animating.current = true;
-  }, [resetSignal, mode, camera]);
+  }, [camera]);
 
   useFrame((_, delta) => {
     const c = controls.current;

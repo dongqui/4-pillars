@@ -1,5 +1,3 @@
-export type CameraMode = "a" | "b" | "c";
-
 const deg = (d: number) => (d * Math.PI) / 180;
 
 /**
@@ -30,55 +28,29 @@ export const DEFAULT_TARGET: [number, number, number] = [0, 0, 0];
 /** 설계 문서 10절의 zoom 배율. 기준 길이만 13 → 26 으로 옮겼다. */
 const zoom = (factor: number) => +(DEFAULT_BASE_Z * factor).toFixed(2);
 
-export const CAMERA_LIMITS: Record<
-  CameraMode,
-  {
-    minPolar: number;
-    maxPolar: number;
-    minAzimuth: number;
-    maxAzimuth: number;
-    minDistance: number;
-    maxDistance: number;
-    enablePan: boolean;
-  }
-> = {
-  // A · 제한적
-  a: {
-    minPolar: deg(60),
-    maxPolar: deg(85),
-    minAzimuth: deg(-35),
-    maxAzimuth: deg(35),
-    minDistance: zoom(0.8), // 20.8
-    maxDistance: zoom(1.2), // 31.2
-    enablePan: false,
-  },
-  // B · 중간
-  b: {
-    minPolar: deg(35),
-    maxPolar: deg(100),
-    minAzimuth: -Infinity,
-    maxAzimuth: Infinity,
-    minDistance: zoom(0.6), // 15.6
-    maxDistance: zoom(1.6), // 41.6
-    enablePan: false,
-  },
-  // C · 자유 + Reset
-  c: {
-    minPolar: deg(15),
-    maxPolar: deg(140),
-    minAzimuth: -Infinity,
-    maxAzimuth: Infinity,
-    minDistance: zoom(0.4), // 10.4
-    maxDistance: zoom(2.5), // 65
-    enablePan: true,
-  },
-};
-
-export const CAMERA_MODE_OPTIONS: { value: CameraMode; label: string }[] = [
-  { value: "a", label: "A 제한" },
-  { value: "b", label: "B 중간" },
-  { value: "c", label: "C 자유" },
-];
+/**
+ * 카메라 조작 제한.
+ *
+ * 예전에는 A(제한)·B(중간)·C(자유) 세 벌을 화면의 토글로 바꿔가며 비교했다.
+ * 그 비교가 끝나 **B 로 확정**되면서 토글과 나머지 두 벌을 지웠다. 아래 값은
+ * 그때의 B 그대로다. 되살리려면 이 객체를 Record<CameraMode, ...> 로 되돌리고
+ * CameraModeToggle 을 다시 만들면 된다 — 지운 A 는 polar 60~85°, azimuth ±35°,
+ * 거리 20.8~31.2 였고, C 는 polar 15~140°, azimuth 자유, 거리 10.4~65 에 pan
+ * 허용이었다.
+ *
+ * enablePan 이 false 인 것은 조작 취향이 아니다. pan 은 target 을 옮기는데
+ * CameraRig 의 전환 보간이 노리는 자유도가 바로 그 target 이라, 둘을 함께
+ * 켜면 서로 되받아친다(C 가 그래서 상시 스프링을 못 쓰고 일회성 래치를 썼다).
+ */
+export const CAMERA_LIMITS = {
+  minPolar: deg(35),
+  maxPolar: deg(100),
+  minAzimuth: -Infinity,
+  maxAzimuth: Infinity,
+  minDistance: zoom(0.6), // 15.6
+  maxDistance: zoom(1.6), // 41.6
+  enablePan: false,
+} as const;
 
 // ---------------------------------------------------------------------------
 // 사람을 선택했을 때 CameraRig 가 노리는 초점 뷰. three 를 몰라도 계산되는
@@ -93,16 +65,16 @@ export const CAMERA_MODE_OPTIONS: { value: CameraMode; label: string }[] = [
 // 기준이 26 으로 내려간 뒤에는 실제 돌리가 26.776 / 26.2 = **1.022 배** 였다 —
 // 사람을 선택해도 카메라가 사실상 다가가지 않았다.
 //
-// A 모드만 minDistance 가 20.8(zoom(0.8))이라 17.0 이 거기서 클램프된다 →
-// A 의 실제 돌리는 1.287 배다. 이건 A 의 줌 제한 자체에서 오는 것이고
-// FOCUS_DISTANCE 로는 더 줄일 수 없다.
+// 남은 한 벌(옛 B)의 minDistance 는 15.6 이라 17.0 이 클램프되지 않는다 —
+// 돌리 배율 1.575 가 그대로 실현된다. 클램프에 걸리던 것은 지운 A(20.8)뿐이었다.
 export const FOCUS_DISTANCE = 17.0;
 
-// 0 = 나, 1 = 상대. 0.70 에서 20명 전원이 프레임 안이다(재측정: 세 모드 모두
-// person offscreen 0/20, 최대 |ndc.x| 는 A 0.251 · B·C 0.304 — layout.test.ts
-// 의 focus view 테스트가 잠근다). 거리를 26.2 → 17.0 으로 당기면 나와 상대를
+// 0 = 나, 1 = 상대. 0.70 에서 20명 전원이 프레임 안이다(실측:
+// person offscreen 0/20, 최대 |ndc.x| 0.304 — 모드가 셋이던 시절엔 A 0.251,
+// B·C 0.304 였다. layout.test.ts 의 focus view 테스트가 잠근다). 거리를
+// 26.2 → 17.0 으로 당기면 나와 상대를
 // **동시에** 담을 수 있는 폭이 줄어, 375px 세로 화면에서는 원점('나')이 20명
-// 중 1명(A) / 5명(B·C) 선택에서 화면 밖으로 나간다(예전 1명). 이건 돌리를
+// 중 5명 선택에서 화면 밖으로 나간다(예전 1명). 이건 돌리를
 // 되살리는 대가이고, bias 를 낮춰 나를 되찾으려 하면 이번엔 상대가 가로로
 // 밀려나 최대 13명까지 화면을 벗어난다(bias 0.50, lift 5.8 에서 B·C 5/20
 // 이탈). 판단 대상은 상대이므로 상대를 잡는다.
@@ -124,9 +96,8 @@ export const FOCUS_BIAS = 0.7;
 // 작아진다 — 이 라운드의 요구가 "색이 드러나게"라 노드를 줄이는 방향은
 // 반대다. lift 를 내리는 쪽은 공짜였다: 시트 가림이 애초에 binding 이 아니다.
 //
-// 실측(20명 × 3모드, 375×812): lift 4.5 에서 세 모드 전부 이탈 0/20,
+// 실측(20명, 375×812): lift 4.5 에서 이탈 0/20,
 // 최대 |ndc| 0.921(여유 8%), 가장 아래 사람이 261px 로 40vh 시트 상단(487px)
-// 보다 226px 위다 — 가린 사람 0/20. 상단 1/3 안착은 A 16/20, B·C 20/20 이다
-// (A 는 모드 제한 때문에 거리가 20.8 로 밀려 조금 더 내려온다).
+// 보다 226px 위다 — 가린 사람 0/20. 상단 1/3 안착은 20/20 이다.
 // layout.test.ts 의 focus view 테스트가 이탈 0/20 을 잠근다.
 export const FRAME_LIFT = 4.5;
