@@ -251,3 +251,30 @@ export async function promoteProfileToSelf(
   `;
   return rows.length > 0;
 }
+
+/**
+ * 프로필 하나를 지운다. 없는 프로필과 남의 프로필을 구분하지 않고 둘 다 false 다 —
+ * getProfile 과 같은 이유로 user_id 조건이 이 함수의 존재 이유다. profiles.id 는
+ * URL 에 노출되는 순번 bigint 라, id 만으로 지우면 파라미터를 증가시켜 남의
+ * 프로필을 지울 수 있다.
+ *
+ * 딸린 행은 스키마가 처리한다: matches·purchases 는 ON DELETE CASCADE,
+ * consultations 는 SET NULL(이미 나눈 대화는 프로필이 사라져도 남는다).
+ *
+ * entitlements 는 함께 지우지 않는다. subject_key 가 text 라 FK 가 없고, id 는
+ * IDENTITY 라 재사용되지 않으니 남은 행이 다른 프로필을 여는 일은 없다. 반대로
+ * 지우면 "이때 이용권 몇 장을 냈는가" 라는 결제 사실이 사라진다 — 환불·CS 가 봐야
+ * 하는 기록이라 프로필보다 오래 남아야 한다.
+ */
+export async function deleteProfile(
+  userId: string,
+  id: string,
+  client: SqlClient = sql,
+): Promise<boolean> {
+  const rows = await client`
+    DELETE FROM profiles
+     WHERE id = ${id}::bigint AND user_id = ${userId}::bigint
+    RETURNING id
+  `;
+  return rows.length > 0;
+}

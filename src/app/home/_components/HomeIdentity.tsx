@@ -7,6 +7,7 @@ import { CARD_TONES } from "@/components/character-card/tokens";
 import { MOBILE_MAX, useViewportWidth } from "@/components/useViewportWidth";
 import { HANDOFF_KEY } from "@/lib/characters/handoff";
 import type { HomeEntry } from "../_lib/to-home-entry";
+import { DeleteProfileButton } from "./DeleteProfileButton";
 import { ExploreGrid } from "./ExploreGrid";
 
 interface Props {
@@ -149,6 +150,12 @@ export function HomeIdentity({ entries, canAdd }: Props) {
                   <span className="text-[17px] font-normal leading-none">+</span>
                   {mobile ? "프로필" : "프로필 추가"}
                 </span>
+              )}
+
+              {/* 아직 계정에 저장되지 않은 드래프트는 지울 API 대상이 없다 —
+                  로그인하면 프로필로 승격되고 그때부터 이 버튼이 붙는다. */}
+              {active.profileId !== null && (
+                <DeleteProfileButton profileId={active.profileId} name={active.name} />
               )}
             </div>
 

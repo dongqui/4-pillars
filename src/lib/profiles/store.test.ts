@@ -6,6 +6,7 @@ import {
   ProfileLimitError,
   countProfiles,
   createProfile,
+  deleteProfile,
   getProfile,
   listProfiles,
   promoteProfileToSelf,
@@ -274,6 +275,22 @@ describe("kind", () => {
     expect(calls[0].sql).toContain("user_id =");
     // 'other' 만 올린다 — 이미 self 인 행을 건드려 봤자 할 일이 없다.
     expect(calls[0].sql).toContain("kind = 'other'");
+    // 바인딩 순서는 템플릿에 나타난 순서다 — id → user_id.
+    expect(calls[0].values).toEqual(["2", "1"]);
+  });
+
+  it("deleteProfile 은 지운 행이 없으면 false 를 낸다", async () => {
+    const client = (() => Promise.resolve([])) as unknown as SqlClient;
+    expect(await deleteProfile("1", "2", client)).toBe(false);
+  });
+
+  // user_id 조건이 없으면 URL 의 순번 id 를 하나씩 올려가며 남의 프로필을 지울 수 있다.
+  it("deleteProfile 은 user_id 를 함께 필터한다", async () => {
+    const { client, calls } = fakeClient([{ id: 2 }]);
+    expect(await deleteProfile("1", "2", client)).toBe(true);
+
+    expect(calls[0].sql).toContain("DELETE FROM profiles");
+    expect(calls[0].sql).toContain("user_id =");
     // 바인딩 순서는 템플릿에 나타난 순서다 — id → user_id.
     expect(calls[0].values).toEqual(["2", "1"]);
   });
