@@ -3,6 +3,7 @@ import type { SqlClient } from "@/lib/db";
 import {
   createPendingPurchase,
   findOrderByPaymentId,
+  findReceiptByPaymentId,
   markPurchaseFailed,
   toPendingOrder,
 } from "./store";
@@ -83,5 +84,34 @@ describe("markPurchaseFailed", () => {
     await markPurchaseFailed("saju-abc", client);
     expect(calls[0].sql).toContain("status = 'failed'");
     expect(calls[0].sql).toContain("status = 'pending'");
+  });
+});
+
+describe("findReceiptByPaymentId", () => {
+  const receiptRow = { user_id: 7, tickets: 6, status: "paid" };
+
+  it("행이 없으면 null", async () => {
+    const { client } = fakeClient([]);
+    expect(await findReceiptByPaymentId("saju-none", client)).toBeNull();
+  });
+
+  it("적립 장수까지 읽는다 — 완료 화면이 +N 을 띄우려면 필요하다", async () => {
+    const { client, calls } = fakeClient([receiptRow]);
+    expect(await findReceiptByPaymentId("saju-abc", client)).toEqual({
+      userId: "7",
+      tickets: 6,
+      status: "paid",
+    });
+    expect(calls[0].values).toEqual(["saju-abc"]);
+  });
+
+  it("tickets 가 NULL 이면 0 — 완료 화면 시점엔 이미 적립이 끝나 던져 봐야 소용없다", async () => {
+    const { client } = fakeClient([{ ...receiptRow, tickets: null }]);
+    expect((await findReceiptByPaymentId("saju-abc", client))?.tickets).toBe(0);
+  });
+
+  it("모르는 status 는 failed 로 접는다 — 완료 화면이 paid 만 통과시킨다", async () => {
+    const { client } = fakeClient([{ ...receiptRow, status: "weird" }]);
+    expect((await findReceiptByPaymentId("saju-abc", client))?.status).toBe("failed");
   });
 });

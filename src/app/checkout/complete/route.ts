@@ -14,6 +14,7 @@ function withErrorMarker(backTo: string): string {
 /**
  * 토스 결제창이 돌아오는 자리. 성공이면 ?paymentKey·?orderId·?amount 가,
  * 실패·취소면 ?code·?message 가 붙어 온다. 복귀 경로는 쿠키에서 읽는다.
+ * 승인이 끝나면 완료 화면(/checkout/done)으로, 실패하면 충전 화면으로 되돌린다.
  *
  * 페이지가 아니라 라우트 핸들러인 이유:
  *  1. 이 자리는 화면을 그린 적이 없다 — 확정하고 곧장 옮긴다.
@@ -79,5 +80,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     console.error("[/checkout/complete] 승인 실패", e);
   }
 
-  return go(ok ? next : withErrorMarker(backTo));
+  if (!ok) return go(withErrorMarker(backTo));
+
+  // 곧장 next 로 보내지 않고 완료 화면을 한 번 거친다 — 결제창에서 튕겨 나오자마자
+  // 원래 화면이 뜨면 무엇이 늘었는지 알 자리가 없다. 그 화면이 2.6초 뒤 next 로 옮긴다.
+  // orderId 만 넘기고 장수는 넘기지 않는다: 화면이 DB 에서 직접 읽는다.
+  const q2 = new URLSearchParams({ orderId, next });
+  return go(`/checkout/done?${q2}`);
 }

@@ -71,6 +71,42 @@ export async function findOrderByPaymentId(
   return row ? toPendingOrder(row) : null;
 }
 
+/** 결제 완료 화면이 보는 영수증 한 건. 확정 로직이 보는 것과 필요한 열이 다르다. */
+export interface PurchaseReceipt {
+  userId: string;
+  /** 이 주문으로 적립된 장수. 완료 화면이 "+N" 으로 띄운다. */
+  tickets: number;
+  status: PurchaseStatus;
+}
+
+/**
+ * 완료 화면 전용 조회. PendingOrder 와 달리 tickets 를 싣는다.
+ *
+ * 확정 경로가 tickets 를 앱까지 올리지 않는 판단(toPendingOrder 주석)은 그대로다 —
+ * 여기서 읽은 값은 화면에 숫자를 찍는 데만 쓰이고 적립에는 닿지 않는다. 적립은
+ * 여전히 confirmPurchaseAndCredit 이 DB 안에서 스스로 읽는다.
+ *
+ * tickets 가 NULL 인 행(수기 지급)은 0 으로 접는다. 완료 화면이 뜨는 시점엔 이미
+ * 적립이 끝났으므로, 여기서 던져 봐야 결제한 사용자에게 오류만 보일 뿐이다.
+ */
+export async function findReceiptByPaymentId(
+  paymentId: string,
+  client: SqlClient = sql,
+): Promise<PurchaseReceipt | null> {
+  const rows = await client`
+    SELECT user_id, tickets, status
+    FROM purchases WHERE payment_id = ${paymentId}
+  `;
+  const row = rows[0];
+  if (!row) return null;
+  const status = String(row.status);
+  return {
+    userId: String(row.user_id),
+    tickets: Number(row.tickets ?? 0),
+    status: (STATUSES.includes(status) ? status : "failed") as PurchaseStatus,
+  };
+}
+
 /** 금액·통화가 어긋났거나 토스가 실패로 끝낸 주문을 내린다. */
 export async function markPurchaseFailed(
   paymentId: string,
