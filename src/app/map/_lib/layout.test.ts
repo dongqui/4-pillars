@@ -9,7 +9,6 @@ import {
   FOCUS_BIAS,
   FOCUS_DISTANCE,
   FRAME_LIFT,
-  type CameraMode,
 } from "./camera";
 import {
   ANCHOR_RADIUS,
@@ -383,43 +382,43 @@ describe("focus view — 사람을 선택했을 때 20명 전원이 화면 안�
   const initialDir = norm3(sub(DEFAULT_CAMERA_POSITION as V3, DEFAULT_TARGET as V3));
   const placed = placePeople(FRIENDS);
 
-  for (const mode of ["a", "b", "c"] as CameraMode[]) {
-    it(`${mode} 모드`, () => {
-      const limits = CAMERA_LIMITS[mode];
-      const distance = Math.min(Math.max(FOCUS_DISTANCE, limits.minDistance), limits.maxDistance);
+  it("20명 전원", () => {
+    const distance = Math.min(
+      Math.max(FOCUS_DISTANCE, CAMERA_LIMITS.minDistance),
+      CAMERA_LIMITS.maxDistance,
+    );
 
-      for (const person of FRIENDS) {
-        const focusOn = placed.get(person.id)! as V3;
-        const mid: V3 = [
-          SELF_POSITION[0] + (focusOn[0] - SELF_POSITION[0]) * FOCUS_BIAS,
-          SELF_POSITION[1] + (focusOn[1] - SELF_POSITION[1]) * FOCUS_BIAS,
-          SELF_POSITION[2] + (focusOn[2] - SELF_POSITION[2]) * FOCUS_BIAS,
-        ];
-        const desiredTarget: V3 = [mid[0], mid[1] - FRAME_LIFT, mid[2]];
-        const eye: V3 = [
-          desiredTarget[0] + initialDir[0] * distance,
-          desiredTarget[1] + initialDir[1] * distance,
-          desiredTarget[2] + initialDir[2] * distance,
-        ];
+    for (const person of FRIENDS) {
+      const focusOn = placed.get(person.id)! as V3;
+      const mid: V3 = [
+        SELF_POSITION[0] + (focusOn[0] - SELF_POSITION[0]) * FOCUS_BIAS,
+        SELF_POSITION[1] + (focusOn[1] - SELF_POSITION[1]) * FOCUS_BIAS,
+        SELF_POSITION[2] + (focusOn[2] - SELF_POSITION[2]) * FOCUS_BIAS,
+      ];
+      const desiredTarget: V3 = [mid[0], mid[1] - FRAME_LIFT, mid[2]];
+      const eye: V3 = [
+        desiredTarget[0] + initialDir[0] * distance,
+        desiredTarget[1] + initialDir[1] * distance,
+        desiredTarget[2] + initialDir[2] * distance,
+      ];
 
-        const n = projectToNdc(focusOn, eye, desiredTarget, CAMERA_FOV, PHONE_ASPECT);
-        expect(
-          n.depth > 0 && Math.abs(n.x) <= 1 && Math.abs(n.y) <= 1,
-          `${mode} 모드에서 ${person.id} 를 포커스`,
-        ).toBe(true);
-      }
-    });
-  }
+      const n = projectToNdc(focusOn, eye, desiredTarget, CAMERA_FOV, PHONE_ASPECT);
+      expect(
+        n.depth > 0 && Math.abs(n.x) <= 1 && Math.abs(n.y) <= 1,
+        `${person.id} 를 포커스`,
+      ).toBe(true);
+    }
+  });
 });
 
-describe("모든 Role 구역은 각 모드의 제한 안에서 도달 가능하다", () => {
-  // '도달 가능' = Role 앵커를 화면에 넣는 카메라 자세가 그 모드의
+describe("모든 Role 구역은 카메라 제한 안에서 도달 가능하다", () => {
+  // '도달 가능' = Role 앵커를 화면에 넣는 카메라 자세가
   // polar·azimuth·distance 범위 안에 하나 이상 있다. 구역 전체가 프레임에
   // 들어올 필요는 없다. 못 가는 곳이 있으면 "길을 잃지 않는다"가 깨진다.
   const target = DEFAULT_TARGET as V3;
 
-  const reachable = (center: V3, mode: CameraMode) => {
-    const l = CAMERA_LIMITS[mode];
+  const reachable = (center: V3) => {
+    const l = CAMERA_LIMITS;
     const azMin = Number.isFinite(l.minAzimuth) ? l.minAzimuth : -Math.PI;
     const azMax = Number.isFinite(l.maxAzimuth) ? l.maxAzimuth : Math.PI;
 
@@ -442,33 +441,30 @@ describe("모든 Role 구역은 각 모드의 제한 안에서 도달 가능하�
     return false;
   };
 
-  for (const mode of ["a", "b", "c"] as CameraMode[]) {
-    for (const role of ROLE_ORDER) {
-      it(`${mode} 모드에서 ${role} 에 도달할 수 있다`, () => {
-        expect(reachable(ROLE_ANCHORS[role].anchor as V3, mode)).toBe(true);
-      });
-    }
+  for (const role of ROLE_ORDER) {
+    it(`${role} 에 도달할 수 있다`, () => {
+      expect(reachable(ROLE_ANCHORS[role].anchor as V3)).toBe(true);
+    });
   }
 });
 
-describe("기본 진입 뷰는 A·B·C 세 모드의 제한 안에 있다", () => {
-  // 같은 자리에서 출발하지 않으면 세 모드를 비교할 수 없다 (설계 10절).
+describe("기본 진입 뷰는 카메라 제한 안에 있다", () => {
+  // 진입 자세가 제한 밖이면 첫 프레임에 OrbitControls 가 카메라를 끌어당겨,
+  // 사용자가 손도 대기 전에 화면이 한 번 튄다.
   const offset = sub(DEFAULT_CAMERA_POSITION as V3, DEFAULT_TARGET as V3);
   const distance = Math.sqrt(dot3(offset, offset));
   const polar = Math.acos(offset[1] / distance);
   const azimuth = Math.atan2(offset[0], offset[2]);
 
-  for (const mode of ["a", "b", "c"] as CameraMode[]) {
-    it(`${mode} 모드`, () => {
-      const l = CAMERA_LIMITS[mode];
-      expect(distance).toBeGreaterThanOrEqual(l.minDistance);
-      expect(distance).toBeLessThanOrEqual(l.maxDistance);
-      expect(polar).toBeGreaterThanOrEqual(l.minPolar);
-      expect(polar).toBeLessThanOrEqual(l.maxPolar);
-      expect(azimuth).toBeGreaterThanOrEqual(l.minAzimuth);
-      expect(azimuth).toBeLessThanOrEqual(l.maxAzimuth);
-    });
-  }
+  it("거리·polar·azimuth 가 전부 범위 안이다", () => {
+    const l = CAMERA_LIMITS;
+    expect(distance).toBeGreaterThanOrEqual(l.minDistance);
+    expect(distance).toBeLessThanOrEqual(l.maxDistance);
+    expect(polar).toBeGreaterThanOrEqual(l.minPolar);
+    expect(polar).toBeLessThanOrEqual(l.maxPolar);
+    expect(azimuth).toBeGreaterThanOrEqual(l.minAzimuth);
+    expect(azimuth).toBeLessThanOrEqual(l.maxAzimuth);
+  });
 });
 
 describe("placeSubRegion", () => {

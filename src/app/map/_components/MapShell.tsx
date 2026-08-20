@@ -3,13 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { CameraModeToggle } from "./CameraModeToggle";
-import type { MapCenter, MapPerson } from "../_data/person";
+import type { MapPerson } from "../_data/person";
 import { PersonSheet } from "./PersonSheet";
 import { PeopleList } from "./PeopleList";
 import { AddPersonSheet } from "./AddPersonSheet";
 import { MapHeader } from "./MapHeader";
-import type { CameraMode } from "../_lib/camera";
 
 const World = dynamic(() => import("./World").then((m) => m.World), {
   ssr: false,
@@ -22,24 +20,19 @@ const World = dynamic(() => import("./World").then((m) => m.World), {
 
 export function MapShell({
   people,
-  center,
   isOwner,
   shareId,
   loggedIn,
 }: {
   people: readonly MapPerson[];
-  center: MapCenter;
   isOwner: boolean;
   shareId: string;
   loggedIn: boolean;
 }) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mode, setMode] = useState<CameraMode>("b");
-  const [resetSignal, setResetSignal] = useState(0);
   const [listOpen, setListOpen] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [headerHidden, setHeaderHidden] = useState(false);
 
   // 토스트는 여기가 갖는다. 공유(MapHeader)와 삭제 실패(handleDelete) 둘 다
   // 같은 자리에 떠야 하는데, 헤더 안에 두면 삭제 쪽에서 닿을 수 없다.
@@ -65,9 +58,9 @@ export function MapShell({
 
   const selected = people.find((p) => p.id === selectedId) ?? null;
 
-  // 판이 하나라도 열려 있으면 헤더를 강제로 보인다 — 나가는 길을 없애지 않는다.
+  // 아래에서 올라오는 판이 하나라도 열려 있는가. 덮이는 버튼을 tab 순서에서
+  // 빼는 데 쓴다.
   const anyPanelOpen = selectedId !== null || listOpen || adding;
-  const hideHeader = headerHidden && !anyPanelOpen;
 
   // 목록·상세·추가 세 판은 서로 배타적이다 — 화면 아래에서 올라오는 판이 둘
   // 이상 함께 뜨면 어느 쪽을 닫는 탭인지 알 수 없다. 어디서 선택이 일어나든
@@ -121,53 +114,16 @@ export function MapShell({
         닫기 버튼을 향한 탭까지 가로챈다. 여기서 맥락을 끊으면 마커의 z 는
         이 div 안에서만 유효해지고, div 자체는 z-auto 라 시트와 토글이 항상 위다.
       */}
-      <div
-        className="absolute inset-0 isolate"
-        // 지도에 손이 닿는 순간 헤더를 치운다. 카메라를 돌리는 동안 화면이 가장 넓어야 한다.
-        onPointerDown={() => setHeaderHidden(true)}
-      >
-        <World
-          people={people}
-          center={center}
-          selectedId={selectedId}
-          onSelect={(id) => {
-            selectPerson(id);
-            // 빈 곳을 탭하면(id === null) 선택이 풀리면서 헤더가 돌아온다.
-            if (id === null) setHeaderHidden(false);
-          }}
-          mode={mode}
-          resetSignal={resetSignal}
-        />
+      <div className="absolute inset-0 isolate">
+        <World people={people} selectedId={selectedId} onSelect={selectPerson} />
       </div>
 
       <MapHeader
-        hidden={hideHeader}
-        onReveal={() => setHeaderHidden(false)}
         isOwner={isOwner}
         shareId={shareId}
         loggedIn={loggedIn}
         onToast={showToast}
       />
-
-      {/*
-        카메라 시점 전환 토글. 스파이크 시절부터 쓰던 A/B/C 세 모드를 제품
-        화면에서도 그대로 쓴다. 헤더 높이는 이제 56px + safe-area-inset-top
-        이다(헤더가 인셋을 padding 이 아니라 오프셋으로 먹는다) — 그래서
-        12px 간격을 max(12px, inset) 이 아니라 항상 더한다. max 를 쓰면
-        인셋이 12px 를 넘는 노치 기기에서 간격이 0으로 접힌다.
-      */}
-      <div className="absolute top-[calc(56px+env(safe-area-inset-top)+12px)] left-1/2 -translate-x-1/2 z-10">
-        <CameraModeToggle
-          mode={mode}
-          onChange={setMode}
-          onReset={() => {
-            // 선택을 함께 푼다. 안 그러면 기본 뷰로 스냅한 직후 focus 보간이
-            // 다시 그 사람에게 끌고 가서 "처음 위치로" 가 먹통으로 보인다.
-            setSelectedId(null);
-            setResetSignal((n) => n + 1);
-          }}
-        />
-      </div>
 
       {/*
         목록·상세·추가 세 판은 다 화면 아래에서 올라오는 판이라 동시에 열면 어느

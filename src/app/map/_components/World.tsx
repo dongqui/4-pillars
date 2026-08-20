@@ -2,32 +2,24 @@
 
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import type { MapCenter, MapPerson } from "../_data/person";
+import type { MapPerson } from "../_data/person";
 import { ROLE_ORDER, type Feature, type RelationRole } from "../_data/roles";
 import { placePeople } from "../_lib/layout";
 import { ConnectionLines } from "./ConnectionLines";
 import { SelfCore } from "./SelfCore";
 import { PersonMarker } from "./PersonMarker";
 import { RegionLabels } from "./RegionLabels";
-import { ShellRings } from "./ShellRings";
 import { CameraRig } from "./CameraRig";
-import { RelationThread } from "./RelationThread";
-import { CAMERA_FOV, DEFAULT_CAMERA_POSITION, type CameraMode } from "../_lib/camera";
+import { CAMERA_FOV, DEFAULT_CAMERA_POSITION } from "../_lib/camera";
 
 export function World({
   people,
-  center,
   selectedId,
   onSelect,
-  mode,
-  resetSignal,
 }: {
   people: readonly MapPerson[];
-  center: MapCenter;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
-  mode: CameraMode;
-  resetSignal: number;
 }) {
   const placed = useMemo(() => placePeople(people), [people]);
   // ConnectionLines 는 이 배열이 바뀔 때만 지오메트리를 다시 만든다. placed 가
@@ -51,6 +43,9 @@ export function World({
     [people],
   );
   const selected = people.find((p) => p.id === selectedId) ?? null;
+  // ConnectionLines 는 targets/roles 안의 '자리'로 강조할 선을 찾는다. 세 배열이
+  // 전부 people 을 같은 순서로 훑어 만들어지므로 인덱스가 그대로 맞는다.
+  const selectedIndex = selectedId === null ? -1 : people.findIndex((p) => p.id === selectedId);
 
   return (
     <Canvas
@@ -89,22 +84,19 @@ export function World({
       */}
       <fog attach="fog" args={["#0F172A", 35.8, 104]} />
 
-      <CameraRig
-        mode={mode}
-        resetSignal={resetSignal}
-        focusOn={selected ? placed.get(selected.id)! : null}
-      />
+      <CameraRig focusOn={selected ? placed.get(selected.id)! : null} />
 
       {/*
-        나와 모든 사람을 잇는 기본 구조선. 선택했을 때만 뜨는 RelationThread 와
-        역할이 다르다 — 이건 항상 떠 있고, 알파는 전원 동일하다. 색만은 그
-        사람의 Role 을 담아 다섯 갈래 구역을 드러낸다.
+        나와 모든 사람을 잇는 구조선. 항상 떠 있고, 색은 그 사람의 Role 을 담아
+        다섯 갈래 구역을 드러낸다. 사람을 고르면 새 마크가 뜨는 대신 그 사람의
+        선이 밝아지고 나머지가 물러난다(_lib/connections.ts).
       */}
-      {/* 세 껍질의 반지름. 원근에서는 거리가 눈으로 안 읽혀 선으로 준다. */}
-      <ShellRings />
-
-      <ConnectionLines targets={targets} roles={roles} />
-      <SelfCore center={center} />
+      <ConnectionLines
+        targets={targets}
+        roles={roles}
+        selectedIndex={selectedIndex < 0 ? null : selectedIndex}
+      />
+      <SelfCore />
 
       {/* 어떤 관계의 구역이고 몇 명인지. 색은 "다섯으로 갈렸다"까지만 말한다. */}
       <RegionLabels counts={counts} />
@@ -127,10 +119,6 @@ export function World({
           onSelect={onSelect}
         />
       ))}
-
-      {selected && (
-        <RelationThread to={placed.get(selected.id)!} feature={selected.feature} />
-      )}
     </Canvas>
   );
 }
