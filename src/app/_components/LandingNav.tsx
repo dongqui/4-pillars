@@ -32,11 +32,13 @@ export function LandingNav({ displayName }: LandingNavProps) {
             </>
           ) : (
             <>
+              {/* 리포트만 있는 곳이 아니다 — 홈에는 캐릭터·상담·관계 지도·궁합이
+                  같이 걸려 있다. 그 전부를 덮는 말로 "내 사주" 를 쓴다. */}
               <Link
                 href="/home"
                 className="ml-2.5 whitespace-nowrap rounded-xl bg-accent px-[18px] py-2.5 text-[14.5px] font-semibold text-white hover:bg-accent-700"
               >
-                내 리포트 보기
+                내 사주 보기
               </Link>
               <UserMenu displayName={displayName} />
             </>

@@ -44,7 +44,7 @@ export function Hero({ displayName }: HeroProps) {
         ) : (
           <>
             <Link href="/home" className={PRIMARY}>
-              내 리포트 보기
+              내 사주 보기
             </Link>
             <Link href="/funnel?step=name" className={SECONDARY}>
               다른 사람 사주 보기
@@ -54,7 +54,7 @@ export function Hero({ displayName }: HeroProps) {
       </div>
       {displayName !== null && (
         <p className="mt-4 text-[13.5px] text-slate-400">
-          {displayName}님, 다시 오셨네요 — 지난 리포트가 저장되어 있어요.
+          {displayName}님, 다시 오셨네요 — 지난 사주가 저장되어 있어요.
         </p>
       )}
 

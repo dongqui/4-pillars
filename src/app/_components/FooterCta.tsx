@@ -30,7 +30,7 @@ export function FooterCta({ displayName }: FooterCtaProps) {
           href={displayName === null ? "/funnel?step=name" : "/home"}
           className="inline-block rounded-[15px] bg-accent px-[34px] py-[17px] text-[17px] font-semibold text-white shadow-[0_16px_40px_-12px_rgba(37,99,235,.5)] hover:bg-accent-700"
         >
-          {displayName === null ? "시작하기" : "내 리포트 보기"}
+          {displayName === null ? "시작하기" : "내 사주 보기"}
         </Link>
       </div>
 

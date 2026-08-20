@@ -69,7 +69,7 @@ export function UserMenu({ displayName }: UserMenuProps) {
             onClick={() => setOpen(false)}
             className="block px-4 py-2.5 text-left text-[14px] font-medium text-slate-700 hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none"
           >
-            내 리포트
+            내 사주
           </Link>
           {/* 로그아웃은 POST 전용 라우트라 링크가 아니라 폼이어야 한다. */}
           <form action="/api/auth/logout" method="post">
