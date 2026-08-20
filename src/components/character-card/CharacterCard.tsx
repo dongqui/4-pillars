@@ -11,13 +11,15 @@ import { CARD_LIGHT_ACCENTS, CARD_TONES, mix, rgba } from "./tokens";
  * 비율은 고정이 아니다 — 높이는 카피 분량이 정한다.
  *
  * `zoomW` 를 `w` 보다 작게 주면 글자 크기와 높이는 그대로 두고 가로만 늘어난다.
- * 홈이 데스크톱에서 `w=500 / zoomW=460` 으로 이걸 쓴다.
+ * `w="fill"` 은 그 끝이다 — 바깥 폭을 부모에게 통째로 맡기고 캔버스가 따라 늘어난다.
+ * 홈이 이걸 쓰고, 랜딩 스택·리빌은 폭을 px 로 못 박는다(절대 배치·가운데 정렬이라
+ * 폭을 안 주면 내용 크기로 쪼그라든다).
  */
 export interface CharacterCardProps {
   character: Character;
-  /** 카드 바깥 폭(px) */
-  w?: number;
-  /** 내부 요소 크기의 기준 폭(px). 생략하면 `w` 와 같다 */
+  /** 카드 바깥 폭(px). `"fill"` 이면 부모가 주는 폭을 그대로 쓴다 */
+  w?: number | "fill";
+  /** 내부 요소 크기의 기준 폭(px). 생략하면 `w` — `"fill"` 이면 {@link FILL_BASIS} */
   zoomW?: number;
   /** 흰 배경 변형 — 딥 서피스 대신 오행 차트색 액센트를 쓴다 */
   light?: boolean;
@@ -37,15 +39,20 @@ const HANJA_FONT_HREF =
 /** 1080 캔버스 기준 워터마크 한 글자의 크기 */
 const GLYPH = 262;
 
+/** `w="fill"` 일 때 글자 크기의 기준으로 삼는 폭 — 고정폭 기본값과 같게 둔다 */
+const FILL_BASIS = 400;
+
 export function CharacterCard({ character, w = 400, zoomW, light = false }: CharacterCardProps) {
   const { family, scene, copy, internal } = character;
   const tone = CARD_TONES[family.element];
   const accent = light ? CARD_LIGHT_ACCENTS[family.element] : tone.accent;
 
   // zoom 배율은 zoomW 로 정하고, 캔버스 폭은 거기서 역산한다. 그래야 w 만 넓혔을 때
-  // 글자가 같이 커지지 않고 가로 여백만 늘어난다.
-  const scale = (zoomW ?? w) / 1080;
-  const canvasWidth = Math.round(w / scale);
+  // 글자가 같이 커지지 않고 가로 여백만 늘어난다. fill 은 역산할 바깥 폭이 없다 —
+  // 캔버스 폭을 auto 로 비워 두면 브라우저가 "부모 폭 ÷ zoom" 으로 같은 값을 잡는다.
+  const fixedW = w === "fill" ? null : w;
+  const scale = (zoomW ?? fixedW ?? FILL_BASIS) / 1080;
+  const canvasWidth = fixedW === null ? undefined : Math.round(fixedW / scale);
   const surface = light ? "#fff" : tone.surface;
 
   // 장면명은 항상 한 줄이다. 줄바꿈 대신 글자 수로 크기를 한 단계 내린다.
@@ -54,10 +61,11 @@ export function CharacterCard({ character, w = 400, zoomW, light = false }: Char
   const glow: CSSProperties = {
     position: "absolute",
     inset: 0,
+    // 가로 반지름을 % 로 준다 — 캔버스 폭이 auto 인 fill 에서도 같은 비율로 퍼진다
     background: light
-      ? `radial-gradient(${Math.round(canvasWidth * 0.7)}px 520px at 12% -12%, ` +
+      ? `radial-gradient(70% 520px at 12% -12%, ` +
         `${rgba(accent, 0.07)} 0%, rgba(255,255,255,0) 66%)`
-      : `radial-gradient(${Math.round(canvasWidth * 0.82)}px 600px at 13% -10%, ` +
+      : `radial-gradient(82% 600px at 13% -10%, ` +
         `${rgba(accent, 0.16)} 0%, ${rgba(accent, 0.05)} 38%, rgba(0,0,0,0) 70%), ` +
         `linear-gradient(148deg, ${mix(tone.surface, accent, 0.05)} 0%, ${tone.surface} 58%, rgba(0,0,0,.55) 180%)`,
   };
@@ -69,8 +77,8 @@ export function CharacterCard({ character, w = 400, zoomW, light = false }: Char
       style={{
         position: "relative",
         flex: "none",
-        width: w,
-        borderRadius: Math.max(10, Math.round(w * 0.05)),
+        width: fixedW ?? "100%",
+        borderRadius: Math.max(10, Math.round((fixedW ?? FILL_BASIS) * 0.05)),
         overflow: "hidden",
         background: surface,
         border: light ? "1px solid #E5E8ED" : undefined,

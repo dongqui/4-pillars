@@ -74,21 +74,16 @@ export function HomeIdentity({ entries, canAdd }: Props) {
   }, [open]);
 
   const active = entries[Math.min(index, entries.length - 1)];
-  const cardW = mobile ? Math.min(vw - 40, 356) : 500;
-  const tone = active.character ? CARD_TONES[active.character.family.element] : null;
+
+  const tone = active.character
+    ? CARD_TONES[active.character.family.element]
+    : null;
 
   return (
     <>
       <section className="bg-[linear-gradient(180deg,#F7F9FB_0%,#FBFCFD_62%,#fff_100%)] py-[18px] md:pb-5 md:pt-6">
         <div className="mx-auto flex max-w-[780px] flex-col items-stretch px-5 md:items-center md:px-8">
-          <div
-            ref={wrapRef}
-            className="relative z-20 mb-3.5 w-full"
-            style={{ maxWidth: cardW }}
-          >
-            <div className="mb-2 text-[11.5px] font-bold tracking-[0.08em] text-slate-400">
-              보고 있는 사주
-            </div>
+          <div ref={wrapRef} className="relative z-20 mb-3.5 w-full">
             <div className="flex items-center gap-2">
               <button
                 ref={triggerRef}
@@ -137,7 +132,9 @@ export function HomeIdentity({ entries, canAdd }: Props) {
                   href={ADD_HREF}
                   className="flex h-[52px] flex-none items-center gap-[7px] whitespace-nowrap rounded-[14px] border border-slate-200 bg-white px-[15px] text-sm font-semibold text-slate-700 hover:border-accent hover:text-accent"
                 >
-                  <span className="text-[17px] font-normal leading-none">+</span>
+                  <span className="text-[17px] font-normal leading-none">
+                    +
+                  </span>
                   {mobile ? "프로필" : "프로필 추가"}
                 </Link>
               ) : (
@@ -146,7 +143,9 @@ export function HomeIdentity({ entries, canAdd }: Props) {
                   title="프로필이 가득 찼어요"
                   className="flex h-[52px] flex-none items-center gap-[7px] whitespace-nowrap rounded-[14px] border border-slate-200 bg-white px-[15px] text-sm font-semibold text-slate-300"
                 >
-                  <span className="text-[17px] font-normal leading-none">+</span>
+                  <span className="text-[17px] font-normal leading-none">
+                    +
+                  </span>
                   {mobile ? "프로필" : "프로필 추가"}
                 </span>
               )}
@@ -186,7 +185,8 @@ export function HomeIdentity({ entries, canAdd }: Props) {
                         {entry.name}
                       </span>
                       <span className="mt-px block truncate text-[13px] text-slate-400">
-                        {entry.character?.scene.name ?? "캐릭터를 세울 수 없어요"}
+                        {entry.character?.scene.name ??
+                          "캐릭터를 세울 수 없어요"}
                       </span>
                     </span>
                   </button>
@@ -196,7 +196,10 @@ export function HomeIdentity({ entries, canAdd }: Props) {
                     href={ADD_HREF}
                     className="flex items-center gap-2.5 rounded-[11px] px-3 py-3 text-[14.5px] font-semibold text-accent hover:bg-slate-50"
                   >
-                    <span className="text-[17px] font-normal leading-none">+</span>새 프로필 추가
+                    <span className="text-[17px] font-normal leading-none">
+                      +
+                    </span>
+                    새 프로필 추가
                   </Link>
                 </div>
               </div>
@@ -204,19 +207,14 @@ export function HomeIdentity({ entries, canAdd }: Props) {
           </div>
 
           {active.character ? (
-            <div ref={cardRef}>
-              <CharacterCard
-                character={active.character}
-                w={cardW}
-                zoomW={mobile ? cardW : 460}
-              />
+            <div ref={cardRef} className="w-full">
+              <CharacterCard character={active.character} w="fill" />
             </div>
           ) : (
-            <div
-              className="rounded-2xl border border-slate-200 bg-white px-5 py-8 text-center"
-              style={{ width: cardW }}
-            >
-              <p className="text-[15px] font-semibold">이 프로필로는 캐릭터를 세울 수 없어요</p>
+            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-8 text-center">
+              <p className="text-[15px] font-semibold">
+                이 프로필로는 캐릭터를 세울 수 없어요
+              </p>
               <p className="mt-1.5 text-[13px] text-slate-400 [text-wrap:pretty]">
                 저장된 생년월일이 계산 가능한 범위(1900~2050년)를 벗어났어요.
               </p>
@@ -227,10 +225,14 @@ export function HomeIdentity({ entries, canAdd }: Props) {
 
       <ExploreGrid
         reportHref={
-          active.profileId ? `/report?profile=${active.profileId}` : DRAFT_REPORT_HREF
+          active.profileId
+            ? `/report?profile=${active.profileId}`
+            : DRAFT_REPORT_HREF
         }
         consultHref={
-          active.profileId ? `/consult?profile=${active.profileId}` : DRAFT_CONSULT_HREF
+          active.profileId
+            ? `/consult?profile=${active.profileId}`
+            : DRAFT_CONSULT_HREF
         }
       />
     </>
