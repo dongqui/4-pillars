@@ -34,7 +34,8 @@ describe("키 목록", () => {
   });
 
   it("sectionVersion / sectionStorage", () => {
-    expect(sectionVersion("overview")).toBe(2);
+    // 프롬프트를 고칠 때마다 같이 올라간다. registry 의 version 과 어긋나면 여기서 걸린다.
+    expect(sectionVersion("overview")).toBe(3);
     expect(sectionStorage("daeunOutlook")).toBe("luck");
     expect(sectionStorage("overview")).toBe("chart");
   });
