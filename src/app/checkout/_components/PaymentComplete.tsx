@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 /** 숫자가 올라가는 시점. 체크가 다 그려진 뒤라야 "그래서 몇 장"이 순서대로 읽힌다. */
@@ -107,15 +106,6 @@ export function PaymentComplete({ added, after, next }: Props) {
             )}
           </span>
         </div>
-
-        {/* 타이머가 옮겨 주지만, 스크립트가 죽어도 갇히지 않게 손으로 갈 길을 남긴다. */}
-        <Link
-          href={next}
-          replace
-          className="mt-7 inline-block px-2.5 py-1.5 text-[12.5px] font-semibold text-slate-400 hover:text-slate-600"
-        >
-          바로 이동
-        </Link>
       </div>
     </div>
   );
