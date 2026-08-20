@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
+import { HomeLink } from "@/components/HomeLink";
 import { listProfiles } from "@/lib/profiles/store";
 import { parseProfileParam, type SearchParams } from "@/lib/profiles/param";
 import { listConsultations } from "@/lib/consultations/store";
@@ -40,6 +41,11 @@ export default async function ConsultPage({
   return (
     <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-[560px] px-5 py-6">
+        {/* 상담 목록은 이 흐름의 시작점이라 뒤로 갈 곳이 여기밖에 없다 —
+            없으면 헤더도 없는 화면에 갇힌다(상담방은 ← 로 여기까지만 나온다). */}
+        <div className="mb-4">
+          <HomeLink />
+        </div>
         <div className="mb-5 flex items-center justify-between gap-3">
           <h1 className="text-[19px] font-bold tracking-[-0.03em]">고민상담</h1>
           {/* 로그인을 요구하는 페이지라 null 갈래가 없다 — 0장일 때도 보여준다,

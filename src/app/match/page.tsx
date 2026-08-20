@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
+import { HomeLink } from "@/components/HomeLink";
 import { listProfiles } from "@/lib/profiles/store";
 import { toPersonOption } from "./_lib/to-person-option";
 import { MatchForm } from "./_components/MatchForm";
@@ -28,6 +29,11 @@ export default async function MatchPage() {
 
   return (
     <div className="min-h-screen flex-1 bg-white">
+      {/* 폼과 폴백 둘 다 헤더가 없다 — 나가는 길은 page 가 갖는다.
+          결과 화면(/match/[id])의 MatchShell 헤더와 같은 자리다. */}
+      <div className="mx-auto max-w-[560px] px-5 pt-6 md:px-8">
+        <HomeLink />
+      </div>
       {hasSubject ? <MatchForm people={people} /> : <NoSubjectFallback />}
     </div>
   );

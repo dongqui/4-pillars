@@ -6,7 +6,7 @@
  *
  * ReportRateLimited 와 달리 CTA 가 없다. 그쪽은 "로그인하면 지금 이어서 볼 수 있어요"
  * 라는 다음 걸음이 있지만, 궁합은 이미 로그인한 사용자의 계정별 한도라
- * 지금 할 수 있는 일이 없다 — MatchShell 헤더의 "내 프로필" 이 유일한 출구다.
+ * 지금 할 수 있는 일이 없다 — MatchShell 헤더의 "홈" 이 유일한 출구다.
  * 만들어 둔 궁합은 사라지지 않으니 이 URL 로 돌아오면 이어서 만들어진다.
  */
 export function MatchRateLimited() {

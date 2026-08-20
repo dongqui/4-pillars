@@ -79,7 +79,7 @@ export function MatchForm({ people }: { people: PersonOption[] }) {
   }
 
   return (
-    <div className="mx-auto max-w-[560px] space-y-8 px-5 py-8 md:px-8">
+    <div className="mx-auto max-w-[560px] space-y-8 px-5 pb-8 pt-5 md:px-8">
       <h1 className="text-[22px] font-bold tracking-[-0.025em]">궁합 보기</h1>
 
       <section>

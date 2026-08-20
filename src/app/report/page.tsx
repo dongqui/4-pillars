@@ -136,13 +136,13 @@ export default async function ReportPage({
     const draft = await readCurrentDraft();
     if (draft === null) {
       return (
-        <ReportShell showHomeLink={session !== null}>
+        <ReportShell>
           <ReportBody content={sampleReport} access={access} />
         </ReportShell>
       );
     }
     return (
-      <ReportShell showHomeLink={session !== null}>
+      <ReportShell>
         <Suspense fallback={<AnalyzingReport name={draft.name} />}>
           <ProfileReport
             subject={draftToSubject(draft)}
@@ -177,7 +177,7 @@ export default async function ReportPage({
   };
 
   return (
-    <ReportShell showHomeLink>
+    <ReportShell>
       <Suspense fallback={<AnalyzingReport name={profile.name} />}>
         <ProfileReport
           subject={profile}
