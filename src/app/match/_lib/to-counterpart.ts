@@ -16,6 +16,17 @@ export interface Draft {
   timeKnown: boolean;
   h: string;
   min: string;
+  /**
+   * "이 프로필 저장하기" 체크박스.
+   *
+   * CreateProfileBody 에는 실리지 않는다 — 저장 여부는 **행의 값이 아니라 kind** 이고,
+   * kind 는 서버가 정한다. 이 값은 요청 본문의 형제 필드(saved / saveCounterpart)로
+   * 따로 나가 서버에서 'saved' 와 'temp' 를 가른다.
+   *
+   * 기본값을 여기서 정하지 않고 폼을 여는 쪽이 넣는다 — "나" 는 켠 채로, "상대" 는
+   * 끈 채로 시작하는 것이 시안이고, 그 차이를 emptyDraft 하나에 담을 수 없다.
+   */
+  saved: boolean;
 }
 
 export const emptyDraft: Draft = {
@@ -29,6 +40,7 @@ export const emptyDraft: Draft = {
   timeKnown: true,
   h: "",
   min: "",
+  saved: true,
 };
 
 /** 숫자 입력칸 공용 필터 — 붙여넣기로 들어온 비숫자를 지우고 자릿수를 자른다. */

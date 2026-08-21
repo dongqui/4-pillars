@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getProvider } from "@/lib/auth/providers";
 import { completeOAuth } from "@/lib/auth/callback";
-import { upsertUser } from "@/lib/auth/users";
+import { setPrimaryProfileIfUnset, upsertUser } from "@/lib/auth/users";
 import { SESSION_COOKIE, sessionCookieOptions } from "@/lib/auth/session";
 import { createProfile } from "@/lib/profiles/store";
 import { DRAFT_COOKIE, deleteDraft, getDraft } from "@/lib/drafts/store";
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ provider: s
     const promoted = await promoteDraft(
       req.cookies.get(DRAFT_COOKIE)?.value ?? null,
       result.userId,
-      { getDraft, createProfile, deleteDraft },
+      { getDraft, createProfile, deleteDraft, setPrimaryIfUnset: setPrimaryProfileIfUnset },
     );
 
     // 프로필 id 는 지금 막 생겼으므로 next 에 미리 담을 수 없었다 — 최종 행선지는 여기서 정한다.

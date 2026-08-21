@@ -5,7 +5,7 @@ import type { ProfileRow } from "@/lib/profiles/store";
 const profile: ProfileRow = {
   id: "12",
   name: "김동진",
-  kind: "self",
+  kind: "saved",
   gender: "male",
   calendar: "solar",
   isLeapMonth: false,

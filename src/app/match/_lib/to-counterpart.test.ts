@@ -26,6 +26,12 @@ describe("toCounterpart", () => {
     });
   });
 
+  // 저장 여부는 행의 값이 아니라 kind 이고, kind 는 서버가 정한다. 여기서 실어
+  // 보내면 클라이언트가 kind 를 고르는 우회로가 생긴다.
+  it("저장 체크박스는 본문에 싣지 않는다 — 형제 필드로 따로 나간다", () => {
+    expect(toCounterpart({ ...valid, saved: false }, 2026)).not.toHaveProperty("saved");
+  });
+
   it("이름이 공백뿐이면 null", () => {
     expect(toCounterpart({ ...valid, name: "  " }, 2026)).toBeNull();
   });

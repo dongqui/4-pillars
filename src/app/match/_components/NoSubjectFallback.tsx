@@ -1,10 +1,10 @@
 import Link from "next/link";
 
 /**
- * /match 는 로그인만 요구한다(page.tsx) — 퍼널을 한 번도 끝내지 않아 내 사주
- * (kind='self')가 하나도 없는 채로도 닿을 수 있다. page.tsx 가 이 경우를 미리
- * 걸러 MatchForm(과 그 아래 CounterpartPicker/RelationPicker)의 클라이언트 JS를
- * 아예 내려보내지 않는다 — 어차피 쓸 수 없는 폼이다.
+ * /match 는 로그인만 요구한다(page.tsx) — 퍼널을 한 번도 끝내지 않아 저장한 사람이
+ * 하나도 없는 채로도 닿을 수 있다. page.tsx 가 이 경우를 미리 걸러 MatchForm(과 그
+ * 아래 PersonSelect/RelationPicker)의 클라이언트 JS를 아예 내려보내지 않는다 —
+ * 어차피 쓸 수 없는 폼이다.
  */
 export function NoSubjectFallback() {
   return (

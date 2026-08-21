@@ -22,6 +22,7 @@ function deps(over: Partial<Parameters<typeof promoteDraft>[2]> = {}) {
     getDraft: vi.fn(async () => draft),
     createProfile: vi.fn<Create>(async () => ({ id: "42" })),
     deleteDraft: vi.fn(async () => {}),
+    setPrimaryIfUnset: vi.fn(async () => {}),
     ...over,
   };
 }
@@ -42,7 +43,7 @@ describe("promoteDraft", () => {
   it("성공하면 프로필을 만들고 드래프트를 지운다", async () => {
     const d = deps();
     expect(await promoteDraft("tok", "7", d)).toEqual({ kind: "promoted", id: "42" });
-    expect(d.createProfile).toHaveBeenCalledWith("7", { ...draft, kind: "self" });
+    expect(d.createProfile).toHaveBeenCalledWith("7", { ...draft, kind: "saved" });
     expect(d.deleteDraft).toHaveBeenCalledWith("tok");
   });
 

@@ -1,14 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
   CounterpartLimitError,
-  MAX_COUNTERPARTS,
+  MAX_TEMP_PROFILES,
   MAX_PROFILES,
   ProfileLimitError,
   countProfiles,
   createProfile,
   getProfile,
   listProfiles,
-  promoteProfileToSelf,
   toProfileRow,
   type CreateProfileInput,
   type SqlClient,
@@ -42,6 +41,9 @@ const dbRow = {
   true_solar: true,
   created_at: "2026-07-31T00:00:00.000Z",
   is_unlocked: false,
+  // 컬럼은 NOT NULL DEFAULT 'self' 라 실제 행에는 늘 값이 있다. 픽스처가 비워 두면
+  // toKind 의 물러섬('temp')을 밟아, 여기서 테스트하려는 것과 다른 길이 돈다.
+  kind: "saved",
 };
 
 const newProfile: CreateProfileInput = {
@@ -54,7 +56,7 @@ const newProfile: CreateProfileInput = {
   time: null,
   birthPlace: null,
   trueSolar: true,
-  kind: "self",
+  kind: "saved",
 };
 
 describe("toProfileRow", () => {
@@ -72,7 +74,7 @@ describe("toProfileRow", () => {
       trueSolar: true,
       createdAt: "2026-07-31T00:00:00.000Z",
       isUnlocked: false,
-      kind: "self",
+      kind: "saved",
     });
   });
 
@@ -92,7 +94,7 @@ describe("listProfiles", () => {
   it("권한이 조인되면 isUnlocked 가 true", async () => {
     const { client } = fakeClient([{ ...dbRow, is_unlocked: true }]);
     // 'all' — 이 테스트는 kind 필터링이 아니라 isUnlocked 파생을 본다.
-    const rows = await listProfiles("7", "all", client);
+    const rows = await listProfiles("7", client);
 
     expect(rows).toHaveLength(1);
     expect(rows[0].isUnlocked).toBe(true);
@@ -100,7 +102,7 @@ describe("listProfiles", () => {
 
   it("purchases 가 아니라 entitlements 를 조인한다 — 권한의 출처는 이용권 사용이다", async () => {
     const { client, calls } = fakeClient([]);
-    await listProfiles("7", "all", client);
+    await listProfiles("7", client);
     expect(calls[0].sql).toContain("LEFT JOIN entitlements");
     expect(calls[0].sql).not.toContain("purchases");
     expect(calls[0].sql).toContain("'full_report'");
@@ -108,25 +110,25 @@ describe("listProfiles", () => {
 
   it("subject_key 는 프로필 id 를 문자열로 맞춘 값이다 — text 컬럼과 bigint 를 그냥 비교하면 터진다", async () => {
     const { client, calls } = fakeClient([]);
-    await listProfiles("7", "all", client);
+    await listProfiles("7", client);
     expect(calls[0].sql).toContain("p.id::text");
   });
 
   it("프로필이 없으면 빈 배열", async () => {
     const { client } = fakeClient([]);
-    expect(await listProfiles("7", "all", client)).toEqual([]);
+    expect(await listProfiles("7", client)).toEqual([]);
   });
 });
 
 describe("countProfiles", () => {
   it("count 결과를 숫자로 반환", async () => {
     const { client, calls } = fakeClient([{ n: 2 }]);
-    expect(await countProfiles("7", "self", client)).toBe(2);
+    expect(await countProfiles("7", "saved", client)).toBe(2);
     expect(calls[0].sql).toContain("FROM profiles");
     // WHERE user_id 가 빠지면 전체 유저의 프로필을 세게 되어 개수 한도가
     // 계정별이 아니라 전역이 되어버린다 — 그 회귀를 여기서 잡는다.
     expect(calls[0].sql).toContain("WHERE user_id");
-    expect(calls[0].values).toEqual(["7", "self"]);
+    expect(calls[0].values).toEqual(["7", "saved"]);
   });
 });
 
@@ -158,7 +160,7 @@ describe("createProfile", () => {
       null,
       null,
       true,
-      "self",
+      "saved",
     ]);
   });
 
@@ -169,19 +171,29 @@ describe("createProfile", () => {
   });
 
   // 궁합 상대는 내 사주 한도와 따로 센다. 세지 않고 두면 한 계정이 영구 행을 끝없이 쌓는다.
-  it("궁합 상대는 'other' 카운터만 본다 — 내 사주 20개와 섞이지 않는다", async () => {
+  it("궁합 상대는 목록에 서지 않는 행만 센다 — 내 사주 20개와 섞이지 않는다", async () => {
     const { client, calls } = fakeClient([{ n: 30 }], [{ id: 42 }]);
-    await createProfile("7", { ...newProfile, kind: "other" }, client);
+    await createProfile("7", { ...newProfile, kind: "temp" }, client);
 
-    expect(calls[0].values).toEqual(["7", "other"]);
-    // 30 은 MAX_PROFILES 를 넘지만 MAX_COUNTERPARTS 안이라 그대로 들어간다.
+    expect(calls[0].values).toEqual(["7", "temp"]);
+    // 30 은 MAX_PROFILES 를 넘지만 MAX_TEMP_PROFILES 안이라 그대로 들어간다.
     expect(calls[1].sql).toContain("INSERT INTO profiles");
   });
 
+  // 보이지 않는 행이 내 사주 20칸을 먹으면, 사용자는 카드 몇 장을 보면서
+  // "다 찼다" 는 안내를 받고 지울 대상을 찾지 못한다.
+  it("'temp' 는 목록 한도가 아니라 자원 상한 쪽에서 센다", async () => {
+    const { client, calls } = fakeClient([{ n: 30 }], [{ id: 42 }]);
+    await createProfile("7", { ...newProfile, kind: "temp" }, client);
+
+    expect(calls[0].values).toEqual(["7", "temp"]);
+    expect(calls[1].values.at(-1)).toBe("temp");
+  });
+
   it("궁합 상대 상한에 도달하면 CounterpartLimitError 를 던지고 INSERT 하지 않는다", async () => {
-    const { client, calls } = fakeClient([{ n: MAX_COUNTERPARTS }]);
+    const { client, calls } = fakeClient([{ n: MAX_TEMP_PROFILES }]);
     await expect(
-      createProfile("7", { ...newProfile, kind: "other" }, client),
+      createProfile("7", { ...newProfile, kind: "temp" }, client),
     ).rejects.toBeInstanceOf(CounterpartLimitError);
     expect(calls).toHaveLength(1);
   });
@@ -189,7 +201,7 @@ describe("createProfile", () => {
   it("내 사주는 'other' 가 몇이든 자기 카운터만 본다", async () => {
     const { client, calls } = fakeClient([{ n: 1 }], [{ id: 42 }]);
     await createProfile("7", newProfile, client);
-    expect(calls[0].values).toEqual(["7", "self"]);
+    expect(calls[0].values).toEqual(["7", "saved"]);
   });
 });
 
@@ -221,60 +233,25 @@ describe("getProfile", () => {
 });
 
 describe("kind", () => {
-  it("listProfiles 는 kind 로 거른다 — 'self' 는 궁합 상대를 홈에 올리지 않는다", async () => {
-    const queries: string[] = [];
-    const client = ((strings: TemplateStringsArray, ...values: unknown[]) => {
-      queries.push(strings.join("?"));
-      void values;
-      return Promise.resolve([]);
-    }) as unknown as SqlClient;
+  it("목록은 저장한 사람만 준다 — 'temp' 는 어디에도 뜨지 않는다", async () => {
+    const { client, calls } = fakeClient([]);
+    await listProfiles("1", client);
 
-    await listProfiles("1", "self", client);
-    expect(queries[0]).toContain("p.kind =");
-    // 이 갈래가 실제로 쓰이는 쪽이다(홈·상담 두 경로). "all" 쪽 조인 단언과
-    // 같은 것을 여기서도 못박는다 — purchases 조인으로 되돌려도 위 단언만으로는
-    // 잡히지 않는다.
-    expect(queries[0]).toContain("LEFT JOIN entitlements");
-    expect(queries[0]).toContain("'full_report'");
-    expect(queries[0]).not.toContain("purchases");
+    expect(calls[0].sql).toContain("p.kind = 'saved'");
+    // 이 쿼리가 앱의 모든 목록이 쓰는 하나뿐인 갈래다(홈·상담·지도·궁합). 조인 단언을
+    // 여기서 못박는다 — purchases 조인으로 되돌려도 다른 테스트로는 잡히지 않는다.
+    expect(calls[0].sql).toContain("LEFT JOIN entitlements");
+    expect(calls[0].sql).toContain("'full_report'");
+    expect(calls[0].sql).not.toContain("purchases");
   });
 
-  it("listProfiles('all') 은 거르지 않는다 — 궁합 상대 선택 목록이 쓴다", async () => {
-    const queries: string[] = [];
-    const client = ((strings: TemplateStringsArray, ...values: unknown[]) => {
-      queries.push(strings.join("?"));
-      void values;
-      return Promise.resolve([]);
-    }) as unknown as SqlClient;
-
-    await listProfiles("1", "all", client);
-    expect(queries[0]).not.toContain("p.kind =");
-  });
-
-  it("toProfileRow 는 모르는 kind 를 'self' 로 접지 않는다 — 'other' 를 지켜야 홈이 안 샌다", () => {
-    const row = toProfileRow({
-      id: 1, name: "테스트", gender: "male", calendar: "solar", is_leap_month: false,
-      birth_year: 1990, birth_month: 1, birth_day: 1, time_known: false,
-      true_solar: true, created_at: "2026-01-01", kind: "other",
-    });
-    expect(row.kind).toBe("other");
-  });
-
-  it("promoteProfileToSelf 는 이미 self 면 false 를 낸다", async () => {
-    const client = (() => Promise.resolve([])) as unknown as SqlClient;
-    expect(await promoteProfileToSelf("1", "2", client)).toBe(false);
-  });
-
-  // user_id 조건이 없으면 남의 궁합 상대를 내 사주 목록으로 끌어올 수 있다 —
-  // getMatch 의 같은 회귀 테스트(src/lib/matches/store.test.ts)와 같은 자리다.
-  it("promoteProfileToSelf 는 user_id 를 함께 필터한다", async () => {
-    const { client, calls } = fakeClient([{ id: 2 }]);
-    expect(await promoteProfileToSelf("1", "2", client)).toBe(true);
-
-    expect(calls[0].sql).toContain("user_id =");
-    // 'other' 만 올린다 — 이미 self 인 행을 건드려 봤자 할 일이 없다.
-    expect(calls[0].sql).toContain("kind = 'other'");
-    // 바인딩 순서는 템플릿에 나타난 순서다 — id → user_id.
-    expect(calls[0].values).toEqual(["2", "1"]);
+  // 예전 `=== "other" ? "other" : "self"` 였다면 모르는 값이 조용히 목록에 섰다.
+  // 모르는 값은 가장 덜 새는 쪽('temp': 어디에도 안 뜬다)으로 접는다.
+  it("toProfileRow 는 아는 값만 통과시킨다", () => {
+    expect(toProfileRow({ ...dbRow, kind: "saved" }).kind).toBe("saved");
+    expect(toProfileRow({ ...dbRow, kind: "temp" }).kind).toBe("temp");
+    expect(toProfileRow({ ...dbRow, kind: "무언가새로운값" }).kind).toBe("temp");
+    // 0027 이전 값이 남아 있어도 목록에 새지 않는다.
+    expect(toProfileRow({ ...dbRow, kind: "other" }).kind).toBe("temp");
   });
 });

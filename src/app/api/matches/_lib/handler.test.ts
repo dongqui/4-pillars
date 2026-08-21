@@ -121,22 +121,63 @@ describe("handleCreateMatch", () => {
     expect(r.status).toBe(400);
   });
 
-  it("즉석 입력한 상대는 kind='other' 로 저장한다 — 내 목록에 새면 안 된다", async () => {
+  it("즉석 입력한 상대는 저장하기로 했으면 kind='saved' 다", async () => {
     const createProfile = vi.fn().mockResolvedValue({ id: "99" });
     await handleCreateMatch(
       { subjectProfileId: "2", counterpart: newCounterpart, relation: NONE },
       deps({ createProfile }),
     );
-    expect(createProfile).toHaveBeenCalledWith("1", expect.objectContaining({ kind: "other" }));
+    expect(createProfile).toHaveBeenCalledWith("1", expect.objectContaining({ kind: "saved" }));
   });
 
-  it("클라이언트가 kind 를 보내도 무시한다 — 서버가 항상 'other' 로 덮어쓴다", async () => {
+  it("클라이언트가 kind 를 보내도 무시한다 — 서버가 saveCounterpart 로만 정한다", async () => {
     const createProfile = vi.fn().mockResolvedValue({ id: "99" });
     await handleCreateMatch(
-      { subjectProfileId: "2", counterpart: { ...newCounterpart, kind: "self" }, relation: NONE },
+      { subjectProfileId: "2", counterpart: { ...newCounterpart, kind: "saved" }, relation: NONE },
       deps({ createProfile }),
     );
-    expect(createProfile).toHaveBeenCalledWith("1", expect.objectContaining({ kind: "other" }));
+    expect(createProfile).toHaveBeenCalledWith("1", expect.objectContaining({ kind: "saved" }));
+  });
+
+  // kind 를 클라이언트가 정하지는 못하지만, 'other' 냐 'temp' 냐는 사용자의 선택이다 —
+  // 입력 폼의 "이 사람 프로필 저장하기" 가 형제 필드로 실려 온다.
+  it("저장하지 않기로 한 상대는 kind='temp' — 다음 목록에 서지 않는다", async () => {
+    const createProfile = vi.fn().mockResolvedValue({ id: "99" });
+    await handleCreateMatch(
+      {
+        subjectProfileId: "2",
+        counterpart: newCounterpart,
+        saveCounterpart: false,
+        relation: NONE,
+      },
+      deps({ createProfile }),
+    );
+    expect(createProfile).toHaveBeenCalledWith("1", expect.objectContaining({ kind: "temp" }));
+  });
+
+  // 이 값을 안 싣는 옛 클라이언트가 상대를 조용히 잃어버리면 안 된다.
+  it("saveCounterpart 를 안 실으면 저장하는 쪽이 기본이다", async () => {
+    const createProfile = vi.fn().mockResolvedValue({ id: "99" });
+    await handleCreateMatch(
+      { subjectProfileId: "2", counterpart: newCounterpart, relation: NONE },
+      deps({ createProfile }),
+    );
+    expect(createProfile).toHaveBeenCalledWith("1", expect.objectContaining({ kind: "saved" }));
+  });
+
+  // 본문에 kind 를 심어 'temp' 를 우회하려 해도 통하지 않는다 — 스키마가 벗겨낸다.
+  it("본문의 kind 는 saveCounterpart 를 이기지 못한다", async () => {
+    const createProfile = vi.fn().mockResolvedValue({ id: "99" });
+    await handleCreateMatch(
+      {
+        subjectProfileId: "2",
+        counterpart: { ...newCounterpart, kind: "saved" },
+        saveCounterpart: false,
+        relation: NONE,
+      },
+      deps({ createProfile }),
+    );
+    expect(createProfile).toHaveBeenCalledWith("1", expect.objectContaining({ kind: "temp" }));
   });
 
   it("성공하면 matchId 를 낸다", async () => {

@@ -18,6 +18,7 @@ const validBody = {
 type Create = (userId: string, input: CreateProfileInput) => Promise<{ id: string }>;
 type SaveDraft = (token: string, body: CreateProfileBody) => Promise<void>;
 type DropDraft = (token: string) => Promise<void>;
+type SetPrimary = (userId: string, profileId: string) => Promise<void>;
 
 /**
  * 제네릭으로 타입을 박아야 mock.calls[0][1] 이 좁혀진다 —
@@ -26,6 +27,7 @@ type DropDraft = (token: string) => Promise<void>;
 const okCreate = () => vi.fn<Create>(async () => ({ id: "42" }));
 const okSaveDraft = () => vi.fn<SaveDraft>(async () => {});
 const okDropDraft = () => vi.fn<DropDraft>(async () => {});
+const okSetPrimary = () => vi.fn<SetPrimary>(async () => {});
 
 // 유효한 UUID 형식 — 진짜 토큰(crypto.randomUUID())과 같은 모양이어야 형식 검증을 통과한다.
 const VALID_TOKEN = "b3b1c9b0-6f2e-4c3a-9b3e-2a1f0c8d7e6f";
@@ -38,11 +40,43 @@ function baseDeps(over: Partial<Parameters<typeof handleCreateProfile>[1]> = {})
     newToken: () => "새토큰",
     existingToken: null as string | null,
     dropDraft: okDropDraft(),
+    setPrimaryIfUnset: okSetPrimary(),
     ...over,
   };
 }
 
 describe("handleCreateProfile", () => {
+  // 계정의 첫 저장 프로필이 "나" 가 된다. 이 호출이 빠지면 primary 가 영영 null 로
+  // 남고, 상담·지도가 다시 휴리스틱(최신 / 가장 오래된 것)으로 물러선다.
+  it("저장한 프로필이면 '나' 후보로 올린다", async () => {
+    const setPrimaryIfUnset = okSetPrimary();
+    await handleCreateProfile(validBody, baseDeps({ setPrimaryIfUnset }));
+    expect(setPrimaryIfUnset).toHaveBeenCalledWith("7", "42");
+  });
+
+  // 이번 한 번만 쓰겠다고 한 사람을 나로 삼을 수 없다.
+  it("temp 는 '나' 후보가 아니다", async () => {
+    const setPrimaryIfUnset = okSetPrimary();
+    await handleCreateProfile({ ...validBody, saved: false }, baseDeps({ setPrimaryIfUnset }));
+    expect(setPrimaryIfUnset).not.toHaveBeenCalled();
+  });
+
+  // 프로필은 이미 만들어졌다. 여기서 201 을 뒤집으면 사용자는 저장에 실패한 줄 알고
+  // 같은 사람을 한 번 더 넣는다 — "나" 는 소비하는 쪽이 null 로 물러설 수 있다.
+  it("'나' 지정이 실패해도 201 을 뒤집지 않는다", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await handleCreateProfile(
+      validBody,
+      baseDeps({
+        setPrimaryIfUnset: vi.fn<SetPrimary>(async () => {
+          throw new Error("db down");
+        }),
+      }),
+    );
+    expect(res.status).toBe(201);
+    spy.mockRestore();
+  });
+
   it("정상 입력이면 201 과 id", async () => {
     const create = okCreate();
     const res = await handleCreateProfile(validBody, baseDeps({ create }));
