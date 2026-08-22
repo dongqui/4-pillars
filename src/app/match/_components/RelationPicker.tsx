@@ -7,9 +7,10 @@ import {
   type RelationTypeId,
 } from "@/lib/matches/relation-types";
 
-const CHIP = "rounded-full border px-4 py-2 text-sm transition-colors";
-const CHIP_ON = "border-slate-900 bg-slate-900 text-white";
-const CHIP_OFF = "border-slate-200 text-slate-600 hover:border-slate-300";
+const CHIP =
+  "rounded-full border-[1.5px] px-4 py-[9px] text-[13.5px] font-semibold transition-colors";
+const CHIP_ON = "border-accent bg-accent-50 text-accent";
+const CHIP_OFF = "border-slate-200 bg-white text-slate-600 hover:border-slate-300";
 const FIELD =
   "w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400";
 const HINT = "text-[12px] text-slate-500 mt-1";
@@ -39,8 +40,8 @@ export function RelationPicker({ value, onChange, subjectName, counterpartName }
 
   return (
     <section>
-      <h2 className="mb-1 text-[15px] font-bold tracking-[-0.02em]">두 사람은 어떤 관계인가요?</h2>
-      <p className="mb-3 text-[13px] text-gray-500">관계에 따라 더 맞춤 해석을 드려요</p>
+      <h2 className="mb-1 text-[15px] font-bold tracking-[-0.01em]">두 사람은 어떤 관계인가요?</h2>
+      <p className="mb-3 text-[13px] text-slate-400">관계에 따라 더 맞춤 해석을 드려요</p>
 
       <div className="flex flex-wrap gap-2">
         {(Object.keys(RELATION_TYPES) as RelationTypeId[]).map((id) => (
@@ -74,7 +75,7 @@ export function RelationPicker({ value, onChange, subjectName, counterpartName }
         느슨하게 푸는 대신 화면이 남은 일을 가리킨다.
       */}
       {roles === "free" && (
-        <div className="mt-3 space-y-2 rounded-2xl bg-slate-50 p-4">
+        <div className="mt-3 space-y-2 rounded-2xl border border-slate-200 bg-white p-4">
           <label className="flex items-start gap-3">
             <span className="w-20 shrink-0 pt-2.5 text-[13px] text-gray-500">{subjectName}은</span>
             <span className="min-w-0 flex-1">

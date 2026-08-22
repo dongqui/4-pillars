@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { createProfile } from "@/lib/profiles/store";
+import { setPrimaryProfileIfUnset } from "@/lib/auth/users";
 import {
   DRAFT_COOKIE,
   deleteDraft,
@@ -30,6 +31,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       newToken: generateDraftToken,
       existingToken: request.cookies.get(DRAFT_COOKIE)?.value ?? null,
       dropDraft: deleteDraft,
+      setPrimaryIfUnset: setPrimaryProfileIfUnset,
     });
 
     const res = NextResponse.json(result.body, { status: result.status });

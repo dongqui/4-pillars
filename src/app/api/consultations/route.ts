@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth/session";
-import { getProfile, listProfiles } from "@/lib/profiles/store";
+import { defaultConsultationSubject } from "@/lib/consultations/subject";
+import { getProfile } from "@/lib/profiles/store";
 import { parseProfileParam } from "@/lib/profiles/param";
 import { utteranceSchema } from "@/lib/consultations/input";
 import { factsForProfile } from "@/lib/consultations/facts";
@@ -41,14 +42,12 @@ export async function POST(request: Request): Promise<Response> {
   const param = parseProfileParam(
     Object.fromEntries(new URL(request.url).searchParams),
   );
-  // getProfile 은 kind 를 가리지 않으므로 궁합 상대("other")도 잡힌다. 상담은 자기
-  // 사주를 놓고 하는 것이고 상담사는 프로필 주인에게 말한다 — 상대 프로필로 열면
-  // 상담사가 남의 원국을 근거로 나에게 말하는 화면이 된다. self 가 아니면 물러선다.
+  // getProfile 은 kind 를 가리지 않으므로 'temp' 도 잡힌다. 이번 궁합에만 쓰겠다고
+  // 한 사람으로 상담을 열어 이력을 남길 수는 없다 — 그 행은 목록에서 이미 사라졌고,
+  // 다음에 이어 갈 방법도 없다. 저장한 사람이 아니면 물러선다.
   const picked = param.kind === "id" ? await getProfile(session.userId, param.id) : null;
   const profile =
-    picked?.kind === "self"
-      ? picked
-      : (await listProfiles(session.userId, "self"))[0];
+    picked?.kind === "saved" ? picked : await defaultConsultationSubject(session.userId);
 
   if (!profile) {
     return Response.json({ error: "먼저 사주 정보를 입력해 주세요" }, { status: 409 });

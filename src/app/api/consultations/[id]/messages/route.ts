@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth/session";
-import { getProfile, listProfiles } from "@/lib/profiles/store";
+import { defaultConsultationSubject } from "@/lib/consultations/subject";
+import { getProfile } from "@/lib/profiles/store";
 import { isSequentialId } from "@/lib/profiles/param";
 import { utteranceSchema } from "@/lib/consultations/input";
 import { factsForProfile } from "@/lib/consultations/facts";
@@ -43,12 +44,12 @@ export async function POST(
   const consultation = await getConsultation(session.userId, id);
   if (!consultation) return Response.json({ error: "상담을 찾을 수 없어요" }, { status: 404 });
 
-  // 프로필이 지워졌으면 그 계정의 첫 프로필로 이어간다. 남은 이력은 살아 있고,
+  // 프로필이 지워졌으면 그 계정의 "나" 로 이어간다. 남은 이력은 살아 있고,
   // 근거만 현재 프로필에서 다시 세운다.
   const profile =
     (consultation.profileId
       ? await getProfile(session.userId, consultation.profileId)
-      : null) ?? (await listProfiles(session.userId, "self"))[0];
+      : null) ?? (await defaultConsultationSubject(session.userId));
 
   if (!profile) {
     return Response.json({ error: "먼저 사주 정보를 입력해 주세요" }, { status: 409 });

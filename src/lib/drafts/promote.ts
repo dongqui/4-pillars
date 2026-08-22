@@ -14,6 +14,8 @@ export interface PromoteDeps {
   getDraft: (token: string) => Promise<CreateProfileBody | null>;
   createProfile: (userId: string, input: CreateProfileInput) => Promise<{ id: string }>;
   deleteDraft: (token: string) => Promise<void>;
+  /** "나" 가 아직 없으면 이 프로필로 정한다. 이미 있으면 아무 일도 하지 않는다. */
+  setPrimaryIfUnset: (userId: string, profileId: string) => Promise<void>;
 }
 
 /**
@@ -35,7 +37,15 @@ export async function promoteDraft(
     if (!draft) return { kind: "none" };
 
     // 드래프트 승격은 언제나 로그인한 본인의 사주를 저장한다.
-    const { id } = await deps.createProfile(userId, { ...draft, kind: "self" });
+    const { id } = await deps.createProfile(userId, { ...draft, kind: "saved" });
+
+    // 로그인 직후의 이 행이 그 계정의 첫 프로필인 경우가 대부분이다 — 곧 "나" 다.
+    // 실패해도 승격을 뒤집지 않는다(이 함수는 절대 throw 하지 않는다는 계약).
+    try {
+      await deps.setPrimaryIfUnset(userId, id);
+    } catch (e) {
+      console.error("[promoteDraft] setPrimaryIfUnset", e instanceof Error ? e.message : e);
+    }
 
     // 삭제 실패가 성공을 뒤집지 않게 따로 감싼다 — 행은 이미 생겼고,
     // 여기서 failed 를 돌려주면 쿠키가 남아 다음 로그인에 중복 프로필이 생긴다.

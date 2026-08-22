@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { HomeLink } from "@/components/HomeLink";
 import { listProfiles } from "@/lib/profiles/store";
+import { getUser } from "@/lib/auth/users";
 import { toPersonOption } from "./_lib/to-person-option";
 import { MatchForm } from "./_components/MatchForm";
 import { NoSubjectFallback } from "./_components/NoSubjectFallback";
@@ -20,21 +21,37 @@ export default async function MatchPage() {
   const session = await getSession();
   if (!session) redirect("/login?next=/match");
 
-  // "all" 이다 — 궁합 상대로 저장된 사람(kind='other')도 다시 고를 수 있어야 한다.
-  const profiles = await listProfiles(session.userId, "all");
+  // 저장한 사람 전부다. 나 칸과 상대 칸이 같은 목록을 쓴다 — 어느 문으로 들어온
+  // 사람인지로 고를 수 있는 칸이 갈리던 구분(kind='other')은 없앴다.
+  const [profiles, user] = await Promise.all([
+    listProfiles(session.userId),
+    getUser(session.userId),
+  ]);
   const people = profiles.map(toPersonOption);
-  // 내 사주(kind='self')가 하나도 없으면 "나"로 고를 게 없다 — 폼을 아예 내려보내지
-  // 않는다(home/page.tsx 가 entries.length===0 일 때 EmptyState 를 고르는 것과 같은 자리).
-  const hasSubject = people.some((p) => p.kind === "self");
+  // "나" 칸의 기본값도 users 가 답한다. 예전에는 목록의 첫 줄(= 가장 최근에 저장한
+  // 사람)이 기본이라, 궁합 한 번 보고 상대를 저장하면 그 다음 방문에서 상대가 "나"
+  // 자리에 앉아 있었다 — 상담·지도가 각자 때우던 것과 같은 자리다.
+  // 목록에 없는 id 는 넘기지 않는다(지워졌거나 temp 가 된 경우) — MatchForm 이
+  // 첫 줄로 물러선다.
+  const defaultSubjectId = people.some((p) => p.id === user?.primaryProfileId)
+    ? user!.primaryProfileId!
+    : null;
+  // 저장한 사람이 하나도 없으면 "나"로 고를 게 없다 — 폼을 아예 내려보내지 않는다
+  // (home/page.tsx 가 entries.length===0 일 때 EmptyState 를 고르는 것과 같은 자리).
+  const hasSubject = people.length > 0;
 
   return (
-    <div className="min-h-screen flex-1 bg-white">
+    <div className="min-h-screen flex-1 bg-slate-50">
       {/* 폼과 폴백 둘 다 헤더가 없다 — 나가는 길은 page 가 갖는다.
           결과 화면(/match/[id])의 MatchShell 헤더와 같은 자리다. */}
       <div className="mx-auto max-w-[560px] px-5 pt-6 md:px-8">
         <HomeLink />
       </div>
-      {hasSubject ? <MatchForm people={people} /> : <NoSubjectFallback />}
+      {hasSubject ? (
+        <MatchForm people={people} defaultSubjectId={defaultSubjectId} />
+      ) : (
+        <NoSubjectFallback />
+      )}
     </div>
   );
 }
