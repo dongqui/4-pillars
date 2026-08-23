@@ -37,13 +37,23 @@ function daysAgo(then: Date, now: Date): number {
 }
 
 /**
+ * "오늘" · "어제" · "8월 12일". 목록 줄과 대화방 날짜 칩이 같은 규칙을 쓴다 —
+ * 두 화면이 같은 상담을 두고 다른 날짜를 말하면 그 자체가 버그다.
+ */
+export function dayLabel(then: Date, now: Date): string {
+  const d = daysAgo(then, now);
+  if (d === 0) return "오늘";
+  if (d === 1) return "어제";
+  const local = toServiceLocal(then);
+  return `${local.getUTCMonth() + 1}월 ${local.getUTCDate()}일`;
+}
+
+/**
  * now 를 인자로 받는 이유: 안에서 new Date() 를 부르면 테스트가 시계에 묶인다.
  * 화면은 렌더 시점의 시각을 넘긴다.
  */
 export function toListEntry(row: ConsultationListItem, now: Date): ConsultationEntry {
   const created = new Date(row.createdAt);
-  const d = daysAgo(created, now);
-  const createdLocal = toServiceLocal(created);
 
   return {
     id: row.id,
@@ -52,11 +62,6 @@ export function toListEntry(row: ConsultationListItem, now: Date): ConsultationE
     title: row.title ?? "아직 시작하지 않은 상담",
     preview: row.lastBubble ?? "",
     progress: row.status === "closed" ? "완료" : `${row.turnsUsed}/${row.turnLimit}`,
-    when:
-      d === 0
-        ? "오늘"
-        : d === 1
-          ? "어제"
-          : `${createdLocal.getUTCMonth() + 1}월 ${createdLocal.getUTCDate()}일`,
+    when: dayLabel(created, now),
   };
 }

@@ -7,13 +7,16 @@ interface Props {
   delay?: number;
 }
 
+/** 시안의 말풍선. 꼬리는 말한 쪽 아래 모서리만 깎아 방향을 만든다 */
 export function Bubble({ role, text, animate = false, delay = 0 }: Props) {
   const mine = role === "user";
   return (
     <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
       <p
-        className={`max-w-[78%] rounded-[18px] px-[14px] py-2.5 text-[14.5px] leading-[1.55] [text-wrap:pretty] ${
-          mine ? "bg-accent text-white" : "bg-slate-100 text-slate-800"
+        className={`max-w-[min(86%,470px)] px-4 py-[13px] text-[15px] leading-[1.62] tracking-[-0.01em] [text-wrap:pretty] ${
+          mine
+            ? "rounded-[18px_18px_6px_18px] bg-accent text-white"
+            : "rounded-[18px_18px_18px_6px] bg-slate-100 text-slate-900"
         } ${animate ? "pv-bubble-in" : ""}`}
         // 재생은 pv-bubble-in 클래스가 맡는다(reduced-motion 이 꺼야 하므로). 여기선
         // 말풍선마다 다른 지연만 준다 — animate 와 delay 는 서로 다른 질문이다.

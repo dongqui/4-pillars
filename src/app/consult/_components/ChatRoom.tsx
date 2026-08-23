@@ -12,6 +12,10 @@ const BUBBLE_STAGGER_MS = 400;
 
 interface Props {
   consultationId: string;
+  /** 머리글에 서는 상담 제목. 첫 턴이 실패해 아직 제목이 없으면 "새 상담" 이다 */
+  title: string;
+  /** 대화 위에 한 번 서는 날짜 칩 — "오늘" · "어제" · "8월 12일" */
+  dayLabel: string;
   initialTurns: ChatTurn[];
   initialRemaining: number;
   initialClosed: boolean;
@@ -19,6 +23,8 @@ interface Props {
 
 export function ChatRoom({
   consultationId,
+  title,
+  dayLabel,
   initialTurns,
   initialRemaining,
   initialClosed,
@@ -87,63 +93,86 @@ export function ChatRoom({
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-[560px] flex-col bg-white">
-      <header className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
-        <Link href="/consult" aria-label="상담 목록으로" className="text-slate-400">
-          ←
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* sticky 가 아니라 flex-none 이다 — 스크롤하는 것은 페이지가 아니라 가운데
+          대화 영역뿐이라, 머리글과 입력창은 가만히 있어도 제자리에 남는다. */}
+      <header className="flex flex-none items-center gap-2.5 border-b border-slate-100 bg-white/[0.92] px-[clamp(16px,4vw,22px)] py-3.5 backdrop-blur-[12px] min-[900px]:px-6 min-[900px]:py-4">
+        <Link
+          href="/consult"
+          aria-label="상담 목록으로"
+          className="-ml-1.5 flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[10px] text-[18px] text-slate-700 hover:bg-slate-100"
+        >
+          <span aria-hidden>‹</span>
         </Link>
-        <span className="flex-1 text-[15px] font-bold tracking-[-0.02em]">상담사</span>
-        <span className="text-[12.5px] font-bold text-slate-400">
-          {closed ? "마무리됨" : `남은 대화 ${remaining}회`}
-        </span>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-[15.5px] font-bold tracking-[-0.025em]">{title}</h1>
+          <div className="mt-0.5 flex items-center gap-1.5">
+            {/* 진행중인지 끝났는지가 색으로 먼저 읽히고, 남은 횟수는 글자가 말한다 */}
+            <span
+              aria-hidden
+              className={`h-1.5 w-1.5 rounded-full ${closed ? "bg-slate-300" : "bg-green-600"}`}
+            />
+            <span className="text-[12.5px] text-slate-400">
+              {closed ? "상담 마무리" : `남은 대화 ${remaining}회`}
+            </span>
+          </div>
+        </div>
       </header>
 
-      <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-4">
-        {turns.map((t) =>
-          t.bubbles.map((text, i) => (
-            <Bubble
-              key={`${t.key}-${i}`}
-              role={t.role}
-              text={text}
-              // 저장된 이력은 즉시, 방금 온 답만 순차로 띄운다. "태울지"(animate)와
-              // "얼마나 늦게"(delay)는 다른 질문이다 — 첫 말풍선(i===0)도 새 답이면
-              // 반드시 애니메이션이 걸려야 하므로 delay===0 을 애니메이션 여부로
-              // 겸용하지 않는다.
-              animate={t.isNew}
-              delay={i * BUBBLE_STAGGER_MS}
-            />
-          )),
-        )}
-        {pending && <TypingDots />}
-        {error && (
-          <p role="alert" className="px-1 text-[13px] text-amber-700">
-            {error}
-          </p>
-        )}
-        <div ref={bottomRef} />
+      <div className="min-h-0 flex-1 overflow-y-auto px-[clamp(16px,4vw,28px)] pb-2 pt-[22px]">
+        <div className="mx-auto flex max-w-[640px] flex-col gap-3.5">
+          <div className="mb-0.5 self-center rounded-full bg-slate-100 px-[11px] py-1 text-[12px] text-slate-400">
+            {dayLabel}
+          </div>
+
+          {turns.map((t) =>
+            t.bubbles.map((text, i) => (
+              <Bubble
+                key={`${t.key}-${i}`}
+                role={t.role}
+                text={text}
+                // 저장된 이력은 즉시, 방금 온 답만 순차로 띄운다. "태울지"(animate)와
+                // "얼마나 늦게"(delay)는 다른 질문이다 — 첫 말풍선(i===0)도 새 답이면
+                // 반드시 애니메이션이 걸려야 하므로 delay===0 을 애니메이션 여부로
+                // 겸용하지 않는다.
+                animate={t.isNew}
+                delay={i * BUBBLE_STAGGER_MS}
+              />
+            )),
+          )}
+          {pending && <TypingDots />}
+          {error && (
+            <p role="alert" className="px-1 text-[13px] text-amber-700">
+              {error}
+            </p>
+          )}
+          <div ref={bottomRef} className="h-2" />
+        </div>
       </div>
 
       {suggestions.length > 0 && (
-        <div className="flex gap-2 px-4 pb-2">
-          {suggestions.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => send(s)}
-              className="flex-1 rounded-[14px] border border-slate-200 px-3 py-2 text-left text-[13px] leading-[1.4] text-slate-600"
-            >
-              {s}
-            </button>
-          ))}
+        <div className="flex-none px-[clamp(16px,4vw,28px)] pb-2">
+          <div className="mx-auto flex max-w-[640px] gap-2">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => send(s)}
+                className="flex-1 rounded-[14px] border border-slate-200 px-3 py-2.5 text-left text-[13px] leading-[1.4] text-slate-500 hover:bg-slate-50"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
       {closed ? (
-        <div className="border-t border-slate-200 px-4 py-5 text-center">
-          <p className="mb-3 text-[13.5px] text-gray-500">상담이 마무리됐어요.</p>
+        <div className="flex-none border-t border-slate-100 px-[clamp(16px,4vw,28px)] py-5 text-center">
+          <p className="mb-3 text-[13.5px] text-slate-500">상담이 마무리됐어요.</p>
           <Link
             href="/consult"
-            className="inline-block rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-white"
+            className="inline-flex h-12 items-center rounded-[14px] bg-accent px-6 text-[15px] font-bold tracking-[-0.02em] text-white hover:bg-accent-700"
           >
             새 상담 시작하기
           </Link>

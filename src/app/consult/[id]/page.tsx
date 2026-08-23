@@ -4,6 +4,8 @@ import { getSession } from "@/lib/auth/session";
 import { getConsultation, listMessages } from "@/lib/consultations/store";
 import { isSequentialId } from "@/lib/profiles/param";
 import { toChatView } from "../_lib/to-chat-view";
+import { dayLabel } from "../_lib/to-list-entry";
+import { ConsultFrame } from "../_components/ConsultFrame";
 import { ChatRoom } from "../_components/ChatRoom";
 
 export const metadata: Metadata = {
@@ -32,11 +34,17 @@ export default async function ConsultRoomPage({
   const messages = await listMessages(consultation.id);
 
   return (
-    <ChatRoom
-      consultationId={consultation.id}
-      initialTurns={toChatView(messages)}
-      initialRemaining={consultation.turnLimit - consultation.turnsUsed}
-      initialClosed={consultation.status === "closed"}
-    />
+    <ConsultFrame>
+      <ChatRoom
+        consultationId={consultation.id}
+        // 첫 턴이 실패한 상담은 아직 제목이 없다. 목록의 "아직 시작하지 않은 상담"
+        // 을 그대로 쓰면 이미 그 안에 들어와 있는 화면에서 말이 어긋난다.
+        title={consultation.title ?? "새 상담"}
+        dayLabel={dayLabel(new Date(consultation.createdAt), new Date())}
+        initialTurns={toChatView(messages)}
+        initialRemaining={consultation.turnLimit - consultation.turnsUsed}
+        initialClosed={consultation.status === "closed"}
+      />
+    </ConsultFrame>
   );
 }
