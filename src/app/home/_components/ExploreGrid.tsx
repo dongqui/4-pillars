@@ -11,25 +11,13 @@ interface Props {
 }
 
 const CARD =
-  "relative flex flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300 md:px-5 md:py-[18px]";
+  "flex flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300 md:px-5 md:py-[18px]";
 const EYEBROW =
   "mb-[9px] text-[11.5px] font-bold tracking-[0.08em] text-slate-400";
 const TITLE = "mb-[5px] text-base font-bold tracking-[-0.025em]";
 const DESC =
   "mb-[18px] text-[13.5px] leading-[1.55] text-gray-500 [text-wrap:pretty]";
 const CTA = "mt-auto whitespace-nowrap text-sm font-bold text-accent";
-const ART =
-  "pointer-events-none absolute bottom-[15px] right-4 flex items-center gap-[7px] opacity-55 md:bottom-[17px] md:right-5";
-
-/** 카드 구석의 점 그림 — 기능을 설명하는 그림이라 스크린리더에서는 뺀다 */
-function Dot({ size, style }: { size: number; style: string }) {
-  return (
-    <span
-      className={`flex-none rounded-full ${style}`}
-      style={{ width: size, height: size }}
-    />
-  );
-}
 
 export function ExploreGrid({ reportHref, consultHref }: Props) {
   return (
@@ -45,17 +33,12 @@ export function ExploreGrid({ reportHref, consultHref }: Props) {
         </Link>
 
         <Link href={consultHref} className={CARD}>
-          <div className={EYEBROW}>나에게 묻고 싶을 때</div>
+          <div className={EYEBROW}>조금 더 묻고 싶을 때</div>
           <div className={TITLE}>고민상담</div>
           <p className={DESC}>
-            털어놓고 싶은 이야기, 사주를 아는 상대와 나눠보세요.
+            내 사주를 바탕으로, 지금 마음에 걸리는 이야기를 나눠보세요.
           </p>
           <span className={CTA}>상담 시작하기 →</span>
-          <span aria-hidden className={ART}>
-            <Dot size={7} style="bg-slate-300" />
-            <Dot size={9} style="bg-slate-400" />
-            <Dot size={11} style="bg-slate-900" />
-          </span>
         </Link>
 
         <Link href="/map" className={CARD}>
@@ -63,21 +46,6 @@ export function ExploreGrid({ reportHref, consultHref }: Props) {
           <div className={TITLE}>관계 지도</div>
           <p className={DESC}>내 주변 사람들은 나에게 어떤 역할을 할까요?</p>
           <span className={CTA}>사람 추가하기 →</span>
-          <span aria-hidden className={ART}>
-            <Dot
-              size={10}
-              style="border-[1.5px] border-dashed border-slate-300"
-            />
-            <Dot size={13} style="bg-slate-900" />
-            <Dot
-              size={10}
-              style="border-[1.5px] border-dashed border-slate-300"
-            />
-            <Dot
-              size={8}
-              style="border-[1.5px] border-dashed border-slate-200"
-            />
-          </span>
         </Link>
 
         <Link href="/match" className={CARD}>
@@ -85,13 +53,6 @@ export function ExploreGrid({ reportHref, consultHref }: Props) {
           <div className={TITLE}>궁합</div>
           <p className={DESC}>한 사람과 나의 관계를 자세히 살펴봐요.</p>
           <span className={CTA}>궁합 보기 →</span>
-          <span aria-hidden className={ART}>
-            <Dot
-              size={26}
-              style="relative z-[2] border-[1.5px] border-slate-900"
-            />
-            <span className="-ml-[13px] h-[26px] w-[26px] flex-none rounded-full border-[1.5px] border-dashed border-slate-300" />
-          </span>
         </Link>
       </div>
     </section>
