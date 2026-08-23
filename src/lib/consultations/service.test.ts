@@ -26,7 +26,7 @@ const consultation: ConsultationRow = {
 
 const reply = {
   bubbles: ["첫 마디예요", "둘째 마디예요"],
-  suggestions: ["더 들려주실래요?", "다른 얘기도 할까요?"],
+  suggestions: ["그럼 지금 옮겨도 될까요?", "아직 준비가 안 된 것 같아요"],
   crisis: false,
 };
 

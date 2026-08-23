@@ -39,7 +39,7 @@ const dbMessage = {
   id: 41,
   role: "counselor",
   bubbles: ["첫 마디예요", "두 번째 마디예요"],
-  suggestions: ["더 물어볼까요?", "다른 얘기도 해요"],
+  suggestions: ["그럼 지금 옮겨도 될까요?", "아직 준비가 안 됐어요"],
   crisis: false,
   turn_no: 2,
   created_at: "2026-08-17T00:01:00.000Z",
@@ -73,7 +73,7 @@ describe("toMessageRow", () => {
   it("jsonb 배열을 string[] 로 읽는다", () => {
     const row = toMessageRow(dbMessage);
     expect(row.bubbles).toEqual(["첫 마디예요", "두 번째 마디예요"]);
-    expect(row.suggestions).toEqual(["더 물어볼까요?", "다른 얘기도 해요"]);
+    expect(row.suggestions).toEqual(["그럼 지금 옮겨도 될까요?", "아직 준비가 안 됐어요"]);
     expect(row.crisis).toBe(false);
   });
 

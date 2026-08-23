@@ -15,7 +15,7 @@ const middle = { first: false, last: false };
 /** 테스트가 실제로 들여다보는 tool 파라미터 속성만. 나머지는 알 바 아니다. */
 interface ReplyToolProperties {
   bubbles: { minItems: number; maxItems: number };
-  suggestions: { minItems: number; maxItems: number };
+  user_replies: { minItems: number; maxItems: number };
   title?: unknown;
   crisis?: unknown;
 }
@@ -33,13 +33,13 @@ describe("replyToolSchema", () => {
 
   it("중간 턴은 추천질문을 정확히 두 개 요구한다", () => {
     const p = props(middle);
-    expect(p.suggestions.minItems).toBe(SUGGESTION_COUNT);
-    expect(p.suggestions.maxItems).toBe(SUGGESTION_COUNT);
+    expect(p.user_replies.minItems).toBe(SUGGESTION_COUNT);
+    expect(p.user_replies.maxItems).toBe(SUGGESTION_COUNT);
   });
 
   it("마지막 턴은 추천질문을 요구하지 않는다 — 더 물어볼 수 없는데 물으라고 하면 안 된다", () => {
     const p = props({ first: false, last: true });
-    expect(p.suggestions.maxItems).toBe(0);
+    expect(p.user_replies.maxItems).toBe(0);
   });
 
   it("첫 턴에만 제목을 요구한다", () => {
@@ -60,12 +60,18 @@ describe("replyToolSchema", () => {
 describe("parseReply", () => {
   const good = {
     bubbles: ["첫 마디예요", "두 번째 마디예요"],
-    suggestions: ["더 들려주실래요?", "다른 얘기도 할까요?"],
+    user_replies: ["그럼 지금 옮겨도 될까요?", "아직 준비가 안 된 것 같아요"],
     crisis: false,
   };
 
   it("계약대로 온 응답을 통과시킨다", () => {
-    expect(parseReply(good, middle)).toEqual(good);
+    expect(parseReply(good, middle)).toEqual({
+      bubbles: good.bubbles,
+      // 모델이 채우는 이름(user_replies)과 저장·API 이름(suggestions)이 다르다.
+      // 그 되돌림이 여기서 깨지면 화면에 칩이 아예 뜨지 않는다.
+      suggestions: good.user_replies,
+      crisis: false,
+    });
   });
 
   it("첫 턴에는 제목을 함께 읽는다", () => {
@@ -88,7 +94,7 @@ describe("parseReply", () => {
   });
 
   it("crisis 가 빠지면 false 로 본다 — 없다고 무료 턴을 주면 안 된다", () => {
-    const noCrisis = { bubbles: good.bubbles, suggestions: good.suggestions };
+    const noCrisis = { bubbles: good.bubbles, user_replies: good.user_replies };
     expect(parseReply(noCrisis, middle).crisis).toBe(false);
   });
 
@@ -101,7 +107,7 @@ describe("parseReply", () => {
   });
 
   it("추천질문이 하나만 와도 통과시킨다 — 칩 하나 때문에 턴을 버리지 않는다", () => {
-    const r = parseReply({ ...good, suggestions: ["하나만"] }, middle);
+    const r = parseReply({ ...good, user_replies: ["하나만"] }, middle);
     expect(r.suggestions).toEqual(["하나만"]);
   });
 

@@ -88,4 +88,10 @@ describe("COUNSELOR_SYSTEM_PROMPT", () => {
   it("사실 블록 밖 정보를 지어내지 말라고 못박는다", () => {
     expect(COUNSELOR_SYSTEM_PROMPT).toContain("[사실]");
   });
+
+  // 문체 규칙(해요체 · 되묻기)이 추천 답변까지 덮으면 상담사가 되묻는 질문이
+  // 칩으로 나오고, 그걸 누른 사용자가 상담사에게 그 질문을 하는 꼴이 된다.
+  it("추천 답변이 사용자의 말이라고 못박는다", () => {
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("user_replies");
+  });
 });

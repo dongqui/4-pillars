@@ -47,14 +47,19 @@ export function replyToolSchema(opts: ReplyOptions): Record<string, unknown> {
       items: { type: "string", maxLength: BUBBLE_MAX_CHARS },
       description: "말풍선 하나는 한 호흡이다. 이어지는 말풍선이 같은 말을 되풀이하지 않는다.",
     },
-    suggestions: {
+    // 이름이 suggestions 가 아니라 user_replies 인 것이 이 필드의 방어선이다.
+    // "제안"은 누구의 말인지 말해 주지 않아서, 모델이 상담사가 되묻는 질문을
+    // 채워 넣었다("어떤 분야로 시작했어요?"). 그걸 누르면 사용자가 상담사에게
+    // 그 질문을 하는 꼴이 된다. 저장·API 이름은 suggestions 그대로고, 여기서만
+    // 갈린다 — parseReply 가 되돌려 준다.
+    user_replies: {
       type: "array",
       minItems: opts.last ? 0 : SUGGESTION_COUNT,
       maxItems: opts.last ? 0 : SUGGESTION_COUNT,
       items: { type: "string", maxLength: SUGGESTION_MAX_CHARS },
       description: opts.last
         ? "마지막 턴이므로 빈 배열로 둔다."
-        : "사용자가 이어서 물어볼 만한 짧은 질문 두 개. 사용자의 말투로 쓴다.",
+        : "사용자가 눌러서 자기 말로 보낼 다음 한마디 두 개. 상담사가 상대에게 묻는 말이 아니다. 예: \"그럼 지금 옮겨도 될까요?\", \"아직 준비가 안 된 것 같아요\".",
     },
     crisis: {
       type: "boolean",
@@ -63,7 +68,7 @@ export function replyToolSchema(opts: ReplyOptions): Record<string, unknown> {
     },
   };
 
-  const required = ["bubbles", "suggestions", "crisis"];
+  const required = ["bubbles", "user_replies", "crisis"];
 
   if (opts.first) {
     properties.title = {
@@ -79,7 +84,7 @@ export function replyToolSchema(opts: ReplyOptions): Record<string, unknown> {
 
 const replyShape = z.object({
   bubbles: z.array(z.string().trim().min(1)).min(MIN_BUBBLES).max(MAX_BUBBLES),
-  suggestions: z.array(z.string().trim().min(1)).max(SUGGESTION_COUNT).default([]),
+  user_replies: z.array(z.string().trim().min(1)).max(SUGGESTION_COUNT).default([]),
   title: z.string().trim().min(1).max(TITLE_MAX_CHARS).optional(),
   // 빠지면 false. 없다고 무료 턴을 주면 미차감 한도를 우회하는 길이 된다.
   crisis: z.boolean().default(false),
@@ -112,7 +117,7 @@ export function parseReply(raw: unknown, opts: ReplyOptions): CounselorReply {
     bubbles: parsed.bubbles,
     // 마지막 턴에 추천질문이 와도 버린다. 스키마로 막았지만 모델이 넘겨도
     // 화면에 "더 물어보세요"가 뜨는 일은 없어야 한다.
-    suggestions: opts.last ? [] : parsed.suggestions.slice(0, SUGGESTION_COUNT),
+    suggestions: opts.last ? [] : parsed.user_replies.slice(0, SUGGESTION_COUNT),
     ...(opts.first && parsed.title ? { title: parsed.title } : {}),
     crisis: parsed.crisis,
   };
