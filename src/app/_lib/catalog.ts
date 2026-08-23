@@ -49,7 +49,7 @@ const PAID: Record<Feature, { title: string; desc: string; href: string }> = {
   },
   consultation: {
     title: "고민상담",
-    desc: "털어놓고 싶은 이야기, 사주를 아는 상대와 나눠보세요.",
+    desc: "내 사주를 바탕으로, 지금 마음에 걸리는 이야기를 나눠보세요.",
     href: "/consult",
   },
 };
