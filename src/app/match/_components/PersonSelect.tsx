@@ -12,8 +12,6 @@ interface Props {
   title: string;
   /** 제목 아래 한 줄 */
   hint: string;
-  /** 제목 오른쪽 — "내 사주 2개" */
-  countLabel: string;
   /** 아무도 고르지 않았을 때 접힌 버튼에 뜨는 문구 */
   placeholder: string;
   people: PersonOption[];
@@ -38,7 +36,6 @@ interface Props {
 export function PersonSelect({
   title,
   hint,
-  countLabel,
   placeholder,
   people,
   selected,
@@ -51,10 +48,7 @@ export function PersonSelect({
 }: Props) {
   return (
     <section>
-      <div className="mb-1 flex items-baseline justify-between gap-3">
-        <h2 className="text-[15px] font-bold tracking-[-0.01em]">{title}</h2>
-        <span className="text-[12px] text-slate-400">{countLabel}</span>
-      </div>
+      <h2 className="mb-1 text-[15px] font-bold tracking-[-0.01em]">{title}</h2>
       <p className="mb-3 text-[13px] text-slate-400">{hint}</p>
 
       <button

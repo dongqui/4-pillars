@@ -210,7 +210,6 @@ export function MatchForm({
       <PersonSelect
         title="나는 누구인가요?"
         hint="저장된 사람 중에서 골라주세요"
-        countLabel={`저장된 사람 ${subjects.length}명`}
         placeholder="내 사주를 골라주세요"
         people={subjects}
         selected={subject}
@@ -239,7 +238,6 @@ export function MatchForm({
       <PersonSelect
         title="상대는 누구인가요?"
         hint="저장된 사람 중에서 고르거나 새로 입력해요"
-        countLabel={`고를 수 있는 사람 ${candidates.length}명`}
         placeholder="상대를 골라주세요"
         people={counterpartRows}
         selected={selectedCounterpart}
