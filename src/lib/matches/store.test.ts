@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SqlClient } from "@/lib/db";
-import { findOrCreateMatch, getMatch, toMatchRow } from "./store";
+import { MATCH_LIST_LIMIT, findOrCreateMatch, getMatch, listMatches, toMatchRow } from "./store";
 
 const NONE = { type: null, subjectRole: null, counterpartRole: null } as const;
 
@@ -94,5 +94,63 @@ describe("getMatch", () => {
   it("없으면 null", async () => {
     const { client } = recorder([[]]);
     expect(await getMatch("1", "42", client)).toBeNull();
+  });
+});
+
+describe("listMatches", () => {
+  it("두 프로필을 조인해 이름까지 한 번에 읽는다 — 행마다 조회하지 않는다", async () => {
+    const { client, queries } = recorder([
+      [
+        {
+          id: 7, subject_name: "곽희경", counterpart_name: "백상현",
+          relation_type: "lover", subject_role: "", counterpart_role: "",
+          created_at: "2026-08-18T00:00:00.000Z",
+        },
+      ],
+    ]);
+    const rows = await listMatches("1", client);
+
+    expect(queries).toHaveLength(1);
+    expect(rows).toEqual([
+      {
+        id: "7",
+        subjectName: "곽희경",
+        counterpartName: "백상현",
+        relation: { type: "lover", subjectRole: null, counterpartRole: null },
+        createdAt: "2026-08-18T00:00:00.000Z",
+      },
+    ]);
+  });
+
+  // user_id 가 없으면 남의 궁합이 내 목록에 뜬다 — getMatch 와 같은 자리다.
+  it("user_id 로 거르고 최신순으로 읽는다", async () => {
+    const { client, queries, params } = recorder([[]]);
+    await listMatches("42", client);
+
+    expect(queries[0]).toContain("m.user_id =");
+    expect(queries[0]).toContain("ORDER BY m.created_at DESC");
+    expect(params[0]).toEqual(["42", MATCH_LIST_LIMIT]);
+  });
+
+  // 'temp' 상대와 본 궁합도 목록에는 남아야 한다 — kind 는 "다시 고를 후보로
+  // 내놓지 않는다" 는 뜻이지 "없던 일" 이 아니다.
+  it("상대의 kind 를 보지 않는다", async () => {
+    const { client, queries } = recorder([[]]);
+    await listMatches("1", client);
+    expect(queries[0]).not.toContain("kind");
+  });
+
+  it("모르는 relation_type 은 null 로 접는다 — 목록 한 줄 때문에 화면이 깨지지 않는다", async () => {
+    const { client } = recorder([
+      [
+        {
+          id: 7, subject_name: "가", counterpart_name: "나",
+          relation_type: "사라진유형", subject_role: "", counterpart_role: "",
+          created_at: "2026-08-18T00:00:00.000Z",
+        },
+      ],
+    ]);
+    const rows = await listMatches("1", client);
+    expect(rows[0].relation.type).toBeNull();
   });
 });

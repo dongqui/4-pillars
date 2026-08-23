@@ -33,19 +33,73 @@ function toRelationType(v: unknown): RelationTypeId | null {
   return s !== null && Object.hasOwn(RELATION_TYPES, s) ? (s as RelationTypeId) : null;
 }
 
+/** 세 컬럼 → RelationInput. 행 매퍼가 둘이라 한 곳에 둔다. */
+function toRelation(r: Record<string, unknown>): RelationInput {
+  return {
+    type: toRelationType(r.relation_type),
+    subjectRole: toNull(r.subject_role),
+    counterpartRole: toNull(r.counterpart_role),
+  };
+}
+
 export function toMatchRow(r: Record<string, unknown>): MatchRow {
   return {
     id: String(r.id),
     userId: String(r.user_id),
     subjectProfileId: String(r.subject_profile_id),
     counterpartProfileId: String(r.counterpart_profile_id),
-    relation: {
-      type: toRelationType(r.relation_type),
-      subjectRole: toNull(r.subject_role),
-      counterpartRole: toNull(r.counterpart_role),
-    },
+    relation: toRelation(r),
     createdAt: String(r.created_at),
   };
+}
+
+/**
+ * '이미 본 궁합' 목록 한 줄. MatchRow 와 다른 타입인 이유: 화면이 필요로 하는 것은
+ * 프로필 id 가 아니라 두 사람의 이름이고, 이름을 얻자고 행마다 getProfile 을 두 번
+ * 부르면 30건짜리 목록이 61번 왕복한다.
+ */
+export interface MatchListRow {
+  id: string;
+  subjectName: string;
+  counterpartName: string;
+  relation: RelationInput;
+  createdAt: string;
+}
+
+/**
+ * 목록 상한. 궁합은 한 계정이 계속 쌓을 수 있는 행이라(사람 수 × 관계 유형 10가지)
+ * 전부 내려보내면 언젠가 페이지가 무거워진다. 페이지네이션은 아직 없다 —
+ * 넘치면 잘린다는 사실을 상수 이름으로 남긴다.
+ */
+export const MATCH_LIST_LIMIT = 30;
+
+/**
+ * 내 궁합을 최신순으로. 두 프로필을 INNER JOIN 해 이름까지 한 번에 읽는다.
+ *
+ * profiles.kind 를 보지 않는다 — 'temp' 상대와 본 궁합도 목록에는 남아야 한다.
+ * 'temp' 는 "다시 고를 후보로 내놓지 않는다" 는 뜻이지 "없던 일" 이 아니다.
+ */
+export async function listMatches(
+  userId: string,
+  client: SqlClient = sql,
+): Promise<MatchListRow[]> {
+  const rows = await client`
+    SELECT m.id, m.relation_type, m.subject_role, m.counterpart_role, m.created_at,
+           s.name AS subject_name, c.name AS counterpart_name
+      FROM matches m
+      JOIN profiles s ON s.id = m.subject_profile_id
+      JOIN profiles c ON c.id = m.counterpart_profile_id
+     WHERE m.user_id = ${userId}::bigint
+     ORDER BY m.created_at DESC, m.id DESC
+     LIMIT ${MATCH_LIST_LIMIT}
+  `;
+  return rows.map((r) => ({
+    id: String(r.id),
+    subjectName: String(r.subject_name),
+    counterpartName: String(r.counterpart_name),
+    relation: toRelation(r),
+    createdAt: String(r.created_at),
+  }));
 }
 
 export interface CreateMatchInput {

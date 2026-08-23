@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { isRelationComplete, type RelationInput } from "@/lib/matches/relation-types";
 import { personOptionFromInput, type PersonOption } from "../_lib/to-person-option";
 import { emptyDraft, toCounterpart, type Draft } from "../_lib/to-counterpart";
@@ -25,10 +25,21 @@ type Slot = "me" | "other";
 export function MatchForm({
   people: initialPeople,
   defaultSubjectId,
+  defaultOpen,
+  children,
 }: {
   people: PersonOption[];
   /** 계정의 "나"(users.primary_profile_id). 정해지지 않았으면 null — 첫 줄로 물러선다. */
   defaultSubjectId: string | null;
+  /**
+   * 입력부를 펼친 채로 시작할지. 이미 본 궁합이 없으면 펼친다 — 이 화면에서 할 수
+   * 있는 일이 그것 하나뿐인데 접어 두면 빈 화면처럼 보인다. 있으면 접는다:
+   * 다시 보러 온 사람에게는 목록이 본문이다.
+   */
+  defaultOpen: boolean;
+  /** 입력부 아래에 붙는 것 — 이미 본 궁합 목록. 이 컴포넌트가 페이지의 가로폭
+   *  컨테이너를 갖고 있어서, 같은 폭에 맞추려면 여기로 들어와야 한다. */
+  children?: ReactNode;
 }) {
   const router = useRouter();
   // 서버가 준 목록에 이 화면에서 만든 내 사주가 더해진다 — 만들자마자 고를 수
@@ -44,6 +55,7 @@ export function MatchForm({
     type: null, subjectRole: null, counterpartRole: null,
   });
 
+  const [open, setOpen] = useState(defaultOpen);
   const [openPanel, setOpenPanel] = useState<Slot | null>(null);
   const [formFor, setFormFor] = useState<Slot | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
@@ -204,9 +216,51 @@ export function MatchForm({
   }
 
   return (
-    <div className="mx-auto max-w-[520px] space-y-[26px] px-5 py-8 pb-24 md:px-8">
-      <h1 className="text-2xl font-bold tracking-[-0.025em]">궁합 보기</h1>
+    <div className="mx-auto max-w-[520px] px-5 py-8 pb-24 md:px-8">
+      <h1 className="mb-5 text-2xl font-bold tracking-[-0.025em]">궁합 보기</h1>
 
+      {/* 입력부 전체를 접는 스위치. 이미 본 궁합이 쌓이면 이 화면의 본문은
+          목록이 되고, 새로 만드는 일은 가끔이다 — 그때마다 긴 폼을 지나
+          스크롤하게 두지 않는다. */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className={`flex w-full items-center gap-3 rounded-[14px] border border-slate-200 bg-white px-[15px] py-[13px] text-left transition-colors hover:border-slate-300 ${
+          open ? "mb-5" : ""
+        }`}
+      >
+        <span
+          className={`flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[11px] bg-accent-50 text-accent transition-transform ${
+            open ? "rotate-45" : ""
+          }`}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path d="M8 3.5v9M3.5 8h9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-bold tracking-[-0.015em] text-slate-900">
+            새 궁합 보기
+          </span>
+          <span className="mt-0.5 block text-[12.5px] text-slate-400">
+            {open ? "나와 상대를 고르면 돼요" : "이용권 1장으로 새 궁합을 볼 수 있어요"}
+          </span>
+        </span>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden
+          className={`flex-none transition-transform ${open ? "rotate-180" : ""}`}
+        >
+          <path d="M4 6l4 4 4-4" stroke="#94A3B8" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open && (
+      <div className="space-y-[26px]">
       <PersonSelect
         title="나는 누구인가요?"
         hint="저장된 사람 중에서 골라주세요"
@@ -283,6 +337,10 @@ export function MatchForm({
         </button>
         <p className="mt-3 text-center text-[12px] text-slate-400">{ctaHint}</p>
       </div>
+      </div>
+      )}
+
+      {children}
     </div>
   );
 }
