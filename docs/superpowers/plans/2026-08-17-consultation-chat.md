@@ -2506,8 +2506,12 @@ let cached: ServiceDeps | undefined;
 export function consultationDeps(): ServiceDeps {
   if (cached) return cached;
 
-  const apiKey = process.env.DEEPSEEK_API_KEY;
-  if (!apiKey) throw new Error("DEEPSEEK_API_KEY is not set");
+  // ⚠️ 이름은 DEEP_SEEK_API_KEY 다 — 리포트(saju/generator.ts)·궁합(matches/generator.ts)·
+  // scripts/dump-sections.mts 가 모두 이 이름을 쓰고 .env.local 에도 이 이름으로 있다.
+  // 이 계획이 처음에 DEEPSEEK_API_KEY 로 적어 그대로 구현됐고, 키가 있는 환경에서도
+  // 상담만 500 이 났다(2026-08-23 수정).
+  const apiKey = process.env.DEEP_SEEK_API_KEY;
+  if (!apiKey) throw new Error("DEEP_SEEK_API_KEY 가 설정되지 않았습니다");
 
   cached = {
     store: { createConsultation, getConsultation, listMessages, appendMessage, commitTurn },
@@ -2694,8 +2698,12 @@ export async function POST(
 
 ```
 # --- LLM (DeepSeek) ---
-DEEPSEEK_API_KEY=            # 리포트 생성과 고민상담이 같은 키를 쓴다
+DEEP_SEEK_API_KEY=           # 리포트·궁합·고민상담이 같은 키를 쓴다
 ```
+
+⚠️ 이름을 새로 짓지 않는다. 코드에 이미 있는 이름(`DEEP_SEEK_API_KEY`)을 먼저 확인하고
+그대로 쓴다 — 이 계획의 초안이 `DEEPSEEK_API_KEY` 로 적는 바람에 `.env.example` 까지
+틀린 이름이 나갔고, 그걸 보고 환경을 채우면 리포트와 궁합도 같이 죽는다.
 
 - [ ] **Step 8: 타입체크와 전체 테스트**
 

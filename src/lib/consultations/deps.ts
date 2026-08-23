@@ -65,8 +65,10 @@ let cached: ServiceDeps | undefined;
 export function consultationDeps(): ServiceDeps {
   if (cached) return cached;
 
-  const apiKey = process.env.DEEPSEEK_API_KEY;
-  if (!apiKey) throw new Error("DEEPSEEK_API_KEY is not set");
+  // 리포트·궁합·scripts 가 쓰는 이름과 같아야 한다(DEEP_SEEK_API_KEY). 상담만
+  // DEEPSEEK_API_KEY 로 읽고 있어서, 키가 멀쩡히 있는 환경에서도 상담만 500 이었다.
+  const apiKey = process.env.DEEP_SEEK_API_KEY;
+  if (!apiKey) throw new Error("DEEP_SEEK_API_KEY 가 설정되지 않았습니다");
 
   cached = {
     store: {
