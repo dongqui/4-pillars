@@ -5,8 +5,8 @@ const entries = Object.entries(SECTIONS) as [string, SectionSpec][];
 
 describe("SECTIONS", () => {
   // 상단 히어로 + 01 은 overview 하나가 겸한다. 이 수가 곧 /home 의 "N개 중 M개 열림"이다.
-  it("섹션 12개", () => {
-    expect(entries).toHaveLength(12);
+  it("섹션 10개", () => {
+    expect(entries).toHaveLength(10);
   });
 
   it("모든 섹션이 version >= 1", () => {
@@ -15,10 +15,9 @@ describe("SECTIONS", () => {
     }
   });
 
-  it("모든 섹션이 tier / storage / prompt 를 갖는다", () => {
+  it("모든 섹션이 tier / prompt 를 갖는다", () => {
     for (const [key, spec] of entries) {
       expect(["free", "paid"], key).toContain(spec.tier);
-      expect(["chart", "luck"], key).toContain(spec.storage);
       expect(spec.prompt.length, key).toBeGreaterThan(0);
     }
   });
@@ -35,11 +34,6 @@ describe("SECTIONS", () => {
     for (const [key, spec] of entries) {
       expect(spec.example, key).not.toMatch(/\d/);
     }
-  });
-
-  it("생시에 의존하는 섹션만 storage=luck", () => {
-    const luck = entries.filter(([, s]) => s.storage === "luck").map(([k]) => k);
-    expect(luck.sort()).toEqual(["daeunOutlook", "yearlyLuck"]);
   });
 
   it("무료는 4개 (히어로+01 겸용 overview, 02~04)", () => {
@@ -70,11 +64,5 @@ describe("SECTIONS", () => {
     expect(SECTIONS.environment.schema.safeParse(ok).success).toBe(true);
     expect(SECTIONS.environment.schema.safeParse({ ...ok, draining: ["a", "b"] }).success).toBe(false);
     expect(SECTIONS.environment.schema.safeParse({ ...ok, energizing: [...three, "d", "e"] }).success).toBe(false);
-  });
-
-  it("daeunOutlook 은 rows/summary/emphasis 를 요구한다", () => {
-    const rows = [{ title: "t", desc: "d" }];
-    expect(SECTIONS.daeunOutlook.schema.safeParse({ rows, summary: "s", emphasis: "e" }).success).toBe(true);
-    expect(SECTIONS.daeunOutlook.schema.safeParse({ rows }).success).toBe(false);
   });
 });

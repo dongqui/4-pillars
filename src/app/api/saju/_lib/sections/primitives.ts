@@ -40,12 +40,3 @@ export const KeyValue = z
   .object({ label: z.string().min(1), value: z.string().min(1) })
   .strict();
 export type KeyValue = z.infer<typeof KeyValue>;
-
-/**
- * 제목 + 설명 — 11 세운, 12 대운.
- * 기간(2026년 / 32–41세)은 계산값이라 여기 없다. 조립 단계에서 인덱스로 짝짓는다.
- */
-export const TimelineNote = z
-  .object({ title: z.string().min(1), desc: z.string().min(1) })
-  .strict();
-export type TimelineNote = z.infer<typeof TimelineNote>;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { KeyValue, LabeledText, TimelineNote, TitledText, TraitNote } from "./primitives";
+import { KeyValue, LabeledText, TitledText, TraitNote } from "./primitives";
 
 describe("primitives", () => {
   it("TitledText 는 title/body 를 요구한다", () => {
@@ -15,10 +15,9 @@ describe("primitives", () => {
     expect(TitledText.safeParse({ title: "제목", body: "본문", extra: 1 }).success).toBe(false);
   });
 
-  it("LabeledText / KeyValue / TimelineNote 도 같은 규칙", () => {
+  it("LabeledText / KeyValue 도 같은 규칙", () => {
     expect(LabeledText.safeParse({ label: "라벨", body: "본문" }).success).toBe(true);
     expect(KeyValue.safeParse({ label: "라벨", value: "값" }).success).toBe(true);
-    expect(TimelineNote.safeParse({ title: "제목", desc: "설명" }).success).toBe(true);
     expect(KeyValue.safeParse({ label: "라벨", body: "본문" }).success).toBe(false);
   });
 

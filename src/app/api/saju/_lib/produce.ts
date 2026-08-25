@@ -1,11 +1,9 @@
 import type { SajuAnalysis } from "@/lib/saju-core";
-import { chartKey, luckKey, pillarsJson } from "./key";
-import { toSectionWrites, type CachedSections, type CacheRecord, type SectionWrite } from "./store";
+import { chartKey, pillarsJson } from "./key";
+import type { CachedSections, CacheRecord } from "./store";
 import {
   assign,
-  isSectionKey,
   parseSectionContent,
-  sectionStorage,
   type Interpretation,
   type SectionKey,
 } from "./sections";
@@ -32,18 +30,9 @@ export interface ProduceDeps {
   generator: InterpretationGenerator;
   getCached: (chartKey: string, keys: SectionKey[]) => Promise<CachedSections>;
   putCached: (record: CacheRecord) => Promise<void>;
-  getLuckCached: (luckKey: string, keys: SectionKey[]) => Promise<CachedSections>;
-  putLuckSections: (luckKey: string, sections: SectionWrite[], model: string) => Promise<void>;
   /** 요청할 섹션. 무료/유료 결정은 호출자 몫이다. */
   sectionKeys: SectionKey[];
-  /** 세운·대운의 기준 연도 */
-  year: number;
 }
-
-const splitByStorage = (keys: SectionKey[]) => ({
-  chart: keys.filter((k) => sectionStorage(k) === "chart"),
-  luck: keys.filter((k) => sectionStorage(k) === "luck"),
-});
 
 /**
  * 해석 섹션을 확보한다: 캐시에 있는 건 그대로, 없는 것만 생성·검증·저장.
@@ -53,25 +42,17 @@ export async function produceSections(
   analysis: SajuAnalysis,
   deps: ProduceDeps,
 ): Promise<{ interpretation: Partial<Interpretation>; cached: boolean }> {
-  // 저장소가 갈리므로 두 곳을 함께 본다 (DB 오류는 상위로 전파)
-  const wanted = splitByStorage(deps.sectionKeys);
   const cKey = chartKey(analysis.chart);
-  const lKey = luckKey(analysis, deps.year);
-  const [chartCache, luckCache] = await Promise.all([
-    deps.getCached(cKey, wanted.chart),
-    deps.getLuckCached(lKey, wanted.luck),
-  ]);
+  const { have, missing } = await deps.getCached(cKey, deps.sectionKeys);
 
-  const interpretation: Partial<Interpretation> = { ...chartCache.have, ...luckCache.have };
-  const missing = [...chartCache.missing, ...luckCache.missing];
-
+  const interpretation: Partial<Interpretation> = { ...have };
   if (missing.length === 0) return { interpretation, cached: true };
 
   // 없는 섹션만 생성. 생성기가 일부를 빠뜨려도 나머지로 진행한다
   // (섹션 단위 실패는 다음 요청에서 missing 으로 다시 잡힌다).
   let generated: Partial<Interpretation>;
   try {
-    generated = await deps.generator.generateSections(analysis, missing, { year: deps.year });
+    generated = await deps.generator.generateSections(analysis, missing);
   } catch (e) {
     throw new GenerationError(e, interpretation);
   }
@@ -95,27 +76,15 @@ export async function produceSections(
   }
   Object.assign(interpretation, validated);
 
-  // 저장 (멱등) — 검증까지 통과한 것만, 저장소별로 나눠서
-  const produced = splitByStorage(Object.keys(validated).filter(isSectionKey));
-  const chartProduced = Object.fromEntries(
-    produced.chart.map((k) => [k, validated[k]]),
-  ) as Partial<Interpretation>;
-
-  if (produced.chart.length > 0) {
+  // 저장 (멱등) — 검증까지 통과한 것만
+  if (Object.keys(validated).length > 0) {
     await deps.putCached({
       chartKey: cKey,
       gender: analysis.chart.gender,
       pillars: pillarsJson(analysis.chart),
-      interpretation: chartProduced,
+      interpretation: validated,
       model: deps.generator.model,
     });
-  }
-  if (produced.luck.length > 0) {
-    await deps.putLuckSections(
-      lKey,
-      toSectionWrites(Object.fromEntries(produced.luck.map((k) => [k, validated[k]]))),
-      deps.generator.model,
-    );
   }
 
   return { interpretation, cached: false };

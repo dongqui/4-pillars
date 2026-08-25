@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { analyze } from "@/lib/saju-core";
 import { chartKey } from "../key";
-import { chartFacts, luckFacts } from "./facts";
+import { chartFacts } from "./facts";
 
 const analysis = analyze({ year: 1990, month: 5, day: 15, hour: 10, gender: "male" });
 
@@ -45,34 +45,5 @@ describe("chartFacts", () => {
     const facts = chartFacts(noHour);
     expect(facts).toContain("시주: 없음");
     expect(facts).toContain("총 6자");
-  });
-});
-
-describe("luckFacts", () => {
-  const facts = luckFacts(analysis, 2026, 3);
-
-  it("chartFacts 를 포함한다", () => {
-    expect(facts.startsWith(chartFacts(analysis))).toBe(true);
-  });
-
-  it("대운 회차를 전부 싣는다", () => {
-    for (const p of analysis.daeun.periods) {
-      expect(facts).toContain(`${p.index}) ${p.pillar}(${p.pillarHanja})`);
-    }
-  });
-
-  it("요청한 연수만큼 세운 간지를 싣는다", () => {
-    expect(facts).toContain("2026년 병오(丙午)");
-    expect(facts).toContain("2028년 무신(戊申)");
-    expect(facts).not.toContain("2029년");
-  });
-
-  it("연도·나이를 서술에 쓰지 말라고 못박는다", () => {
-    expect(facts).toContain("서술에 쓰지 마라");
-  });
-
-  // 현재 대운 위치는 출생 연도에 의존하는데 luckKey 에는 출생 연도가 없다.
-  it("현재 대운 위치를 담지 않는다", () => {
-    expect(facts).not.toContain("현재");
   });
 });

@@ -1,14 +1,8 @@
 import { z } from "zod";
-import { KeyValue, LabeledText, TimelineNote, TitledText, TraitNote } from "./primitives";
+import { KeyValue, LabeledText, TitledText, TraitNote } from "./primitives";
 
 /** 무료 노출 여부. 어떤 키를 실제로 요청할지는 호출자가 정한다. */
 export type SectionTier = "free" | "paid";
-
-/**
- * 저장 테이블. "chart" 는 4기둥+성별(chartKey)로 캐시되고,
- * "luck" 은 정확한 생시에 의존해 luckKey 로 따로 캐시된다.
- */
-export type SectionStorage = "chart" | "luck";
 
 export interface SectionSpec {
   /**
@@ -19,7 +13,6 @@ export interface SectionSpec {
    */
   version: number;
   tier: SectionTier;
-  storage: SectionStorage;
   /** content 의 유일한 shape 정의. 타입·LLM 스키마·런타임 검증이 전부 여기서 나온다. */
   schema: z.ZodType;
   /** 이 섹션만 재생성할 때 LLM 에 줄 지시문 */
@@ -46,7 +39,6 @@ export const SECTIONS = {
   overview: {
     version: 3,
     tier: "free",
-    storage: "chart",
     // traits 하나가 히어로 키워드 칩과 01 카드 양쪽을 채운다. 두 섹션으로
     // 나뉘어 있던 시절엔 호출이 따로 나가 칩과 카드가 어긋났다.
     schema: z
@@ -85,7 +77,6 @@ export const SECTIONS = {
   outerVsInner: {
     version: 2,
     tier: "free",
-    storage: "chart",
     schema: z
       .object({ outward: z.string().min(1), inner: z.string().min(1) })
       .strict(),
@@ -98,7 +89,6 @@ export const SECTIONS = {
   strengths: {
     version: 2,
     tier: "free",
-    storage: "chart",
     schema: z.array(TitledText).min(2).max(4),
     prompt: "강점을 2~4개, 각각 제목과 1~2문장 본문으로 써라. 제목은 서술형 문장으로.",
     example:
@@ -108,7 +98,6 @@ export const SECTIONS = {
   cautions: {
     version: 2,
     tier: "free",
-    storage: "chart",
     schema: z
       .object({ items: shortList(2, 4), tip: z.string().min(1) })
       .strict(),
@@ -121,7 +110,6 @@ export const SECTIONS = {
   emotion: {
     version: 2,
     tier: "paid",
-    storage: "chart",
     schema: z.array(LabeledText).min(2).max(4),
     prompt:
       "감정 패턴을 2~4개 항목으로 나눠라. label 은 상황(예: 스트레스가 쌓이는 상황), body 는 그 상황에서의 반응을 2~3문장으로.",
@@ -132,7 +120,6 @@ export const SECTIONS = {
   relating: {
     version: 2,
     tier: "paid",
-    storage: "chart",
     schema: z.array(KeyValue).min(3).max(6),
     prompt:
       "관계를 맺는 방식을 3~6개 항목으로 정리하라. label 은 관점, value 는 한 문장 이내의 짧은 값.",
@@ -143,7 +130,6 @@ export const SECTIONS = {
   environment: {
     version: 2,
     tier: "paid",
-    storage: "chart",
     schema: z
       .object({
         energizing: shortList(3, 4),
@@ -162,7 +148,6 @@ export const SECTIONS = {
   love: {
     version: 2,
     tier: "paid",
-    storage: "chart",
     schema: z.array(LabeledText).min(2).max(4),
     prompt: "연애에서의 성향을 2~4개 항목으로. label 은 국면, body 는 2~3문장.",
     example:
@@ -172,7 +157,6 @@ export const SECTIONS = {
   compatibility: {
     version: 2,
     tier: "paid",
-    storage: "chart",
     schema: z
       .object({ good: shortList(2, 4), clash: shortList(2, 4) })
       .strict(),
@@ -185,7 +169,6 @@ export const SECTIONS = {
   wealth: {
     version: 2,
     tier: "paid",
-    storage: "chart",
     schema: z
       .object({
         points: z.array(LabeledText).min(2).max(4),
@@ -198,33 +181,5 @@ export const SECTIONS = {
     // emphasis 가 summary 안에 그대로 들어 있는 예시다 — 화면이 부분 문자열로 찾는다.
     example:
       '{"points":[{"label":"돈이 모이는 방식","body":"한 번에 크게 벌기보다 꾸준히 쌓는 구조가 맞아요. 전문성이 깊어질수록 수입이 계단식으로 올라가는 흐름이에요."}],"summary":"투자는 단기 매매보다 긴 호흡의 적립식이 타고난 성향과 잘 맞아요.","emphasis":"긴 호흡의 적립식"}',
-  },
-
-  yearlyLuck: {
-    version: 2,
-    tier: "paid",
-    storage: "luck",
-    schema: z.array(TimelineNote).min(1).max(12),
-    prompt:
-      "주어진 연도 목록과 같은 개수·같은 순서로, 각 해의 제목(title)과 설명(desc)을 써라. 연도 표기는 넣지 마라 — 계산된 값을 따로 붙인다. '세운'·'간지' 같은 용어 대신 '올해'·'이 시기'·'흐름' 처럼 풀어 쓴다.",
-    example:
-      '[{"title":"정리","desc":"미뤄둔 결정을 끝내기 좋은 흐름이에요. 새로 벌이기보다 마무리가 유리해요."}]',
-  },
-
-  daeunOutlook: {
-    version: 2,
-    tier: "paid",
-    storage: "luck",
-    schema: z
-      .object({
-        rows: z.array(TimelineNote).min(1).max(12),
-        summary: z.string().min(1),
-        emphasis: z.string().min(1),
-      })
-      .strict(),
-    prompt:
-      "주어진 대운 목록과 같은 개수·같은 순서로 rows 를 쓰고(연령대 표기는 넣지 마라 — 계산된 값을 따로 붙인다), 전체 흐름 요약(summary)과 한 줄 강조(emphasis)를 덧붙여라. '대운'·'간지' 같은 용어 대신 '구간'·'시기'·'흐름' 처럼 풀어 쓴다.",
-    example:
-      '{"rows":[{"title":"기반을 쌓는 구간","desc":"실력과 신뢰를 축적하는 흐름이에요. 눈에 띄는 성과보다 토대가 만들어지는 시기예요."}],"summary":"지금은 기반을 쌓는 구간의 후반부예요. 앞으로의 선택이 다음 구간의 방향을 정해요.","emphasis":"기반을 쌓는 구간의 후반부"}',
   },
 } as const satisfies Record<string, SectionSpec>;

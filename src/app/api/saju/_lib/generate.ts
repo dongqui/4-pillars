@@ -15,14 +15,6 @@ export class StubGenerator implements InterpretationGenerator {
     keys: SectionKey[],
   ): Promise<Partial<Interpretation>> {
     const dm = analysis.chart.dayMaster;
-    const rows = analysis.daeun.periods.map((p, i) => ({
-      title: `${p.pillar} 대운 (자리표시자 ${i + 1})`,
-      desc: `${p.startAge}세부터의 흐름에 대한 자리표시자 서술입니다.`,
-    }));
-    // 스키마가 1~12개를 요구한다. 대운이 비는 경우(생시 미입력 등)도 최소 한 줄은 채운다.
-    const timeline = rows.length > 0
-      ? rows.slice(0, 12)
-      : [{ title: "대운 자리표시자", desc: "대운 정보가 없어 자리표시자로 채웁니다." }];
 
     const all: Interpretation = {
       overview: {
@@ -81,12 +73,6 @@ export class StubGenerator implements InterpretationGenerator {
         ],
         summary: "재물 요약 자리표시자입니다.",
         emphasis: "재물 강조 자리표시자입니다.",
-      },
-      yearlyLuck: timeline,
-      daeunOutlook: {
-        rows: timeline,
-        summary: "대운 흐름 요약 자리표시자입니다.",
-        emphasis: "대운 강조 자리표시자입니다.",
       },
     };
 

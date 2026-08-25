@@ -1,16 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
-  CHART_SECTION_KEYS,
   FREE_SECTION_KEYS,
-  LUCK_SECTION_KEYS,
   PAID_SECTION_KEYS,
   SECTION_KEYS,
   assign,
   isSectionKey,
   llmInputSchema,
-  llmInputSchemaWithRows,
   parseSectionContent,
-  sectionStorage,
   sectionVersion,
   type Interpretation,
 } from "./derive";
@@ -21,11 +17,6 @@ describe("키 목록", () => {
     expect(FREE_SECTION_KEYS.some((k) => PAID_SECTION_KEYS.includes(k))).toBe(false);
   });
 
-  it("chart + luck 도 전체를 정확히 분할한다", () => {
-    expect([...CHART_SECTION_KEYS, ...LUCK_SECTION_KEYS].sort()).toEqual([...SECTION_KEYS].sort());
-    expect(CHART_SECTION_KEYS.some((k) => LUCK_SECTION_KEYS.includes(k))).toBe(false);
-  });
-
   it("isSectionKey 는 모르는 키를 거른다", () => {
     expect(isSectionKey("overview")).toBe(true);
     expect(isSectionKey("environment")).toBe(true);
@@ -33,11 +24,9 @@ describe("키 목록", () => {
     expect(isSectionKey(null)).toBe(false);
   });
 
-  it("sectionVersion / sectionStorage", () => {
+  it("sectionVersion", () => {
     // 프롬프트를 고칠 때마다 같이 올라간다. registry 의 version 과 어긋나면 여기서 걸린다.
     expect(sectionVersion("overview")).toBe(3);
-    expect(sectionStorage("daeunOutlook")).toBe("luck");
-    expect(sectionStorage("overview")).toBe("chart");
   });
 });
 
@@ -70,35 +59,6 @@ describe("llmInputSchema", () => {
     };
     expect(s.properties.content.properties.traits.minItems).toBe(4);
     expect(s.properties.content.properties.traits.maxItems).toBe(4);
-  });
-});
-
-describe("llmInputSchemaWithRows", () => {
-  it("yearlyLuck(배열 섹션)의 개수를 못박는다", () => {
-    const s = llmInputSchemaWithRows("yearlyLuck", 6) as {
-      properties: { content: { minItems: number; maxItems: number } };
-    };
-    expect(s.properties.content.minItems).toBe(6);
-    expect(s.properties.content.maxItems).toBe(6);
-  });
-
-  it("daeunOutlook(객체 섹션)은 rows 의 개수를 못박는다", () => {
-    const s = llmInputSchemaWithRows("daeunOutlook", 6) as {
-      properties: { content: { properties: { rows: { minItems: number; maxItems: number } } } };
-    };
-    expect(s.properties.content.properties.rows.minItems).toBe(6);
-    expect(s.properties.content.properties.rows.maxItems).toBe(6);
-  });
-
-  it("luck 이 아닌 섹션은 그대로 둔다 — 배열 섹션(strengths 등)이라도 자기 자신의 min/max 를 건드리면 안 된다", () => {
-    for (const key of SECTION_KEYS) {
-      if (sectionStorage(key) === "luck") continue; // yearlyLuck·daeunOutlook 은 별도 테스트로 검증
-      expect(llmInputSchemaWithRows(key, 6), key).toEqual(llmInputSchema(key));
-    }
-  });
-
-  it("저장·조회 검증 스키마는 개수를 강제하지 않는다 (n 은 chartKey 밖 입력)", () => {
-    expect(parseSectionContent("yearlyLuck", [{ title: "t", desc: "d" }])).not.toBeNull();
   });
 });
 
