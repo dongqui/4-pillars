@@ -23,7 +23,7 @@ export function getReportAccess(
   session: SessionPayload | null,
 ): ReportAccess {
   // ?paid=true는 개발용 토글이다. 프로덕션에서 열어 두면 로그인한 아무나 이걸 붙여
-  // 유료 8섹션을 실제로 생성시킬 수 있고, 그 결과가 원국 단위 공유 캐시에 영구
+  // 유료 9섹션을 실제로 생성시킬 수 있고, 그 결과가 원국 단위 공유 캐시에 영구
   // 저장돼 이용권 없이도 유료 리포트가 공짜가 된다 — 프로덕션에서는 무시한다.
   const isUnlocked = process.env.NODE_ENV !== "production" && first(searchParams.paid) === "true";
   const isLoggedIn = session !== null || isUnlocked;

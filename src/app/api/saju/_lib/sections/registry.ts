@@ -1,14 +1,9 @@
 import { z } from "zod";
-import { KeyValue, LabeledText, TimelineNote, TitledText, TraitNote } from "./primitives";
+import { KeyValue, LabeledText, ShortTitledText, TitledText, TraitNote } from "./primitives";
+import { DECISION_AXES, WORK_AXES, axisCountWord, axisPromptLines, axisSchema } from "./axes";
 
 /** 무료 노출 여부. 어떤 키를 실제로 요청할지는 호출자가 정한다. */
 export type SectionTier = "free" | "paid";
-
-/**
- * 저장 테이블. "chart" 는 4기둥+성별(chartKey)로 캐시되고,
- * "luck" 은 정확한 생시에 의존해 luckKey 로 따로 캐시된다.
- */
-export type SectionStorage = "chart" | "luck";
 
 export interface SectionSpec {
   /**
@@ -19,7 +14,6 @@ export interface SectionSpec {
    */
   version: number;
   tier: SectionTier;
-  storage: SectionStorage;
   /** content 의 유일한 shape 정의. 타입·LLM 스키마·런타임 검증이 전부 여기서 나온다. */
   schema: z.ZodType;
   /** 이 섹션만 재생성할 때 LLM 에 줄 지시문 */
@@ -32,6 +26,12 @@ export interface SectionSpec {
    * "쓰지 말라"는 규칙보다 예시가 이긴다. 픽스처에서 옮겨올 때 숫자를 지웠다.
    */
   example: string;
+  /**
+   * 화면 머리말. 번호는 여기 없다 — 아래 SECTIONS 의 선언 순서에서 나온다
+   * (derive.ts: sectionHeading). 잠금 목록도 같은 자리에서 파생되므로
+   * 화면과 잠금이 어긋날 수 없다.
+   */
+  heading: { category: string; title: string };
 }
 
 const shortList = (min: number, max: number) => z.array(z.string().min(1)).min(min).max(max);
@@ -39,14 +39,17 @@ const shortList = (min: number, max: number) => z.array(z.string().min(1)).min(m
 /**
  * 해석 섹션의 유일한 정의. section_key = 이 객체의 키.
  *
- * 계산값(원국·오행·신강약·대운 기간)은 여기 없다. LLM 서술만 담고,
+ * ⚠️ **선언 순서 = 화면 순서 = 섹션 번호다.** SECTION_KEYS 가 Object.keys 로
+ * 이 순서를 그대로 쓰고, sectionHeading 이 그 인덱스로 "01"…을 만든다.
+ * 순서를 바꾸면 화면 번호와 잠금 목록이 함께 움직인다 — 한쪽만 고칠 자리가 없다.
+ *
+ * 계산값(원국·오행·신강약)은 여기 없다. LLM 서술만 담고,
  * 숫자는 조립 단계에서 SajuAnalysis 로 채운다 — LLM 이 숫자를 지어내지 못하게 하려고.
  */
 export const SECTIONS = {
   overview: {
     version: 3,
     tier: "free",
-    storage: "chart",
     // traits 하나가 히어로 키워드 칩과 01 카드 양쪽을 채운다. 두 섹션으로
     // 나뉘어 있던 시절엔 호출이 따로 나가 칩과 카드가 어긋났다.
     schema: z
@@ -80,12 +83,12 @@ export const SECTIONS = {
     ].join("\n"),
     example:
       '{"headline":"겉으로는 차분하지만, 자신만의 기준과 승부욕이 강한 사람","summary":"사람들과 잘 어울리지만, 혼자 생각을 정리하는 시간이 꼭 필요한 타입이에요.","traits":[{"title":"신중한 관찰자","body":"상황을 먼저 파악한 뒤 움직여요. 말보다 판단이 앞서는 이유예요.","basis":"일간 갑목이 인월의 단단한 뿌리 위에 서 있어서 그래요."}]}',
+    heading: { category: "핵심 성향", title: "이렇게 보이는 데는 이유가 있어요" },
   },
 
   outerVsInner: {
     version: 2,
     tier: "free",
-    storage: "chart",
     schema: z
       .object({ outward: z.string().min(1), inner: z.string().min(1) })
       .strict(),
@@ -93,22 +96,22 @@ export const SECTIONS = {
       "남에게 보이는 모습(outward)과 속마음(inner)의 차이를 각각 2~3문장으로 대비시켜 써라.",
     example:
       '{"outward":"침착하고 단단한 사람. 감정 기복이 적고, 맡은 일은 조용히 끝까지 해내는 믿음직한 인상을 줘요.","inner":"관계와 선택을 오래 고민하는 편. 결정 전에 수많은 경우의 수를 혼자 돌려보느라, 겉보다 속이 훨씬 바빠요."}',
+    heading: { category: "겉과 속", title: "남이 보는 나 vs 실제 내면" },
   },
 
   strengths: {
     version: 2,
     tier: "free",
-    storage: "chart",
     schema: z.array(TitledText).min(2).max(4),
     prompt: "강점을 2~4개, 각각 제목과 1~2문장 본문으로 써라. 제목은 서술형 문장으로.",
     example:
       "[{\"title\":\"복잡한 상황의 핵심을 빠르게 파악해요\",\"body\":\"회의가 산으로 갈 때 '그래서 결정할 건 이거죠'라고 정리하는 쪽이에요.\"}]",
+    heading: { category: "타고난 강점", title: "이런 순간에 빛나요" },
   },
 
   cautions: {
     version: 2,
     tier: "free",
-    storage: "chart",
     schema: z
       .object({ items: shortList(2, 4), tip: z.string().min(1) })
       .strict(),
@@ -116,63 +119,132 @@ export const SECTIONS = {
       "주의할 점을 2~4개 각각 두세 문장으로 쓰고, 이를 보완할 실천 팁(tip)을 한 문단으로 덧붙여라.",
     example:
       '{"items":["충분히 잘하고 있어도 스스로 만족하지 못할 수 있어요. 기준이 늘 자기 자신이라, 남의 인정이 와도 잘 안 쌓여요."],"tip":"완벽하게 정리된 뒤 말하려 하기보다, 생각이 절반쯤 정리됐을 때 먼저 표현해 보세요. 관계도 일도 훨씬 가벼워져요."}',
+    heading: { category: "주의할 패턴", title: "나도 모르게 반복하는 것들" },
   },
 
   emotion: {
     version: 2,
     tier: "paid",
-    storage: "chart",
     schema: z.array(LabeledText).min(2).max(4),
     prompt:
       "감정 패턴을 2~4개 항목으로 나눠라. label 은 상황(예: 스트레스가 쌓이는 상황), body 는 그 상황에서의 반응을 2~3문장으로.",
     example:
       '[{"label":"스트레스가 쌓이는 상황","body":"내 뜻대로 할 수 없는 상황이 계속될 때. 특히 결정권 없이 책임만 지는 구조에서 크게 소모돼요."}]',
+    heading: { category: "감정과 스트레스", title: "힘들 때 이런 패턴이 나타나요" },
   },
 
-  relating: {
+  decisions: {
+    // 2 로 올린 이유: venturing 축의 라벨·지시문이 "착수 절차" 에서 "감수하는 위험의
+    // 크기" 로 바뀌었다(키 이름도 starting → venturing). 07 과 겹쳐 있던 옛 서술을
+    // 그대로 재사용하면 고친 의미가 화면에 영영 안 나온다.
     version: 2,
     tier: "paid",
-    storage: "chart",
-    schema: z.array(KeyValue).min(3).max(6),
-    prompt:
-      "관계를 맺는 방식을 3~6개 항목으로 정리하라. label 은 관점, value 는 한 문장 이내의 짧은 값.",
+    heading: { category: "선택과 결정", title: "중요한 순간, 나는 어떻게 움직일까" },
+    schema: axisSchema(DECISION_AXES),
+    // 축을 스키마로 고정한 섹션이다 — 지시문은 각 칸에 "무엇을" 쓸지만 정한다.
+    prompt: [
+      `중요한 순간에 어떻게 움직이는지를 ${axisCountWord(DECISION_AXES)} 국면으로 나눠 각각 2~3문장으로 써라.`,
+      "",
+      ...axisPromptLines(DECISION_AXES, {
+        deciding: "정보를 얼마나 모으고 얼마나 빨리 정하는지, 무엇을 기준으로 삼는지",
+        venturing:
+          "걸 수 있는 몫의 크기. 한 번에 크게 거는 쪽인지, 잃어도 괜찮은 만큼만 걸고 결과를 보고 늘리는 쪽인지. 실패했을 때 감당할 수 있는 선을 어디에 두는지도 함께 써라",
+        unsure: "혼자 생각을 반복하는 쪽인지 남에게 의견을 구하는 쪽인지, 무엇이 있으면 결정이 빨라지는지",
+        afterDeciding: "주변에서 다른 이야기가 나올 때 번복하는 편인지 밀고 가는 편인지",
+      }),
+      "",
+      "성격을 형용사로 요약하지 말고, 그 순간에 실제로 무엇을 하는지 행동으로 써라.",
+      '- 좋은 예: "선택지가 많아질수록 결정을 미루고, 주변 사람의 반응을 한 번씩 확인한 뒤에 움직여요."',
+      '- 나쁜 예: "부드럽지만 자기 기준이 뚜렷한 편이에요." (성격 요약일 뿐, 무엇을 하는지가 없다)',
+      "계획을 세워 놓고 들어가는지, 일을 어떤 순서와 리듬으로 풀어가는지는 쓰지 마라 — 그건 다른 섹션이 다룬다.",
+      `국면마다 다른 행동을 써라. ${axisCountWord(DECISION_AXES)} 칸이 같은 이야기의 말바꿈이 되면 안 된다.`,
+    ].join("\n"),
     example:
-      '[{"label":"처음 만날 때","value":"거리를 두고 관찰부터. 먼저 다가가기보다 상대를 파악한 뒤 마음을 열어요."}]',
+      '{"deciding":"바로 답을 내기보다 주변 상황과 다른 사람의 반응을 충분히 살펴본 뒤 움직이는 편이에요. 선택지가 많아질수록 생각하는 시간이 길어져요.","venturing":"한 번에 크게 걸기보다 잃어도 괜찮은 만큼만 먼저 걸어 보는 쪽이에요. 그게 되는 걸 확인한 뒤에야 거는 몫을 늘려요.","unsure":"혼자 생각을 반복하기보다 믿을 만한 사람에게 의견을 구했을 때 결정이 빨라지는 편이에요. 이야기를 나누다 보면 머릿속이 정리되면서 방향이 잡혀요.","afterDeciding":"주변에서 다른 이야기가 나오더라도 충분히 고민해서 내린 결정이라면 자기 방식대로 밀고 가려는 힘이 있어요. 이미 정리한 생각을 다시 원점으로 되돌리는 걸 좋아하지 않아요."}',
+  },
+
+  workStyle: {
+    // 2 로 올린 이유: starting 힌트가 "계획 대 즉시 착수" 로 좁혀졌고, 위험 감수를
+    // 06 으로 넘기는 금지 줄이 붙었다. 옛 캐시에는 06 과 겹친 서술이 들어 있다.
+    version: 2,
+    tier: "paid",
+    heading: { category: "일하는 방식", title: "일할 때 드러나는 나만의 리듬" },
+    schema: axisSchema(WORK_AXES),
+    prompt: [
+      `일할 때의 리듬을 ${axisCountWord(WORK_AXES)} 국면으로 나눠 각각 2~3문장으로 써라.`,
+      "",
+      ...axisPromptLines(WORK_AXES, {
+        starting:
+          "목표가 얼마나 뚜렷해야 손이 움직이는지. 무엇을 만들지 그려 놓고 들어가는 쪽인지, 일단 손부터 대고 하면서 방향을 잡는 쪽인지. 일이 클지 작을지가 아니라 시작 전에 무엇이 정해져 있어야 하는지를 써라",
+        progressing: "한 번에 몰아치는지 하나씩 쌓는지, 디테일부터 보는지 전체 그림부터 보는지",
+        collaborating: "주도·조율·지원 중 어느 자리가 편한지, 의견이 갈리거나 역할을 나눌 때 어떻게 하는지",
+        troubled: "문제가 터졌을 때 먼저 하는 행동, 압박을 받을 때 달라지는 점",
+        performing: "어떤 목표와 보상에서 힘이 나는지, 결과에서 만족을 얻는지 과정에서 얻는지",
+      }),
+      "",
+      "성격을 형용사로 요약하지 말고, 그 국면에서 실제로 무엇을 하는지 행동으로 써라.",
+      "특정 직업·직무를 지목하지 마라 — 그건 다른 섹션이 다룬다.",
+      "얼마나 큰 위험을 감수하는지, 무엇을 기준으로 결정을 내리는지는 쓰지 마라 — 그건 다른 섹션이 다룬다.",
+      `국면마다 다른 행동을 써라. ${axisCountWord(WORK_AXES)} 칸이 같은 이야기의 말바꿈이 되면 안 된다.`,
+    ].join("\n"),
+    example:
+      '{"starting":"무엇을 만들지 그림이 서야 손이 움직이는 편이에요. 목표가 흐릿하면 시작 자체를 미루게 돼요.","progressing":"몰아쳐서 끝내기보다 매일 조금씩 쌓아 올리는 쪽이에요. 전체 구조를 먼저 잡고 세부는 나중에 채워요.","collaborating":"먼저 나서기보다 사이를 맞추는 자리가 편해요. 의견이 갈리면 각자 원하는 바를 정리해 보여주는 방식으로 풀어요.","troubled":"우선 상황을 다시 확인하고 원인을 좁혀요. 급하게 손대기보다 어디서 어긋났는지부터 찾는 편이에요.","performing":"눈에 보이는 결과가 남는 일에서 힘이 나요. 과정만 길고 결과가 흐릿한 일에서는 동력이 빨리 떨어져요."}',
   },
 
   environment: {
-    version: 2,
+    version: 3,
     tier: "paid",
-    storage: "chart",
+    heading: { category: "잘 맞는 환경", title: "능력이 잘 드러나는 조건" },
     schema: z
       .object({
         energizing: shortList(3, 4),
         draining: shortList(3, 4),
         summary: z.string().min(1),
         emphasis: z.string().min(1),
+        roles: shortList(3, 5),
+        roleNote: z.string().min(1),
       })
       .strict(),
-    prompt:
-      "능력이 잘 드러나는 조건을 두 갈래로 나눠라. energizing 은 힘이 나는 조건, draining 은 기운이 빠지는 조건을 각각 3~4개, 한 문장 이내의 짧은 구절로 쓴다. 성격 묘사가 아니라 일하는 방식·조직 문화·일정처럼 밖에서 알아볼 수 있는 조건으로 써라. 이어서 전체 요약(summary)과 한 줄 강조(emphasis)를 덧붙여라.",
+    prompt: [
+      "능력이 잘 드러나는 조건을 두 갈래로 나눠라. energizing 은 힘이 나는 조건, draining 은 기운이 빠지는 조건을 각각 3~4개, 한 문장 이내의 짧은 구절로 쓴다.",
+      "성격 묘사가 아니라 일하는 방식·조직 문화·일정처럼 밖에서 알아볼 수 있는 조건으로 써라.",
+      "이어서 전체 요약(summary)과 한 줄 강조(emphasis)를 덧붙여라.",
+      "",
+      "마지막으로 강점이 드러나는 역할·직무 예시(roles)를 3~5개 쓰고, 왜 그 자리가 맞는지 한 문장(roleNote)을 덧붙여라.",
+      "- roles 는 자격이나 면허가 필요한 직업명 대신, 하는 일의 성격이 드러나는 짧은 말로 쓴다.",
+      '- 좋은 예: "기획", "리서치", "팀 안의 조율자", "혼자 깊게 파는 전문 영역"',
+      '- 나쁜 예: "의사", "변호사", "대기업 인사팀" (자격·소속을 지목한다)',
+      "- 직업을 정해 주는 말이 아니라 예시라는 게 문장에서 드러나야 한다. roleNote 는 그 자리들이 왜 맞는지를 설명하지, 그 일을 하라고 권하지 않는다.",
+    ].join("\n"),
     // emphasis 가 summary 안에 그대로 들어 있는 예시다 — 화면이 부분 문자열로 찾는다.
     example:
-      '{"energizing":["방법은 맡기고 결과로 평가하는 팀"],"draining":["과정을 자주 보고해야 하는 관리 방식"],"summary":"정해진 방식만 반복하는 환경보다, 스스로 판단하고 개선할 여지가 있는 환경에서 능력이 잘 드러나요.","emphasis":"스스로 판단하고 개선할 여지가 있는 환경"}',
+      '{"energizing":["방법은 맡기고 결과로 평가하는 팀"],"draining":["과정을 자주 보고해야 하는 관리 방식"],"summary":"정해진 방식만 반복하는 환경보다, 스스로 판단하고 개선할 여지가 있는 환경에서 능력이 잘 드러나요.","emphasis":"스스로 판단하고 개선할 여지가 있는 환경","roles":["기획","리서치","혼자 깊게 파는 전문 영역"],"roleNote":"방법을 스스로 정할 여지가 큰 자리일수록 강점이 잘 보이는 편이에요."}',
+  },
+
+  relating: {
+    version: 2,
+    tier: "paid",
+    schema: z.array(KeyValue).min(3).max(6),
+    prompt:
+      "관계를 맺는 방식을 3~6개 항목으로 정리하라. label 은 관점, value 는 한 문장 이내의 짧은 값.",
+    example:
+      '[{"label":"처음 만날 때","value":"거리를 두고 관찰부터. 먼저 다가가기보다 상대를 파악한 뒤 마음을 열어요."}]',
+    heading: { category: "사람을 대하는 방식", title: "관계에서의 나" },
   },
 
   love: {
     version: 2,
     tier: "paid",
-    storage: "chart",
     schema: z.array(LabeledText).min(2).max(4),
     prompt: "연애에서의 성향을 2~4개 항목으로. label 은 국면, body 는 2~3문장.",
     example:
       '[{"label":"관계가 시작될 때","body":"호감이 있어도 먼저 표현하지 않는 편. 상대가 다가와야 마음을 확인하고 움직여요."}]',
+    heading: { category: "연애와 관계", title: "연애할 때 반복되는 관계 패턴" },
   },
 
   compatibility: {
     version: 2,
     tier: "paid",
-    storage: "chart",
     schema: z
       .object({ good: shortList(2, 4), clash: shortList(2, 4) })
       .strict(),
@@ -180,12 +252,12 @@ export const SECTIONS = {
       "잘 맞는 상대 유형(good)과 부딪히기 쉬운 유형(clash)을 각각 2~4개, 한 문장씩 써라.",
     example:
       '{"good":["말과 행동이 일치하고 약속을 지키는 사람"],"clash":["즉흥적으로 계획을 바꾸고 즉답을 요구하는 사람"]}',
+    heading: { category: "궁합", title: "당신과 잘 맞는 사람의 특징" },
   },
 
   wealth: {
     version: 2,
     tier: "paid",
-    storage: "chart",
     schema: z
       .object({
         points: z.array(LabeledText).min(2).max(4),
@@ -198,33 +270,31 @@ export const SECTIONS = {
     // emphasis 가 summary 안에 그대로 들어 있는 예시다 — 화면이 부분 문자열로 찾는다.
     example:
       '{"points":[{"label":"돈이 모이는 방식","body":"한 번에 크게 벌기보다 꾸준히 쌓는 구조가 맞아요. 전문성이 깊어질수록 수입이 계단식으로 올라가는 흐름이에요."}],"summary":"투자는 단기 매매보다 긴 호흡의 적립식이 타고난 성향과 잘 맞아요.","emphasis":"긴 호흡의 적립식"}',
+    heading: { category: "재물", title: "돈이 모이는 방식과 새어나가는 지점" },
   },
 
-  yearlyLuck: {
+  playbook: {
+    // 2 로 올린 이유: title 에 스무 자 상한이 스키마로 붙었고(옛 캐시에는 상한을
+    // 넘긴 제목이 들어 있을 수 있다), 주의할 패턴 섹션과 겹치지 말라는 금지 줄이 붙었다.
     version: 2,
     tier: "paid",
-    storage: "luck",
-    schema: z.array(TimelineNote).min(1).max(12),
-    prompt:
-      "주어진 연도 목록과 같은 개수·같은 순서로, 각 해의 제목(title)과 설명(desc)을 써라. 연도 표기는 넣지 마라 — 계산된 값을 따로 붙인다. '세운'·'간지' 같은 용어 대신 '올해'·'이 시기'·'흐름' 처럼 풀어 쓴다.",
+    heading: { category: "나를 잘 쓰는 법", title: "내 성향을 내 편으로 만드는 방법" },
+    // 마지막 섹션이라 카드 4장이 화면을 닫는 모양을 잡는다. length(4) 는
+    // llmInputSchema 를 통해 minItems/maxItems 4 로 tool 스키마에 실린다.
+    schema: z.array(ShortTitledText).length(4),
+    prompt: [
+      "앞의 성향을 실제로 써먹는 방법을 정확히 4개 써라.",
+      "- title: 무엇을 할지 한눈에 보이는 짧은 실천 문장. '~하기' 로 끝낸다. 스무 자를 넘기지 마라.",
+      "- body: 왜 이 사람에게 그게 필요한지 2~3문장. 어떤 성향 때문에 그런지가 드러나야 한다.",
+      "",
+      "누구에게나 통하는 일반적인 자기계발 조언을 쓰지 마라. [사실] 블록에서 나온 이 사람의 성향을 근거로 써라.",
+      "고치라는 훈계로 쓰지 마라 — 이미 가진 성향을 유리하게 쓰는 방법으로 쓴다.",
+      '- 좋은 예: "충분히 살피는 건 강점이지만 선택지가 계속 열려 있으면 생각도 계속 길어져요."',
+      '- 나쁜 예: "우유부단한 성격을 고쳐야 해요." (강점을 결함으로 뒤집었다)',
+      "말투나 감정 표현을 이렇게 바꿔 보라는 조언은 쓰지 마라 — 약한 고리를 메우는 습관은 앞의 주의할 패턴 섹션이 이미 다룬다. 여기서는 이미 잘 되는 힘을 어떤 자리에 어떤 순서로 놓으면 더 크게 쓰이는지, 환경과 순서를 바꾸는 방법으로 써라.",
+      "네 항목이 서로 다른 상황을 다뤄야 한다. 같은 조언의 말바꿈을 늘어놓지 마라.",
+    ].join("\n"),
     example:
-      '[{"title":"정리","desc":"미뤄둔 결정을 끝내기 좋은 흐름이에요. 새로 벌이기보다 마무리가 유리해요."}]',
-  },
-
-  daeunOutlook: {
-    version: 2,
-    tier: "paid",
-    storage: "luck",
-    schema: z
-      .object({
-        rows: z.array(TimelineNote).min(1).max(12),
-        summary: z.string().min(1),
-        emphasis: z.string().min(1),
-      })
-      .strict(),
-    prompt:
-      "주어진 대운 목록과 같은 개수·같은 순서로 rows 를 쓰고(연령대 표기는 넣지 마라 — 계산된 값을 따로 붙인다), 전체 흐름 요약(summary)과 한 줄 강조(emphasis)를 덧붙여라. '대운'·'간지' 같은 용어 대신 '구간'·'시기'·'흐름' 처럼 풀어 쓴다.",
-    example:
-      '{"rows":[{"title":"기반을 쌓는 구간","desc":"실력과 신뢰를 축적하는 흐름이에요. 눈에 띄는 성과보다 토대가 만들어지는 시기예요."}],"summary":"지금은 기반을 쌓는 구간의 후반부예요. 앞으로의 선택이 다음 구간의 방향을 정해요.","emphasis":"기반을 쌓는 구간의 후반부"}',
+      '[{"title":"결정에는 마감 시간을 만들어두기","body":"충분히 살피는 건 강점이지만 선택지가 계속 열려 있으면 생각도 계속 길어져요. 중요한 결정일수록 언제까지 정한다는 선을 먼저 만들어두는 게 좋아요."}]',
   },
 } as const satisfies Record<string, SectionSpec>;

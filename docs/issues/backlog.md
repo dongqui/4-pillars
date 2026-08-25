@@ -36,7 +36,7 @@
 
 2026-08-03 현재 흐름 검토에서 나온 것. 목표 흐름은 **"무료 사용자가 리포트를 받는다 → 로그인하면 그 프로필이 저장된다 → 결제하면 유료 섹션만 추가로 생성해 합친다"** 인데, 뒤쪽(증분 생성·캐싱)은 이미 서 있고 앞쪽 두 고리가 비어 있다.
 
-이미 되는 것(참고): `handleSaju`가 `missing` 섹션만 생성해 캐시분과 합치고, 캐시는 프로필·유저가 아니라 원국 단위(`chartKey` = 4기둥+성별, `luckKey` = +대운 기산값·기준 연도)로 잡힌다. 그래서 무료로 뽑아둔 섹션은 로그인·결제 여부와 무관하게 그대로 재사용된다.
+이미 되는 것(참고): `handleSaju`가 `missing` 섹션만 생성해 캐시분과 합치고, 캐시는 프로필·유저가 아니라 원국 단위(`chartKey` = 4기둥+성별)로만 잡힌다(2026-08-25 운세 섹션이 사라지면서 대운 기산값·기준 연도를 함께 묶던 `luckKey` 축도 같이 없어졌다). 그래서 무료로 뽑아둔 섹션은 로그인·결제 여부와 무관하게 그대로 재사용된다.
 
 **1. ~~`/report` ↔ 생성 파이프라인 배선~~ — 2026-08-04 해소**
 
@@ -57,22 +57,22 @@
 
 유료 요청 경로 자체가 아직 없다.
 
-- `src/app/api/saju/route.ts`가 `FREE_SECTION_KEYS`를 하드코딩한다(결제 전이라 의도된 상태). 유료는 `SECTION_KEYS` 전체를 넘기면 무료 4개는 캐시 히트로 빠지고 유료 8개만 LLM을 탄다 — 핸들러는 이미 그렇게 갈라진다.
-- `/report`의 `getReportAccess().isPaid`는 여전히 `?paid=true` 개발용 쿼리 토글이지만(`src/app/report/_lib/access.ts`), 이제 `NODE_ENV !== "production"`으로 감싸 프로덕션에서는 무시된다 — 픽스처만 있던 시절과 달리 지금은 붙이면 DeepSeek로 유료 8섹션을 실제 생성하고, 그 결과가 원국 단위 공유 캐시에 영구 저장돼 결제가 붙은 뒤에도 그 원국은 공짜가 되는 경로였기 때문이다. 프로필이 있는 요청은 `access.isPaid || profile.isPaid`로 OR해(`src/app/report/page.tsx`) `getProfile`의 `purchases` 조인 결과도 함께 읽는다(`src/lib/profiles/store.ts`). 남은 것: 실제 결제 요청 경로 — `purchases`에 행을 넣는 코드가 아직 없어 `profile.isPaid`는 항상 false다.
-- 유료 12섹션을 열면 `maxDuration = 60`을 다시 봐야 한다. `daeunOutlook`이 가장 느리다.
+- `src/app/api/saju/route.ts`가 `FREE_SECTION_KEYS`를 하드코딩한다(결제 전이라 의도된 상태). 유료는 `SECTION_KEYS` 전체를 넘기면 무료 4개는 캐시 히트로 빠지고 유료 9개만 LLM을 탄다 — 핸들러는 이미 그렇게 갈라진다.
+- `/report`의 `getReportAccess().isPaid`는 여전히 `?paid=true` 개발용 쿼리 토글이지만(`src/app/report/_lib/access.ts`), 이제 `NODE_ENV !== "production"`으로 감싸 프로덕션에서는 무시된다 — 픽스처만 있던 시절과 달리 지금은 붙이면 DeepSeek로 유료 9섹션을 실제 생성하고, 그 결과가 원국 단위 공유 캐시에 영구 저장돼 결제가 붙은 뒤에도 그 원국은 공짜가 되는 경로였기 때문이다. 프로필이 있는 요청은 `access.isPaid || profile.isPaid`로 OR해(`src/app/report/page.tsx`) `getProfile`의 `purchases` 조인 결과도 함께 읽는다(`src/lib/profiles/store.ts`). 남은 것: 실제 결제 요청 경로 — `purchases`에 행을 넣는 코드가 아직 없어 `profile.isPaid`는 항상 false다.
+- 유료 9섹션(전체 13섹션)을 열면 `maxDuration = 60`을 다시 봐야 한다. 옛날에 가장 느리던 `daeunOutlook`은 2026-08-25 운세 섹션 정리로 사라졌고, 지금은 특정 섹션이 아니라 병렬 호출 전체의 꼬리가 문제다.
 - 위 "결제 붙이기 전에 처리" 두 항목(`purchases` CASCADE, `purchases_paid_unique`)이 같이 걸린다.
 
 **4. 유료인데 섹션이 빠지면 화면에 신호가 없다**
 
-`ReportBody`(`src/app/report/_components/ReportBody.tsx`)는 유료 갈래에서 `content.emotion && <EmotionSection/>` 식으로 섹션마다 존재 여부만 본다. `PromptedGenerator`(`src/app/api/saju/_lib/prompted.ts`)가 섹션별 생성 실패를 삼키고 나머지로 넘어가므로 이건 예외가 아니라 정상 경로고, `daeunOutlook`이 `maxDuration = 60`을 넘길 수 있다고 `page.tsx` 주석 자체가 인정한다. 그래서 유료 프로필의 한 섹션이 빠지면 잠금 카드도 에러도 없이 리포트가 04에서 그냥 끝나는데, 같은 순간 `/home` 카드는 `isPaid`만 보고 "전체 리포트"를 표시한다(`src/app/home/_lib/to-profile-card.ts`). 설계 §7의 "`overview`만 있으면 있는 것만 렌더" 규칙은 무료 4섹션 시절에 정한 것이라, 유료 화면에서 빠진 섹션을 사용자에게 알리는 문제는 아직 다루지 않는다.
+`ReportBody`(`src/app/report/_components/ReportBody.tsx`)는 유료 갈래에서 `content.emotion && <EmotionSection/>` 식으로 섹션마다 존재 여부만 본다. `PromptedGenerator`(`src/app/api/saju/_lib/prompted.ts`)가 섹션별 생성 실패를 삼키고 나머지로 넘어가므로 이건 예외가 아니라 정상 경로고, 유료 전 섹션 경로가 `maxDuration = 60`을 넘길 수 있다고 `page.tsx` 주석 자체가 인정한다. 그래서 유료 프로필의 한 섹션이 빠지면 잠금 카드도 에러도 없이 리포트가 04에서 그냥 끝나는데, 같은 순간 `/home` 카드는 `isPaid`만 보고 "전체 리포트"를 표시한다(`src/app/home/_lib/to-profile-card.ts`). 설계 §7의 "`overview`만 있으면 있는 것만 렌더" 규칙은 무료 4섹션 시절에 정한 것이라, 유료 화면에서 빠진 섹션을 사용자에게 알리는 문제는 아직 다루지 않는다.
 
 **5. `/report` 배선 자체에 테스트가 없다**
 
-조각들(`parseProfileParam`, `getProfile`, `toBirthInput`, `toReportMeta`, `produceSections`)은 각각 테스트가 있지만, 그것들을 잇는 `page.tsx`의 결정은 테스트되지 않는다: `sectionKeys` 선택(틀리면 조용히 유료 8섹션어치 LLM 비용이 나간다), absent/invalid/세션 없음 세 갈래, 리다이렉트 타깃, `overview` 부재 → `ReportError`. 리포 전체에 `*.test.tsx`가 하나도 없어(서버 컴포넌트 테스트 인프라 부재) 관행에는 맞는다. 최소한 `sectionKeys` 결정만이라도 순수 함수로 뽑으면 테스트할 수 있다.
+조각들(`parseProfileParam`, `getProfile`, `toBirthInput`, `toReportMeta`, `produceSections`)은 각각 테스트가 있지만, 그것들을 잇는 `page.tsx`의 결정은 테스트되지 않는다: `sectionKeys` 선택(틀리면 조용히 유료 9섹션어치 LLM 비용이 나간다), absent/invalid/세션 없음 세 갈래, 리다이렉트 타깃, `overview` 부재 → `ReportError`. 리포 전체에 `*.test.tsx`가 하나도 없어(서버 컴포넌트 테스트 인프라 부재) 관행에는 맞는다. 최소한 `sectionKeys` 결정만이라도 순수 함수로 뽑으면 테스트할 수 있다.
 
 **6. `src/app/api/saju/_lib`가 이제 두 진입점의 공용 코어다**
 
-`/report/page.tsx`가 거기서 `generator`·`produce`·`store`·`store-luck`·`sections`·`types` 6개 모듈을 import한다. `_lib`는 관례상 "라우트 전용"을 뜻해 소유권이 흐려 보인다. `src/lib/saju/generation/` 같은 자리로 옮기는 것을 검토.
+`/report/page.tsx`가 거기서 `generator`·`produce`·`store`·`sections`·`types` 5개 모듈을 import한다(운세 섹션과 함께 `store-luck`이 사라져 하나 줄었다). `_lib`는 관례상 "라우트 전용"을 뜻해 소유권이 흐려 보인다. `src/lib/saju/generation/` 같은 자리로 옮기는 것을 검토.
 
 **7. 퍼널과 리포트의 `toBirthInput`이 같은 프로필에 다른 경도를 줄 수 있다**
 
@@ -133,7 +133,7 @@ jsdom/RTL 이 설치돼 있지 않다. 수단 0개일 때 버튼 잠김과 이�
 
 **8. `/report` 의 `maxDuration = 60` 재검토**
 
-결제가 붙은 뒤 다시 보기로 했던 값인데 미뤄졌다(`src/app/report/page.tsx`). 유료 12섹션 경로가 가장 느린데, 결제 직후 첫 렌더가 바로 그 경로를 탄다.
+결제가 붙은 뒤 다시 보기로 했던 값인데 미뤄졌다(`src/app/report/page.tsx`). 유료 전 섹션(13섹션) 경로가 가장 느린데, 결제 직후 첫 렌더가 바로 그 경로를 탄다.
 
 **9. 환불은 아직 전부 수기 처리다 (2026-08-17 추가)**
 

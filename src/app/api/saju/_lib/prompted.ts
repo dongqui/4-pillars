@@ -3,8 +3,8 @@
 
 import type { SajuAnalysis } from "@/lib/saju-core";
 import { assign, type Interpretation, type SectionKey } from "./sections";
-import { buildSectionRequest, type PromptContext, type SectionRequest } from "./prompt";
-import type { GenerationContext, InterpretationGenerator } from "./types";
+import { buildSectionRequest, type SectionRequest } from "./prompt";
+import type { InterpretationGenerator } from "./types";
 
 /**
  * LLM 호출부. tool 호출의 input(`{ content: ... }`)을 그대로 돌려주면 된다.
@@ -22,23 +22,18 @@ export class PromptedGenerator implements InterpretationGenerator {
   constructor(
     readonly model: string,
     private readonly transport: SectionTransport,
-    /** 세운 연수 등 프롬프트 조립 옵션. 기본값은 buildSectionRequest 가 정한다. */
-    private readonly options: Omit<PromptContext, "year"> = {},
   ) {}
 
   async generateSections(
     analysis: SajuAnalysis,
     keys: SectionKey[],
-    ctx: GenerationContext,
   ): Promise<Partial<Interpretation>> {
     // 섹션마다 독립된 호출이라 병렬로 보낸다. 한 섹션이 죽어도 나머지는 남고,
     // 빠진 섹션은 다음 요청에서 missing 으로 다시 잡힌다.
     const settled = await Promise.all(
       keys.map(async (key) => {
         try {
-          const raw = await this.transport(
-            buildSectionRequest(analysis, key, { ...this.options, year: ctx.year }),
-          );
+          const raw = await this.transport(buildSectionRequest(analysis, key));
           return { key, content: unwrapContent(raw) };
         } catch (e) {
           console.warn(`[PromptedGenerator] 섹션 생성 실패, 건너뜀: ${key}`, e);

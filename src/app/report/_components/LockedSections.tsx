@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import type { LockedSectionMeta } from "../_lib/report-content";
+import type { SectionHeadingMeta } from "@/app/api/saju/_lib/sections";
 import { useUnlock } from "../_hooks/use-unlock";
 
 export function LockedSections({
@@ -8,7 +8,7 @@ export function LockedSections({
   isLoggedIn,
   profileId,
 }: {
-  sections: LockedSectionMeta[];
+  sections: SectionHeadingMeta[];
   isLoggedIn: boolean;
   /**
    * 픽스처 데모, 그리고 로그인했지만 드래프트 승격이 실패했거나 프로필 한도를

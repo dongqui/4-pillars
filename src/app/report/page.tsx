@@ -8,7 +8,6 @@ import { readCurrentDraft } from "@/lib/drafts/current";
 import { createGenerator } from "@/app/api/saju/_lib/generator";
 import { GenerationError, produceSections } from "@/app/api/saju/_lib/produce";
 import { getCached, putCached } from "@/app/api/saju/_lib/store";
-import { getLuckCached, putLuckSections } from "@/app/api/saju/_lib/store-luck";
 import { FREE_SECTION_KEYS, SECTION_KEYS, type Interpretation } from "@/app/api/saju/_lib/sections";
 import type { InterpretationGenerator } from "@/app/api/saju/_lib/types";
 import { getReportAccess, parseProfileParam, type ReportAccess } from "./_lib/access";
@@ -27,12 +26,12 @@ import { ReportRateLimited } from "./_components/ReportRateLimited";
 
 /**
  * 캐시 미스면 섹션마다 LLM 을 병렬로 부른다 — /api/saju/route.ts 와 같은 값.
- * 유료 12섹션(무료 4 + 유료 8)은 daeunOutlook 이 느려 이 값을 넘길 수 있다.
+ * 유료 13섹션은 이 값을 넘길 수 있다.
  *
  * 2026-08-11 결제가 붙었지만 이 값은 그때 다시 보자던 계획대로 재검토되지
  * 않았다 — 값은 그대로 두었다(호스팅 플랜에 걸린 문제라 아무도 결정하지 않음,
  * docs/issues/backlog.md 결제 연동 후속). 위험은 그대로다: 결제 직후 첫 렌더가
- * 바로 유료 12섹션 경로라 타임아웃 가능성이 가장 높은 순간에 걸리고, 넘기면
+ * 바로 유료 전 섹션 경로라 타임아웃 가능성이 가장 높은 순간에 걸리고, 넘기면
  * ProfileReport 가 아니라 ReportError 로 떨어진다(재시도 버튼 있음).
  */
 export const maxDuration = 60;
@@ -76,10 +75,7 @@ async function ProfileReport({
       generator,
       getCached,
       putCached,
-      getLuckCached,
-      putLuckSections,
       sectionKeys: access.isUnlocked ? SECTION_KEYS : FREE_SECTION_KEYS,
-      year,
     }));
   } catch (e) {
     if (e instanceof GenerationError) {

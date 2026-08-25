@@ -35,7 +35,6 @@ const model = arg("model", "deepseek-v4-flash")!;
 const date = arg("date", "1990-10-25")!;
 const gender = arg("gender", "male") as "male" | "female";
 const hourArg = arg("hour");
-const year = Number(arg("year", String(new Date().getFullYear())));
 // 켜면 tool 강제가 auto 로 내려간다. 문체가 나아지는 대신 섹션 유실이 늘어나는지 보는 스위치.
 const thinking = process.argv.includes("--thinking");
 
@@ -82,7 +81,7 @@ const rows: Row[] = await Promise.all(
   SECTION_KEYS.map(async (key): Promise<Row> => {
     const t0 = Date.now();
     try {
-      const wrapped = await transport(buildSectionRequest(analysis, key, { year }));
+      const wrapped = await transport(buildSectionRequest(analysis, key));
       const ms = Date.now() - t0;
       const content =
         typeof wrapped === "object" && wrapped !== null && "content" in wrapped
@@ -159,11 +158,10 @@ await writeFile(
   [
     `# ${label} 전 섹션 출력 — ${date} ${gender}${hourArg ? ` ${hourArg}시` : " (시주 미입력)"}`,
     "",
-    `- 기준 연도: ${year}`,
     ...summary,
     "",
     "> 볼 것: ① 해요체·숫자 금지가 지켜지는가 ② emphasis 가 summary 의 부분 문자열인가",
-    "> (wealth·daeunOutlook) ③ 섹션끼리 같은 표현을 반복하는가",
+    "> (wealth·environment) ③ 섹션끼리 같은 표현을 반복하는가",
     "",
     ...body,
   ].join("\n"),

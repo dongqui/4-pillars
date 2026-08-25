@@ -11,7 +11,7 @@ export function PersonalitySection({
 }) {
   return (
     <section className="mt-[72px]">
-      <SectionHeading no="01" category="핵심 성향" title="이렇게 보이는 데는 이유가 있어요" />
+      <SectionHeading section="overview" />
       <div className="flex flex-col gap-3">
         {items.map((item, i) => (
           <div key={i} className="border border-slate-200 rounded-[14px] px-5 py-[18px]">

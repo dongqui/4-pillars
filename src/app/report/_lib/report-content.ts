@@ -6,11 +6,12 @@ export type ElementKey = "wood" | "fire" | "earth" | "metal" | "water";
 // 잎 타입은 해석 스키마(sections/primitives)가 원본이다. 여기서 다시 선언하면
 // LLM 이 받는 구조와 화면이 읽는 타입이 갈라진다.
 // (재수출만으로는 이 파일 안에서 이름을 쓸 수 없어 import type 도 함께 둔다.)
-import type { TitledText, LabeledText, KeyValue, TraitNote } from "@/app/api/saju/_lib/sections";
+import type { TitledText, LabeledText, KeyValue, TraitNote, SectionContent } from "@/app/api/saju/_lib/sections";
 export type { TitledText, LabeledText, KeyValue, TraitNote } from "@/app/api/saju/_lib/sections";
 
-export interface TimelineRow { period: string; title: string; desc: string }
-export interface DaeunRow { range: string; title: string; desc: string; now?: boolean }
+/** 축이 고정된 섹션 — 축 정의는 sections/axes.ts 가 갖는다. */
+export type DecisionsContent = SectionContent<"decisions">;
+export type WorkStyleContent = SectionContent<"workStyle">;
 
 /** 원국 한 칸(천간 또는 지지) — ← SajuAnalysis.chart */
 export interface PillarCell {
@@ -56,14 +57,13 @@ export interface ReportContent {
   cautionTip: string;               // 04 TIP
   // 아래는 유료 섹션 — 생성되지 않았거나 권한이 없으면 없다.
   emotion?: LabeledText[];          // 05
-  relating?: KeyValue[];            // 06
-  environment?: { energizing: string[]; draining: string[]; summary: string; emphasis: string }; // 07
-  love?: LabeledText[];             // 08
-  compatibility?: { good: string[]; clash: string[] }; // 09
-  wealth?: { points: LabeledText[]; summary: string; emphasis: string };  // 10
-  yearlyLuck?: TimelineRow[];       // 11
-  daeunOutlook?: { rows: DaeunRow[]; summary: string; emphasis: string }; // 12
+  decisions?: DecisionsContent;     // 06
+  workStyle?: WorkStyleContent;     // 07
+  // 인라인으로 다시 적으면 스키마가 늘 때마다 여기서 어긋난다 — 스키마에서 받는다.
+  environment?: SectionContent<"environment">; // 08
+  relating?: KeyValue[];            // 09
+  love?: LabeledText[];             // 10
+  compatibility?: { good: string[]; clash: string[] }; // 11
+  wealth?: { points: LabeledText[]; summary: string; emphasis: string };  // 12
+  playbook?: TitledText[];          // 13
 }
-
-/** 무료 사용자에게 보이는 05–12 잠금 목록 항목 */
-export interface LockedSectionMeta { no: string; category: string; title: string }

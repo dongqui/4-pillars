@@ -39,7 +39,7 @@ export interface MenuItem {
 const PAID: Record<Feature, { title: string; desc: string; href: string }> = {
   full_report: {
     title: "성향 리포트",
-    desc: "기질과 사고방식, 강점과 성장 포인트. 올해의 흐름과 잘 맞는 환경까지 한 번에 열려요.",
+    desc: "기질과 사고방식, 강점과 성장 포인트. 결정하는 방식과 잘 맞는 환경까지 한 번에 열려요.",
     href: "/report",
   },
   compatibility: {

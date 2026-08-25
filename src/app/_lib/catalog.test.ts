@@ -27,3 +27,10 @@ test("천 단위 구분자 — 서버·브라우저가 같은 문자열을 낸�
   expect(formatWon(1000)).toBe("1,000원");
   expect(formatWon(10000)).toBe("10,000원");
 });
+
+// 리포트에서 세운·대운을 걷어냈다. 상품 설명이 없는 것을 팔면 안 된다.
+test("리포트 설명이 운세를 약속하지 않는다", () => {
+  const report = MENU_ITEMS.find((m) => m.href === "/report");
+  expect(report).toBeDefined();
+  expect(report!.desc).not.toMatch(/올해|운세|대운|흐름/);
+});

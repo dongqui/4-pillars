@@ -1,8 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { analyze } from "@/lib/saju-core";
-import type { Interpretation } from "@/app/api/saju/_lib/sections";
+import {
+  SECTION_KEYS,
+  type Interpretation,
+  type SectionKey,
+} from "@/app/api/saju/_lib/sections";
+import type { ReportContent } from "./report-content";
 import { toReportContent } from "./to-report-content";
-import { toChartEvidence } from "./evidence";
 
 const analysis = analyze({ year: 1990, month: 2, day: 20, hour: 4, minute: 30, gender: "male" });
 const meta = { name: "홍길동", birthLine: "양력 1990.02.20 04:30" };
@@ -13,11 +17,80 @@ const traits = [1, 2, 3, 4].map((n) => ({
   basis: `근거${n}`,
 }));
 
-const free: Partial<Interpretation> = {
-  overview: { headline: "헤드라인", summary: "요약", traits },
-  outerVsInner: { outward: "겉", inner: "속" },
-  strengths: [{ title: "s", body: "b" }, { title: "s2", body: "b2" }],
-  cautions: { items: ["주의1", "주의2"], tip: "팁" },
+const overview = { headline: "헤드라인", summary: "요약", traits };
+const outerVsInner = { outward: "겉", inner: "속" };
+const strengths = [{ title: "s", body: "b" }, { title: "s2", body: "b2" }];
+const cautions = { items: ["주의1", "주의2"], tip: "팁" };
+
+const free: Partial<Interpretation> = { overview, outerVsInner, strengths, cautions };
+
+const two = ["하나", "둘"];
+const three = ["하나", "둘", "셋"];
+
+/**
+ * 13개 섹션이 하나도 빠짐없이 든 해석. Interpretation 은 Partial 이 아니라
+ * 전 섹션 필수라, 레지스트리에 섹션이 늘면 여기가 타입 체크에서 먼저 걸린다.
+ */
+const everySection: Interpretation = {
+  overview,
+  outerVsInner,
+  strengths,
+  cautions,
+  emotion: [{ label: "감정 라벨", body: "감정 본문" }],
+  decisions: {
+    deciding: "결정 본문",
+    venturing: "기회 본문",
+    unsure: "확신 본문",
+    afterDeciding: "결정 뒤 본문",
+  },
+  workStyle: {
+    starting: "착수 본문",
+    progressing: "진행 본문",
+    collaborating: "협업 본문",
+    troubled: "난관 본문",
+    performing: "성과 본문",
+  },
+  environment: {
+    energizing: three,
+    draining: three,
+    summary: "환경 요약",
+    emphasis: "환경 강조",
+    roles: three,
+    roleNote: "역할 설명",
+  },
+  relating: [{ label: "관계 라벨", value: "관계 값" }],
+  love: [{ label: "연애 라벨", body: "연애 본문" }],
+  compatibility: { good: two, clash: two },
+  wealth: {
+    points: [{ label: "재물 라벨", body: "재물 본문" }],
+    summary: "재물 요약",
+    emphasis: "재물 강조",
+  },
+  playbook: [1, 2, 3, 4].map((n) => ({ title: `실천${n}`, body: `본문${n}` })),
+};
+
+/**
+ * 섹션 키 → 그 섹션이 뷰모델에서 앉는 자리. 목록을 손으로 적지 않고
+ * Record<SectionKey, _> 로 두는 이유는 위 everySection 과 같다 — 레지스트리에
+ * 섹션이 늘면 이 표를 채우기 전까지 타입 체크가 통과하지 않는다.
+ *
+ * overview 와 cautions 만 함수가 값을 다시 조립한다. 둘은 같은 이름으로 옮겨지지
+ * 않고 상단 필드(headline·summary·personality, cautions·cautionTip)로 펴지기 때문이다.
+ */
+const landing: { [K in SectionKey]: (c: ReportContent) => unknown } = {
+  overview: (c) => ({ headline: c.headline, summary: c.summary, traits: c.personality }),
+  outerVsInner: (c) => c.outerVsInner,
+  strengths: (c) => c.strengths,
+  cautions: (c) => ({ items: c.cautions, tip: c.cautionTip }),
+  emotion: (c) => c.emotion,
+  decisions: (c) => c.decisions,
+  workStyle: (c) => c.workStyle,
+  environment: (c) => c.environment,
+  relating: (c) => c.relating,
+  love: (c) => c.love,
+  compatibility: (c) => c.compatibility,
+  wealth: (c) => c.wealth,
+  playbook: (c) => c.playbook,
 };
 
 describe("toReportContent", () => {
@@ -51,7 +124,6 @@ describe("toReportContent", () => {
     const c = toReportContent(analysis, free, meta, 2026);
     expect(c.emotion).toBeUndefined();
     expect(c.wealth).toBeUndefined();
-    expect(c.daeunOutlook).toBeUndefined();
   });
 
   it("해석이 아예 비어도 무료 필드는 빈 값으로 성립한다", () => {
@@ -61,76 +133,16 @@ describe("toReportContent", () => {
     expect(c.evidence.pillars.length).toBeGreaterThan(0);
   });
 
-  it("대운 서술에 계산된 연령 구간을 인덱스로 붙인다", () => {
-    const rows = analysis.daeun.periods.map((_, i) => ({ title: `t${i}`, desc: `d${i}` }));
-    const c = toReportContent(
-      analysis,
-      { ...free, daeunOutlook: { rows, summary: "s", emphasis: "e" } },
-      meta,
-      2026,
-    );
-    expect(c.daeunOutlook?.rows).toHaveLength(rows.length);
-    expect(c.daeunOutlook?.rows[0].range).toMatch(/^\d+–\d+세$/);
-    expect(c.daeunOutlook?.rows[0].title).toBe("t0");
-  });
-
-  it("대운 서술이 계산 개수보다 많으면 자른다", () => {
-    const rows = [...analysis.daeun.periods, ...analysis.daeun.periods]
-      .slice(0, 12)
-      .map((_, i) => ({ title: `t${i}`, desc: `d${i}` }));
-    const c = toReportContent(
-      analysis,
-      { ...free, daeunOutlook: { rows, summary: "s", emphasis: "e" } },
-      meta,
-      2026,
-    );
-    expect(c.daeunOutlook?.rows.length).toBe(analysis.daeun.periods.length);
-  });
-
-  it("대운 서술이 계산 개수보다 적으면 섹션을 버린다 (인덱스가 어긋난다)", () => {
-    const c = toReportContent(
-      analysis,
-      { ...free, daeunOutlook: { rows: [{ title: "t", desc: "d" }], summary: "s", emphasis: "e" } },
-      meta,
-      2026,
-    );
-    expect(c.daeunOutlook).toBeUndefined();
-  });
-
-  // luck.ts 의 startAge 는 "세는 나이" 기준이다. evidence.ts(Task 9)에서 만 나이로 비교하다
-  // 오프바이원 버그가 났던 것과 동일한 함정이 여기 age 계산에도 있다 — 두 구현이 독립적으로
-  // 같은 규칙을 따르는지, "몇 개가 켜지는가"가 아니라 "어느 구간이 켜지는가"로 검증한다.
-  describe("대운 now 판정 — 세는 나이 경계", () => {
-    const targetPeriod = analysis.daeun.periods[1]; // 두 번째 대운
-    const birthYear = analysis.chart.solar.year;
-    const firstYear = birthYear + targetPeriod.startAge - 1;
-
-    it("구간 첫 세는 나이 해에는 해당 대운 행만 now 로 표시한다 (range 로 신원을 확인)", () => {
-      const rows = analysis.daeun.periods.map((_, i) => ({ title: `t${i}`, desc: `d${i}` }));
-      const c = toReportContent(
-        analysis,
-        { ...free, daeunOutlook: { rows, summary: "s", emphasis: "e" } },
-        meta,
-        firstYear,
+  // toReportContent 의 객체 리터럴은 전 필드가 옵셔널인 ReportContent 를 만든다 —
+  // 한 줄을 지워도 타입 체크가 통과한다. 실제로 playbook 줄을 지웠을 때 tsc 도
+  // 나머지 테스트도 전부 초록이었고, ReportBody.test 는 픽스처를 직접 렌더해
+  // 이 이음매를 지나지 않아 13번 섹션이 조용히 사라졌다. 그 한 줄을 여기서 막는다.
+  it("레지스트리의 모든 섹션이 뷰모델에 옮겨진다", () => {
+    const c = toReportContent(analysis, everySection, meta, 2026);
+    for (const key of SECTION_KEYS) {
+      expect(landing[key](c), `${key} 섹션이 뷰모델에 옮겨지지 않았다`).toEqual(
+        everySection[key],
       );
-      const flagged = c.daeunOutlook?.rows.filter((r) => r.now) ?? [];
-      expect(flagged).toHaveLength(1);
-      expect(flagged[0].range).toBe(`${targetPeriod.startAge}–${targetPeriod.startAge + 9}세`);
-    });
-
-    it("toReportContent 의 now 판정은 toChartEvidence 와 같은 대운을 가리킨다", () => {
-      const rows = analysis.daeun.periods.map((_, i) => ({ title: `t${i}`, desc: `d${i}` }));
-      const c = toReportContent(
-        analysis,
-        { ...free, daeunOutlook: { rows, summary: "s", emphasis: "e" } },
-        meta,
-        firstYear,
-      );
-      const reportFlaggedIndex = c.daeunOutlook?.rows.findIndex((r) => r.now);
-      const evidenceFlaggedIndex = toChartEvidence(analysis, firstYear).daeunStrip.findIndex(
-        (d) => d.now,
-      );
-      expect(reportFlaggedIndex).toBe(evidenceFlaggedIndex);
-    });
+    }
   });
 });

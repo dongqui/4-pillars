@@ -15,14 +15,6 @@ export class StubGenerator implements InterpretationGenerator {
     keys: SectionKey[],
   ): Promise<Partial<Interpretation>> {
     const dm = analysis.chart.dayMaster;
-    const rows = analysis.daeun.periods.map((p, i) => ({
-      title: `${p.pillar} 대운 (자리표시자 ${i + 1})`,
-      desc: `${p.startAge}세부터의 흐름에 대한 자리표시자 서술입니다.`,
-    }));
-    // 스키마가 1~12개를 요구한다. 대운이 비는 경우(생시 미입력 등)도 최소 한 줄은 채운다.
-    const timeline = rows.length > 0
-      ? rows.slice(0, 12)
-      : [{ title: "대운 자리표시자", desc: "대운 정보가 없어 자리표시자로 채웁니다." }];
 
     const all: Interpretation = {
       overview: {
@@ -47,6 +39,19 @@ export class StubGenerator implements InterpretationGenerator {
         { label: "스트레스 상황", body: "자리표시자 본문입니다." },
         { label: "회복 방식", body: "자리표시자 본문입니다." },
       ],
+      decisions: {
+        deciding: "자리표시자 본문입니다.",
+        venturing: "자리표시자 본문입니다.",
+        unsure: "자리표시자 본문입니다.",
+        afterDeciding: "자리표시자 본문입니다.",
+      },
+      workStyle: {
+        starting: "자리표시자 본문입니다.",
+        progressing: "자리표시자 본문입니다.",
+        collaborating: "자리표시자 본문입니다.",
+        troubled: "자리표시자 본문입니다.",
+        performing: "자리표시자 본문입니다.",
+      },
       relating: [
         { label: "첫인상", value: "자리표시자" },
         { label: "거리 두기", value: "자리표시자" },
@@ -65,6 +70,12 @@ export class StubGenerator implements InterpretationGenerator {
         ],
         summary: "환경 요약 자리표시자입니다.",
         emphasis: "환경 요약 자리표시자",
+        roles: [
+          "직무 예시 1 (자리표시자)",
+          "직무 예시 2 (자리표시자)",
+          "직무 예시 3 (자리표시자)",
+        ],
+        roleNote: "직무 예시 근거 자리표시자입니다.",
       },
       love: [
         { label: "끌리는 유형", body: "자리표시자 본문입니다." },
@@ -82,12 +93,12 @@ export class StubGenerator implements InterpretationGenerator {
         summary: "재물 요약 자리표시자입니다.",
         emphasis: "재물 강조 자리표시자입니다.",
       },
-      yearlyLuck: timeline,
-      daeunOutlook: {
-        rows: timeline,
-        summary: "대운 흐름 요약 자리표시자입니다.",
-        emphasis: "대운 강조 자리표시자입니다.",
-      },
+      playbook: [
+        { title: "실천 자리표시자 1", body: "자리표시자 본문입니다." },
+        { title: "실천 자리표시자 2", body: "자리표시자 본문입니다." },
+        { title: "실천 자리표시자 3", body: "자리표시자 본문입니다." },
+        { title: "실천 자리표시자 4", body: "자리표시자 본문입니다." },
+      ],
     };
 
     const out: Partial<Interpretation> = {};

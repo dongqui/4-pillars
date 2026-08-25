@@ -15,19 +15,13 @@ const validBody = {
 
 const trait = { title: "t", body: "b", basis: "근거" };
 const overview = { headline: "캐시", summary: "캐시된 요약", traits: [trait, trait, trait, trait] };
-const yearlyLuck = [{ title: "t", desc: "d" }];
-
-const empty = { have: {}, missing: [] as never[] };
 
 function deps(over: Partial<HandlerDeps> = {}): HandlerDeps {
   return {
     generator: new StubGenerator(),
     getCached: vi.fn().mockResolvedValue({ have: {}, missing: ["overview"] }),
     putCached: vi.fn().mockResolvedValue(undefined),
-    getLuckCached: vi.fn().mockResolvedValue(empty),
-    putLuckSections: vi.fn().mockResolvedValue(undefined),
     sectionKeys: ["overview"],
-    year: 2026,
     ...over,
   };
 }
@@ -61,11 +55,7 @@ describe("handleSaju", () => {
       generator: gen,
     });
     await handleSaju(validBody, d);
-    expect(gen.generateSections).toHaveBeenCalledWith(
-      expect.anything(),
-      ["strengths"],
-      { year: 2026 },
-    );
+    expect(gen.generateSections).toHaveBeenCalledWith(expect.anything(), ["strengths"]);
   });
 
   it("캐시에 있던 섹션과 새로 생성한 섹션을 합쳐 응답한다", async () => {
@@ -76,29 +66,6 @@ describe("handleSaju", () => {
     const res = await handleSaju(validBody, d);
     const body = res.body as SajuResponse;
     expect(Object.keys(body.interpretation).sort()).toEqual(["overview", "strengths"]);
-  });
-
-  it("luck 섹션은 luck 저장소로 간다", async () => {
-    const d = deps({
-      sectionKeys: ["yearlyLuck"],
-      getCached: vi.fn().mockResolvedValue(empty),
-      getLuckCached: vi.fn().mockResolvedValue({ have: {}, missing: ["yearlyLuck"] }),
-    });
-    await handleSaju(validBody, d);
-    expect(d.putLuckSections).toHaveBeenCalledOnce();
-    expect(d.putCached).not.toHaveBeenCalled();
-  });
-
-  it("luck 캐시 HIT 도 cached=true 에 반영된다", async () => {
-    const d = deps({
-      sectionKeys: ["yearlyLuck"],
-      getCached: vi.fn().mockResolvedValue(empty),
-      getLuckCached: vi.fn().mockResolvedValue({ have: { yearlyLuck }, missing: [] }),
-      generator: { model: "stub", generateSections: vi.fn() },
-    });
-    const res = await handleSaju(validBody, d);
-    expect(res.body).toMatchObject({ cached: true, interpretation: { yearlyLuck } });
-    expect(d.generator.generateSections).not.toHaveBeenCalled();
   });
 
   it("생성기가 일부 섹션을 빠뜨려도 나머지로 200 을 준다", async () => {

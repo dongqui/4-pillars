@@ -66,8 +66,9 @@ export function createDeepSeekTransport(opts: DeepSeekOptions): DeepSeekTranspor
           { role: "system", content: req.system },
           { role: "user", content: req.user },
         ],
-        // inputSchema 를 그대로 parameters 에 싣는다. 세운·대운의 행 수 강제가
-        // 여기 걸려 있어서, 스키마를 빼면 zipTimeline 이 섹션을 통째로 버린다.
+        // inputSchema 를 그대로 parameters 에 싣는다. 섹션마다 다른 필드·개수 제약이
+        // 여기 걸려 있어서, 스키마를 빼면 응답이 자기 섹션 스키마를 통과하지 못해
+        // 검증 단계에서 그 섹션이 통째로 버려진다.
         tools: [
           { type: "function", function: { name: req.toolName, parameters: req.inputSchema } },
         ],

@@ -1,6 +1,6 @@
 import type { ReportContent } from "../_lib/report-content";
 import type { ReportAccess } from "../_lib/access";
-import { lockedSections } from "../_lib/report-content.fixture";
+import { paidSectionHeadings } from "@/app/api/saju/_lib/sections";
 import { ReportHero } from "./ReportHero";
 import { PersonalitySection } from "./PersonalitySection";
 import { OuterInnerSection } from "./OuterInnerSection";
@@ -8,13 +8,14 @@ import { StrengthsSection } from "./StrengthsSection";
 import { CautionsSection } from "./CautionsSection";
 import { LockedSections } from "./LockedSections";
 import { EmotionSection } from "./EmotionSection";
-import { RelatingSection } from "./RelatingSection";
+import { DecisionsSection } from "./DecisionsSection";
+import { WorkStyleSection } from "./WorkStyleSection";
 import { EnvironmentSection } from "./EnvironmentSection";
+import { RelatingSection } from "./RelatingSection";
 import { LoveSection } from "./LoveSection";
 import { CompatibilitySection } from "./CompatibilitySection";
 import { WealthSection } from "./WealthSection";
-import { YearlyLuckSection } from "./YearlyLuckSection";
-import { DaeunSection } from "./DaeunSection";
+import { PlaybookSection } from "./PlaybookSection";
 
 export function ReportBody({
   content,
@@ -38,20 +39,25 @@ export function ReportBody({
       {access.isUnlocked ? (
         <>
           {content.emotion && <EmotionSection items={content.emotion} />}
-          {content.relating && <RelatingSection rows={content.relating} />}
+          {content.decisions && <DecisionsSection content={content.decisions} />}
+          {content.workStyle && <WorkStyleSection content={content.workStyle} />}
           {content.environment && (
             <EnvironmentSection
               energizing={content.environment.energizing}
               draining={content.environment.draining}
               summary={content.environment.summary}
               emphasis={content.environment.emphasis}
+              roles={content.environment.roles}
+              roleNote={content.environment.roleNote}
             />
           )}
+          {content.relating && <RelatingSection rows={content.relating} isLoggedIn={access.isLoggedIn} />}
           {content.love && <LoveSection items={content.love} />}
           {content.compatibility && (
             <CompatibilitySection
               good={content.compatibility.good}
               clash={content.compatibility.clash}
+              isLoggedIn={access.isLoggedIn}
             />
           )}
           {content.wealth && (
@@ -61,17 +67,10 @@ export function ReportBody({
               emphasis={content.wealth.emphasis}
             />
           )}
-          {content.yearlyLuck && <YearlyLuckSection rows={content.yearlyLuck} />}
-          {content.daeunOutlook && (
-            <DaeunSection
-              rows={content.daeunOutlook.rows}
-              summary={content.daeunOutlook.summary}
-              emphasis={content.daeunOutlook.emphasis}
-            />
-          )}
+          {content.playbook && <PlaybookSection items={content.playbook} />}
         </>
       ) : (
-        <LockedSections sections={lockedSections} isLoggedIn={access.isLoggedIn} profileId={profileId} />
+        <LockedSections sections={paidSectionHeadings()} isLoggedIn={access.isLoggedIn} profileId={profileId} />
       )}
     </>
   );

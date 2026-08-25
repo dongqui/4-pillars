@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SECTIONS, type SectionSpec, type SectionStorage } from "./registry";
+import { SECTIONS, type SectionSpec } from "./registry";
 
 export type SectionKey = keyof typeof SECTIONS;
 
@@ -18,8 +18,6 @@ const keysWhere = (p: (s: SectionSpec) => boolean): SectionKey[] =>
 
 export const FREE_SECTION_KEYS = keysWhere((s) => s.tier === "free");
 export const PAID_SECTION_KEYS = keysWhere((s) => s.tier === "paid");
-export const CHART_SECTION_KEYS = keysWhere((s) => s.storage === "chart");
-export const LUCK_SECTION_KEYS = keysWhere((s) => s.storage === "luck");
 
 /** DB에서 읽은 section_key 문자열을 좁힌다 (모르는 키 = 지워진 섹션). */
 export function isSectionKey(v: unknown): v is SectionKey {
@@ -30,8 +28,28 @@ export function sectionVersion(key: SectionKey): number {
   return spec(key).version;
 }
 
-export function sectionStorage(key: SectionKey): SectionStorage {
-  return spec(key).storage;
+/** 화면 머리말 한 줄. no 는 레지스트리 선언 순서에서 나온다. */
+export interface SectionHeadingMeta {
+  no: string;
+  category: string;
+  title: string;
+}
+
+export function sectionHeading(key: SectionKey): SectionHeadingMeta {
+  const { category, title } = spec(key).heading;
+  return {
+    no: String(SECTION_KEYS.indexOf(key) + 1).padStart(2, "0"),
+    category,
+    title,
+  };
+}
+
+/**
+ * 무료 사용자에게 보여줄 잠금 목록. 화면이 그리는 것과 같은 순서·번호다 —
+ * 목록을 따로 손으로 적어 두면 섹션 순서를 바꿀 때 조용히 어긋난다.
+ */
+export function paidSectionHeadings(): SectionHeadingMeta[] {
+  return PAID_SECTION_KEYS.map(sectionHeading);
 }
 
 /**
@@ -49,35 +67,6 @@ export function llmInputSchema(key: SectionKey): Record<string, unknown> {
     required: ["content"],
     additionalProperties: false,
   };
-}
-
-/**
- * 세운·대운은 LLM 서술을 계산된 기간과 인덱스로 짝짓는다. 개수가 어긋나면
- * 조립 단계에서 통째로 버려지므로, 요청할 때만 개수를 못박아 넘긴다.
- *
- * luck 저장소인 이 둘 말고는 손대면 안 된다 — strengths 등 다른 배열 섹션까지
- * "최상위가 배열이면" 식으로 건드리면 그 섹션 고유의 min/max 를 덮어써버린다.
- * 그래서 스키마 모양이 아니라 키로 직접 분기한다.
- *
- * 저장·조회 검증에는 쓰지 않는다 — getCached 는 chartKey 밖 입력인 rows 를 모른다.
- */
-export function llmInputSchemaWithRows(
-  key: SectionKey,
-  rows: number,
-): Record<string, unknown> {
-  const schema = llmInputSchema(key);
-  const content = (schema.properties as { content: Record<string, unknown> }).content;
-  const target: Record<string, unknown> | undefined =
-    key === "yearlyLuck"
-      ? content
-      : key === "daeunOutlook"
-        ? (content.properties as Record<string, Record<string, unknown>>).rows
-        : undefined;
-  if (target) {
-    target.minItems = rows;
-    target.maxItems = rows;
-  }
-  return schema;
 }
 
 /** 검증 통과하면 content, 아니면 null. 호출자는 null 을 "없는 섹션"으로 다룬다. */

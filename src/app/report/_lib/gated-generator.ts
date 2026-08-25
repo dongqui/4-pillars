@@ -19,9 +19,9 @@ export function gateAnonGeneration(
   return {
     // 모델 식별자는 그대로 넘긴다 — DB 에 기록되는 값이라 래퍼가 바꾸면 안 된다.
     model: inner.model,
-    async generateSections(analysis, keys, ctx) {
+    async generateSections(analysis, keys) {
       if (!(await checkAnonReportLimit(ip))) throw new ReportRateLimitError();
-      return inner.generateSections(analysis, keys, ctx);
+      return inner.generateSections(analysis, keys);
     },
   };
 }

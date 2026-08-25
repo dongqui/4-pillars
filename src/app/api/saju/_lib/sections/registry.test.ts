@@ -5,8 +5,8 @@ const entries = Object.entries(SECTIONS) as [string, SectionSpec][];
 
 describe("SECTIONS", () => {
   // 상단 히어로 + 01 은 overview 하나가 겸한다. 이 수가 곧 /home 의 "N개 중 M개 열림"이다.
-  it("섹션 12개", () => {
-    expect(entries).toHaveLength(12);
+  it("섹션 13개", () => {
+    expect(entries).toHaveLength(13);
   });
 
   it("모든 섹션이 version >= 1", () => {
@@ -15,11 +15,12 @@ describe("SECTIONS", () => {
     }
   });
 
-  it("모든 섹션이 tier / storage / prompt 를 갖는다", () => {
+  it("모든 섹션이 tier / prompt / heading 을 갖는다", () => {
     for (const [key, spec] of entries) {
       expect(["free", "paid"], key).toContain(spec.tier);
-      expect(["chart", "luck"], key).toContain(spec.storage);
       expect(spec.prompt.length, key).toBeGreaterThan(0);
+      expect(spec.heading.category.length, key).toBeGreaterThan(0);
+      expect(spec.heading.title.length, key).toBeGreaterThan(0);
     }
   });
 
@@ -35,11 +36,6 @@ describe("SECTIONS", () => {
     for (const [key, spec] of entries) {
       expect(spec.example, key).not.toMatch(/\d/);
     }
-  });
-
-  it("생시에 의존하는 섹션만 storage=luck", () => {
-    const luck = entries.filter(([, s]) => s.storage === "luck").map(([k]) => k);
-    expect(luck.sort()).toEqual(["daeunOutlook", "yearlyLuck"]);
   });
 
   it("무료는 4개 (히어로+01 겸용 overview, 02~04)", () => {
@@ -66,15 +62,81 @@ describe("SECTIONS", () => {
 
   it("environment 는 양쪽 조건을 각각 3~4개 요구한다", () => {
     const three = ["a", "b", "c"];
-    const ok = { energizing: three, draining: three, summary: "s", emphasis: "e" };
+    const ok = {
+      energizing: three, draining: three,
+      summary: "s", emphasis: "e",
+      roles: three, roleNote: "n",
+    };
     expect(SECTIONS.environment.schema.safeParse(ok).success).toBe(true);
     expect(SECTIONS.environment.schema.safeParse({ ...ok, draining: ["a", "b"] }).success).toBe(false);
     expect(SECTIONS.environment.schema.safeParse({ ...ok, energizing: [...three, "d", "e"] }).success).toBe(false);
   });
 
-  it("daeunOutlook 은 rows/summary/emphasis 를 요구한다", () => {
-    const rows = [{ title: "t", desc: "d" }];
-    expect(SECTIONS.daeunOutlook.schema.safeParse({ rows, summary: "s", emphasis: "e" }).success).toBe(true);
-    expect(SECTIONS.daeunOutlook.schema.safeParse({ rows }).success).toBe(false);
+  it("environment 는 직무 예시를 3~5개 요구한다", () => {
+    const three = ["a", "b", "c"];
+    const ok = {
+      energizing: three, draining: three,
+      summary: "s", emphasis: "e",
+      roles: three, roleNote: "n",
+    };
+    expect(SECTIONS.environment.schema.safeParse({ ...ok, roles: ["a", "b"] }).success).toBe(false);
+    expect(SECTIONS.environment.schema.safeParse({ ...ok, roles: [...three, "d", "e"] }).success).toBe(true);
+    expect(SECTIONS.environment.schema.safeParse({ ...ok, roles: [...three, "d", "e", "f"] }).success).toBe(false);
+    // roleNote 가 없으면 칩만 남아 근거 없이 직업을 콕 집는 모양이 된다.
+    const { energizing, draining, summary, emphasis, roles } = ok;
+    const noNote = { energizing, draining, summary, emphasis, roles };
+    expect(SECTIONS.environment.schema.safeParse(noNote).success).toBe(false);
+  });
+
+  it("decisions 는 네 축을 정확히 요구한다", () => {
+    const full = { deciding: "a", venturing: "b", unsure: "c", afterDeciding: "d" };
+    expect(SECTIONS.decisions.schema.safeParse(full).success).toBe(true);
+    const { deciding, venturing, afterDeciding } = full;
+    const missing = { deciding, venturing, afterDeciding };
+    expect(SECTIONS.decisions.schema.safeParse(missing).success).toBe(false);
+    expect(SECTIONS.decisions.schema.safeParse({ ...full, extra: "e" }).success).toBe(false);
+  });
+
+  it("decisions 는 emotion 바로 뒤에 온다 (06)", () => {
+    const keys = Object.keys(SECTIONS);
+    expect(keys[keys.indexOf("emotion") + 1]).toBe("decisions");
+  });
+
+  it("workStyle 은 다섯 축을 정확히 요구한다", () => {
+    const full = {
+      starting: "a", progressing: "b", collaborating: "c", troubled: "d", performing: "e",
+    };
+    expect(SECTIONS.workStyle.schema.safeParse(full).success).toBe(true);
+    const { starting, progressing, collaborating, performing } = full;
+    const missing = { starting, progressing, collaborating, performing };
+    expect(SECTIONS.workStyle.schema.safeParse(missing).success).toBe(false);
+    expect(SECTIONS.workStyle.schema.safeParse({ ...full, extra: "f" }).success).toBe(false);
+  });
+
+  it("workStyle 은 decisions 바로 뒤에 온다 (07)", () => {
+    const keys = Object.keys(SECTIONS);
+    expect(keys[keys.indexOf("decisions") + 1]).toBe("workStyle");
+  });
+
+  it("playbook 은 항목을 정확히 4개 요구한다", () => {
+    const item = { title: "t", body: "b" };
+    const four = [item, item, item, item];
+    expect(SECTIONS.playbook.schema.safeParse(four).success).toBe(true);
+    expect(SECTIONS.playbook.schema.safeParse(four.slice(1)).success).toBe(false);
+    expect(SECTIONS.playbook.schema.safeParse([...four, item]).success).toBe(false);
+  });
+
+  // 카드 레이아웃이 걸린 제약이라 지시문의 "스무 자를 넘기지 마라" 로는 부족하다 —
+  // 실제로 넘긴 제목이 픽스처에 들어와 있었다. 스키마가 거절해야 한다.
+  it("playbook 제목은 스무 자를 넘기면 거절한다", () => {
+    const ok = { title: "가".repeat(20), body: "b" };
+    const tooLong = { title: "가".repeat(21), body: "b" };
+    expect(SECTIONS.playbook.schema.safeParse([ok, ok, ok, ok]).success).toBe(true);
+    expect(SECTIONS.playbook.schema.safeParse([tooLong, ok, ok, ok]).success).toBe(false);
+  });
+
+  it("playbook 이 마지막 섹션이다 (13)", () => {
+    const keys = Object.keys(SECTIONS);
+    expect(keys[keys.length - 1]).toBe("playbook");
   });
 });

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { MatchInterpretation } from "@/app/api/matches/_lib/sections";
 import type { RelationInput } from "@/lib/matches/relation-types";
-import { SectionHeading } from "@/app/report/_components/SectionHeading";
+import { SectionHeadingRaw } from "@/app/report/_components/SectionHeading";
 import { CardGrid } from "@/app/report/_components/CardGrid";
 import { InfoCard } from "@/app/report/_components/InfoCard";
 import { NoteCard } from "@/app/report/_components/NoteCard";
@@ -27,7 +27,7 @@ function Section({
 }) {
   return (
     <section className={SECTION}>
-      <SectionHeading no={head.no} category={head.category} title={title ?? head.title ?? ""} />
+      <SectionHeadingRaw no={head.no} category={head.category} title={title ?? head.title ?? ""} />
       {children}
     </section>
   );
@@ -60,7 +60,7 @@ function LabeledCards({
  * 번호와 문구가 조건문으로 흩어지므로 to-section-headings 가 한 번에 준다.
  *
  * interpretation 은 부분 생성 결과일 수 있다(MatchGenerationError.partial). 각 섹션은
- * 자기 키가 없으면 통째로 건너뛴다 — 빈 SectionHeading 만 남는 블록을 만들지 않기
+ * 자기 키가 없으면 통째로 건너뛴다 — 빈 SectionHeadingRaw 만 남는 블록을 만들지 않기
  * 위해서다. 묶인 콜이 죽으면 그 콜이 만드는 두 화면이 함께 빠진다.
  */
 export function MatchBody({

@@ -1,12 +1,12 @@
 // SajuAnalysis(계산값) → LLM 이 읽을 [사실] 블록.
 //
 // ⚠️ 캐시 경계가 곧 프롬프트 경계다.
-//   chartFacts 는 storage="chart" 섹션에 쓰이고, 그 섹션은 chartKey(4기둥+성별)로만
-//   캐시된다. 여기에 이름·생년월일·시각을 한 글자라도 넣으면 그 서술이 같은 원국을 가진
+//   섹션은 chartKey(4기둥+성별)로만 캐시된다.
+//   여기에 이름·생년월일·시각을 한 글자라도 넣으면 그 서술이 같은 원국을 가진
 //   **다른 사람에게 그대로 재사용된다**. 필드를 추가할 때 "이 값이 chartKey 안에 있나"를
 //   먼저 확인하라. (key.ts:chartKey / types.ts:InterpretationGenerator 주석 참고)
 
-import { sewunPillars, type PillarPosition, type SajuAnalysis } from "@/lib/saju-core";
+import type { PillarPosition, SajuAnalysis } from "@/lib/saju-core";
 import { STEMS, type Element } from "@/lib/saju-core/data/stems";
 import type { TenGod, TenGodGroup } from "@/lib/saju-core/data/relations";
 
@@ -32,7 +32,7 @@ const num = (n: number): string => String(Math.round(n * 10) / 10);
 const join = (parts: string[]): string => parts.join(" · ");
 
 /**
- * chart 저장소 섹션(overview~wealth)용 사실 블록.
+ * 섹션 프롬프트에 실리는 사실 블록.
  * chartKey 안에 있는 값 = 4기둥 · 성별 과 거기서 순수하게 파생되는 것만 담는다.
  *
  * label 은 헤더에 붙는 이름표다. 기본값 "원국" 은 리포트 파이프라인의 출력을
@@ -90,38 +90,4 @@ export function chartFacts(analysis: SajuAnalysis, label = "원국"): string {
   );
 
   return lines.join("\n");
-}
-
-/**
- * luck 저장소 섹션(yearlyLuck·daeunOutlook)용 사실 블록.
- * chartFacts 에 대운 회차와 세운 간지를 덧붙인다.
- *
- * "지금 몇 번째 대운인가"는 넣지 않는다 — 그 값은 출생 연도에 의존하는데
- * luckKey 에는 출생 연도가 없다(key.ts:luckKey). 넣으면 같은 원국·다른 세대의
- * 캐시가 서로를 덮어쓴다. 현재 구간 표시는 화면(to-report-content)이 따로 계산한다.
- */
-export function luckFacts(analysis: SajuAnalysis, year: number, years: number): string {
-  const { daeun } = analysis;
-
-  const daeunLines = daeun.periods.map(
-    (p) => `${p.index}) ${p.pillar}(${p.pillarHanja}) — ${p.startAge}세부터 10년`,
-  );
-
-  const sewunLines = sewunPillars(year, years).map(
-    (s, i) => `${i + 1}) ${s.year}년 ${s.korean}(${s.hanja})`,
-  );
-
-  return [
-    chartFacts(analysis),
-    "",
-    "[사실 · 대운]",
-    `방향: ${daeun.direction} · 대운수 ${daeun.daeunSu} (첫 대운이 시작되는 나이)`,
-    ...daeunLines,
-    "",
-    "[사실 · 세운]",
-    ...sewunLines,
-    "",
-    "※ 위 목록의 번호·연도·나이는 순서를 맞추기 위한 참고값이다." +
-      " 몇 번째 항목인지만 지키고, 연도와 나이는 서술에 쓰지 마라.",
-  ].join("\n");
 }

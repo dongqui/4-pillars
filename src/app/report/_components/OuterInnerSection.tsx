@@ -4,7 +4,7 @@ import { CardGrid } from "./CardGrid";
 export function OuterInnerSection({ data }: { data: { outward: string; inner: string } }) {
   return (
     <section className="mt-[72px]">
-      <SectionHeading no="02" category="겉과 속" title="남이 보는 나 vs 실제 내면" />
+      <SectionHeading section="outerVsInner" />
       <CardGrid>
         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-[22px]">
           <div className="text-xs font-bold text-slate-400 tracking-[0.05em] mb-2.5">남에게 보이는 모습</div>

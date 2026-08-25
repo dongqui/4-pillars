@@ -4,7 +4,7 @@ import type { TitledText } from "../_lib/report-content";
 export function StrengthsSection({ items }: { items: TitledText[] }) {
   return (
     <section className="mt-[72px]">
-      <SectionHeading no="03" category="타고난 강점" title="이런 순간에 빛나요" />
+      <SectionHeading section="strengths" />
       <div className="border border-slate-200 rounded-2xl overflow-hidden">
         {items.map((item, i) => (
           <div
