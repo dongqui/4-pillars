@@ -68,11 +68,11 @@
 ```
 verdict    { headline, summary }                                  // 모양 그대로
 chemistry  { pull: TitledText[2..4], friction: TitledText[2..4] } // 모양 그대로
-closeness  LabeledText[3..5]
+closeness  LabeledText[2..5]
 bond       { toMe, toYou, changeInMe, changeInYou, changeBetween }
-together   { now: LabeledText[3..5], later: LabeledText[3..5] }
+together   { now: LabeledText[2..5], later: LabeledText[2..5] }
 conflict   { triggers: LabeledText[2..3], onset, escalation, recovery, blindSpot }
-advice     { items: TitledText[3..4], first }
+advice     { items: TitledText[2..4], first }
 ```
 
 ### 스펙이 스키마가 되는 지점
@@ -118,6 +118,15 @@ export interface RelationCopy {
   category: string;            // SectionHeading 의 작은 라벨
   title: string;               // SectionHeading 의 큰 제목
   angles: readonly string[];   // 프롬프트에 실리는 관점 불릿
+  /**
+   * 이 관계·이 섹션에서만 걸리는 금지선. 없으면 생략한다.
+   *
+   * `angles` 와 갈라 두는 이유: 하나로 합치면 그 축이 "볼 장면"과 "쓰면 안 되는 것"
+   * 두 뜻을 겸하게 되고, 금지선이 관점 목록에 섞여 하나의 소제목처럼 렌더될 위험이 생긴다.
+   * 원문의 금지선은 네 자리다 — 썸 07(결혼·동거 전제 금지), 배우자 07(결혼운 판단 금지),
+   * 사업 파트너 07(성공 예측 금지), 직장 상하 07(권한 차이 무시 금지).
+   */
+  caution?: string;
 }
 
 export const RELATION_COPY = {
