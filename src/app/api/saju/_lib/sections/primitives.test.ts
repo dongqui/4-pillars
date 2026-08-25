@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { KeyValue, LabeledText, TitledText, TraitNote } from "./primitives";
+import { KeyValue, LabeledText, ShortTitledText, TitledText, TraitNote } from "./primitives";
 
 describe("primitives", () => {
   it("TitledText 는 title/body 를 요구한다", () => {
@@ -39,5 +39,16 @@ describe("primitives", () => {
     const twentyOne = "가".repeat(21);
     expect(TraitNote.safeParse({ ...base, title: twenty }).success).toBe(true);
     expect(TraitNote.safeParse({ ...base, title: twentyOne }).success).toBe(false);
+  });
+
+  // 두 스키마가 갈라져 있는 이유 자체를 고정한다 — 03 강점의 서술형 제목은
+  // 통과해야 하고, 같은 제목이 13 카드에는 들어오면 안 된다.
+  it("ShortTitledText 만 제목 길이를 막는다", () => {
+    const long = { title: "회의가 산으로 갈 때 결정할 것을 정리하는 쪽이에요", body: "본문" };
+    expect(TitledText.safeParse(long).success).toBe(true);
+    expect(ShortTitledText.safeParse(long).success).toBe(false);
+    expect(ShortTitledText.safeParse({ title: "가".repeat(20), body: "본문" }).success).toBe(true);
+    expect(ShortTitledText.safeParse({ title: "", body: "본문" }).success).toBe(false);
+    expect(ShortTitledText.safeParse({ title: "제목", body: "본문", extra: 1 }).success).toBe(false);
   });
 });

@@ -41,7 +41,7 @@ export class StubGenerator implements InterpretationGenerator {
       ],
       decisions: {
         deciding: "자리표시자 본문입니다.",
-        starting: "자리표시자 본문입니다.",
+        venturing: "자리표시자 본문입니다.",
         unsure: "자리표시자 본문입니다.",
         afterDeciding: "자리표시자 본문입니다.",
       },

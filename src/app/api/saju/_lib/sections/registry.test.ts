@@ -89,10 +89,10 @@ describe("SECTIONS", () => {
   });
 
   it("decisions 는 네 축을 정확히 요구한다", () => {
-    const full = { deciding: "a", starting: "b", unsure: "c", afterDeciding: "d" };
+    const full = { deciding: "a", venturing: "b", unsure: "c", afterDeciding: "d" };
     expect(SECTIONS.decisions.schema.safeParse(full).success).toBe(true);
-    const { deciding, starting, afterDeciding } = full;
-    const missing = { deciding, starting, afterDeciding };
+    const { deciding, venturing, afterDeciding } = full;
+    const missing = { deciding, venturing, afterDeciding };
     expect(SECTIONS.decisions.schema.safeParse(missing).success).toBe(false);
     expect(SECTIONS.decisions.schema.safeParse({ ...full, extra: "e" }).success).toBe(false);
   });
@@ -124,6 +124,15 @@ describe("SECTIONS", () => {
     expect(SECTIONS.playbook.schema.safeParse(four).success).toBe(true);
     expect(SECTIONS.playbook.schema.safeParse(four.slice(1)).success).toBe(false);
     expect(SECTIONS.playbook.schema.safeParse([...four, item]).success).toBe(false);
+  });
+
+  // 카드 레이아웃이 걸린 제약이라 지시문의 "스무 자를 넘기지 마라" 로는 부족하다 —
+  // 실제로 넘긴 제목이 픽스처에 들어와 있었다. 스키마가 거절해야 한다.
+  it("playbook 제목은 스무 자를 넘기면 거절한다", () => {
+    const ok = { title: "가".repeat(20), body: "b" };
+    const tooLong = { title: "가".repeat(21), body: "b" };
+    expect(SECTIONS.playbook.schema.safeParse([ok, ok, ok, ok]).success).toBe(true);
+    expect(SECTIONS.playbook.schema.safeParse([tooLong, ok, ok, ok]).success).toBe(false);
   });
 
   it("playbook 이 마지막 섹션이다 (13)", () => {

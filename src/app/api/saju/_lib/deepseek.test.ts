@@ -60,7 +60,8 @@ describe("createDeepSeekTransport", () => {
   });
 
   // 개수·shape 강제가 이 파이프라인의 유일한 방어선이다. 스키마를 안 보내면
-  // zipTimeline 이 섹션을 통째로 버리는 실패가 조용히 늘어난다.
+  // 응답이 자기 섹션 스키마를 통과하지 못해 검증 단계에서 섹션이 통째로
+  // 버려지는 실패가 조용히 늘어난다.
   it("inputSchema 를 function parameters 로 싣고 그 tool 을 강제한다", async () => {
     const fetchMock = vi.fn(async () => reply({ content: [] }));
     await transportWith(fetchMock)(req);
