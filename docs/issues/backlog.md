@@ -58,7 +58,7 @@
 유료 요청 경로 자체가 아직 없다.
 
 - `src/app/api/saju/route.ts`가 `FREE_SECTION_KEYS`를 하드코딩한다(결제 전이라 의도된 상태). 유료는 `SECTION_KEYS` 전체를 넘기면 무료 4개는 캐시 히트로 빠지고 유료 9개만 LLM을 탄다 — 핸들러는 이미 그렇게 갈라진다.
-- `/report`의 `getReportAccess().isPaid`는 여전히 `?paid=true` 개발용 쿼리 토글이지만(`src/app/report/_lib/access.ts`), 이제 `NODE_ENV !== "production"`으로 감싸 프로덕션에서는 무시된다 — 픽스처만 있던 시절과 달리 지금은 붙이면 DeepSeek로 유료 8섹션을 실제 생성하고, 그 결과가 원국 단위 공유 캐시에 영구 저장돼 결제가 붙은 뒤에도 그 원국은 공짜가 되는 경로였기 때문이다. 프로필이 있는 요청은 `access.isPaid || profile.isPaid`로 OR해(`src/app/report/page.tsx`) `getProfile`의 `purchases` 조인 결과도 함께 읽는다(`src/lib/profiles/store.ts`). 남은 것: 실제 결제 요청 경로 — `purchases`에 행을 넣는 코드가 아직 없어 `profile.isPaid`는 항상 false다.
+- `/report`의 `getReportAccess().isPaid`는 여전히 `?paid=true` 개발용 쿼리 토글이지만(`src/app/report/_lib/access.ts`), 이제 `NODE_ENV !== "production"`으로 감싸 프로덕션에서는 무시된다 — 픽스처만 있던 시절과 달리 지금은 붙이면 DeepSeek로 유료 9섹션을 실제 생성하고, 그 결과가 원국 단위 공유 캐시에 영구 저장돼 결제가 붙은 뒤에도 그 원국은 공짜가 되는 경로였기 때문이다. 프로필이 있는 요청은 `access.isPaid || profile.isPaid`로 OR해(`src/app/report/page.tsx`) `getProfile`의 `purchases` 조인 결과도 함께 읽는다(`src/lib/profiles/store.ts`). 남은 것: 실제 결제 요청 경로 — `purchases`에 행을 넣는 코드가 아직 없어 `profile.isPaid`는 항상 false다.
 - 유료 9섹션(전체 13섹션)을 열면 `maxDuration = 60`을 다시 봐야 한다. 옛날에 가장 느리던 `daeunOutlook`은 2026-08-25 운세 섹션 정리로 사라졌고, 지금은 특정 섹션이 아니라 병렬 호출 전체의 꼬리가 문제다.
 - 위 "결제 붙이기 전에 처리" 두 항목(`purchases` CASCADE, `purchases_paid_unique`)이 같이 걸린다.
 
@@ -68,7 +68,7 @@
 
 **5. `/report` 배선 자체에 테스트가 없다**
 
-조각들(`parseProfileParam`, `getProfile`, `toBirthInput`, `toReportMeta`, `produceSections`)은 각각 테스트가 있지만, 그것들을 잇는 `page.tsx`의 결정은 테스트되지 않는다: `sectionKeys` 선택(틀리면 조용히 유료 8섹션어치 LLM 비용이 나간다), absent/invalid/세션 없음 세 갈래, 리다이렉트 타깃, `overview` 부재 → `ReportError`. 리포 전체에 `*.test.tsx`가 하나도 없어(서버 컴포넌트 테스트 인프라 부재) 관행에는 맞는다. 최소한 `sectionKeys` 결정만이라도 순수 함수로 뽑으면 테스트할 수 있다.
+조각들(`parseProfileParam`, `getProfile`, `toBirthInput`, `toReportMeta`, `produceSections`)은 각각 테스트가 있지만, 그것들을 잇는 `page.tsx`의 결정은 테스트되지 않는다: `sectionKeys` 선택(틀리면 조용히 유료 9섹션어치 LLM 비용이 나간다), absent/invalid/세션 없음 세 갈래, 리다이렉트 타깃, `overview` 부재 → `ReportError`. 리포 전체에 `*.test.tsx`가 하나도 없어(서버 컴포넌트 테스트 인프라 부재) 관행에는 맞는다. 최소한 `sectionKeys` 결정만이라도 순수 함수로 뽑으면 테스트할 수 있다.
 
 **6. `src/app/api/saju/_lib`가 이제 두 진입점의 공용 코어다**
 

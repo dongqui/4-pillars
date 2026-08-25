@@ -13,7 +13,7 @@ export const DECISION_AXES = {
   deciding: "결정을 내릴 때",
   // 07 의 "일을 시작할 때" 와 두 섹션 건너 나란히 읽히던 자리다. 06 이 묻는 것은
   // 착수 절차가 아니라 감수하는 위험의 크기라, 라벨도 키도 "시작" 에서 떼어 놓는다.
-  venturing: "새로운 기회가 왔을 때",
+  venturing: "새로운 일에 뛰어들 때",
   unsure: "확신이 없을 때",
   afterDeciding: "이미 결정한 뒤에는",
 } as const;
