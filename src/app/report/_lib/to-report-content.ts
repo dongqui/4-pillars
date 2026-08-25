@@ -27,6 +27,7 @@ export function toReportContent(
     cautions: cautions?.items ?? [],
     cautionTip: cautions?.tip ?? "",
     emotion: interpretation.emotion,
+    decisions: interpretation.decisions,
     relating: interpretation.relating,
     environment: interpretation.environment,
     love: interpretation.love,

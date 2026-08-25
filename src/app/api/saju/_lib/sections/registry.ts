@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { KeyValue, LabeledText, TitledText, TraitNote } from "./primitives";
+import { DECISION_AXES, axisPromptLines, axisSchema } from "./axes";
 
 /** 무료 노출 여부. 어떤 키를 실제로 요청할지는 호출자가 정한다. */
 export type SectionTier = "free" | "paid";
@@ -130,6 +131,31 @@ export const SECTIONS = {
     example:
       '[{"label":"스트레스가 쌓이는 상황","body":"내 뜻대로 할 수 없는 상황이 계속될 때. 특히 결정권 없이 책임만 지는 구조에서 크게 소모돼요."}]',
     heading: { category: "감정과 스트레스", title: "힘들 때 이런 패턴이 나타나요" },
+  },
+
+  decisions: {
+    version: 1,
+    tier: "paid",
+    heading: { category: "선택과 결정", title: "중요한 순간, 나는 어떻게 움직일까" },
+    schema: axisSchema(DECISION_AXES),
+    // 축을 스키마로 고정한 섹션이다 — 지시문은 각 칸에 "무엇을" 쓸지만 정한다.
+    prompt: [
+      "중요한 순간에 어떻게 움직이는지를 네 국면으로 나눠 각각 2~3문장으로 써라.",
+      "",
+      ...axisPromptLines(DECISION_AXES, {
+        deciding: "정보를 얼마나 모으고 얼마나 빨리 정하는지, 무엇을 기준으로 삼는지",
+        starting: "처음부터 크게 뛰어드는 쪽인지, 안전한 범위를 확인하고 조금씩 넓히는 쪽인지",
+        unsure: "혼자 생각을 반복하는 쪽인지 남에게 의견을 구하는 쪽인지, 무엇이 있으면 결정이 빨라지는지",
+        afterDeciding: "주변에서 다른 이야기가 나올 때 번복하는 편인지 밀고 가는 편인지",
+      }),
+      "",
+      "성격을 형용사로 요약하지 말고, 그 순간에 실제로 무엇을 하는지 행동으로 써라.",
+      '- 좋은 예: "선택지가 많아질수록 결정을 미루고, 주변 사람의 반응을 한 번씩 확인한 뒤에 움직여요."',
+      '- 나쁜 예: "부드럽지만 자기 기준이 뚜렷한 편이에요." (성격 요약일 뿐, 무엇을 하는지가 없다)',
+      "국면마다 다른 행동을 써라. 네 칸이 같은 이야기의 말바꿈이 되면 안 된다.",
+    ].join("\n"),
+    example:
+      '{"deciding":"바로 답을 내기보다 주변 상황과 다른 사람의 반응을 충분히 살펴본 뒤 움직이는 편이에요. 선택지가 많아질수록 생각하는 시간이 길어져요.","starting":"처음부터 크게 뛰어들기보다 안전한 범위를 확인하고 조금씩 넓혀가는 쪽에 가까워요.","unsure":"혼자 생각을 반복하기보다 믿을 만한 사람에게 의견을 구했을 때 결정이 빨라지는 편이에요.","afterDeciding":"주변에서 다른 이야기가 나오더라도 충분히 고민해서 내린 결정이라면 자기 방식대로 밀고 가려는 힘이 있어요."}',
   },
 
   environment: {

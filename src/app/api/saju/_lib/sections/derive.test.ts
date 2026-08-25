@@ -118,13 +118,14 @@ describe("sectionHeading", () => {
     // registry.ts 의 선언 순서가 흔들릴 때 여기서 걸린다.
     expect(PAID_SECTION_KEYS).toEqual([
       "emotion",
+      "decisions",
       "environment",
       "relating",
       "love",
       "compatibility",
       "wealth",
     ]);
-    expect(locked.map((l) => l.no)).toEqual(["05", "06", "07", "08", "09", "10"]);
+    expect(locked.map((l) => l.no)).toEqual(["05", "06", "07", "08", "09", "10", "11"]);
     expect(locked.map((l) => l.no)).toEqual(
       PAID_SECTION_KEYS.map((k) => sectionHeading(k).no),
     );

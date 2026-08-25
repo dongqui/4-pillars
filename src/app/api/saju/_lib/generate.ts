@@ -39,6 +39,12 @@ export class StubGenerator implements InterpretationGenerator {
         { label: "스트레스 상황", body: "자리표시자 본문입니다." },
         { label: "회복 방식", body: "자리표시자 본문입니다." },
       ],
+      decisions: {
+        deciding: "자리표시자 본문입니다.",
+        starting: "자리표시자 본문입니다.",
+        unsure: "자리표시자 본문입니다.",
+        afterDeciding: "자리표시자 본문입니다.",
+      },
       relating: [
         { label: "첫인상", value: "자리표시자" },
         { label: "거리 두기", value: "자리표시자" },

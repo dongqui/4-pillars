@@ -6,8 +6,11 @@ export type ElementKey = "wood" | "fire" | "earth" | "metal" | "water";
 // 잎 타입은 해석 스키마(sections/primitives)가 원본이다. 여기서 다시 선언하면
 // LLM 이 받는 구조와 화면이 읽는 타입이 갈라진다.
 // (재수출만으로는 이 파일 안에서 이름을 쓸 수 없어 import type 도 함께 둔다.)
-import type { TitledText, LabeledText, KeyValue, TraitNote } from "@/app/api/saju/_lib/sections";
+import type { TitledText, LabeledText, KeyValue, TraitNote, SectionContent } from "@/app/api/saju/_lib/sections";
 export type { TitledText, LabeledText, KeyValue, TraitNote } from "@/app/api/saju/_lib/sections";
+
+/** 축이 고정된 섹션 — 축 정의는 sections/axes.ts 가 갖는다. */
+export type DecisionsContent = SectionContent<"decisions">;
 
 /** 원국 한 칸(천간 또는 지지) — ← SajuAnalysis.chart */
 export interface PillarCell {
@@ -53,9 +56,10 @@ export interface ReportContent {
   cautionTip: string;               // 04 TIP
   // 아래는 유료 섹션 — 생성되지 않았거나 권한이 없으면 없다.
   emotion?: LabeledText[];          // 05
-  environment?: { energizing: string[]; draining: string[]; summary: string; emphasis: string }; // 06
-  relating?: KeyValue[];            // 07
-  love?: LabeledText[];             // 08
-  compatibility?: { good: string[]; clash: string[] }; // 09
-  wealth?: { points: LabeledText[]; summary: string; emphasis: string };  // 10
+  decisions?: DecisionsContent;     // 06
+  environment?: { energizing: string[]; draining: string[]; summary: string; emphasis: string }; // 07
+  relating?: KeyValue[];            // 08
+  love?: LabeledText[];             // 09
+  compatibility?: { good: string[]; clash: string[] }; // 10
+  wealth?: { points: LabeledText[]; summary: string; emphasis: string };  // 11
 }

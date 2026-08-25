@@ -5,8 +5,8 @@ const entries = Object.entries(SECTIONS) as [string, SectionSpec][];
 
 describe("SECTIONS", () => {
   // 상단 히어로 + 01 은 overview 하나가 겸한다. 이 수가 곧 /home 의 "N개 중 M개 열림"이다.
-  it("섹션 10개", () => {
-    expect(entries).toHaveLength(10);
+  it("섹션 11개", () => {
+    expect(entries).toHaveLength(11);
   });
 
   it("모든 섹션이 version >= 1", () => {
@@ -66,5 +66,19 @@ describe("SECTIONS", () => {
     expect(SECTIONS.environment.schema.safeParse(ok).success).toBe(true);
     expect(SECTIONS.environment.schema.safeParse({ ...ok, draining: ["a", "b"] }).success).toBe(false);
     expect(SECTIONS.environment.schema.safeParse({ ...ok, energizing: [...three, "d", "e"] }).success).toBe(false);
+  });
+
+  it("decisions 는 네 축을 정확히 요구한다", () => {
+    const full = { deciding: "a", starting: "b", unsure: "c", afterDeciding: "d" };
+    expect(SECTIONS.decisions.schema.safeParse(full).success).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- unsure 를 떼어내려고 구조분해했을 뿐, _drop 자체는 안 쓴다.
+    const { unsure: _drop, ...missing } = full;
+    expect(SECTIONS.decisions.schema.safeParse(missing).success).toBe(false);
+    expect(SECTIONS.decisions.schema.safeParse({ ...full, extra: "e" }).success).toBe(false);
+  });
+
+  it("decisions 는 emotion 바로 뒤에 온다 (06)", () => {
+    const keys = Object.keys(SECTIONS);
+    expect(keys[keys.indexOf("emotion") + 1]).toBe("decisions");
   });
 });
