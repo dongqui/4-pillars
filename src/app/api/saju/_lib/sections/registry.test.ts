@@ -71,8 +71,8 @@ describe("SECTIONS", () => {
   it("decisions 는 네 축을 정확히 요구한다", () => {
     const full = { deciding: "a", starting: "b", unsure: "c", afterDeciding: "d" };
     expect(SECTIONS.decisions.schema.safeParse(full).success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- unsure 를 떼어내려고 구조분해했을 뿐, _drop 자체는 안 쓴다.
-    const { unsure: _drop, ...missing } = full;
+    const { deciding, starting, afterDeciding } = full;
+    const missing = { deciding, starting, afterDeciding };
     expect(SECTIONS.decisions.schema.safeParse(missing).success).toBe(false);
     expect(SECTIONS.decisions.schema.safeParse({ ...full, extra: "e" }).success).toBe(false);
   });
