@@ -1,5 +1,6 @@
 // 섹션 하나에 대한 LLM 요청을 조립한다. 궁합 프롬프트를 만드는 유일한 자리다.
 
+import { relationAngleBlocks } from "@/lib/matches/relation-copy";
 import { MATCH_SECTIONS, matchLlmInputSchema, type MatchSectionKey } from "../sections";
 import { matchFacts, type MatchContext } from "./facts";
 import { MATCH_SYSTEM_PROMPT, SECTION_TOOL_NAME } from "./system";
@@ -23,6 +24,9 @@ export function buildMatchSectionRequest(
 
   const user = [
     matchFacts(ctx),
+    // 관점 블록은 [사실] 뒤, [요청] 앞이다 — 지시문보다 재료가 먼저 와야 지시문이
+    // 무엇을 가리키는지가 분명해진다. variants 가 비면 빈 배열이라 아무것도 안 붙는다.
+    ...relationAngleBlocks(ctx.relation, spec.variants),
     "",
     `[요청 · ${key}]`,
     spec.prompt,
