@@ -34,5 +34,6 @@ export function toReportContent(
     love: interpretation.love,
     compatibility: interpretation.compatibility,
     wealth,
+    playbook: interpretation.playbook,
   };
 }

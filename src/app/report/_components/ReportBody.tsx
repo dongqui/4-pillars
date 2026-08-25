@@ -15,6 +15,7 @@ import { RelatingSection } from "./RelatingSection";
 import { LoveSection } from "./LoveSection";
 import { CompatibilitySection } from "./CompatibilitySection";
 import { WealthSection } from "./WealthSection";
+import { PlaybookSection } from "./PlaybookSection";
 
 export function ReportBody({
   content,
@@ -63,6 +64,7 @@ export function ReportBody({
               emphasis={content.wealth.emphasis}
             />
           )}
+          {content.playbook && <PlaybookSection items={content.playbook} />}
         </>
       ) : (
         <LockedSections sections={paidSectionHeadings()} isLoggedIn={access.isLoggedIn} profileId={profileId} />

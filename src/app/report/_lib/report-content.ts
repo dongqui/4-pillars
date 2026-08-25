@@ -64,4 +64,5 @@ export interface ReportContent {
   love?: LabeledText[];             // 10
   compatibility?: { good: string[]; clash: string[] }; // 11
   wealth?: { points: LabeledText[]; summary: string; emphasis: string };  // 12
+  playbook?: TitledText[];          // 13
 }

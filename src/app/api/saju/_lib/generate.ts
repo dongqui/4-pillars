@@ -87,6 +87,12 @@ export class StubGenerator implements InterpretationGenerator {
         summary: "재물 요약 자리표시자입니다.",
         emphasis: "재물 강조 자리표시자입니다.",
       },
+      playbook: [
+        { title: "실천 자리표시자 1", body: "자리표시자 본문입니다." },
+        { title: "실천 자리표시자 2", body: "자리표시자 본문입니다." },
+        { title: "실천 자리표시자 3", body: "자리표시자 본문입니다." },
+        { title: "실천 자리표시자 4", body: "자리표시자 본문입니다." },
+      ],
     };
 
     const out: Partial<Interpretation> = {};
