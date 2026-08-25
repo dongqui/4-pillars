@@ -28,8 +28,10 @@ export function Hero({ displayName }: HeroProps) {
       </p>
       <p className="mx-auto mb-[30px] max-w-[460px] text-[16.5px] leading-[1.6] text-slate-400 [text-wrap:pretty]">
         내 캐릭터와 관계 지도는{" "}
-        <strong className="whitespace-nowrap font-semibold text-slate-600">무료</strong>. 더 깊이
-        보고 싶은 것만{" "}
+        <strong className="whitespace-nowrap font-semibold text-slate-600">
+          무료
+        </strong>
+        . 더 깊이 보고 싶은 것만{" "}
         <strong className="whitespace-nowrap font-semibold text-slate-600">
           개당 {TICKET_PRICE_LABEL}
         </strong>
@@ -44,10 +46,7 @@ export function Hero({ displayName }: HeroProps) {
         ) : (
           <>
             <Link href="/home" className={PRIMARY}>
-              내 사주 보기
-            </Link>
-            <Link href="/funnel?step=name" className={SECONDARY}>
-              다른 사람 사주 보기
+              내 리포트 보기
             </Link>
           </>
         )}
