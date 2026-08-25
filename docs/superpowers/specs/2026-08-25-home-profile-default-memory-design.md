@@ -110,7 +110,18 @@ id 를 올려가며 어느 번호가 존재하는지 훑을 수 있다.
   빨간 줄을 띄우면 사용자는 자기가 무엇을 잘못했는지 찾게 된다.
 - **삭제**: `primary` 를 지우면 FK 가 null 로 만든다(0029 의 `ON DELETE SET NULL`).
   화면은 다음 줄에 착지해 있는데 DB 는 null 이라 어긋난다 — `onDeleted` 에서 착지한 줄을
-  한 번 더 승격시켜 맞춘다. 착지한 줄이 드래프트면(=아무것도 안 남았으면) 쏘지 않는다.
+  한 번 더 승격시켜 맞춘다.
+
+  ⚠️ 착지한 줄을 `entries` 에서 그대로 읽으면 안 된다. `DeleteProfileDialog` 는
+  `router.refresh()` 를 부른 **직후** `onDeleted()` 를 부르는데 새 목록은 아직 도착하지
+  않았다 — 그 시점의 `entries` 에는 방금 지운 줄이 그대로 있다. 살아남은 목록을 직접
+  만들어서 읽는다:
+
+  ```ts
+  const rest = entries.filter((_, i) => i !== removed);
+  const landing = Math.min(removed < index ? index - 1 : index, rest.length - 1);
+  const id = rest[landing]?.profileId;   // 없거나 드래프트면 쏘지 않는다
+  ```
 - **연타**: 빠르게 두 줄을 연달아 고르면 두 요청의 도착 순서가 뒤집힐 수 있다. abort 로는
   못 막고(서버는 이미 처리 중), 제대로 막으려면 요청 직렬화나 버전 번호가 필요하다.
   대가가 "다음 방문의 기본값이 한 칸 다름" 하나뿐이라 **막지 않고 받아들인다.**
