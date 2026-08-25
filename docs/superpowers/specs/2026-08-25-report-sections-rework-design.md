@@ -64,16 +64,17 @@ interface SectionSpec {
 `sections/derive.ts`에 추가:
 
 ```ts
-export interface SectionHeading { no: string; category: string; title: string }
-export function sectionHeading(key: SectionKey): SectionHeading;  // no = String(index+1).padStart(2,"0")
-export function paidSectionHeadings(): SectionHeading[];          // 잠금 목록
+/** 타입 이름은 SectionHeading 컴포넌트와 겹치지 않게 …Meta 로 둔다 */
+export interface SectionHeadingMeta { no: string; category: string; title: string }
+export function sectionHeading(key: SectionKey): SectionHeadingMeta;  // no = String(index+1).padStart(2,"0")
+export function paidSectionHeadings(): SectionHeadingMeta[];          // 잠금 목록
 ```
 
 결과:
 
 - `SectionHeading` 컴포넌트가 `{ section: SectionKey }` 하나만 받는다.
 - `lockedSections` 픽스처가 사라지고 `paidSectionHeadings()`가 대신한다.
-  (`LockedSectionMeta` 타입은 `SectionHeading`으로 통합)
+  (`LockedSectionMeta` 타입은 `SectionHeadingMeta`로 통합)
 - 새 섹션에 `heading`을 빼먹으면 컴파일이 깨진다.
 
 ### 2. 신규 섹션 — 축은 타입으로 고정
@@ -100,8 +101,17 @@ export const WORK_AXES = {
   performing: "성과를 낼 때",
 } as const;
 
-/** 축 맵 → 모든 축이 정확히 한 번씩 있는 문자열 객체 스키마 */
-export function axisSchema<T extends Record<string, string>>(axes: T): z.ZodType;
+/**
+ * 축 맵 → 모든 축이 정확히 한 번씩 있는 문자열 객체 스키마.
+ *
+ * 반환 타입을 z.ZodType 으로 뭉개면 안 된다 — SectionContent 가
+ * z.infer<SECTIONS[K]["schema"]> 로 나오므로, 뭉개는 순간 화면이 받는 타입이
+ * unknown 이 되어 필드를 못 읽는다. 축 키가 살아 있는 ZodObject 로 돌려준다.
+ */
+export function axisSchema<T extends Record<string, string>>(
+  axes: T,
+): z.ZodObject<{ [K in keyof T]: z.ZodString }>;
+
 /** 축 맵 + content → 화면이 그리는 행. 선언 순서를 지킨다. */
 export function axisRows<T extends Record<string, string>>(
   axes: T,
@@ -220,6 +230,21 @@ roleNote: z.string().min(1),
 - 근거 패널(`ChartEvidence`)의 "대운 흐름 · 10년 주기" 스트립: 접혀 있는 근거 패널은
   사주 용어가 허용된 유일한 구역이고(원국·오행·신강약·용신이 이미 있다), 대운은 그
   계산의 일부다. 해석 섹션이 없어졌다고 근거에서 뺄 이유가 없다.
+
+### 6. 뷰모델 반영
+
+`report-content.ts`의 `ReportContent`에 유료 선택 필드 3개를 더한다. 잎 타입은 기존
+규칙대로 해석 스키마에서 가져온다 (직접 다시 선언하지 않는다):
+
+```ts
+decisions?: DecisionsContent;   // = SectionContent<"decisions">
+workStyle?: WorkStyleContent;
+playbook?: TitledText[];
+environment?: { …기존; roles: string[]; roleNote: string };
+```
+
+`to-report-content.ts`는 이 셋을 `interpretation`에서 그대로 옮긴다 — 계산값과 짝지을
+게 없어 `zipTimeline` 같은 조립이 필요 없다.
 
 ## 화면 구성 (신규 3섹션)
 
