@@ -9,6 +9,7 @@ import { CautionsSection } from "./CautionsSection";
 import { LockedSections } from "./LockedSections";
 import { EmotionSection } from "./EmotionSection";
 import { DecisionsSection } from "./DecisionsSection";
+import { WorkStyleSection } from "./WorkStyleSection";
 import { EnvironmentSection } from "./EnvironmentSection";
 import { RelatingSection } from "./RelatingSection";
 import { LoveSection } from "./LoveSection";
@@ -38,6 +39,7 @@ export function ReportBody({
         <>
           {content.emotion && <EmotionSection items={content.emotion} />}
           {content.decisions && <DecisionsSection content={content.decisions} />}
+          {content.workStyle && <WorkStyleSection content={content.workStyle} />}
           {content.environment && (
             <EnvironmentSection
               energizing={content.environment.energizing}

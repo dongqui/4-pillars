@@ -11,6 +11,7 @@ export type { TitledText, LabeledText, KeyValue, TraitNote } from "@/app/api/saj
 
 /** 축이 고정된 섹션 — 축 정의는 sections/axes.ts 가 갖는다. */
 export type DecisionsContent = SectionContent<"decisions">;
+export type WorkStyleContent = SectionContent<"workStyle">;
 
 /** 원국 한 칸(천간 또는 지지) — ← SajuAnalysis.chart */
 export interface PillarCell {
@@ -57,9 +58,10 @@ export interface ReportContent {
   // 아래는 유료 섹션 — 생성되지 않았거나 권한이 없으면 없다.
   emotion?: LabeledText[];          // 05
   decisions?: DecisionsContent;     // 06
-  environment?: { energizing: string[]; draining: string[]; summary: string; emphasis: string }; // 07
-  relating?: KeyValue[];            // 08
-  love?: LabeledText[];             // 09
-  compatibility?: { good: string[]; clash: string[] }; // 10
-  wealth?: { points: LabeledText[]; summary: string; emphasis: string };  // 11
+  workStyle?: WorkStyleContent;     // 07
+  environment?: { energizing: string[]; draining: string[]; summary: string; emphasis: string }; // 08
+  relating?: KeyValue[];            // 09
+  love?: LabeledText[];             // 10
+  compatibility?: { good: string[]; clash: string[] }; // 11
+  wealth?: { points: LabeledText[]; summary: string; emphasis: string };  // 12
 }

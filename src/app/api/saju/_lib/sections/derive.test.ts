@@ -119,13 +119,14 @@ describe("sectionHeading", () => {
     expect(PAID_SECTION_KEYS).toEqual([
       "emotion",
       "decisions",
+      "workStyle",
       "environment",
       "relating",
       "love",
       "compatibility",
       "wealth",
     ]);
-    expect(locked.map((l) => l.no)).toEqual(["05", "06", "07", "08", "09", "10", "11"]);
+    expect(locked.map((l) => l.no)).toEqual(["05", "06", "07", "08", "09", "10", "11", "12"]);
     expect(locked.map((l) => l.no)).toEqual(
       PAID_SECTION_KEYS.map((k) => sectionHeading(k).no),
     );

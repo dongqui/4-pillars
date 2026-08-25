@@ -45,6 +45,13 @@ export class StubGenerator implements InterpretationGenerator {
         unsure: "자리표시자 본문입니다.",
         afterDeciding: "자리표시자 본문입니다.",
       },
+      workStyle: {
+        starting: "자리표시자 본문입니다.",
+        progressing: "자리표시자 본문입니다.",
+        collaborating: "자리표시자 본문입니다.",
+        troubled: "자리표시자 본문입니다.",
+        performing: "자리표시자 본문입니다.",
+      },
       relating: [
         { label: "첫인상", value: "자리표시자" },
         { label: "거리 두기", value: "자리표시자" },

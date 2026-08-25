@@ -5,8 +5,8 @@ const entries = Object.entries(SECTIONS) as [string, SectionSpec][];
 
 describe("SECTIONS", () => {
   // 상단 히어로 + 01 은 overview 하나가 겸한다. 이 수가 곧 /home 의 "N개 중 M개 열림"이다.
-  it("섹션 11개", () => {
-    expect(entries).toHaveLength(11);
+  it("섹션 12개", () => {
+    expect(entries).toHaveLength(12);
   });
 
   it("모든 섹션이 version >= 1", () => {
@@ -80,5 +80,21 @@ describe("SECTIONS", () => {
   it("decisions 는 emotion 바로 뒤에 온다 (06)", () => {
     const keys = Object.keys(SECTIONS);
     expect(keys[keys.indexOf("emotion") + 1]).toBe("decisions");
+  });
+
+  it("workStyle 은 다섯 축을 정확히 요구한다", () => {
+    const full = {
+      starting: "a", progressing: "b", collaborating: "c", troubled: "d", performing: "e",
+    };
+    expect(SECTIONS.workStyle.schema.safeParse(full).success).toBe(true);
+    const { starting, progressing, collaborating, performing } = full;
+    const missing = { starting, progressing, collaborating, performing };
+    expect(SECTIONS.workStyle.schema.safeParse(missing).success).toBe(false);
+    expect(SECTIONS.workStyle.schema.safeParse({ ...full, extra: "f" }).success).toBe(false);
+  });
+
+  it("workStyle 은 decisions 바로 뒤에 온다 (07)", () => {
+    const keys = Object.keys(SECTIONS);
+    expect(keys[keys.indexOf("decisions") + 1]).toBe("workStyle");
   });
 });

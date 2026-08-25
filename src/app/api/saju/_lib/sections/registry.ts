@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { KeyValue, LabeledText, TitledText, TraitNote } from "./primitives";
-import { DECISION_AXES, axisPromptLines, axisSchema } from "./axes";
+import { DECISION_AXES, WORK_AXES, axisPromptLines, axisSchema } from "./axes";
 
 /** 무료 노출 여부. 어떤 키를 실제로 요청할지는 호출자가 정한다. */
 export type SectionTier = "free" | "paid";
@@ -156,6 +156,30 @@ export const SECTIONS = {
     ].join("\n"),
     example:
       '{"deciding":"바로 답을 내기보다 주변 상황과 다른 사람의 반응을 충분히 살펴본 뒤 움직이는 편이에요. 선택지가 많아질수록 생각하는 시간이 길어져요.","starting":"처음부터 크게 뛰어들기보다 안전한 범위를 확인하고 조금씩 넓혀가는 쪽에 가까워요. 익숙해질수록 범위를 조금씩 넓히면서 자연스럽게 자신감을 붙여가요.","unsure":"혼자 생각을 반복하기보다 믿을 만한 사람에게 의견을 구했을 때 결정이 빨라지는 편이에요. 이야기를 나누다 보면 머릿속이 정리되면서 방향이 잡혀요.","afterDeciding":"주변에서 다른 이야기가 나오더라도 충분히 고민해서 내린 결정이라면 자기 방식대로 밀고 가려는 힘이 있어요. 이미 정리한 생각을 다시 원점으로 되돌리는 걸 좋아하지 않아요."}',
+  },
+
+  workStyle: {
+    version: 1,
+    tier: "paid",
+    heading: { category: "일하는 방식", title: "일할 때 드러나는 나만의 리듬" },
+    schema: axisSchema(WORK_AXES),
+    prompt: [
+      "일할 때의 리듬을 다섯 국면으로 나눠 각각 2~3문장으로 써라.",
+      "",
+      ...axisPromptLines(WORK_AXES, {
+        starting: "계획을 세우고 들어가는지 일단 시작하는지, 목표가 얼마나 뚜렷해야 움직이는지",
+        progressing: "한 번에 몰아치는지 하나씩 쌓는지, 디테일부터 보는지 전체 그림부터 보는지",
+        collaborating: "주도·조율·지원 중 어느 자리가 편한지, 의견이 갈리거나 역할을 나눌 때 어떻게 하는지",
+        troubled: "문제가 터졌을 때 먼저 하는 행동, 압박을 받을 때 달라지는 점",
+        performing: "어떤 목표와 보상에서 힘이 나는지, 결과에서 만족을 얻는지 과정에서 얻는지",
+      }),
+      "",
+      "성격을 형용사로 요약하지 말고, 그 국면에서 실제로 무엇을 하는지 행동으로 써라.",
+      "특정 직업·직무를 지목하지 마라 — 그건 다른 섹션이 다룬다.",
+      "국면마다 다른 행동을 써라. 다섯 칸이 같은 이야기의 말바꿈이 되면 안 된다.",
+    ].join("\n"),
+    example:
+      '{"starting":"무엇을 만들지 그림이 서야 손이 움직이는 편이에요. 목표가 흐릿하면 시작 자체를 미루게 돼요.","progressing":"몰아쳐서 끝내기보다 매일 조금씩 쌓아 올리는 쪽이에요. 전체 구조를 먼저 잡고 세부는 나중에 채워요.","collaborating":"먼저 나서기보다 사이를 맞추는 자리가 편해요. 의견이 갈리면 각자 원하는 바를 정리해 보여주는 방식으로 풀어요.","troubled":"우선 상황을 다시 확인하고 원인을 좁혀요. 급하게 손대기보다 어디서 어긋났는지부터 찾는 편이에요.","performing":"눈에 보이는 결과가 남는 일에서 힘이 나요. 과정만 길고 결과가 흐릿한 일에서는 동력이 빨리 떨어져요."}',
   },
 
   environment: {
