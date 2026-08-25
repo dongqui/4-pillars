@@ -29,7 +29,12 @@ export function MatchForm({
   children,
 }: {
   people: PersonOption[];
-  /** 계정의 "나"(users.primary_profile_id). 정해지지 않았으면 null — 첫 줄로 물러선다. */
+  /**
+   * 계정의 "나"(users.primary_profile_id). 정해지지 않았으면 null — 첫 줄로 물러선다.
+   * 고정된 값이 아니다 — 홈 셀렉터에서 마지막으로 고른 사람으로 움직인다. 이 화면에서
+   * "나" 칸을 바꿔도(`selectSubject`) 그 선택은 여기서만 산다 — users.primary_profile_id
+   * 에 다시 쓰지 않는다(스펙의 "승격하지 않는 것").
+   */
   defaultSubjectId: string | null;
   /**
    * 입력부를 펼친 채로 시작할지. 이미 본 궁합이 없으면 펼친다 — 이 화면에서 할 수

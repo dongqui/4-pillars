@@ -10,7 +10,9 @@ import { listProfiles, type ProfileRow } from "@/lib/profiles/store";
  * 같은 질문에 지도는 "가장 오래된 것" 이라고 답하고 있어서, 한 계정 안에서 두 화면이
  * 서로 다른 사람을 나로 여기기까지 했다.
  *
- * 이제 users.primary_profile_id 가 답하고, 두 화면이 같은 것을 본다.
+ * 이제 users.primary_profile_id 가 답하고, 두 화면이 같은 것을 본다. 이 값은 고정돼
+ * 있지 않다 — 홈 셀렉터에서 마지막으로 고른 사람으로 매번 움직인다(`HomeIdentity` 의
+ * `rememberPick`). 여기서 매 호출마다 새로 읽는 이유가 그것이다.
  *
  * primary 가 null 인 경우(계정이 생기기 전에 만들어진 행, 또는 그 프로필이 지워진
  * 경우)에는 **가장 오래된** 저장 프로필로 물러선다 — 퍼널을 처음 끝냈을 때 만들어진

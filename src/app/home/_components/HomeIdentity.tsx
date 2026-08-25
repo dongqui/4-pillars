@@ -6,6 +6,7 @@ import { CharacterCard } from "@/components/character-card/CharacterCard";
 import { CARD_TONES } from "@/components/character-card/tokens";
 import { MOBILE_MAX, useViewportWidth } from "@/components/useViewportWidth";
 import { HANDOFF_KEY } from "@/lib/characters/handoff";
+import { landingIndex } from "../_lib/landing-index";
 import type { HomeEntry } from "../_lib/to-home-entry";
 import { DeleteProfileDialog } from "./DeleteProfileDialog";
 import { ExploreGrid } from "./ExploreGrid";
@@ -80,6 +81,11 @@ export function HomeIdentity({ entries, canAdd, primaryProfileId }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  // "지금 계정의 나가 누구라고 믿고 있는가" — 마운트 시점 값(primaryProfileId prop)으로
+  // 시작해 고를 때마다 낙관적으로 같이 갱신된다. prop 은 마운트 시점 값에 머물러 있어
+  // 세션 안에서 한 번이라도 고르면 그 순간 낡는다 — onDeleted 가 "지운 줄이 정말 나였나"
+  // 를 물을 때 이 ref 를 봐야 한다.
+  const primaryRef = useRef(primaryProfileId);
 
   // 리빌에서 넘어온 첫 진입에만 카드가 이어받는 연출을 켠다. 신호는 한 번 쓰고 지운다.
   // state 가 아니라 클래스를 직접 붙이는 이유: 서버에는 sessionStorage 가 없어 첫
@@ -113,17 +119,23 @@ export function HomeIdentity({ entries, canAdd, primaryProfileId }: Props) {
   }, [open]);
 
   /**
-   * 고른 줄을 계정의 "나" 로 올린다 — 다음에 홈에 들어오면 이 줄이 잡혀 있고,
+   * 고른 줄을 계정의 "나" 로 기억한다 — 다음에 홈에 들어오면 이 줄이 잡혀 있고,
    * 지도·상담 주체·궁합의 "나" 도 같은 사람을 본다.
+   *
+   * ref 를 먼저 낙관적으로 갱신한다: 요청이 실패해도 서버는 여전히 이전 값을 들고
+   * 있지만, 다음 삭제에서 "지운 줄이 나였나" 를 물을 대상은 이 화면이 방금 나로
+   * 정하려 한 사람이지 서버가 실제로 받아들였는지가 아니다 — 그 판단까지 하려면
+   * 응답을 기다려야 하는데, 아래 이유로 그러지 않는다.
    *
    * 결과를 보지 않는다. 화면은 이미 넘어갔고 실패해도 잃는 것은 "다음 방문의
    * 기본값" 하나뿐인데, 성공했을 때 아무 표시도 없는 동작에 실패할 때만 빨간 줄을
    * 띄우면 사용자는 자기가 무엇을 잘못했는지 찾게 된다.
    *
-   * 아직 계정에 저장되지 않은 드래프트는 올릴 행이 없다 — 그냥 돌아간다.
+   * 아직 계정에 저장되지 않은 드래프트는 기억할 행이 없다 — 그냥 돌아간다.
    */
-  function promote(profileId: string | null) {
+  function rememberPick(profileId: string | null) {
     if (profileId === null) return;
+    primaryRef.current = profileId;
     void fetch(`/api/profiles/${profileId}/primary`, { method: "POST" }).catch(() => {});
   }
 
@@ -232,7 +244,7 @@ export function HomeIdentity({ entries, canAdd, primaryProfileId }: Props) {
                           // 보고 있던 줄을 다시 누른 것이면 바뀐 것이 없다 — 쏘지 않는다.
                           if (i !== index) {
                             setIndex(i);
-                            promote(entry.profileId);
+                            rememberPick(entry.profileId);
                           }
                           setOpen(false);
                         }}
@@ -316,21 +328,35 @@ export function HomeIdentity({ entries, canAdd, primaryProfileId }: Props) {
             triggerRef.current?.focus();
           }}
           onDeleted={() => {
-            // 지운 줄이 보고 있던 줄보다 위였으면 목록이 한 칸씩 당겨진다 — 같이 당긴다.
-            // 보고 있던 줄 자신을 지웠으면 그 자리로 올라오는 다음 줄을 그대로 본다.
-            const removed = target.index;
-
             // ⚠️ 착지한 줄을 entries 에서 그대로 읽으면 안 된다. 다이얼로그는
             // router.refresh() 를 부른 직후 이 콜백을 부르는데 새 목록은 아직 오지
-            // 않았다 — 지금 entries 에는 방금 지운 줄이 그대로 있다.
-            const rest = entries.filter((_, i) => i !== removed);
-            const landing = Math.min(removed < index ? index - 1 : index, rest.length - 1);
-            // 지운 것이 "나" 였으면 FK 가 null 로 만든다(0029 의 ON DELETE SET NULL).
-            // 화면은 다음 줄에 착지해 있는데 DB 는 null 이라 어긋난다 — 다시 맞춘다.
-            // 아무것도 안 남았으면 rest[-1] 이 undefined 라 promote 가 그냥 돌아간다.
-            promote(rest[landing]?.profileId ?? null);
+            // 않았다 — 지금 entries 에는 방금 지운 줄이 그대로 있다. landingIndex 로
+            // 살아남을 목록 기준의 자리를 따로 계산한다.
+            const landing = landingIndex(entries.length, target.index, index);
 
-            setIndex((cur) => (removed < cur ? cur - 1 : cur));
+            // 지운 줄이 "나" 였을 때만 다시 정한다. FK 는 ON DELETE SET NULL 이라 지운
+            // 프로필이 primary 였을 때만 DB 가 null 로 바뀐다 — 상관없는 줄을 지웠는데도
+            // 매번 쏘면, 이미 primary 가 null 인 계정(직전의 rememberPick 이 실패해 남은
+            // 계정)에서 지금 지운 줄과 무관한 프로필이 "나" 로 박힌다. 목록은 created_at
+            // DESC 라 그 프로필은 가장 최근 것 — 하필 상담·궁합·지도가 물러서기로 한
+            // "가장 오래된 저장 프로필" 과 정반대다.
+            //
+            // primaryProfileId prop 이 아니라 ref 를 본다: prop 은 마운트 시점 값이라
+            // 이 세션에서 한 번이라도 고르면 낡는다.
+            if (target.profileId === primaryRef.current) {
+              // 화면은 landing 자리에 착지해 있는데 DB 는 null 이라 어긋난다 — 다시
+              // 맞춘다. 아무것도 안 남았으면 landing 이 -1 이라 rest[-1] 은 undefined 고,
+              // rememberPick 이 그냥 돌아간다.
+              const rest = entries.filter((_, i) => i !== target.index);
+              rememberPick(rest[landing]?.profileId ?? null);
+            }
+
+            // landing 을 그대로 setIndex 에 넣으면 안 된다 — 마지막 한 줄을 지운 경우
+            // -1 이 되는데, 서버의 새 목록이 아직 도착하지 않은 이 순간에는 entries 가
+            // 여전히 옛 길이라 entries[-1] 은 undefined 가 되어 active.initial 에서
+            // 렌더가 죽는다. 0 으로 바닥을 깐다 — 그 경우 페이지가 곧 빈 상태로 바뀌며
+            // 이 컴포넌트째 사라지니 0 은 그 잠깐 동안의 안전한 자리일 뿐이다.
+            setIndex(Math.max(0, landing));
             setTarget(null);
             setOpen(false);
           }}
