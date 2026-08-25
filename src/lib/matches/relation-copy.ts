@@ -23,7 +23,12 @@ export type VariantSectionKey =
   | "advice"; // 10 잘 지내는 법
 
 export interface RelationCopy {
-  /** SectionHeading 의 작은 라벨 (`03 · 마음이 가까워지는 순간`) */
+  /**
+   * SectionHeading 의 작은 라벨 (`03 · 마음이 가까워지는 순간`) 이면서 동시에
+   * relationAngleBlocks 가 프롬프트에 싣는 관점 블록의 헤더(`[이 관계에서 볼 장면 ·
+   * ${category}]`)이기도 하다. 화면 문구만 다듬는다고 여기고 고치면 프롬프트도
+   * 같이 바뀐다.
+   */
   category: string;
   /** SectionHeading 의 큰 제목 */
   title: string;

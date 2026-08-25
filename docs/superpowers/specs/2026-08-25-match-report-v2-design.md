@@ -185,10 +185,11 @@ export const RELATION_COPY = {
 
 | 콜 키 | variants | 근거 |
 |---|---|---|
-| `verdict` · `chemistry` · `bond` | `[]` | §17 「영향을 적게/어느 정도 받는 섹션」 — 기존 `lens` 한 줄로 충분 |
+| `verdict` · `bond` | `[]` | §17 「영향을 적게 받는 섹션」(01·04·05) — 기존 `lens` 한 줄로 충분 |
+| `chemistry` | `[]` | §17 은 02 를 「어느 정도」(실제 호흡이 나타나는 장면은 유형에 맞춘다) 로 분류하지만, §5 의 02 카피 자체가 유형 무관 서술이라 관점 블록을 얹을 자리가 없다. 「적게」 tier 와 같은 처리가 되는 것은 의도한 결과이지 §17 을 그대로 따른 것은 아니다 |
 | `closeness` | `["closeness"]` | |
 | `together` | `["presence", "continuity"]` | 한 콜이 두 화면을 만든다 |
-| `conflict` | `["recovery"]` | 08은 §17 「어느 정도」, 09는 「크게」 |
+| `conflict` | `["recovery"]` | 09(recovery)만 관점 블록을 받는다. 08(triggers)은 §17 이 「어느 정도」로 분류하지만 별도 블록을 두지 않는다 — conflict 가 묶음 콜이라 09 에 실리는 recovery 관점 블록을 08 triggers 도 같은 응답 안에서 함께 본다. 08 단독으로는 「적게」 tier 와 같은 처리다 |
 | `advice` | `["advice"]` | |
 
 `buildMatchSectionRequest` 가 `[사실]` 다음, `[요청]` 앞에 블록을 끼운다:
@@ -281,14 +282,20 @@ DELETE FROM match_sections WHERE section_key IN ('eachSide', 'moments', 'bridge'
 
 ### 기존 궁합의 재생성 비용
 
-기존 궁합을 다시 열면 일곱 콜이 전부 새로 나간다. `spendTicket` 은
-`entitlements_unique` 때문에 같은 `matchId` 에 두 번 차감하지 않으므로
-(`kind: "already"`), **사용자는 무료이고 LLM 원가는 우리가 부담한다.**
+기존 궁합을 다시 열면 일곱 콜이 전부 새로 나간다 — 다만 이 중 다섯(`closeness`·
+`bond`·`together`·`conflict`·`advice`)은 옛 스키마(다섯 섹션: 총평·케미·서로에게·
+흔들리는 순간·다가가는 법)에 아예 없던 새 키라서, 버전을 올리든 안 올리든 어차피
+새로 나간다. `verdict`·`chemistry` 의 version 2 범프가 실제로 늘리는 비용은 이
+둘뿐이다 — 일곱 콜 중 둘, 옛 값을 그대로 썼다면 다섯 콜로 끝났을 것을 일곱으로
+만드는 차이다. `spendTicket` 은 `entitlements_unique` 때문에 같은 `matchId` 에
+두 번 차감하지 않으므로(`kind: "already"`), **사용자는 무료이고 LLM 원가는 우리가
+부담한다.**
 
-이것을 알고 고른 것이다. `verdict`·`chemistry` 만 살릴 수도 있었지만, 그러면 새 규칙
-(§4 「뒤에서 다룰 행동 패턴을 총평에서 미리 소비하지 않는다」·유형별 관점)이 걸리지 않은
-옛 총평이 새 섹션과 같은 말을 하는 겹침을 막을 수 없다. 한 리포트 안에서 두 문체가
-섞이지 않는 쪽을 택했다.
+이것을 알고 고른 것이다. `verdict`·`chemistry` 를 version 1 그대로 살릴 수도
+있었지만(정확히는 이 둘만의 재생성을 아꼈을 것이다), 그러면 새 규칙(§4 「뒤에서
+다룰 행동 패턴을 총평에서 미리 소비하지 않는다」·유형별 관점)이 걸리지 않은 옛
+총평이 새 섹션과 같은 말을 하는 겹침을 막을 수 없다. 두 콜만큼의 추가 원가로 한
+리포트 안에서 두 문체가 섞이지 않는 쪽을 택했다.
 
 ---
 

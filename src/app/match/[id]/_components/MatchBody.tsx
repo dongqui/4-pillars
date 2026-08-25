@@ -130,7 +130,10 @@ export function MatchBody({
               <InfoCard label="내가 받는 변화">{bond.changeInMe}</InfoCard>
               <InfoCard label="상대가 받는 변화">{bond.changeInYou}</InfoCard>
             </CardGrid>
-            <NoteCard>{bond.changeBetween}</NoteCard>
+            <div className="mt-7">
+              <div className={GROUP}>둘 사이에 생기는 변화</div>
+              <NoteCard>{bond.changeBetween}</NoteCard>
+            </div>
           </Section>
         </>
       )}
@@ -157,9 +160,12 @@ export function MatchBody({
             <CardGrid>
               <InfoCard label="갈등이 시작되면">{conflict.onset}</InfoCard>
               <InfoCard label="감정이 커지면">{conflict.escalation}</InfoCard>
-              <InfoCard label="다시 맞춰 갈 때">{conflict.recovery}</InfoCard>
+              <InfoCard label="다시 관계를 회복할 때">{conflict.recovery}</InfoCard>
             </CardGrid>
-            <NoteCard>{conflict.blindSpot}</NoteCard>
+            <div className="mt-7">
+              <div className={GROUP}>놓치기 쉬운 부분</div>
+              <NoteCard>{conflict.blindSpot}</NoteCard>
+            </div>
           </Section>
         </>
       )}
