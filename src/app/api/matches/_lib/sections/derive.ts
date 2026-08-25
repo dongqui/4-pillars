@@ -25,7 +25,7 @@ export function matchSectionVersion(key: MatchSectionKey): number {
 }
 
 /**
- * LLM tool 의 input_schema. 최상위가 객체여야 하는데 배열인 섹션(moments)이 있어서
+ * LLM tool 의 input_schema. 최상위가 객체여야 하는데 배열인 섹션(closeness)이 있어서
  * 전부 { content: ... } 한 겹으로 감싼다 — 리포트와 같은 계약이다.
  */
 export function matchLlmInputSchema(key: MatchSectionKey): Record<string, unknown> {

@@ -38,6 +38,16 @@ describe("decodeMatchSections", () => {
     expect(out.have.verdict).toEqual(verdict);
     expect(out.missing).toEqual([]);
   });
+
+  it("version 2 로 올라간 섹션의 옛 행은 missing 이다 — v2 개편분이 다시 생성된다", () => {
+    expect(MATCH_SECTIONS.verdict.version).toBe(2);
+    const out = decodeMatchSections(
+      [{ section_key: "verdict", content: verdict, schema_version: 1 }],
+      ["verdict"],
+    );
+    expect(out.have.verdict).toBeUndefined();
+    expect(out.missing).toEqual(["verdict"]);
+  });
 });
 
 describe("쿼리", () => {

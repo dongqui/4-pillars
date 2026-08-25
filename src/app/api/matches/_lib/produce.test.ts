@@ -25,17 +25,17 @@ describe("produceMatchSections", () => {
   });
 
   it("없는 섹션만 생성한다", async () => {
-    // moments 는 최소 2개인데 목이 1개만 줘서 검증에서 걸린다 — 이 테스트가
-    // 보는 건 호출 인자뿐이라 상관없지만, 그 경고가 콘솔을 더럽히지 않게 죽인다.
+    // closeness 는 최소 두 개인데 목이 하나만 줘서 검증에서 걸린다 — 이 테스트가
+    // 노리는 것이 그 검증이다.
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const generateSections = vi.fn().mockResolvedValue({ moments: [{ label: "가", body: "나" }] });
+    const generateSections = vi.fn().mockResolvedValue({ closeness: [{ label: "가", body: "나" }] });
     await produceMatchSections("1", ctx, {
       generator: { model: "m", generateSections },
-      getStored: async () => ({ have: { verdict }, missing: ["moments"] }),
+      getStored: async () => ({ have: { verdict }, missing: ["closeness"] }),
       putStored: async () => {},
-      sectionKeys: ["verdict", "moments"],
+      sectionKeys: ["verdict", "closeness"],
     });
-    expect(generateSections).toHaveBeenCalledWith(ctx, ["moments"]);
+    expect(generateSections).toHaveBeenCalledWith(ctx, ["closeness"]);
     warn.mockRestore();
   });
 
@@ -56,9 +56,9 @@ describe("produceMatchSections", () => {
   it("생성 실패는 이미 확보한 섹션을 싣고 던진다", async () => {
     const promise = produceMatchSections("1", ctx, {
       generator: { model: "m", generateSections: async () => { throw new Error("down"); } },
-      getStored: async () => ({ have: { verdict }, missing: ["moments"] }),
+      getStored: async () => ({ have: { verdict }, missing: ["closeness"] }),
       putStored: async () => {},
-      sectionKeys: ["verdict", "moments"],
+      sectionKeys: ["verdict", "closeness"],
     });
     await expect(promise).rejects.toBeInstanceOf(MatchGenerationError);
     await promise.catch((e: MatchGenerationError) => {

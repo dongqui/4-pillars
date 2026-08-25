@@ -9,8 +9,26 @@ import {
 } from "./index";
 
 describe("MATCH_SECTIONS", () => {
-  it("다섯 섹션이다", () => {
-    expect(MATCH_SECTION_KEYS).toEqual(["verdict", "chemistry", "eachSide", "moments", "bridge"]);
+  it("일곱 섹션이다 — 화면 열 개를 일곱 콜이 만든다", () => {
+    expect(MATCH_SECTION_KEYS).toEqual([
+      "verdict",
+      "chemistry",
+      "closeness",
+      "bond",
+      "together",
+      "conflict",
+      "advice",
+    ]);
+  });
+
+  it("관점 블록을 쓰는 섹션만 variants 를 갖는다", () => {
+    expect(MATCH_SECTIONS.verdict.variants).toEqual([]);
+    expect(MATCH_SECTIONS.chemistry.variants).toEqual([]);
+    expect(MATCH_SECTIONS.bond.variants).toEqual([]);
+    expect(MATCH_SECTIONS.closeness.variants).toEqual(["closeness"]);
+    expect(MATCH_SECTIONS.together.variants).toEqual(["presence", "continuity"]);
+    expect(MATCH_SECTIONS.conflict.variants).toEqual(["recovery"]);
+    expect(MATCH_SECTIONS.advice.variants).toEqual(["advice"]);
   });
 
   // example 은 문체를 잡아주는 톤 샘플이지 개수 제약까지 지킬 필요는 없다
@@ -48,7 +66,7 @@ describe("파생", () => {
   });
 
   it("llm 스키마는 { content } 한 겹으로 감싼다 — 최상위가 배열인 섹션이 있다", () => {
-    const schema = matchLlmInputSchema("moments");
+    const schema = matchLlmInputSchema("closeness");
     expect(schema.type).toBe("object");
     expect(Object.keys(schema.properties as object)).toEqual(["content"]);
     expect(schema.required).toEqual(["content"]);
