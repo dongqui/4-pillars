@@ -30,9 +30,9 @@
 | 06 | `decisions` | 선택과 결정 | 중요한 순간, 나는 어떻게 움직일까 | paid · **신규** |
 | 07 | `workStyle` | 일하는 방식 | 일할 때 드러나는 나만의 리듬 | paid · **신규** |
 | 08 | `environment` | 잘 맞는 환경 | 능력이 잘 드러나는 조건 | paid · 직무 팁 추가 |
-| 09 | `relating` | 사람을 대하는 방식 | 관계에서의 나 | paid · CTA 제거 |
+| 09 | `relating` | 사람을 대하는 방식 | 관계에서의 나 | paid · 관계 지도 CTA |
 | 10 | `love` | 연애와 관계 | 연애할 때 반복되는 관계 패턴 | paid |
-| 11 | `compatibility` | 궁합 | 당신과 잘 맞는 사람의 특징 | paid · CTA 이동 |
+| 11 | `compatibility` | 궁합 | 당신과 잘 맞는 사람의 특징 | paid · 궁합 CTA |
 | 12 | `wealth` | 재물 | 돈이 모이는 방식과 새어나가는 지점 | paid |
 | 13 | `playbook` | 나를 잘 쓰는 법 | 내 성향을 내 편으로 만드는 방법 | paid · **신규** |
 
@@ -185,20 +185,48 @@ roleNote: z.string().min(1),
 `NoteCard.tsx`에 같은 껍데기를 공유하는 `TipCard`를 추가한다 (`NoteCard`는 children을
 `<p>`로 감싸서 칩을 못 담는다). 카드 배경·테두리 클래스는 상수로 뽑아 둘이 공유한다.
 
-### 4. 궁합 보기 CTA 이동
+### 4. CTA 두 장 — 09는 관계 지도, 11은 궁합
 
-`RelatingSection`(09) 하단의 어두운 CTA 카드를 `CompatibilitySection`(11)의 두 카드
-아래로 옮긴다.
+지금 CTA는 `RelatingSection`(09) 하단에 한 장뿐이고, 아무 데도 안 가는 `<button>`이다.
+이걸 두 장으로 나눠 각 섹션이 자기 다음 행동을 갖게 한다.
 
-- `<button>` → `<a>`. 지금은 아무 데도 안 가는 버튼이다.
-- 목적지: 로그인 상태면 `/match`, 아니면 `/login?next=%2Fmatch`.
-  (`/match/page.tsx`가 이미 비로그인을 `/login?next=/match`로 보내지만, 링크를 눌러
-  한 번 튕기게 두는 것보다 처음부터 맞는 곳으로 보낸다.)
-- `ReportBody`가 `access.isLoggedIn`을 `CompatibilitySection`에 내려준다.
-- 문구 교체: 바로 위 섹션이 이미 "잘 맞는 유형"을 답하므로
-  "나와 잘 맞는 사람은 어떤 유형일까요?" → "실제 상대와의 궁합이 궁금하다면",
-  본문은 "상대방의 생년월일을 입력하면 두 사람 사이의 흐름을 볼 수 있어요.",
-  버튼은 그대로 "궁합 보기 →".
+**09 관계에서의 나 → 관계 지도**
+
+- 제목: "내 주변 사람들은 나에게 어떤 자리일까요?"
+- 본문: "한 사람씩 추가하면 그 사람이 나에게 어떤 역할인지 보여요. 몇 명이든 무료예요."
+- 버튼: "관계 지도 열기 →"
+- 목적지: 로그인 상태면 `/map`, 아니면 `/login?next=%2Fmap`
+
+관계를 맺는 방식을 읽은 직후에 "그 관계들이 실제로 어떻게 놓여 있는지"로 잇는 자리다.
+지도는 이용권을 쓰지 않으므로 문구에 무료를 적는다 (`_lib/catalog.ts`의 관계 지도
+항목과 같은 결).
+
+**11 궁합 → 궁합 보기**
+
+- 제목: "실제 상대와의 궁합이 궁금하다면"
+- 본문: "상대방의 생년월일을 입력하면 두 사람 사이의 흐름을 볼 수 있어요."
+- 버튼: "궁합 보기 →"
+- 목적지: 로그인 상태면 `/match`, 아니면 `/login?next=%2Fmatch`
+
+기존 문구("나와 잘 맞는 사람은 어떤 유형일까요?")를 그대로 옮기지 않는 이유: 바로 위
+두 카드가 이미 그 질문의 답이라, 답 밑에 같은 질문을 다시 두면 카드가 안 읽힌 것처럼
+보인다.
+
+**공통**
+
+- 두 카드가 모양이 같으므로 `report/_components/CtaCard.tsx`로 뽑는다:
+  `{ title, desc, label, href }`. 기존 어두운 카드(`bg-slate-900`) 스타일을 그대로 옮긴다.
+- `<button>` → `<a>`.
+- 목적지 계산도 한 곳에 둔다: `ctaHref(path, isLoggedIn)` —
+  `isLoggedIn ? path : "/login?next=" + encodeURIComponent(path)`.
+  (`LockedSections`가 이미 쓰는 형태다.) `/map`·`/match` 둘 다 서버에서 비로그인을
+  로그인으로 넘기지만, 링크를 눌러 한 번 튕기게 두는 것보다 처음부터 맞는 곳으로 보낸다.
+- `ReportBody`가 `access.isLoggedIn`을 두 섹션에 내려준다.
+
+⚠️ 09·11 모두 유료 섹션이라, 지금 게이팅에서는 이 카드를 보는 사람이 사실상 항상
+로그인 상태다(`profile.isUnlocked`가 세션을 요구한다). 비로그인 분기는 개발용
+`?paid=true` 경로와, 나중에 게이팅이 바뀔 때를 위한 것이다 — 지워도 당장은 티가 안
+나지만 지우지 않는다.
 
 ### 5. luck 축 제거
 
@@ -271,6 +299,7 @@ environment?: { …기존; roles: string[]; roleNote: string };
 - `npm run lint`
 - `npm run db:migrate`로 0033 적용
 - `/report?paid=true`로 13섹션 렌더 확인, 무료 경로에서 잠금 9개 확인
+- 09·11의 CTA 링크가 각각 `/map`·`/match`로 가는지, 비로그인일 때 `?next`가 붙는지 (`ctaHref` 단위 테스트)
 
 ## 하지 않는 것
 
