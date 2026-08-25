@@ -14,6 +14,11 @@ interface Props {
   entries: HomeEntry[];
   /** 프로필을 더 만들 수 있는지 — 한도에 닿으면 추가 버튼을 잠근다 */
   canAdd: boolean;
+  /**
+   * 지난번에 고른 프로필(users.primary_profile_id). 비로그인이거나 아직 아무것도
+   * 고르지 않았으면 null — 그때는 첫 줄로 물러선다.
+   */
+  primaryProfileId: string | null;
 }
 
 /** 셀렉터에서 삭제를 누른 줄. 다이얼로그가 열려 있는 동안만 값이 있다 */
@@ -58,10 +63,17 @@ function TrashGlyph() {
  * 셋을 한 컴포넌트에 두는 이유는 "보고 있는 사주" 하나가 세 곳을 동시에 바꾸기
  * 때문이다 — 셀렉터를 넘기면 카드도 리포트 링크도 같이 따라가야 한다.
  */
-export function HomeIdentity({ entries, canAdd }: Props) {
+export function HomeIdentity({ entries, canAdd, primaryProfileId }: Props) {
   const vw = useViewportWidth();
   const mobile = vw < MOBILE_MAX;
-  const [index, setIndex] = useState(0);
+  // 서버가 준 것은 index 가 아니라 id 다 — index 는 목록이 한 줄이라도 바뀌는 순간
+  // 다른 사람을 가리키는 숫자가 되고, 서버와 클라가 같은 목록을 본다는 가정이
+  // 어디에도 적히지 않는다. 못 찾으면(지워졌거나 드래프트뿐이면) 첫 줄이다.
+  const [index, setIndex] = useState(() => {
+    if (primaryProfileId === null) return 0;
+    const i = entries.findIndex((e) => e.profileId === primaryProfileId);
+    return i === -1 ? 0 : i;
+  });
   const [open, setOpen] = useState(false);
   const [target, setTarget] = useState<DeleteTarget | null>(null);
   const panelId = useId();
@@ -99,6 +111,21 @@ export function HomeIdentity({ entries, canAdd }: Props) {
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
+
+  /**
+   * 고른 줄을 계정의 "나" 로 올린다 — 다음에 홈에 들어오면 이 줄이 잡혀 있고,
+   * 지도·상담 주체·궁합의 "나" 도 같은 사람을 본다.
+   *
+   * 결과를 보지 않는다. 화면은 이미 넘어갔고 실패해도 잃는 것은 "다음 방문의
+   * 기본값" 하나뿐인데, 성공했을 때 아무 표시도 없는 동작에 실패할 때만 빨간 줄을
+   * 띄우면 사용자는 자기가 무엇을 잘못했는지 찾게 된다.
+   *
+   * 아직 계정에 저장되지 않은 드래프트는 올릴 행이 없다 — 그냥 돌아간다.
+   */
+  function promote(profileId: string | null) {
+    if (profileId === null) return;
+    void fetch(`/api/profiles/${profileId}/primary`, { method: "POST" }).catch(() => {});
+  }
 
   const active = entries[Math.min(index, entries.length - 1)];
 
@@ -202,7 +229,11 @@ export function HomeIdentity({ entries, canAdd }: Props) {
                         role="option"
                         aria-selected={i === index}
                         onClick={() => {
-                          setIndex(i);
+                          // 보고 있던 줄을 다시 누른 것이면 바뀐 것이 없다 — 쏘지 않는다.
+                          if (i !== index) {
+                            setIndex(i);
+                            promote(entry.profileId);
+                          }
                           setOpen(false);
                         }}
                         className={`flex min-w-0 flex-1 cursor-pointer items-start gap-2.5 py-3 pl-3.5 pr-1 text-left ${rowBg}`}
@@ -288,6 +319,17 @@ export function HomeIdentity({ entries, canAdd }: Props) {
             // 지운 줄이 보고 있던 줄보다 위였으면 목록이 한 칸씩 당겨진다 — 같이 당긴다.
             // 보고 있던 줄 자신을 지웠으면 그 자리로 올라오는 다음 줄을 그대로 본다.
             const removed = target.index;
+
+            // ⚠️ 착지한 줄을 entries 에서 그대로 읽으면 안 된다. 다이얼로그는
+            // router.refresh() 를 부른 직후 이 콜백을 부르는데 새 목록은 아직 오지
+            // 않았다 — 지금 entries 에는 방금 지운 줄이 그대로 있다.
+            const rest = entries.filter((_, i) => i !== removed);
+            const landing = Math.min(removed < index ? index - 1 : index, rest.length - 1);
+            // 지운 것이 "나" 였으면 FK 가 null 로 만든다(0029 의 ON DELETE SET NULL).
+            // 화면은 다음 줄에 착지해 있는데 DB 는 null 이라 어긋난다 — 다시 맞춘다.
+            // 아무것도 안 남았으면 rest[-1] 이 undefined 라 promote 가 그냥 돌아간다.
+            promote(rest[landing]?.profileId ?? null);
+
             setIndex((cur) => (removed < cur ? cur - 1 : cur));
             setTarget(null);
             setOpen(false);

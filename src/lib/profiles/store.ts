@@ -45,8 +45,9 @@ export class CounterpartLimitError extends Error {
  *           subject/counterpart 컬럼이 안다.
  *
  * ⚠️ "누가 나인가" 는 여기 없다. 계정당 하나뿐인 사실이라 users.primary_profile_id
- * 가 답한다. 예전에는 kind='self' 가 그 대역을 겸했는데, self 가 20개까지 있을 수
- * 있어 대역이 되지 못했다 — 상담과 지도가 서로 반대인 휴리스틱으로 때우고 있었다.
+ * 가 답한다 — 홈 셀렉터에서 마지막으로 고른 사람이다. 예전에는 kind='self' 가 그
+ * 대역을 겸했는데, self 가 20개까지 있을 수 있어 대역이 되지 못했다 — 상담과 지도가
+ * 서로 반대인 휴리스틱으로 때우고 있었다.
  */
 export type ProfileKind = "saved" | "temp";
 

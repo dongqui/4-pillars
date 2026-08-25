@@ -40,6 +40,8 @@ export default async function HomePage({
   let balance: number | null = null;
   let entries: HomeEntry[] = [];
   let canAdd = true;
+  /** 마지막으로 고른 프로필. 비로그인이거나 아직 아무것도 고르지 않았으면 null */
+  let primaryProfileId: string | null = null;
 
   if (session) {
     const [user, rows, tickets] = await Promise.all([
@@ -48,6 +50,7 @@ export default async function HomePage({
       getBalance(session.userId),
     ]);
     displayName = resolveDisplayName(user);
+    primaryProfileId = user?.primaryProfileId ?? null;
     entries = rows.map(toHomeEntry);
     canAdd = rows.length < MAX_PROFILES;
     balance = tickets;
@@ -76,7 +79,11 @@ export default async function HomePage({
       {entries.length === 0 ? (
         <EmptyState />
       ) : (
-        <HomeIdentity entries={entries} canAdd={canAdd} />
+        <HomeIdentity
+          entries={entries}
+          canAdd={canAdd}
+          primaryProfileId={primaryProfileId}
+        />
       )}
     </div>
   );
