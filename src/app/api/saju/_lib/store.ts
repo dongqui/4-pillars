@@ -34,8 +34,10 @@ export interface CachedSections {
 }
 
 /**
- * 섹션 행 배열을 have/missing 으로 가른다. 테이블 이름과 무관해서
- * chart 캐시와 luck 캐시가 같이 쓴다.
+ * 섹션 행 배열을 have/missing 으로 가른다. 행이 어느 테이블에서 왔는지는 보지 않고
+ * section_key·schema_version·content 세 컬럼만 본다 — 캐시 테이블이 늘어도 "무엇을
+ * 버릴지"의 판정이 테이블마다 갈라지지 않게 하려는 것이다. 궁합 쪽 store 는 자기
+ * 테이블을 따로 두면서도 아래 두 경우를 그대로 따라 쓴다.
  *
  * 행을 버리는 두 경우:
  *  - schema_version 불일치: 스키마가 바뀌었으니 옛 값은 못 쓴다
