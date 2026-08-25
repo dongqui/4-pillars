@@ -124,13 +124,3 @@ export const sampleReport: ReportContent = {
     emphasis: "긴 호흡의 적립식",
   },
 };
-
-/** 무료 사용자용 05–12 잠금 목록 (Saju Result.dc.html L233–290) */
-export const lockedSections: import("./report-content").LockedSectionMeta[] = [
-  { no: "05", category: "감정과 스트레스", title: "힘들 때 이런 패턴이 나타나요" },
-  { no: "06", category: "사람을 대하는 방식", title: "관계에서의 나" },
-  { no: "07", category: "잘 맞는 환경", title: "능력이 잘 드러나는 조건" },
-  { no: "08", category: "연애와 관계", title: "연애할 때 반복되는 관계 패턴" },
-  { no: "09", category: "궁합", title: "당신과 잘 맞는 사람의 특징" },
-  { no: "10", category: "재물", title: "돈이 모이는 방식과 새어나가는 지점" },
-];

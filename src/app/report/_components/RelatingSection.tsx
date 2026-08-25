@@ -4,7 +4,7 @@ import type { KeyValue } from "../_lib/report-content";
 export function RelatingSection({ rows }: { rows: KeyValue[] }) {
   return (
     <section className="mt-[72px]">
-      <SectionHeading no="06" category="사람을 대하는 방식" title="관계에서의 나" />
+      <SectionHeading section="relating" />
       <div className="border border-slate-200 rounded-2xl overflow-hidden">
         {rows.map((row, i) => (
           <div

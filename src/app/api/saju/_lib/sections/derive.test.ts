@@ -7,6 +7,8 @@ import {
   isSectionKey,
   llmInputSchema,
   parseSectionContent,
+  paidSectionHeadings,
+  sectionHeading,
   sectionVersion,
   type Interpretation,
 } from "./derive";
@@ -89,5 +91,32 @@ describe("parseSectionContent", () => {
       .toEqual({ outward: "겉", inner: "속" });
     expect(parseSectionContent("outerVsInner", { outward: "겉" })).toBeNull();
     expect(parseSectionContent("strengths", "문자열")).toBeNull();
+  });
+});
+
+describe("sectionHeading", () => {
+  it("번호는 레지스트리 선언 순서에서 나온다", () => {
+    expect(sectionHeading("overview").no).toBe("01");
+    expect(sectionHeading(SECTION_KEYS[SECTION_KEYS.length - 1]).no)
+      .toBe(String(SECTION_KEYS.length).padStart(2, "0"));
+  });
+
+  it("모든 섹션이 번호·카테고리·제목을 갖는다", () => {
+    const nos = SECTION_KEYS.map((k) => sectionHeading(k).no);
+    expect(new Set(nos).size, "번호가 겹친다").toBe(SECTION_KEYS.length);
+    for (const key of SECTION_KEYS) {
+      const h = sectionHeading(key);
+      expect(h.category.length, key).toBeGreaterThan(0);
+      expect(h.title.length, key).toBeGreaterThan(0);
+    }
+  });
+
+  it("잠금 목록은 유료 섹션을 화면과 같은 순서·번호로 준다", () => {
+    const locked = paidSectionHeadings();
+    expect(locked.map((l) => l.no)).toEqual(
+      PAID_SECTION_KEYS.map((k) => sectionHeading(k).no),
+    );
+    // 무료 섹션은 잠기지 않는다
+    expect(locked).toHaveLength(PAID_SECTION_KEYS.length);
   });
 });

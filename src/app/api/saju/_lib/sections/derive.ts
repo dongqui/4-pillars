@@ -28,6 +28,30 @@ export function sectionVersion(key: SectionKey): number {
   return spec(key).version;
 }
 
+/** 화면 머리말 한 줄. no 는 레지스트리 선언 순서에서 나온다. */
+export interface SectionHeadingMeta {
+  no: string;
+  category: string;
+  title: string;
+}
+
+export function sectionHeading(key: SectionKey): SectionHeadingMeta {
+  const { category, title } = spec(key).heading;
+  return {
+    no: String(SECTION_KEYS.indexOf(key) + 1).padStart(2, "0"),
+    category,
+    title,
+  };
+}
+
+/**
+ * 무료 사용자에게 보여줄 잠금 목록. 화면이 그리는 것과 같은 순서·번호다 —
+ * 목록을 따로 손으로 적어 두면 섹션 순서를 바꿀 때 조용히 어긋난다.
+ */
+export function paidSectionHeadings(): SectionHeadingMeta[] {
+  return PAID_SECTION_KEYS.map(sectionHeading);
+}
+
 /**
  * LLM tool 의 input_schema. 최상위가 객체여야 하는데 배열인 섹션이 있어서
  * 전부 { content: ... } 한 겹으로 감싼다. 응답에서 .content 를 벗겨 검증한다.

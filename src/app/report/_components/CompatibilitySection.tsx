@@ -4,7 +4,7 @@ import { CardGrid } from "./CardGrid";
 export function CompatibilitySection({ good, clash }: { good: string[]; clash: string[] }) {
   return (
     <section className="mt-[72px]">
-      <SectionHeading no="09" category="궁합" title="당신과 잘 맞는 사람의 특징" />
+      <SectionHeading section="compatibility" />
       <CardGrid>
         <div className="border border-accent-200 bg-accent-50 rounded-2xl px-[22px] py-5">
           <div className="text-[13px] font-bold text-accent mb-2.5">잘 맞는 유형</div>

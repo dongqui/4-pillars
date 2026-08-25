@@ -35,7 +35,7 @@ export function EnvironmentSection({
 }) {
   return (
     <section className="mt-[72px]">
-      <SectionHeading no="07" category="잘 맞는 환경" title="능력이 잘 드러나는 조건" />
+      <SectionHeading section="environment" />
       <CardGrid>
         <div className="border border-accent-200 bg-accent-50 rounded-2xl px-[22px] py-5">
           <div className="text-[13px] font-bold text-accent mb-3.5">힘이 나는 조건</div>

@@ -25,6 +25,12 @@ export interface SectionSpec {
    * "쓰지 말라"는 규칙보다 예시가 이긴다. 픽스처에서 옮겨올 때 숫자를 지웠다.
    */
   example: string;
+  /**
+   * 화면 머리말. 번호는 여기 없다 — 아래 SECTIONS 의 선언 순서에서 나온다
+   * (derive.ts: sectionHeading). 잠금 목록도 같은 자리에서 파생되므로
+   * 화면과 잠금이 어긋날 수 없다.
+   */
+  heading: { category: string; title: string };
 }
 
 const shortList = (min: number, max: number) => z.array(z.string().min(1)).min(min).max(max);
@@ -32,7 +38,11 @@ const shortList = (min: number, max: number) => z.array(z.string().min(1)).min(m
 /**
  * 해석 섹션의 유일한 정의. section_key = 이 객체의 키.
  *
- * 계산값(원국·오행·신강약·대운 기간)은 여기 없다. LLM 서술만 담고,
+ * ⚠️ **선언 순서 = 화면 순서 = 섹션 번호다.** SECTION_KEYS 가 Object.keys 로
+ * 이 순서를 그대로 쓰고, sectionHeading 이 그 인덱스로 "01"…을 만든다.
+ * 순서를 바꾸면 화면 번호와 잠금 목록이 함께 움직인다 — 한쪽만 고칠 자리가 없다.
+ *
+ * 계산값(원국·오행·신강약)은 여기 없다. LLM 서술만 담고,
  * 숫자는 조립 단계에서 SajuAnalysis 로 채운다 — LLM 이 숫자를 지어내지 못하게 하려고.
  */
 export const SECTIONS = {
@@ -72,6 +82,7 @@ export const SECTIONS = {
     ].join("\n"),
     example:
       '{"headline":"겉으로는 차분하지만, 자신만의 기준과 승부욕이 강한 사람","summary":"사람들과 잘 어울리지만, 혼자 생각을 정리하는 시간이 꼭 필요한 타입이에요.","traits":[{"title":"신중한 관찰자","body":"상황을 먼저 파악한 뒤 움직여요. 말보다 판단이 앞서는 이유예요.","basis":"일간 갑목이 인월의 단단한 뿌리 위에 서 있어서 그래요."}]}',
+    heading: { category: "핵심 성향", title: "이렇게 보이는 데는 이유가 있어요" },
   },
 
   outerVsInner: {
@@ -84,6 +95,7 @@ export const SECTIONS = {
       "남에게 보이는 모습(outward)과 속마음(inner)의 차이를 각각 2~3문장으로 대비시켜 써라.",
     example:
       '{"outward":"침착하고 단단한 사람. 감정 기복이 적고, 맡은 일은 조용히 끝까지 해내는 믿음직한 인상을 줘요.","inner":"관계와 선택을 오래 고민하는 편. 결정 전에 수많은 경우의 수를 혼자 돌려보느라, 겉보다 속이 훨씬 바빠요."}',
+    heading: { category: "겉과 속", title: "남이 보는 나 vs 실제 내면" },
   },
 
   strengths: {
@@ -93,6 +105,7 @@ export const SECTIONS = {
     prompt: "강점을 2~4개, 각각 제목과 1~2문장 본문으로 써라. 제목은 서술형 문장으로.",
     example:
       "[{\"title\":\"복잡한 상황의 핵심을 빠르게 파악해요\",\"body\":\"회의가 산으로 갈 때 '그래서 결정할 건 이거죠'라고 정리하는 쪽이에요.\"}]",
+    heading: { category: "타고난 강점", title: "이런 순간에 빛나요" },
   },
 
   cautions: {
@@ -105,6 +118,7 @@ export const SECTIONS = {
       "주의할 점을 2~4개 각각 두세 문장으로 쓰고, 이를 보완할 실천 팁(tip)을 한 문단으로 덧붙여라.",
     example:
       '{"items":["충분히 잘하고 있어도 스스로 만족하지 못할 수 있어요. 기준이 늘 자기 자신이라, 남의 인정이 와도 잘 안 쌓여요."],"tip":"완벽하게 정리된 뒤 말하려 하기보다, 생각이 절반쯤 정리됐을 때 먼저 표현해 보세요. 관계도 일도 훨씬 가벼워져요."}',
+    heading: { category: "주의할 패턴", title: "나도 모르게 반복하는 것들" },
   },
 
   emotion: {
@@ -115,16 +129,7 @@ export const SECTIONS = {
       "감정 패턴을 2~4개 항목으로 나눠라. label 은 상황(예: 스트레스가 쌓이는 상황), body 는 그 상황에서의 반응을 2~3문장으로.",
     example:
       '[{"label":"스트레스가 쌓이는 상황","body":"내 뜻대로 할 수 없는 상황이 계속될 때. 특히 결정권 없이 책임만 지는 구조에서 크게 소모돼요."}]',
-  },
-
-  relating: {
-    version: 2,
-    tier: "paid",
-    schema: z.array(KeyValue).min(3).max(6),
-    prompt:
-      "관계를 맺는 방식을 3~6개 항목으로 정리하라. label 은 관점, value 는 한 문장 이내의 짧은 값.",
-    example:
-      '[{"label":"처음 만날 때","value":"거리를 두고 관찰부터. 먼저 다가가기보다 상대를 파악한 뒤 마음을 열어요."}]',
+    heading: { category: "감정과 스트레스", title: "힘들 때 이런 패턴이 나타나요" },
   },
 
   environment: {
@@ -143,6 +148,18 @@ export const SECTIONS = {
     // emphasis 가 summary 안에 그대로 들어 있는 예시다 — 화면이 부분 문자열로 찾는다.
     example:
       '{"energizing":["방법은 맡기고 결과로 평가하는 팀"],"draining":["과정을 자주 보고해야 하는 관리 방식"],"summary":"정해진 방식만 반복하는 환경보다, 스스로 판단하고 개선할 여지가 있는 환경에서 능력이 잘 드러나요.","emphasis":"스스로 판단하고 개선할 여지가 있는 환경"}',
+    heading: { category: "잘 맞는 환경", title: "능력이 잘 드러나는 조건" },
+  },
+
+  relating: {
+    version: 2,
+    tier: "paid",
+    schema: z.array(KeyValue).min(3).max(6),
+    prompt:
+      "관계를 맺는 방식을 3~6개 항목으로 정리하라. label 은 관점, value 는 한 문장 이내의 짧은 값.",
+    example:
+      '[{"label":"처음 만날 때","value":"거리를 두고 관찰부터. 먼저 다가가기보다 상대를 파악한 뒤 마음을 열어요."}]',
+    heading: { category: "사람을 대하는 방식", title: "관계에서의 나" },
   },
 
   love: {
@@ -152,6 +169,7 @@ export const SECTIONS = {
     prompt: "연애에서의 성향을 2~4개 항목으로. label 은 국면, body 는 2~3문장.",
     example:
       '[{"label":"관계가 시작될 때","body":"호감이 있어도 먼저 표현하지 않는 편. 상대가 다가와야 마음을 확인하고 움직여요."}]',
+    heading: { category: "연애와 관계", title: "연애할 때 반복되는 관계 패턴" },
   },
 
   compatibility: {
@@ -164,6 +182,7 @@ export const SECTIONS = {
       "잘 맞는 상대 유형(good)과 부딪히기 쉬운 유형(clash)을 각각 2~4개, 한 문장씩 써라.",
     example:
       '{"good":["말과 행동이 일치하고 약속을 지키는 사람"],"clash":["즉흥적으로 계획을 바꾸고 즉답을 요구하는 사람"]}',
+    heading: { category: "궁합", title: "당신과 잘 맞는 사람의 특징" },
   },
 
   wealth: {
@@ -181,5 +200,6 @@ export const SECTIONS = {
     // emphasis 가 summary 안에 그대로 들어 있는 예시다 — 화면이 부분 문자열로 찾는다.
     example:
       '{"points":[{"label":"돈이 모이는 방식","body":"한 번에 크게 벌기보다 꾸준히 쌓는 구조가 맞아요. 전문성이 깊어질수록 수입이 계단식으로 올라가는 흐름이에요."}],"summary":"투자는 단기 매매보다 긴 호흡의 적립식이 타고난 성향과 잘 맞아요.","emphasis":"긴 호흡의 적립식"}',
+    heading: { category: "재물", title: "돈이 모이는 방식과 새어나가는 지점" },
   },
 } as const satisfies Record<string, SectionSpec>;

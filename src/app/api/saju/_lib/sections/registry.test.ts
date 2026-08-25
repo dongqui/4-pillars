@@ -15,10 +15,12 @@ describe("SECTIONS", () => {
     }
   });
 
-  it("모든 섹션이 tier / prompt 를 갖는다", () => {
+  it("모든 섹션이 tier / prompt / heading 을 갖는다", () => {
     for (const [key, spec] of entries) {
       expect(["free", "paid"], key).toContain(spec.tier);
       expect(spec.prompt.length, key).toBeGreaterThan(0);
+      expect(spec.heading.category.length, key).toBeGreaterThan(0);
+      expect(spec.heading.title.length, key).toBeGreaterThan(0);
     }
   });
 

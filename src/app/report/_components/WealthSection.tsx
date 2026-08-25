@@ -15,7 +15,7 @@ export function WealthSection({
 }) {
   return (
     <section className="mt-[72px]">
-      <SectionHeading no="10" category="재물" title="돈이 모이는 방식과 새어나가는 지점" />
+      <SectionHeading section="wealth" />
       <CardGrid>
         {points.map((point) => (
           <div key={point.label} className="border border-slate-200 rounded-2xl px-[22px] py-5">

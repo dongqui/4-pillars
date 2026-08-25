@@ -1,6 +1,6 @@
 import type { ReportContent } from "../_lib/report-content";
 import type { ReportAccess } from "../_lib/access";
-import { lockedSections } from "../_lib/report-content.fixture";
+import { paidSectionHeadings } from "@/app/api/saju/_lib/sections";
 import { ReportHero } from "./ReportHero";
 import { PersonalitySection } from "./PersonalitySection";
 import { OuterInnerSection } from "./OuterInnerSection";
@@ -61,7 +61,7 @@ export function ReportBody({
           )}
         </>
       ) : (
-        <LockedSections sections={lockedSections} isLoggedIn={access.isLoggedIn} profileId={profileId} />
+        <LockedSections sections={paidSectionHeadings()} isLoggedIn={access.isLoggedIn} profileId={profileId} />
       )}
     </>
   );

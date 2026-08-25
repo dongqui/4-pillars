@@ -59,6 +59,3 @@ export interface ReportContent {
   compatibility?: { good: string[]; clash: string[] }; // 09
   wealth?: { points: LabeledText[]; summary: string; emphasis: string };  // 10
 }
-
-/** 무료 사용자에게 보이는 05–12 잠금 목록 항목 */
-export interface LockedSectionMeta { no: string; category: string; title: string }
