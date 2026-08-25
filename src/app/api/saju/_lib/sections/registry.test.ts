@@ -62,10 +62,30 @@ describe("SECTIONS", () => {
 
   it("environment 는 양쪽 조건을 각각 3~4개 요구한다", () => {
     const three = ["a", "b", "c"];
-    const ok = { energizing: three, draining: three, summary: "s", emphasis: "e" };
+    const ok = {
+      energizing: three, draining: three,
+      summary: "s", emphasis: "e",
+      roles: three, roleNote: "n",
+    };
     expect(SECTIONS.environment.schema.safeParse(ok).success).toBe(true);
     expect(SECTIONS.environment.schema.safeParse({ ...ok, draining: ["a", "b"] }).success).toBe(false);
     expect(SECTIONS.environment.schema.safeParse({ ...ok, energizing: [...three, "d", "e"] }).success).toBe(false);
+  });
+
+  it("environment 는 직무 예시를 3~5개 요구한다", () => {
+    const three = ["a", "b", "c"];
+    const ok = {
+      energizing: three, draining: three,
+      summary: "s", emphasis: "e",
+      roles: three, roleNote: "n",
+    };
+    expect(SECTIONS.environment.schema.safeParse({ ...ok, roles: ["a", "b"] }).success).toBe(false);
+    expect(SECTIONS.environment.schema.safeParse({ ...ok, roles: [...three, "d", "e"] }).success).toBe(true);
+    expect(SECTIONS.environment.schema.safeParse({ ...ok, roles: [...three, "d", "e", "f"] }).success).toBe(false);
+    // roleNote 가 없으면 칩만 남아 근거 없이 직업을 콕 집는 모양이 된다.
+    const { energizing, draining, summary, emphasis, roles } = ok;
+    const noNote = { energizing, draining, summary, emphasis, roles };
+    expect(SECTIONS.environment.schema.safeParse(noNote).success).toBe(false);
   });
 
   it("decisions 는 네 축을 정확히 요구한다", () => {

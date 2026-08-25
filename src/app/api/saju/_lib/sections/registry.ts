@@ -183,22 +183,33 @@ export const SECTIONS = {
   },
 
   environment: {
-    version: 2,
+    version: 3,
     tier: "paid",
+    heading: { category: "잘 맞는 환경", title: "능력이 잘 드러나는 조건" },
     schema: z
       .object({
         energizing: shortList(3, 4),
         draining: shortList(3, 4),
         summary: z.string().min(1),
         emphasis: z.string().min(1),
+        roles: shortList(3, 5),
+        roleNote: z.string().min(1),
       })
       .strict(),
-    prompt:
-      "능력이 잘 드러나는 조건을 두 갈래로 나눠라. energizing 은 힘이 나는 조건, draining 은 기운이 빠지는 조건을 각각 3~4개, 한 문장 이내의 짧은 구절로 쓴다. 성격 묘사가 아니라 일하는 방식·조직 문화·일정처럼 밖에서 알아볼 수 있는 조건으로 써라. 이어서 전체 요약(summary)과 한 줄 강조(emphasis)를 덧붙여라.",
+    prompt: [
+      "능력이 잘 드러나는 조건을 두 갈래로 나눠라. energizing 은 힘이 나는 조건, draining 은 기운이 빠지는 조건을 각각 3~4개, 한 문장 이내의 짧은 구절로 쓴다.",
+      "성격 묘사가 아니라 일하는 방식·조직 문화·일정처럼 밖에서 알아볼 수 있는 조건으로 써라.",
+      "이어서 전체 요약(summary)과 한 줄 강조(emphasis)를 덧붙여라.",
+      "",
+      "마지막으로 강점이 드러나는 역할·직무 예시(roles)를 3~5개 쓰고, 왜 그 자리가 맞는지 한 문장(roleNote)을 덧붙여라.",
+      "- roles 는 자격이나 면허가 필요한 직업명 대신, 하는 일의 성격이 드러나는 짧은 말로 쓴다.",
+      '- 좋은 예: "기획", "리서치", "팀 안의 조율자", "혼자 깊게 파는 전문 영역"',
+      '- 나쁜 예: "의사", "변호사", "대기업 인사팀" (자격·소속을 지목한다)',
+      "- 직업을 정해 주는 말이 아니라 예시라는 게 문장에서 드러나야 한다. roleNote 는 그 자리들이 왜 맞는지를 설명하지, 그 일을 하라고 권하지 않는다.",
+    ].join("\n"),
     // emphasis 가 summary 안에 그대로 들어 있는 예시다 — 화면이 부분 문자열로 찾는다.
     example:
-      '{"energizing":["방법은 맡기고 결과로 평가하는 팀"],"draining":["과정을 자주 보고해야 하는 관리 방식"],"summary":"정해진 방식만 반복하는 환경보다, 스스로 판단하고 개선할 여지가 있는 환경에서 능력이 잘 드러나요.","emphasis":"스스로 판단하고 개선할 여지가 있는 환경"}',
-    heading: { category: "잘 맞는 환경", title: "능력이 잘 드러나는 조건" },
+      '{"energizing":["방법은 맡기고 결과로 평가하는 팀"],"draining":["과정을 자주 보고해야 하는 관리 방식"],"summary":"정해진 방식만 반복하는 환경보다, 스스로 판단하고 개선할 여지가 있는 환경에서 능력이 잘 드러나요.","emphasis":"스스로 판단하고 개선할 여지가 있는 환경","roles":["기획","리서치","혼자 깊게 파는 전문 영역"],"roleNote":"방법을 스스로 정할 여지가 큰 자리일수록 강점이 잘 보이는 편이에요."}',
   },
 
   relating: {

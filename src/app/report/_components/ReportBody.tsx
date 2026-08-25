@@ -47,6 +47,8 @@ export function ReportBody({
               draining={content.environment.draining}
               summary={content.environment.summary}
               emphasis={content.environment.emphasis}
+              roles={content.environment.roles}
+              roleNote={content.environment.roleNote}
             />
           )}
           {content.relating && <RelatingSection rows={content.relating} />}

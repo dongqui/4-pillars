@@ -70,6 +70,12 @@ export class StubGenerator implements InterpretationGenerator {
         ],
         summary: "환경 요약 자리표시자입니다.",
         emphasis: "환경 요약 자리표시자",
+        roles: [
+          "직무 예시 1 (자리표시자)",
+          "직무 예시 2 (자리표시자)",
+          "직무 예시 3 (자리표시자)",
+        ],
+        roleNote: "직무 예시 근거 자리표시자입니다.",
       },
       love: [
         { label: "끌리는 유형", body: "자리표시자 본문입니다." },

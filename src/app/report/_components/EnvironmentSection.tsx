@@ -1,6 +1,6 @@
 import { SectionHeading } from "./SectionHeading";
 import { CardGrid } from "./CardGrid";
-import { NoteCard } from "./NoteCard";
+import { NoteCard, TipCard } from "./NoteCard";
 import { EmphasizedText } from "./EmphasizedText";
 
 /** 조건 한 줄. 힘이 나는 쪽은 파란 체크, 빠지는 쪽은 회색 마이너스. */
@@ -27,11 +27,15 @@ export function EnvironmentSection({
   draining,
   summary,
   emphasis,
+  roles,
+  roleNote,
 }: {
   energizing: string[];
   draining: string[];
   summary: string;
   emphasis: string;
+  roles: string[];
+  roleNote: string;
 }) {
   return (
     <section className="mt-[72px]">
@@ -57,6 +61,21 @@ export function EnvironmentSection({
       <NoteCard>
         <EmphasizedText text={summary} emphasis={emphasis} />
       </NoteCard>
+      <TipCard label="강점이 드러나는 자리">
+        <div className="flex flex-wrap gap-1.5 mb-2.5">
+          {roles.map((role, i) => (
+            <span
+              key={`${role}-${i}`}
+              className="text-[13px] font-semibold text-accent bg-accent-50 border border-accent-200 px-[11px] py-1 rounded-lg"
+            >
+              {role}
+            </span>
+          ))}
+        </div>
+        <p className="text-sm text-slate-600 leading-[1.65] m-0 break-keep [text-wrap:pretty]">
+          {roleNote}
+        </p>
+      </TipCard>
     </section>
   );
 }

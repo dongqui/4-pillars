@@ -59,7 +59,8 @@ export interface ReportContent {
   emotion?: LabeledText[];          // 05
   decisions?: DecisionsContent;     // 06
   workStyle?: WorkStyleContent;     // 07
-  environment?: { energizing: string[]; draining: string[]; summary: string; emphasis: string }; // 08
+  // 인라인으로 다시 적으면 스키마가 늘 때마다 여기서 어긋난다 — 스키마에서 받는다.
+  environment?: SectionContent<"environment">; // 08
   relating?: KeyValue[];            // 09
   love?: LabeledText[];             // 10
   compatibility?: { good: string[]; clash: string[] }; // 11
