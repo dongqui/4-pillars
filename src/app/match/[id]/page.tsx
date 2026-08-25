@@ -25,7 +25,7 @@ import { MatchRateLimited } from "./_components/MatchRateLimited";
 import { MatchOutOfTickets } from "./_components/MatchOutOfTickets";
 
 /**
- * 궁합은 저장된 것이 없으면 5섹션을 전부 새로 생성한다 — 리포트와 달리
+ * 궁합은 저장된 것이 없으면 일곱 섹션을 전부 새로 생성한다 — 리포트와 달리
  * 사람 사이에 공유되는 캐시가 없어 첫 열람은 언제나 풀 생성이다.
  */
 export const maxDuration = 60;
@@ -163,5 +163,5 @@ async function MatchSections({
     if (outOfTickets) return <MatchOutOfTickets matchId={matchId} />;
     return rateLimited ? <MatchRateLimited /> : <MatchError />;
   }
-  return <MatchBody interpretation={interpretation} />;
+  return <MatchBody interpretation={interpretation} relation={ctx.relation} />;
 }
