@@ -1,7 +1,15 @@
 import { SectionHeading } from "./SectionHeading";
+import { CtaCard } from "./CtaCard";
+import { ctaHref } from "../_lib/cta";
 import type { KeyValue } from "../_lib/report-content";
 
-export function RelatingSection({ rows }: { rows: KeyValue[] }) {
+export function RelatingSection({
+  rows,
+  isLoggedIn,
+}: {
+  rows: KeyValue[];
+  isLoggedIn: boolean;
+}) {
   return (
     <section className="mt-[72px]">
       <SectionHeading section="relating" />
@@ -18,20 +26,14 @@ export function RelatingSection({ rows }: { rows: KeyValue[] }) {
           </div>
         ))}
       </div>
-      <div className="mt-3.5 bg-slate-900 rounded-2xl p-6 flex flex-wrap items-center gap-4">
-        <div className="flex-1 min-w-[220px]">
-          <div className="text-base font-bold text-white tracking-[-0.01em]">나와 잘 맞는 사람은 어떤 유형일까요?</div>
-          <p className="text-[13.5px] text-slate-400 mt-[5px] mb-0 leading-[1.6] break-keep [text-wrap:pretty]">
-            상대방의 생년월일을 입력하고 두 사람의 관계를 확인해 보세요.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="flex-none font-[inherit] text-sm font-semibold text-slate-900 bg-white border-none px-5 py-3 rounded-xl cursor-pointer hover:bg-slate-100"
-        >
-          궁합 보기 →
-        </button>
-      </div>
+      {/* 관계 맺는 방식을 읽은 직후, 그 관계들이 실제로 어떻게 놓여 있는지로 잇는다.
+          지도는 이용권을 쓰지 않아 무료로 적는다 (app/_lib/catalog.ts 와 같은 결). */}
+      <CtaCard
+        title="내 주변 사람들은 나에게 어떤 자리일까요?"
+        desc="한 사람씩 추가하면 그 사람이 나에게 어떤 역할인지 보여요. 몇 명이든 무료예요."
+        label="관계 지도 열기 →"
+        href={ctaHref("/map", isLoggedIn)}
+      />
     </section>
   );
 }

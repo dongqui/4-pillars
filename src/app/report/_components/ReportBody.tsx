@@ -51,12 +51,13 @@ export function ReportBody({
               roleNote={content.environment.roleNote}
             />
           )}
-          {content.relating && <RelatingSection rows={content.relating} />}
+          {content.relating && <RelatingSection rows={content.relating} isLoggedIn={access.isLoggedIn} />}
           {content.love && <LoveSection items={content.love} />}
           {content.compatibility && (
             <CompatibilitySection
               good={content.compatibility.good}
               clash={content.compatibility.clash}
+              isLoggedIn={access.isLoggedIn}
             />
           )}
           {content.wealth && (

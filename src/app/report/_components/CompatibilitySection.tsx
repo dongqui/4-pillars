@@ -1,7 +1,17 @@
 import { SectionHeading } from "./SectionHeading";
 import { CardGrid } from "./CardGrid";
+import { CtaCard } from "./CtaCard";
+import { ctaHref } from "../_lib/cta";
 
-export function CompatibilitySection({ good, clash }: { good: string[]; clash: string[] }) {
+export function CompatibilitySection({
+  good,
+  clash,
+  isLoggedIn,
+}: {
+  good: string[];
+  clash: string[];
+  isLoggedIn: boolean;
+}) {
   return (
     <section className="mt-[72px]">
       <SectionHeading section="compatibility" />
@@ -23,6 +33,13 @@ export function CompatibilitySection({ good, clash }: { good: string[]; clash: s
           </ul>
         </div>
       </CardGrid>
+      {/* 위 두 카드가 이미 "어떤 유형인가" 의 답이라, 같은 질문을 다시 묻지 않는다. */}
+      <CtaCard
+        title="실제 상대와의 궁합이 궁금하다면"
+        desc="상대방의 생년월일을 입력하면 두 사람 사이의 흐름을 볼 수 있어요."
+        label="궁합 보기 →"
+        href={ctaHref("/match", isLoggedIn)}
+      />
     </section>
   );
 }
