@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { upsertUser, getUser, setPrimaryProfileIfUnset, type SqlClient } from "./users";
+import { upsertUser, getUser, setPrimaryProfileIfUnset, setPrimaryProfile, type SqlClient } from "./users";
 
 function fakeClient(rows: Record<string, unknown>[]) {
   const calls: { sql: string; values: unknown[] }[] = [];
@@ -98,5 +98,42 @@ describe("primary_profile_id", () => {
     expect(calls[0].sql).toContain("NOT EXISTS");
     expect(calls[0].sql).toContain("p.kind = 'saved'");
     expect(calls[0].sql).toContain("p.id <>");
+  });
+});
+
+describe("setPrimaryProfile", () => {
+  // 소유권과 종류를 WHERE 안에 두는 것이 이 함수의 존재 이유다. profiles.id 는 순번
+  // bigint 라 URL 에 노출된다 — 밖에서 검사하면 번호를 올려가며 남의 프로필을 자기
+  // "나" 로 박을 수 있다.
+  it("소유자와 kind='saved' 를 WHERE 안에서 함께 건다", async () => {
+    const { client, calls } = fakeClient([{ id: 7 }]);
+    await setPrimaryProfile("7", "42", client);
+
+    expect(calls[0].sql).toContain("UPDATE users SET primary_profile_id");
+    expect(calls[0].sql).toContain("EXISTS");
+    expect(calls[0].sql).toContain("p.user_id =");
+    expect(calls[0].sql).toContain("p.kind = 'saved'");
+    expect(calls[0].values).toEqual(["42", "7", "42", "7"]);
+  });
+
+  // 형제 함수(setPrimaryProfileIfUnset)와 갈리는 지점이다. 홈에서 고를 때마다
+  // 바뀌어야 하므로 IS NULL 로 잠그면 안 된다.
+  it("이미 정해져 있어도 덮어쓴다 — IS NULL 조건이 없다", async () => {
+    const { client, calls } = fakeClient([{ id: 7 }]);
+    await setPrimaryProfile("7", "42", client);
+
+    expect(calls[0].sql).not.toContain("primary_profile_id IS NULL");
+  });
+
+  // 남의 프로필, 없는 프로필, 목록에 서지 않는 temp 가 모두 이 한 갈래로 온다 —
+  // 호출자는 셋을 가르지 않고 404 로 접는다.
+  it("갱신된 행이 없으면 false", async () => {
+    const { client } = fakeClient([]);
+    expect(await setPrimaryProfile("7", "42", client)).toBe(false);
+  });
+
+  it("갱신됐으면 true", async () => {
+    const { client } = fakeClient([{ id: 7 }]);
+    expect(await setPrimaryProfile("7", "42", client)).toBe(true);
   });
 });

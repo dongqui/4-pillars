@@ -53,8 +53,9 @@ export interface UserProfile {
    */
   email: string | null;
   /**
-   * "나" 인 프로필. 아직 정해지지 않았거나 그 프로필이 지워졌으면 null
-   * (0029 의 ON DELETE SET NULL).
+   * "나" 인 프로필 — 홈 셀렉터에서 **마지막으로 고른 사람**이다. 아직 아무것도 고른
+   * 적이 없으면 계정의 첫 저장 프로필이고(setPrimaryProfileIfUnset), 그 프로필이
+   * 지워졌으면 null 이다 (0029 의 ON DELETE SET NULL).
    *
    * 소비하는 쪽은 null 을 실패가 아니라 "아직 모른다" 로 읽고 가장 오래된 저장
    * 프로필로 물러선다 — 계정이 생기기 전에 만들어진 행들이 여기 해당한다.
@@ -115,4 +116,37 @@ export async function setPrimaryProfileIfUnset(
             AND p.id <> ${profileId}::bigint
        )
   `;
+}
+
+/**
+ * 홈에서 고른 프로필을 계정의 "나" 로 정한다. 형제 함수 `setPrimaryProfileIfUnset`
+ * 과 달리 이미 정해진 값을 덮어쓴다 — 홈 셀렉터를 넘길 때마다 따라와야 한다.
+ *
+ * 두 조건을 WHERE 안에 두는 것이 이 함수의 존재 이유다:
+ *  - `p.user_id`: profiles.id 는 순번 bigint 라 URL 에 노출된다. 밖에서 검사하면
+ *    번호를 올려가며 남의 프로필을 자기 "나" 로 박을 수 있다.
+ *  - `p.kind = 'saved'`: 궁합에서 저장하지 않고 만든 즉석 상대('temp')는 어느
+ *    목록에도 서지 않는다. "나" 가 될 수 있으면 홈에 보이지도 않는 사람이 지도의
+ *    중심에 선다.
+ *
+ * SqlClient 는 rowCount 를 주지 않아 RETURNING 으로 영향 행을 센다(deleteProfile 과 같다).
+ * false 는 "없거나 · 남의 것이거나 · temp" 셋 중 하나다 — 호출자는 가르지 않고 404 로 접는다.
+ */
+export async function setPrimaryProfile(
+  userId: string,
+  profileId: string,
+  client: SqlClient = sql,
+): Promise<boolean> {
+  const rows = await client`
+    UPDATE users SET primary_profile_id = ${profileId}::bigint
+     WHERE id = ${userId}::bigint
+       AND EXISTS (
+         SELECT 1 FROM profiles p
+          WHERE p.id = ${profileId}::bigint
+            AND p.user_id = ${userId}::bigint
+            AND p.kind = 'saved'
+       )
+    RETURNING id
+  `;
+  return rows.length > 0;
 }
