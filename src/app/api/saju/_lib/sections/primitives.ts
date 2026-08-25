@@ -35,7 +35,7 @@ export const LabeledText = z
   .strict();
 export type LabeledText = z.infer<typeof LabeledText>;
 
-/** 라벨 + 짧은 값 — 06 관계 맺기 */
+/** 라벨 + 짧은 값 — 07 관계 맺기 */
 export const KeyValue = z
   .object({ label: z.string().min(1), value: z.string().min(1) })
   .strict();

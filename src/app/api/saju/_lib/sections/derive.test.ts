@@ -113,6 +113,18 @@ describe("sectionHeading", () => {
 
   it("잠금 목록은 유료 섹션을 화면과 같은 순서·번호로 준다", () => {
     const locked = paidSectionHeadings();
+    // paidSectionHeadings() 를 자기 자신의 구현(PAID_SECTION_KEYS.map(sectionHeading))
+    // 과만 비교하면 순서를 아무리 바꿔도 항상 통과한다 — 실제 기대값을 못박아야
+    // registry.ts 의 선언 순서가 흔들릴 때 여기서 걸린다.
+    expect(PAID_SECTION_KEYS).toEqual([
+      "emotion",
+      "environment",
+      "relating",
+      "love",
+      "compatibility",
+      "wealth",
+    ]);
+    expect(locked.map((l) => l.no)).toEqual(["05", "06", "07", "08", "09", "10"]);
     expect(locked.map((l) => l.no)).toEqual(
       PAID_SECTION_KEYS.map((k) => sectionHeading(k).no),
     );

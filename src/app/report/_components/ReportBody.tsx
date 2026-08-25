@@ -8,8 +8,8 @@ import { StrengthsSection } from "./StrengthsSection";
 import { CautionsSection } from "./CautionsSection";
 import { LockedSections } from "./LockedSections";
 import { EmotionSection } from "./EmotionSection";
-import { RelatingSection } from "./RelatingSection";
 import { EnvironmentSection } from "./EnvironmentSection";
+import { RelatingSection } from "./RelatingSection";
 import { LoveSection } from "./LoveSection";
 import { CompatibilitySection } from "./CompatibilitySection";
 import { WealthSection } from "./WealthSection";
@@ -36,7 +36,6 @@ export function ReportBody({
       {access.isUnlocked ? (
         <>
           {content.emotion && <EmotionSection items={content.emotion} />}
-          {content.relating && <RelatingSection rows={content.relating} />}
           {content.environment && (
             <EnvironmentSection
               energizing={content.environment.energizing}
@@ -45,6 +44,7 @@ export function ReportBody({
               emphasis={content.environment.emphasis}
             />
           )}
+          {content.relating && <RelatingSection rows={content.relating} />}
           {content.love && <LoveSection items={content.love} />}
           {content.compatibility && (
             <CompatibilitySection

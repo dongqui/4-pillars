@@ -53,8 +53,8 @@ export interface ReportContent {
   cautionTip: string;               // 04 TIP
   // 아래는 유료 섹션 — 생성되지 않았거나 권한이 없으면 없다.
   emotion?: LabeledText[];          // 05
-  relating?: KeyValue[];            // 06
-  environment?: { energizing: string[]; draining: string[]; summary: string; emphasis: string }; // 07
+  environment?: { energizing: string[]; draining: string[]; summary: string; emphasis: string }; // 06
+  relating?: KeyValue[];            // 07
   love?: LabeledText[];             // 08
   compatibility?: { good: string[]; clash: string[] }; // 09
   wealth?: { points: LabeledText[]; summary: string; emphasis: string };  // 10
