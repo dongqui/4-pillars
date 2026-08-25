@@ -13,8 +13,6 @@ import { EnvironmentSection } from "./EnvironmentSection";
 import { LoveSection } from "./LoveSection";
 import { CompatibilitySection } from "./CompatibilitySection";
 import { WealthSection } from "./WealthSection";
-import { YearlyLuckSection } from "./YearlyLuckSection";
-import { DaeunSection } from "./DaeunSection";
 
 export function ReportBody({
   content,
@@ -59,14 +57,6 @@ export function ReportBody({
               points={content.wealth.points}
               summary={content.wealth.summary}
               emphasis={content.wealth.emphasis}
-            />
-          )}
-          {content.yearlyLuck && <YearlyLuckSection rows={content.yearlyLuck} />}
-          {content.daeunOutlook && (
-            <DaeunSection
-              rows={content.daeunOutlook.rows}
-              summary={content.daeunOutlook.summary}
-              emphasis={content.daeunOutlook.emphasis}
             />
           )}
         </>

@@ -123,31 +123,6 @@ export const sampleReport: ReportContent = {
     summary: "투자는 단기 매매보다 긴 호흡의 적립식이 타고난 성향과 잘 맞아요.",
     emphasis: "긴 호흡의 적립식",
   },
-  yearlyLuck: [
-    { period: "8월", title: "정리", desc: "미뤄둔 결정을 끝내기 좋은 달. 벌이기보다 마무리가 유리해요." },
-    { period: "9월", title: "전환", desc: "흐름이 바뀌는 달. 작은 변화의 신호를 놓치지 마세요." },
-    { period: "10월", title: "인연", desc: "새 사람과 제안이 들어와요. 만남을 피하지 않는 게 좋아요." },
-    { period: "11월", title: "연결", desc: "관계에서 시작된 기회가 일로 이어지는 흐름이에요." },
-    { period: "12월", title: "준비", desc: "내년 상반기를 설계하는 달. 계획을 구체화하세요." },
-    { period: "2027년 1월", title: "시동", desc: "운이 오르기 시작해요. 준비한 일을 꺼내기 좋은 타이밍이에요." },
-    { period: "2월", title: "상승", desc: "한 해 중 가장 운이 강한 구간의 시작. 새로운 시도는 지금." },
-    { period: "3월", title: "확장", desc: "벌인 일이 커지는 달. 다만 계약과 문서는 꼼꼼히 확인하세요." },
-    { period: "4월", title: "성과", desc: "상반기 노력의 결과가 눈에 보이기 시작해요." },
-    { period: "5월", title: "조정", desc: "속도를 한 템포 줄이는 달. 무리한 확장보다 다지기가 유리해요." },
-    { period: "6월", title: "점검", desc: "건강과 체력을 챙길 때. 컨디션 관리가 운을 지켜요." },
-    { period: "7월", title: "수확", desc: "1년의 흐름을 정리하고 성과를 거두는 달이에요." },
-  ],
-  daeunOutlook: {
-    rows: [
-      // range 는 화면이 계산해 붙이는 라벨이다 (to-report-content.ts: `${startAge}–${startAge+9}세`).
-      // 위 daeunStrip 의 현재 구간(32–41세)과 같은 자리를 now 로 표시한다.
-      { range: "32–41세", title: "기반을 쌓는 시기", desc: "실력과 신뢰를 축적하는 구간이에요. 눈에 띄는 성과보다 토대가 만들어지는 시기예요.", now: true },
-      { range: "42–51세", title: "쌓은 것이 드러나는 시기", desc: "축적된 역량이 인정과 성과로 전환돼요. 역할과 위치가 크게 바뀔 수 있는 구간이에요." },
-      { range: "52–61세", title: "확장과 안정의 시기", desc: "이룬 것을 넓히고 지키는 흐름. 돈이 가장 안정적으로 자리 잡는 구간이에요." },
-    ],
-    summary: "지금은 기반을 쌓는 구간의 후반부예요. 앞으로의 선택이 다음 구간의 방향을 정해요.",
-    emphasis: "기반을 쌓는 구간의 후반부",
-  },
 };
 
 /** 무료 사용자용 05–12 잠금 목록 (Saju Result.dc.html L233–290) */
@@ -158,6 +133,4 @@ export const lockedSections: import("./report-content").LockedSectionMeta[] = [
   { no: "08", category: "연애와 관계", title: "연애할 때 반복되는 관계 패턴" },
   { no: "09", category: "궁합", title: "당신과 잘 맞는 사람의 특징" },
   { no: "10", category: "재물", title: "돈이 모이는 방식과 새어나가는 지점" },
-  { no: "11", category: "올해의 운", title: "지금부터 1년, 나의 운의 흐름" },
-  { no: "12", category: "10년 단위 흐름", title: "앞으로 10년의 큰 운 흐름" },
 ];

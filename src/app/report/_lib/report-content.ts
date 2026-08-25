@@ -9,9 +9,6 @@ export type ElementKey = "wood" | "fire" | "earth" | "metal" | "water";
 import type { TitledText, LabeledText, KeyValue, TraitNote } from "@/app/api/saju/_lib/sections";
 export type { TitledText, LabeledText, KeyValue, TraitNote } from "@/app/api/saju/_lib/sections";
 
-export interface TimelineRow { period: string; title: string; desc: string }
-export interface DaeunRow { range: string; title: string; desc: string; now?: boolean }
-
 /** 원국 한 칸(천간 또는 지지) — ← SajuAnalysis.chart */
 export interface PillarCell {
   char: string; // 한자 (甲, 子 …)
@@ -61,8 +58,6 @@ export interface ReportContent {
   love?: LabeledText[];             // 08
   compatibility?: { good: string[]; clash: string[] }; // 09
   wealth?: { points: LabeledText[]; summary: string; emphasis: string };  // 10
-  yearlyLuck?: TimelineRow[];       // 11
-  daeunOutlook?: { rows: DaeunRow[]; summary: string; emphasis: string }; // 12
 }
 
 /** 무료 사용자에게 보이는 05–12 잠금 목록 항목 */
