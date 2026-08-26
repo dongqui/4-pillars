@@ -104,7 +104,7 @@ function targetsFor(analysis: SajuAnalysis, year: number): FrictionTargets {
  * (birth + (startAgePrecise + i×10) × YEAR_MS) 으로, "이 구간 시작보다 이르거나
  * 같은 전환 중 가장 늦은 회차"를 그대로 고른다.
  */
-function currentDaeun(analysis: SajuAnalysis, period: ReturnType<typeof flowYearAt>) {
+export function currentDaeun(analysis: SajuAnalysis, period: ReturnType<typeof flowYearAt>) {
   const { startAgePrecise, periods } = analysis.daeun;
   const birth = birthInstant(analysis).getTime();
   const target = period.start.getTime();

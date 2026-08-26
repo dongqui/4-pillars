@@ -8,8 +8,10 @@
 import {
   STEMS,
   branchElementOf,
+  daeunSwitchIn,
   elementControls,
   elementGenerates,
+  flowYearAt,
   generatedBy,
   sewunPillars,
   type Element,
@@ -18,7 +20,7 @@ import {
 } from "@/lib/saju-core";
 import { chartFacts } from "@/app/api/saju/_lib/prompt/facts";
 import { parsePillar2 } from "../score";
-import { monthScores, type FlowSegment, type SegmentId } from "../segments";
+import { currentDaeun, monthScores, type FlowSegment, type SegmentId } from "../segments";
 
 export interface FlowSegmentFacts {
   id: SegmentId;
@@ -110,17 +112,21 @@ export function buildFlowContext(
     };
   });
 
-  // periods 는 startAge 오름차순이다. "지금 대운" 은 startAge <= 나이 를 만족하는
-  // 것 중 가장 늦게 시작한 회차이므로 뒤에서부터 찾는다 — 앞에서부터 find 하면
-  // 항상 가장 이른(어린 시절) 회차가 걸린다.
-  const age = flowYear - analysis.chart.solar.year + 1;
-  const daeun = [...analysis.daeun.periods].reverse().find((p) => p.startAge <= age);
+  // "지금 대운" 은 반올림된 startAge 나 달력 나이로 근사하지 않는다 — segments.ts
+  // 의 targetsFor 가 friction 을 잴 때 쓰는 것과 정확히 같은 판정(같은 period 앵커,
+  // 같은 sw?.before ?? currentDaeun 순서)을 그대로 재사용한다. 두 번째 방법을
+  // 새로 만들면 이 줄이 말하는 대운과 실제로 점수를 결정한 대운이 갈릴 수 있다 —
+  // 특히 그 해 중간에 대운이 바뀌는 해(=segments.ts 가 basis: "대운전환" 으로
+  // 표시하는 해)에서 근사가 정밀 판정과 반년 가까이 어긋난다.
+  const period = flowYearAt(new Date(Date.UTC(flowYear, 5, 1)));
+  const sw = daeunSwitchIn(analysis, period);
+  const daeun = sw?.before ?? currentDaeun(analysis, period);
 
   return {
     analysis,
     flowYear,
     sewunKorean: sewunPillars(flowYear, 1)[0].korean,
-    daeunKorean: daeun?.pillar ?? analysis.daeun.periods[0].pillar,
+    daeunKorean: daeun.pillar,
     segments: perSegment.map((cur, i) => ({
       id: cur.seg.id,
       ordinal: `${i + 1}/${segments.length}`,
