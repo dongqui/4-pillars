@@ -8,7 +8,12 @@
  * 값은 entitlements.feature 컬럼에 그대로 들어간다. 한 번 나간 값은 사용자의
  * 열람 권한이므로 이름을 바꾸려면 마이그레이션이 필요하다.
  */
-export const FEATURE_IDS = ["full_report", "compatibility", "consultation"] as const;
+export const FEATURE_IDS = [
+  "full_report",
+  "compatibility",
+  "consultation",
+  "current_flow",
+] as const;
 
 export type Feature = (typeof FEATURE_IDS)[number];
 
@@ -17,4 +22,5 @@ export const FEATURE_COST: Record<Feature, number> = {
   full_report: 1,
   compatibility: 1,
   consultation: 1,
+  current_flow: 1,
 };

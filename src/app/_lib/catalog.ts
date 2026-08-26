@@ -52,6 +52,11 @@ const PAID: Record<Feature, { title: string; desc: string; href: string }> = {
     desc: "내 사주를 바탕으로, 지금 마음에 걸리는 이야기를 나눠보세요.",
     href: "/consult",
   },
+  current_flow: {
+    title: "지금의 흐름",
+    desc: "요즘 나를 둘러싼 흐름과, 가까운 변화를 읽어보세요.",
+    href: "/flow",
+  },
 };
 
 /** 무료 항목. 이용권을 쓰지 않는 것만 여기 있다. */
