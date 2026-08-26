@@ -40,6 +40,11 @@ export interface ProduceFlowDeps {
  *
  * 구간 수는 ctx.segments.length 하나가 유일한 출처다 — getStored 도 검증도 이 값을
  * 쓴다. 저장된 서술의 구간 수가 다르면 missing 으로 잡혀 다시 생성된다.
+ *
+ * stored 는 "이미 다 있어 생성기를 아예 부르지 않았다" 만을 뜻한다(순수 캐시 적중).
+ * 생성을 한 번이라도 시도했으면 그중 전부가 검증을 통과해도 false 다 — 이 값을 읽는
+ * 쪽이 "이번 호출이 비용을 썼는가" 를 판단하는 근거이지 "결과가 완전한가" 를
+ * 판단하는 근거가 아니다. matches 의 produceMatchSections 와 같은 계약이다.
  */
 export async function produceFlowSections(
   flowId: string,
@@ -71,5 +76,5 @@ export async function produceFlowSections(
   }
 
   await deps.putStored(flowId, clean, deps.generator.model);
-  return { interpretation: { ...have, ...clean }, stored: true };
+  return { interpretation: { ...have, ...clean }, stored: false };
 }

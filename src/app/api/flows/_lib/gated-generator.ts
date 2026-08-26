@@ -40,6 +40,12 @@ export function gateFlowGeneration(
  *
  * 생성이 실패해도 되돌리지 않는다 — 권한 행이 남아 재시도가 공짜이기 때문이다.
  * (상담은 반대다: 그쪽은 상담 1건이 죽으면 되돌린다)
+ *
+ * **합성 순서: gateFlowGeneration 을 바깥에, chargeFlowGeneration 을 안에 둔다** —
+ * `gateFlowGeneration(chargeFlowGeneration(inner, ...), ...)`. 한도 확인이 이용권
+ * 차감보다 먼저 일어나야 한도에 걸린 요청이 이용권을 쓰지 않는다. 반대로 감싸면
+ * (이용권 바깥·한도 안쪽) 이용권부터 깎고 나서야 한도 초과를 알게 되어, 정작 막아야
+ * 할 요청에서 먼저 돈을 받는 꼴이 된다.
  */
 export function chargeFlowGeneration(
   inner: FlowGenerator,

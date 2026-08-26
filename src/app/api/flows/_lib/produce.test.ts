@@ -44,6 +44,25 @@ describe("produceFlowSections", () => {
     });
     expect(out.interpretation.now).toBeUndefined();
     expect(saved).toEqual({});
+    // 검증에서 전부 버려져 결과가 비어 있어도, 생성을 시도한 이상 "캐시 적중" 이
+    // 아니다 — stored 는 여전히 false 여야 한다.
+    expect(out.stored).toBe(false);
+  });
+
+  it("생성을 시도했으면 전부 성공해도 stored 는 false다 — 캐시 적중이 아니라서다", async () => {
+    const out = await produceFlowSections("7", ctx, {
+      generator: {
+        model: "m",
+        async generateSections() {
+          return { now: good };
+        },
+      },
+      getStored: async () => ({ have: {}, missing: ["now"] }),
+      putStored: async () => {},
+      sectionKeys: ["now"],
+    });
+    expect(out.interpretation.now).toEqual(good);
+    expect(out.stored).toBe(false);
   });
 
   it("생성기가 죽으면 이미 확보한 섹션을 실어 던진다", async () => {
