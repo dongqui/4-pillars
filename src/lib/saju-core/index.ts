@@ -77,6 +77,15 @@ export {
   type TenGodGroup,
 } from "./data/relations";
 
+// 지지 관계 — 쌍(충·형·해·파·원진·육합)과 집합(삼합·반합)을 가른 공용 모듈
+export {
+  pairRelations,
+  setRelations,
+  type PairKind,
+  type SetKind,
+  type SetRelation,
+} from "./branch-relations";
+
 // 캐릭터 — 일주 → 60캐릭터 매핑
 export {
   ALL_CHARACTERS,
