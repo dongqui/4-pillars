@@ -139,6 +139,7 @@ export {
 
 // 흐름(지금의 흐름 서비스) — 명리 연도와 그 안의 구간
 export { flowYearAt, IPCHUN_LONGITUDE, type FlowYearPeriod } from "./flow/year";
+export { monthTermsOf, monthTermAt, type MonthTerm } from "./flow/months";
 
 // 음력 윤달 판별
 export { hasLeapMonth, getLeapMonth } from "./leap";
