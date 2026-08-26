@@ -31,6 +31,17 @@ describe("currentSegmentIndex", () => {
     ];
     expect(currentSegmentIndex(offset, new Date("2026-08-07T00:30:00Z"))).toBe(1);
   });
+
+  it("구간이 하나뿐이어도(가장 흔한 경우) 0 을 준다", () => {
+    // §12: 변화가 크지 않으면 구간을 나누지 않는다 — 1구간짜리 흐름이 스펙상
+    // 흔한 경우인데, 그동안 테스트는 전부 2구간 픽스처만 써서 findIndex 가
+    // 길이 1 배열에서도 못 찾는 경우(예: 경계 계산이 하나뿐인 구간에서
+    // 어긋나는 회귀)를 잡을 길이 없었다.
+    const single = [segments[0]];
+    expect(currentSegmentIndex(single, new Date("2026-03-01T00:00:00Z"))).toBe(0);
+    expect(currentSegmentIndex(single, new Date("2025-01-01T00:00:00Z"))).toBe(0);
+    expect(currentSegmentIndex(single, new Date("2028-01-01T00:00:00Z"))).toBe(0);
+  });
 });
 
 describe("segmentLabel", () => {

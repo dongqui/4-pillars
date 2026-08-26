@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { analyze } from "@/lib/saju-core";
 import { getSession } from "@/lib/auth/session";
 import { getFlow, type FlowRow } from "@/lib/flows/store";
-import { getProfile } from "@/lib/profiles/store";
+import { getProfile, type ProfileRow } from "@/lib/profiles/store";
 import { toBirthInput } from "@/lib/profiles/to-birth-input";
 import { FLOW_SECTION_KEYS, type FlowInterpretation } from "@/app/api/flows/_lib/sections";
 import { buildFlowContext, type FlowContext } from "@/app/api/flows/_lib/prompt";
@@ -48,12 +48,21 @@ export default async function FlowResultPage({
   const profile = await getProfile(session.userId, flow.profileId);
   if (!profile) notFound();
 
-  const analysis = analyze(toBirthInput(profile));
-  const ctx = buildFlowContext(analysis, flow.flowYear, flow.segments);
   // 한 번만 잰다 — FlowShell 도 같은 시각을 써야 "지금 몇 번째 구간인가" 와
   // "이 흐름이 지났는가" 가 서로 다른 순간을 기준으로 어긋나지 않는다.
   const now = new Date();
   const index = currentSegmentIndex(flow.segments, now);
+
+  const ctx = buildContext(profile, flow);
+  // 계산이 깨지면 서술을 만들 재료가 없다 — 껍데기만 남기고 안내로 끝낸다
+  // (match/[id]/page.tsx 의 analyzePair 와 같은 처리).
+  if (!ctx) {
+    return (
+      <FlowShell flow={flow} index={index} now={now}>
+        <FlowError />
+      </FlowShell>
+    );
+  }
 
   return (
     <FlowShell flow={flow} index={index} now={now}>
@@ -62,6 +71,25 @@ export default async function FlowResultPage({
       </Suspense>
     </FlowShell>
   );
+}
+
+/**
+ * 원국 계산은 던질 수 있다. createProfileSchema 가 year 2200 · day 31 까지 받으므로
+ * API 로 만든 프로필은 퍼널로는 나올 수 없는 날짜를 들고 있을 수 있다.
+ *
+ * 던지게 두지 않는 이유는 match/[id]/page.tsx 의 analyzePair 와 같다: src/app
+ * 아래에 error.tsx 가 하나도 없어 잡히지 않은 예외는 헤더도 출구도 없는 Next
+ * 기본 에러 화면이 된다. createFlowGenerator() 를 <Suspense>/try 안으로 옮긴
+ * 것과 같은 이유로, 이쪽도 페이지 본문(<FlowShell> 밖)에서 그냥 부르면 안 된다.
+ */
+function buildContext(profile: ProfileRow, flow: FlowRow): FlowContext | null {
+  try {
+    const analysis = analyze(toBirthInput(profile));
+    return buildFlowContext(analysis, flow.flowYear, flow.segments);
+  } catch (e) {
+    console.error("[/flow/[id]] 원국 계산 실패", e);
+    return null;
+  }
 }
 
 /**

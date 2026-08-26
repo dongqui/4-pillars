@@ -27,8 +27,17 @@ export function FlowShell({
   now: Date;
   children: ReactNode;
 }) {
-  const isLastSegment = index === flow.segments.length - 1;
-  const isPast = isLastSegment && now.getTime() >= flow.periodEnd.getTime();
+  // currentSegmentIndex 가 기간 밖에서도 항상 칸 하나를 골라 주므로(못 찾으면
+  // 마지막 칸), index 만으로는 "지금 정말 그 구간 안에 있는가" 를 알 수 없다 —
+  // 시각을 직접 기간과 비교해야 한다.
+  //
+  // isPast 에는 isLastSegment 를 겹쳐 걸지 않는다: currentSegmentIndex 의 폴백
+  // 규칙상 now >= periodEnd 면 항상 마지막 칸을 고르므로 그 조건은 이미
+  // isPast 안에 포함돼 있다 — 따로 걸면 아무것도 안 걸러지는 채로 조건만
+  // 길어진다.
+  const isBeforeStart = now.getTime() < flow.periodStart.getTime();
+  const isPast = now.getTime() >= flow.periodEnd.getTime();
+  const isWithinPeriod = !isBeforeStart && !isPast;
 
   return (
     <div className="bg-white min-h-screen text-slate-900 leading-normal break-keep [overflow-wrap:break-word]">
@@ -44,7 +53,11 @@ export function FlowShell({
             {formatPeriod(flow.periodStart, flow.periodEnd)}
           </div>
           <div className="text-[13px] text-slate-500 mt-1.5">
-            지금은 이 흐름의 {index + 1}번째 구간을 지나고 있어요
+            {isWithinPeriod
+              ? `지금은 이 흐름의 ${index + 1}번째 구간을 지나고 있어요`
+              : isBeforeStart
+                ? "이 흐름은 아직 시작 전이에요"
+                : "이 흐름의 적용 기간이 끝났어요"}
           </div>
           {isPast && (
             <p className="mt-3 text-[13px] text-slate-400">
