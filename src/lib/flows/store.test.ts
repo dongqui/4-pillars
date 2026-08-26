@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SqlClient } from "@/lib/db";
-import { findFlow, findOrCreateFlow, getFlow } from "./store";
+import { findFlow, findOrCreateFlow, getFlow, listFlows } from "./store";
 
 const segments = [
   { id: "segment_1" as const, start: "2026-02-04T00:00:00.000Z", end: "2026-08-07T00:00:00.000Z", basis: "연시작" as const },
@@ -81,5 +81,46 @@ describe("getFlow", () => {
     await getFlow("3", "7", client);
     expect(calls[0].text).toContain("user_id");
     expect(calls[0].values).toEqual(["7", "3"]);
+  });
+});
+
+describe("listFlows", () => {
+  it("user_id 로 거르고 최신순으로 정렬한다", async () => {
+    const { client, calls } = fakeSql([[row]]);
+    const out = await listFlows("3", client);
+
+    expect(calls[0].text).toContain("user_id");
+    expect(calls[0].text).toContain("ORDER BY created_at DESC");
+    expect(calls[0].values).toEqual(["3"]);
+    expect(out).toHaveLength(1);
+    expect(out[0].id).toBe("7");
+  });
+});
+
+// segments 는 jsonb 컬럼이다. Neon HTTP 드라이버가 이미 파싱된 배열을 주는
+// 경우와 JSON 문자열 그대로 주는 경우가 둘 다 있어 findFlow(→toFlowRow) 가
+// 양쪽을 다 받아내는지, 그리고 모양이 아예 다를 때는 조용히 흘리지 않고
+// 던지는지를 고정한다.
+describe("findFlow — segments(jsonb) 읽기", () => {
+  it("드라이버가 이미 파싱한 배열로 주면 그대로 읽는다", async () => {
+    const { client } = fakeSql([[{ ...row, segments }]]);
+    const out = await findFlow("11", 2026, client);
+    expect(out?.segments).toEqual(segments);
+  });
+
+  it("드라이버가 JSON 문자열로 줘도 배열로 읽는다 — 파싱된 경우와 결과가 같다", async () => {
+    const { client } = fakeSql([[{ ...row, segments: JSON.stringify(segments) }]]);
+    const out = await findFlow("11", 2026, client);
+    expect(out?.segments).toEqual(segments);
+  });
+
+  it("배열도 JSON 도 아니면 던진다 — 글자 수를 구간 개수로 흘리지 않는다", async () => {
+    const { client } = fakeSql([[{ ...row, segments: "이것은 json 이 아니다" }]]);
+    await expect(findFlow("11", 2026, client)).rejects.toThrow(/segments/);
+  });
+
+  it("빈 배열이면 던진다 — 구간이 0개인 흐름은 깨진 행이다", async () => {
+    const { client } = fakeSql([[{ ...row, segments: [] }]]);
+    await expect(findFlow("11", 2026, client)).rejects.toThrow(/segments/);
   });
 });

@@ -25,6 +25,34 @@ export interface CreateFlowInput {
   segments: FlowSegment[];
 }
 
+/**
+ * jsonb 로 저장된 segments 를 읽는다. Neon HTTP 드라이버가 이미 파싱된 배열을
+ * 주는 경우와 JSON 문자열 그대로 주는 경우가 둘 다 있어 양쪽을 받는다
+ * (consultations.toStringArray 와 같은 이유).
+ *
+ * consultations.toStringArray 와 다른 점: 모양이 다르면 빈 배열로 접지 않고
+ * 던진다. segments 는 이 흐름의 서사 구간을 가르는 필드라 화면·PDF 등 아래
+ * 소비자 전부가 "최소 한 구간은 있다" 를 전제로 짜여 있다 — 빈 배열이나 문자열을
+ * 그대로 흘리면 .length 가 글자 수가 되고 인덱싱이 문자를 돌려주는데, 이게
+ * 조용히 깨진 화면으로만 보이고 원인(드라이버가 문자열을 줬다는 사실)은 묻힌다.
+ * findOrCreateFlow 가 충돌 후 null 대신 던지는 것과 같은 판단이다.
+ */
+function toSegments(v: unknown, flowId: unknown): FlowSegment[] {
+  const raw = typeof v === "string" ? safeParse(v) : v;
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new Error(`toFlowRow: flow ${String(flowId)} 의 segments 가 배열이 아닙니다`);
+  }
+  return raw as FlowSegment[];
+}
+
+function safeParse(s: string): unknown {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return null;
+  }
+}
+
 function toFlowRow(raw: Record<string, unknown>): FlowRow {
   return {
     id: String(raw.id),
@@ -33,7 +61,7 @@ function toFlowRow(raw: Record<string, unknown>): FlowRow {
     flowYear: Number(raw.flow_year),
     periodStart: new Date(raw.period_start as string),
     periodEnd: new Date(raw.period_end as string),
-    segments: raw.segments as FlowSegment[],
+    segments: toSegments(raw.segments, raw.id),
     createdAt: new Date(raw.created_at as string),
   };
 }
