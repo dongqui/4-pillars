@@ -131,3 +131,22 @@ export function solarTermJD(year: number, targetLongitude: number): number {
 export function solarTermDate(year: number, targetLongitude: number): CalendarTime {
   return jdToCalendar(solarTermJD(year, targetLongitude));
 }
+
+/** Unix epoch 의 율리우스일. JD → epoch ms 환산의 기준점이다. */
+const JD_UNIX_EPOCH = 2440587.5;
+
+/**
+ * 절기 순간의 **절대 시각**.
+ *
+ * ⚠️ solarTermJD 와 헷갈리지 말 것. 그쪽은 끝에 `+ 9 / 24` 가 붙어 있어 진짜 JD 가
+ * 아니라 "KST 벽시계를 UT인 척한" 값이다. computeDaeun 이 birthJD(민간시를 그대로
+ * JD 로 만든 값)와 빼서 쓰기 때문에 그 +9h 가 상쇄되는 구조라, 그 함수는 고칠 수 없다.
+ *
+ * 시간대와 무관한 순간이 필요한 곳(흐름 서비스의 연·구간 경계)은 이 함수를 쓴다.
+ * DB 의 timestamptz 에 넣을 값도 이것이다.
+ */
+export function solarTermInstant(year: number, targetLongitude: number): Date {
+  const jdeTT = solarTermJDE(year, targetLongitude);
+  const jdUT = jdeTT - deltaTSeconds(year) / 86400;
+  return new Date(Math.round((jdUT - JD_UNIX_EPOCH) * 86400_000));
+}

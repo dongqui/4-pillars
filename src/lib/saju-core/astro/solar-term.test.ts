@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   MONTH_TERMS,
   solarTermDate,
+  solarTermInstant,
   solarTermJD,
   solarTermJDE,
   sunApparentLongitude,
@@ -38,5 +39,34 @@ describe("절기 시각은 연중 단조 증가", () => {
     for (let i = 1; i < jds.length; i++) {
       expect(jds[i]).toBeGreaterThan(jds[i - 1]);
     }
+  });
+});
+
+describe("solarTermInstant", () => {
+  // solarTermDate 는 KST 벽시계, solarTermInstant 는 절대 시각.
+  // 둘 사이의 차이는 정확히 9시간이어야 한다 — 이 불변식이 깨지면
+  // 한쪽이 다른 순간을 가리키고 있다는 뜻이다.
+  it("solarTermDate 와 같은 순간을 가리킨다 — 9시간이 차이의 전부다", () => {
+    const inst = solarTermInstant(2026, 315); // 입춘
+    const kst = solarTermDate(2026, 315);
+    const shifted = new Date(inst.getTime() + 9 * 3600_000);
+
+    expect(shifted.getUTCFullYear()).toBe(kst.year);
+    expect(shifted.getUTCMonth() + 1).toBe(kst.month);
+    expect(shifted.getUTCDate()).toBe(kst.day);
+    expect(shifted.getUTCHours()).toBe(kst.hour);
+  });
+
+  it("입춘은 2월 초에 든다", () => {
+    const kstDay = new Date(solarTermInstant(2026, 315).getTime() + 9 * 3600_000);
+    expect(kstDay.getUTCMonth() + 1).toBe(2);
+    expect(kstDay.getUTCDate()).toBeGreaterThanOrEqual(3);
+    expect(kstDay.getUTCDate()).toBeLessThanOrEqual(5);
+  });
+
+  it("해가 바뀌면 다른 순간이다", () => {
+    expect(solarTermInstant(2026, 315).getTime()).not.toBe(
+      solarTermInstant(2027, 315).getTime(),
+    );
   });
 });

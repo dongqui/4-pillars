@@ -130,7 +130,12 @@ export {
 } from "./data/characters-60";
 
 // 절기(대운/월령 계산에 사용)
-export { MONTH_TERMS, solarTermDate, type CalendarTime } from "./astro/solar-term";
+export {
+  MONTH_TERMS,
+  solarTermDate,
+  solarTermInstant,
+  type CalendarTime,
+} from "./astro/solar-term";
 
 // 음력 윤달 판별
 export { hasLeapMonth, getLeapMonth } from "./leap";
