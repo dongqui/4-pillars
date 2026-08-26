@@ -1,13 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ConfirmState } from "../_lib/to-confirm";
 import { formatPeriod } from "../_lib/to-confirm";
+import { toStartOutcome, type StartFailure } from "../_lib/to-start-outcome";
 
 export function FlowConfirm({ state }: { state: ConfirmState }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  // CTA 실패의 결과. 성공 경로는 곧장 router.push 하고 이 화면을 떠나므로
+  // 여기 담을 일이 없다 — 이 상태는 "다시 시도할 수 있는 실패" 만 나타낸다.
+  const [failure, setFailure] = useState<StartFailure | null>(null);
 
   if (state.kind === "no_profile") {
     return (
@@ -50,17 +55,28 @@ export function FlowConfirm({ state }: { state: ConfirmState }) {
 
   async function start() {
     setBusy(true);
-    const res = await fetch("/api/flows", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ profileId: newState.profileId }),
-    });
-    if (!res.ok) {
+    setFailure(null);
+    try {
+      const res = await fetch("/api/flows", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileId: newState.profileId }),
+      });
+      if (!res.ok) {
+        // 402(이용권 부족)·429(시간당 한도)·401(세션 끊김) 모두 실제로 닿는
+        // 상태다 — 버튼만 다시 눌리게 두면 사용자는 왜 아무 일도 안 일어나는지
+        // 알 방법이 없다. 원인을 CTA 아래에 남긴다.
+        setFailure(toStartOutcome(res.status));
+        setBusy(false);
+        return;
+      }
+      const { id } = (await res.json()) as { id: string };
+      router.push(`/flow/${id}`);
+    } catch {
+      // 네트워크 자체가 끊긴 경우. 상태 코드가 없으니 "그 외" 문구로 물러선다.
+      setFailure(toStartOutcome(0));
       setBusy(false);
-      return;
     }
-    const { id } = (await res.json()) as { id: string };
-    router.push(`/flow/${id}`);
   }
 
   return (
@@ -82,6 +98,19 @@ export function FlowConfirm({ state }: { state: ConfirmState }) {
       >
         {busy ? "준비하는 중…" : "지금의 흐름 보기"}
       </button>
+      {failure && (
+        <p role="alert" className="mt-3 text-[13px] leading-[1.55] text-red-600">
+          {failure.text}
+          {failure.action && (
+            <>
+              {" "}
+              <Link href={failure.action.href} className="font-semibold underline underline-offset-2">
+                {failure.action.label}
+              </Link>
+            </>
+          )}
+        </p>
+      )}
     </section>
   );
 }
