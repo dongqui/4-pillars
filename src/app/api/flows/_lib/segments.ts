@@ -11,6 +11,9 @@ import {
   type MonthTerm,
   type SajuAnalysis,
 } from "@/lib/saju-core";
+// 배럴은 daeunSwitchIn 만 내보낸다 — currentDaeun 이 그와 "같은 자"로 재야 해서
+// birthInstant/YEAR_MS 는 소스 파일에서 직접 가져온다. (아래 currentDaeun 참고)
+import { birthInstant, YEAR_MS } from "@/lib/saju-core/flow/switch";
 import { frictionOf, parsePillar2, supportOf, type FrictionTargets } from "./score";
 
 export const SEGMENT_IDS = ["segment_1", "segment_2", "segment_3"] as const;
@@ -38,20 +41,26 @@ export interface MonthScore {
  * 분포다. scripts/flow-threshold.mts 로 1960~2005년 5년 간격 생년(10명) × 생일 4개
  * × 남녀 × 2025~2027 세 해를 돌려 총 240건의 Δ 분포를 뽑았다.
  *
- * 측정값 (임계값별 [1구간, 2구간, 3구간] 비율, 0.05 간격 발췌):
- *   0.20 → 1구간  0.0% · 2구간 14.2% · 3구간 85.8%  (3구간 쏠림, 기각)
+ * 측정값 (임계값별 [1구간, 2구간, 3구간] 비율, 0.05~0.15 간격 발췌):
+ *   0.20 → 1구간  0.0% · 2구간 14.6% · 3구간 85.4%  (3구간 쏠림, 기각)
  *   0.35 → 1구간  0.0% · 2구간 27.5% · 3구간 72.5%  (3구간 쏠림, 기각)
- *   0.50 → 1구간  0.0% · 2구간 43.8% · 3구간 56.3%  (2구간 과반 미달, 기각)
- *   0.60 → 1구간  0.0% · 2구간 52.1% · 3구간 47.9%  (1구간 0건, 기각)
- *   0.65 → 1구간  1.3% · 2구간 57.9% · 3구간 40.8%  (통과 조건을 처음 만족)
- *   0.75 → 1구간  4.6% · 2구간 63.7% · 3구간 31.7%  (여유 있게 통과, 채택)
- *   0.90 → 1구간 22.1% · 2구간 63.7% · 3구간 14.2%  (3구간이 희귀해짐)
- *   1.00 → 1구간 32.1% · 2구간 62.9% · 3구간  5.0%  (3구간 거의 소멸)
+ *   0.50 → 1구간  0.0% · 2구간 42.9% · 3구간 57.1%  (2구간 과반 미달, 기각)
+ *   0.60 → 1구간  0.0% · 2구간 52.5% · 3구간 47.5%  (1구간 0건, 기각)
+ *   0.65 → 1구간  1.3% · 2구간 58.8% · 3구간 40.0%  (통과 조건을 처음 만족)
+ *   0.70 → 1구간  2.5% · 2구간 62.1% · 3구간 35.4%  (통과)
+ *   0.75 → 1구간  4.2% · 2구간 64.2% · 3구간 31.7%  (여유 있게 통과, 채택)
+ *   0.90 → 1구간 22.1% · 2구간 64.2% · 3구간 13.8%  (3구간이 희귀해짐)
+ *   1.00 → 1구간 32.1% · 2구간 62.5% · 3구간  5.4%  (3구간 거의 소멸)
  *
  * 0.65 부터 통과 조건(2구간 과반 · 1·3구간 둘 다 0 아님)을 만족하지만 1구간이
  * 240건 중 3건뿐이라 근처 값으로 흔들리면 다시 0건이 될 만큼 얇다. 0.75 를
- * 최종값으로 쓴다 — 2구간이 최빈값(63.7%, 과반)이고 1구간(4.6%)·3구간(31.7%)
+ * 최종값으로 쓴다 — 2구간이 최빈값(64.2%, 과반)이고 1구간(4.2%)·3구간(31.7%)
  * 모두 여유 있게 관측된다.
+ *
+ * (2026-08-26 리뷰 수정: currentDaeun 을 daeunSwitchIn 과 같은 정밀 시각 기준으로
+ * 고치면서 대운 경계 해 근처 표본의 friction 대상이 바뀌어 위 수치를 재측정했다.
+ * 수정 전 0.75 실측은 1구간 4.6%·2구간 63.7%·3구간 31.7% — 이동 폭은 작았지만
+ * 결론(0.75 채택)은 그대로다.)
  *
  * 올리면 구간이 줄고(1구간이 흔해진다) 내리면 늘어난다(3구간이 흔해진다).
  * 바꾸기 전에 스크립트를 다시 돌릴 것 — 이미 판 흐름은 flows.segments 에 박제돼
@@ -84,12 +93,29 @@ function targetsFor(analysis: SajuAnalysis, year: number): FrictionTargets {
   };
 }
 
-/** 이 구간이 시작될 때 적용 중인 대운. */
+/**
+ * 이 구간이 시작될 때 적용 중인 대운.
+ *
+ * daeunSwitchIn 과 반드시 같은 정밀도로 재야 한다 — 이 함수는 daeunSwitchIn 이 이
+ * 구간 안에 전환이 없다고 이미 답한 뒤에만 불린다. 반올림된 periods[i].startAge 로
+ * 세는 나이를 근사하면 daeunSwitchIn 의 정밀 판정과 최대 반년 어긋날 수 있고,
+ * 하필 그 어긋남이 "전환 없음" 판정의 경계에서 나면 이웃 회차를 조용히 골라 그
+ * 해 전체의 friction 대상이 틀어진다. 그래서 daeunSwitchIn 과 같은 식
+ * (birth + (startAgePrecise + i×10) × YEAR_MS) 으로, "이 구간 시작보다 이르거나
+ * 같은 전환 중 가장 늦은 회차"를 그대로 고른다.
+ */
 function currentDaeun(analysis: SajuAnalysis, period: ReturnType<typeof flowYearAt>) {
-  const { periods } = analysis.daeun;
-  // 세는 나이 — periods[i].startAge 와 같은 기준이다.
-  const ageAtStart = period.start.getUTCFullYear() - analysis.chart.solar.year + 1;
-  return [...periods].reverse().find((p) => p.startAge <= ageAtStart) ?? periods[0];
+  const { startAgePrecise, periods } = analysis.daeun;
+  const birth = birthInstant(analysis).getTime();
+  const target = period.start.getTime();
+
+  let current = periods[0];
+  for (let i = 1; i < periods.length; i += 1) {
+    const at = birth + (startAgePrecise + i * 10) * YEAR_MS;
+    if (at > target) break;
+    current = periods[i];
+  }
+  return current;
 }
 
 /** 12개 월운 전부를 채점한다. */
