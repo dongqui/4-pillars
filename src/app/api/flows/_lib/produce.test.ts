@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import type { FlowContext } from "./prompt";
 import { produceFlowSections, FlowGenerationError } from "./produce";
 
-const ctx = { segments: [{ id: "segment_1" }] } as unknown as FlowContext;
+// pivotMonths 만 있으면 충분하다 — produceFlowSections 는 이 필드만 읽어
+// schemaCtx 를 만든다. 나머지 FlowContext 필드는 프롬프트 조립에만 쓰인다.
+const ctx = { pivotMonths: [3, 7] } as unknown as FlowContext;
 const good = {
-  common: "배경",
-  segments: [{ segmentId: "segment_1" as const, title: "가", body: "나" }],
+  title: "제목",
+  body: "본문",
+  keywords: ["가", "나", "다", "라"],
 };
 
 describe("produceFlowSections", () => {
@@ -19,30 +22,34 @@ describe("produceFlowSections", () => {
           return {};
         },
       },
-      getStored: async () => ({ have: { now: good }, missing: [] }),
+      getStored: async () => ({ have: { overview: good }, missing: [] }),
       putStored: async () => {},
-      sectionKeys: ["now"],
+      sectionKeys: ["overview"],
     });
     expect(called).toBe(false);
     expect(out.stored).toBe(true);
   });
 
-  it("스키마를 통과 못 한 섹션은 버린다 — 화면과 저장 양쪽에 새지 않게", async () => {
+  // monthIndex 5 는 ctx.pivotMonths=[3,7] 밖이다 — schemaCtx 가 ctx.pivotMonths
+  // 를 실제로 쓰는지, n 대신 잘못 배선되지 않았는지를 이 테스트가 가른다.
+  it("ctx.pivotMonths 밖의 달을 우기면 검증에서 버린다 — 화면과 저장 양쪽에 새지 않게", async () => {
     let saved: unknown = null;
     const out = await produceFlowSections("7", ctx, {
       generator: {
         model: "m",
         async generateSections() {
-          return { now: { common: "", segments: [] } } as never;
+          return {
+            pivots: { lead: "l", pivots: [{ monthIndex: 5, title: "t", body: "b" }] },
+          } as never;
         },
       },
-      getStored: async () => ({ have: {}, missing: ["now"] }),
+      getStored: async () => ({ have: {}, missing: ["pivots"] }),
       putStored: async (_id, v) => {
         saved = v;
       },
-      sectionKeys: ["now"],
+      sectionKeys: ["pivots"],
     });
-    expect(out.interpretation.now).toBeUndefined();
+    expect(out.interpretation.pivots).toBeUndefined();
     expect(saved).toEqual({});
     // 검증에서 전부 버려져 결과가 비어 있어도, 생성을 시도한 이상 "캐시 적중" 이
     // 아니다 — stored 는 여전히 false 여야 한다.
@@ -54,14 +61,14 @@ describe("produceFlowSections", () => {
       generator: {
         model: "m",
         async generateSections() {
-          return { now: good };
+          return { overview: good };
         },
       },
-      getStored: async () => ({ have: {}, missing: ["now"] }),
+      getStored: async () => ({ have: {}, missing: ["overview"] }),
       putStored: async () => {},
-      sectionKeys: ["now"],
+      sectionKeys: ["overview"],
     });
-    expect(out.interpretation.now).toEqual(good);
+    expect(out.interpretation.overview).toEqual(good);
     expect(out.stored).toBe(false);
   });
 
@@ -74,11 +81,11 @@ describe("produceFlowSections", () => {
             throw new Error("boom");
           },
         },
-        getStored: async () => ({ have: { now: good }, missing: ["rising"] }),
+        getStored: async () => ({ have: { overview: good }, missing: ["rising"] }),
         putStored: async () => {},
-        sectionKeys: ["now", "rising"],
+        sectionKeys: ["overview", "rising"],
       }),
-    ).rejects.toMatchObject({ partial: { now: good } });
+    ).rejects.toMatchObject({ partial: { overview: good } });
   });
 
   it("FlowGenerationError 는 원인을 cause 에 담는다", () => {

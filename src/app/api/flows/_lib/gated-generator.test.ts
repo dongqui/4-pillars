@@ -5,7 +5,7 @@ import { chargeFlowGeneration, gateFlowGeneration, isFlowRateLimited } from "./g
 import { FlowRateLimitError } from "@/lib/flows/rate-limit";
 import { FlowTicketsError } from "@/lib/flows/tickets";
 
-const ctx = { segments: [{ id: "segment_1" }] } as unknown as FlowContext;
+const ctx = { pivotMonths: [] } as unknown as FlowContext;
 
 function stub(): FlowGenerator & { calls: number } {
   const g = {
@@ -23,14 +23,14 @@ describe("gateFlowGeneration", () => {
   it("한도에 걸리면 안쪽 생성기를 부르지 않는다 — 비용을 쓴 뒤 보고하면 게이트가 아니다", async () => {
     const inner = stub();
     const gated = gateFlowGeneration(inner, "3", async () => false);
-    await expect(gated.generateSections(ctx, ["now"])).rejects.toBeInstanceOf(FlowRateLimitError);
+    await expect(gated.generateSections(ctx, ["overview"])).rejects.toBeInstanceOf(FlowRateLimitError);
     expect(inner.calls).toBe(0);
   });
 
   it("통과하면 그대로 흘려보낸다", async () => {
     const inner = stub();
     const gated = gateFlowGeneration(inner, "3", async () => true);
-    await gated.generateSections(ctx, ["now"]);
+    await gated.generateSections(ctx, ["overview"]);
     expect(inner.calls).toBe(1);
   });
 
@@ -45,13 +45,13 @@ describe("chargeFlowGeneration", () => {
     const charged = chargeFlowGeneration(inner, "3", "7", async () => ({
       ok: false, kind: "insufficient", balance: 0,
     }));
-    await expect(charged.generateSections(ctx, ["now"])).rejects.toBeInstanceOf(FlowTicketsError);
+    await expect(charged.generateSections(ctx, ["overview"])).rejects.toBeInstanceOf(FlowTicketsError);
     expect(inner.calls).toBe(0);
   });
 
   it("subject_key 로 flowId 를 넘긴다 — 같은 해에 두 번 차감되지 않는 근거다", async () => {
     const spend = vi.fn(async () => ({ ok: true as const, kind: "spent" as const, balance: 4 }));
-    await chargeFlowGeneration(stub(), "3", "7", spend).generateSections(ctx, ["now"]);
+    await chargeFlowGeneration(stub(), "3", "7", spend).generateSections(ctx, ["overview"]);
     expect(spend).toHaveBeenCalledWith({
       userId: "3", feature: "yearly_flow", subjectKey: "7",
     });
@@ -61,7 +61,7 @@ describe("chargeFlowGeneration", () => {
     const inner = stub();
     await chargeFlowGeneration(inner, "3", "7", async () => ({
       ok: true, kind: "already", balance: 4,
-    })).generateSections(ctx, ["now"]);
+    })).generateSections(ctx, ["overview"]);
     expect(inner.calls).toBe(1);
   });
 });

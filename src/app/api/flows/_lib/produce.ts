@@ -38,8 +38,8 @@ export interface ProduceFlowDeps {
 /**
  * 저장된 서술은 그대로, 없는 것만 생성·검증·저장.
  *
- * 구간 수는 ctx.segments.length 하나가 유일한 출처다 — getStored 도 검증도 이 값을
- * 쓴다. 저장된 서술의 구간 수가 다르면 missing 으로 잡혀 다시 생성된다.
+ * 스키마 컨텍스트는 ctx.pivotMonths 하나가 유일한 출처다 — getStored 도 검증도
+ * 이 값을 쓴다. 저장된 08 의 변곡점이 다르면 missing 으로 잡혀 다시 생성된다.
  *
  * stored 는 "이미 다 있어 생성기를 아예 부르지 않았다" 만을 뜻한다(순수 캐시 적중).
  * 생성을 한 번이라도 시도했으면 그중 전부가 검증을 통과해도 false 다 — 이 값을 읽는
@@ -51,7 +51,9 @@ export async function produceFlowSections(
   ctx: FlowContext,
   deps: ProduceFlowDeps,
 ): Promise<{ interpretation: Partial<FlowInterpretation>; stored: boolean }> {
-  const n = ctx.segments.length;
+  // 스키마 컨텍스트의 유일한 출처다 — getStored 도 아래 검증도 이 값을 쓴다.
+  // 저장된 08 의 변곡점이 다르면 missing 으로 잡혀 다시 생성된다.
+  const schemaCtx = { pivotMonths: ctx.pivotMonths };
   const { have, missing } = await deps.getStored(flowId, deps.sectionKeys);
   if (missing.length === 0) return { interpretation: have, stored: true };
 
@@ -67,7 +69,7 @@ export async function produceFlowSections(
   const clean: Partial<FlowInterpretation> = {};
   for (const [key, raw] of Object.entries(generated)) {
     if (!isFlowSectionKey(key)) continue;
-    const content = parseFlowSectionContent(key, raw, n);
+    const content = parseFlowSectionContent(key, raw, schemaCtx);
     if (content === null) {
       console.warn(`[produceFlowSections] 스키마 검증 실패, 버림: ${key}`);
       continue;
