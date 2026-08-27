@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { analyze, birthInstant, flowYearAt, flowYearOf, type SajuAnalysis } from "@/lib/saju-core";
+import { analyze, flowYearAt, flowYearOf, type SajuAnalysis } from "@/lib/saju-core";
 import type { FlowAccess } from "@/lib/flows/access";
 import type { CreateFlowInput } from "@/lib/flows/store";
+import { sajuBirthYearOf } from "@/lib/flows/birth-year";
 import { flowMonths } from "./pivots";
 
 /** 현재 명리 연도에서 앞뒤로 몇 년까지 고를 수 있는가. 화면의 연도 칸 수와 같은 출처다. */
@@ -85,9 +86,8 @@ export async function handleCreateFlow(
   // 태어난 사람은 달력 연도보다 명리 연도가 하나 작다(예: 1990-01-15 생은
   // 명리로 1989년생). birth.year 로 비교하면 그 명리 1989년(대운 데이터가
   // 실제로 있는, 정당히 팔 수 있는 해)을 400 으로 막아 이용권을 못 쓰게 한다 —
-  // analyze 가 이미 계산해 둔 출생 순간을 flowYearAt 으로 다시 재서, 이 핸들러가
-  // 실제로 다루는 축(명리 연도)과 같은 자로 비교한다.
-  const birthYear = flowYearAt(birthInstant(analysis)).year;
+  // sajuBirthYearOf 가 이 핸들러와 선택 화면이 같이 쓰는 계산이다.
+  const birthYear = sajuBirthYearOf(analysis);
   if (year < birthYear) {
     return { status: 400, body: { error: "선택할 수 없는 연도입니다" } };
   }
