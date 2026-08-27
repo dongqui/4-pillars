@@ -18,7 +18,7 @@ import {
 } from "@/app/api/flows/_lib/gated-generator";
 import { FlowGenerationError, produceFlowSections } from "@/app/api/flows/_lib/produce";
 import { getFlowSections, putFlowSections } from "@/app/api/flows/_lib/store";
-import { currentSegmentIndex } from "./_lib/current-segment";
+import { currentMonthIndex } from "./_lib/current-month";
 import { toFlowView } from "./_lib/to-flow-view";
 import { FlowShell } from "./_components/FlowShell";
 import { FlowHero } from "./_components/FlowHero";
@@ -29,8 +29,8 @@ import { FlowRateLimited } from "./_components/FlowRateLimited";
 import { FlowOutOfTickets } from "./_components/FlowOutOfTickets";
 
 /**
- * 흐름 하나가 최대 8섹션 × 최대 3구간을 한 번에 생성할 수 있다 — 궁합(5섹션)보다
- * 무거워 같은 여유를 둔다.
+ * 흐름 하나가 9섹션을 한 번에 생성하고, 그중 07 은 12개월을 한 응답에 담는다 —
+ * 궁합(5섹션)보다 무거워 같은 여유를 둔다.
  */
 export const maxDuration = 60;
 
@@ -54,26 +54,25 @@ export default async function FlowResultPage({
   if (!profile) notFound();
   const displayName = resolveDisplayName(user);
 
-  // 한 번만 잰다 — FlowShell 도 같은 시각을 써야 "지금 몇 번째 구간인가" 와
-  // "이 흐름이 지났는가" 가 서로 다른 순간을 기준으로 어긋나지 않는다.
   const now = new Date();
-  const index = currentSegmentIndex(flow.segments, now);
+  // 선택한 해가 지금의 명리 연도가 아니면 null 이다 — 강조할 "지금" 이 없다.
+  const currentIndex = currentMonthIndex(flow.months, now);
 
   const ctx = buildContext(profile, flow);
   // 계산이 깨지면 서술을 만들 재료가 없다 — 껍데기만 남기고 안내로 끝낸다
   // (match/[id]/page.tsx 의 analyzePair 와 같은 처리).
   if (!ctx) {
     return (
-      <FlowShell flow={flow} index={index} now={now} displayName={displayName}>
+      <FlowShell flow={flow} profileName={profile.name} displayName={displayName}>
         <FlowError />
       </FlowShell>
     );
   }
 
   return (
-    <FlowShell flow={flow} index={index} now={now} displayName={displayName}>
+    <FlowShell flow={flow} profileName={profile.name} displayName={displayName}>
       <Suspense fallback={<AnalyzingFlow />}>
-        <FlowSections flow={flow} userId={session.userId} ctx={ctx} index={index} />
+        <FlowSections flow={flow} userId={session.userId} ctx={ctx} currentIndex={currentIndex} />
       </Suspense>
     </FlowShell>
   );
@@ -91,7 +90,7 @@ export default async function FlowResultPage({
 function buildContext(profile: ProfileRow, flow: FlowRow): FlowContext | null {
   try {
     const analysis = analyze(toBirthInput(profile));
-    return buildFlowContext(analysis, flow.flowYear, flow.segments);
+    return buildFlowContext(analysis, flow.flowYear, flow.months);
   } catch (e) {
     console.error("[/flow/[id]] 원국 계산 실패", e);
     return null;
@@ -104,24 +103,23 @@ function buildContext(profile: ProfileRow, flow: FlowRow): FlowContext | null {
  * catch 가 잡아 FlowShell 아래에 <FlowError /> 를 보여준다. try 바깥에서 만들면
  * (report/page.tsx 가 겪은 문제) Next 의 기본 에러 화면으로 떨어진다.
  *
- * FlowHero 도 이 안에서 함께 낸다 — 대표 문장이 01(now) 섹션의 LLM 서술에서 나와
- * MatchHero 처럼 계산값만으로 <Suspense> 밖에 둘 수 없다.
+ * FlowHero 도 이 안에서 함께 낸다 — 대표 문장이 01(overview) 섹션의 LLM 서술에서
+ * 나와 MatchHero 처럼 계산값만으로 <Suspense> 밖에 둘 수 없다.
  */
 async function FlowSections({
   flow,
   userId,
   ctx,
-  index,
+  currentIndex,
 }: {
   flow: FlowRow;
   userId: string;
   ctx: FlowContext;
-  index: number;
+  currentIndex: number | null;
 }) {
   let interpretation: Partial<FlowInterpretation>;
   let rateLimited = false;
   let outOfTickets = false;
-  const n = flow.segments.length;
 
   try {
     // 한도는 여기, 생성기를 감싸서 씌운다. produceFlowSections 는 저장소에 없는
@@ -133,12 +131,17 @@ async function FlowSections({
     // 이용권 차감보다 먼저 일어나야 한도에 걸린 요청이 이용권을 쓰지 않는다.
     // 반대로 감싸면 이용권부터 깎고 나서야 한도 초과를 알게 되어, 막아야 할
     // 요청에서 먼저 돈을 받는 꼴이 된다.
+    //
+    // getStored 는 ctx 를 받지 않는다 — produceFlowSections 가 자신이 검증에 쓰는
+    // schemaCtx 를 그대로 넘겨준다. 여기서 pivotMonths 를 직접 조립해 넘기면 그
+    // 값이 검증 쪽과 어긋날 길이 열린다(produce.ts 의 ProduceFlowDeps.getStored
+    // 문서 참고).
     ({ interpretation } = await produceFlowSections(flow.id, ctx, {
       generator: gateFlowGeneration(
         chargeFlowGeneration(createFlowGenerator(), userId, flow.id),
         userId,
       ),
-      getStored: (flowId, keys) => getFlowSections(flowId, keys, n),
+      getStored: getFlowSections,
       putStored: putFlowSections,
       sectionKeys: FLOW_SECTION_KEYS,
     }));
@@ -163,11 +166,16 @@ async function FlowSections({
     return rateLimited ? <FlowRateLimited /> : <FlowError />;
   }
 
-  const sections = toFlowView(interpretation, index);
+  const sections = toFlowView(interpretation);
   return (
     <>
       <FlowHero sections={sections} />
-      <FlowBody sections={sections} segments={flow.segments} profileId={flow.profileId} />
+      <FlowBody
+        sections={sections}
+        months={flow.months}
+        currentIndex={currentIndex}
+        profileId={flow.profileId}
+      />
     </>
   );
 }

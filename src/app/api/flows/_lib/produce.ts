@@ -3,6 +3,7 @@ import {
   isFlowSectionKey,
   parseFlowSectionContent,
   type FlowInterpretation,
+  type FlowSchemaContext,
   type FlowSectionKey,
 } from "./sections";
 import type { FlowContext } from "./prompt";
@@ -26,7 +27,15 @@ export class FlowGenerationError extends Error {
 
 export interface ProduceFlowDeps {
   generator: FlowGenerator;
-  getStored: (flowId: string, keys: FlowSectionKey[]) => Promise<StoredFlowSections>;
+  /**
+   * ctx 는 이 함수가 넘겨준다 — 호출자가 직접 스키마 컨텍스트를 조립해 넘기지
+   * 않는다. produceFlowSections 아래 schemaCtx 문서에 이유가 있다.
+   */
+  getStored: (
+    flowId: string,
+    keys: FlowSectionKey[],
+    ctx: FlowSchemaContext,
+  ) => Promise<StoredFlowSections>;
   putStored: (
     flowId: string,
     interpretation: Partial<FlowInterpretation>,
@@ -38,13 +47,15 @@ export interface ProduceFlowDeps {
 /**
  * 저장된 서술은 그대로, 없는 것만 생성·검증·저장.
  *
- * 스키마 컨텍스트는 ctx.pivotMonths 하나가 유일한 출처다 — getStored 도 검증도
- * 이 값을 쓴다. 저장된 08 의 변곡점이 다르면 missing 으로 잡혀 다시 생성된다.
- *
- * stored 는 "이미 다 있어 생성기를 아예 부르지 않았다" 만을 뜻한다(순수 캐시 적중).
- * 생성을 한 번이라도 시도했으면 그중 전부가 검증을 통과해도 false 다 — 이 값을 읽는
- * 쪽이 "이번 호출이 비용을 썼는가" 를 판단하는 근거이지 "결과가 완전한가" 를
- * 판단하는 근거가 아니다. matches 의 produceMatchSections 와 같은 계약이다.
+ * 스키마 컨텍스트는 ctx.pivotMonths 하나가 유일한 출처이고, 그 사실이 시그니처에
+ * 박혀 있다 — getStored 가 ctx 를 파라미터로 받으므로 호출자는 이 함수가 조립한
+ * schemaCtx 를 그대로 받을 수밖에 없다. 예전에는 이 함수가 schemaCtx 를 로컬
+ * 변수로만 들고 있고 getStored 클로저(page.tsx)가 *따로* 같은 값을 조립해
+ * 넘겼다 — 둘을 묶어 주는 것이 주석뿐이라, 클로저 쪽이 나중에 다른 값을 넣어도
+ * 컴파일러도 테스트도 잡지 못했다. 어긋나면 방금 쓴 08 이 다음 열람마다 "변곡점
+ * 불일치" 로 missing 처리되어 매번 다시 생성된다 — 지갑은 entitlements 행이
+ * 남아 안전하지만(spendTicket 이 kind:"already"), LLM 호출은 매 조회마다 든다.
+ * 이제는 어긋난 값을 넘기는 호출자를 아예 쓸 수 없다.
  */
 export async function produceFlowSections(
   flowId: string,
@@ -54,7 +65,7 @@ export async function produceFlowSections(
   // 스키마 컨텍스트의 유일한 출처다 — getStored 도 아래 검증도 이 값을 쓴다.
   // 저장된 08 의 변곡점이 다르면 missing 으로 잡혀 다시 생성된다.
   const schemaCtx = { pivotMonths: ctx.pivotMonths };
-  const { have, missing } = await deps.getStored(flowId, deps.sectionKeys);
+  const { have, missing } = await deps.getStored(flowId, deps.sectionKeys, schemaCtx);
   if (missing.length === 0) return { interpretation: have, stored: true };
 
   let generated: Partial<FlowInterpretation>;

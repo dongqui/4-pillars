@@ -1,43 +1,31 @@
 import {
   FLOW_SECTION_KEYS,
   type FlowInterpretation,
-  type FlowSegmentBody,
+  type FlowSectionKey,
 } from "@/app/api/flows/_lib/sections";
 
 export interface FlowSectionView {
-  key: string;
-  /** 그해 전체의 배경. 07 은 null */
-  common: string | null;
-  /** 읽는 시점의 구간 서술 */
-  current: FlowSegmentBody | null;
-  /** 전체 구간. 07 타임라인이 쓴다 */
-  all: FlowSegmentBody[];
+  key: FlowSectionKey;
+  content: FlowInterpretation[FlowSectionKey];
 }
 
 /**
- * 저장된 서술 + 현재 구간 인덱스 → 화면 모델.
+ * 저장된 서술 → 화면 모델.
  *
- * 없는 섹션은 빼고 낸다 — 생성이 일부 실패해도 확보한 섹션은 보여야 한다.
+ * 앞선 설계는 읽는 시점의 구간을 골라 냈다. 이제 고를 것이 없다 — 본문이 12개월
+ * 전부다. 남은 일은 없는 섹션을 빼고 선언 순서로 세우는 것뿐이다.
+ *
+ * 없는 섹션을 빼는 이유는 그대로다 — 생성이 일부 실패해도 확보한 섹션은 보여야
+ * 한다. 이용권을 쓴 결과다.
  */
 export function toFlowView(
   interpretation: Partial<FlowInterpretation>,
-  index: number,
 ): FlowSectionView[] {
   const out: FlowSectionView[] = [];
-
   for (const key of FLOW_SECTION_KEYS) {
     const content = interpretation[key];
     if (!content) continue;
-
-    const all = content.segments;
-    const i = Math.min(Math.max(index, 0), all.length - 1);
-    out.push({
-      key,
-      common: "common" in content ? content.common : null,
-      current: all[i] ?? null,
-      all,
-    });
+    out.push({ key, content } as FlowSectionView);
   }
-
   return out;
 }
