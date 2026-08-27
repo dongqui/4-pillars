@@ -43,7 +43,7 @@ export function toStartOutcome(status: number): StartFailure | null {
       // 시점에 따라 몇 초 뒤일 수도, 한 시간 가까이 뒤일 수도 있다. 그래서
       // "한 시간 뒤" 처럼 코드가 보장하지 않는 구체적인 시간을 약속하지 않는다.
       return {
-        text: "지금의 흐름 생성 시간당 한도에 도달했어요. 잠시 후 다시 시도해 주세요.",
+        text: "한 해의 흐름 생성 시간당 한도에 도달했어요. 잠시 후 다시 시도해 주세요.",
       };
     case 401:
       // "세션이 끊긴 경우" — src/app/report/_hooks/use-unlock.ts 의 401 분기와
