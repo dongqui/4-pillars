@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Yongsin } from "@/lib/saju-core";
-import { frictionOf, parsePillar2, supportOf } from "./score";
+import { frictionOf, parsePillar2, relationsOf, supportOf, weightTotal } from "./score";
 
 // 용신 화, 희신 목. 화를 극하는 것은 수다.
 const yongsin: Yongsin = {
@@ -81,5 +81,61 @@ describe("frictionOf", () => {
     const atMonth = frictionOf("오", { natal: ["신", "자", "신", "신"], sewun: "신", daeun: "신" });
     const atYear = frictionOf("오", { natal: ["자", "신", "신", "신"], sewun: "신", daeun: "신" });
     expect(atMonth).toBeGreaterThan(atYear);
+  });
+});
+
+describe("relationsOf", () => {
+  const targets = {
+    // 자·오 충 / 인·해 육합 을 일부러 만든다
+    natal: ["자", "축", "인", "묘"],
+    sewun: "오",
+    daeun: "해",
+  } as const;
+
+  it("어떤 자리와 어떤 관계인지를 이름으로 돌려준다", () => {
+    const rel = relationsOf("오", targets);
+    expect(rel).toContainEqual({ target: "년지", kind: "충" });
+  });
+
+  it("관계가 없으면 빈 배열이다", () => {
+    // 묘는 축과 쌍 관계가 없다(branch-relations.ts 표로 확인). 원안의 "진"은
+    // 진·축이 파(破) 관계라 빈 배열 기대치가 틀렸다.
+    expect(relationsOf("묘", { natal: ["축"], sewun: "축", daeun: "축" })).toEqual([]);
+  });
+
+  it("시지가 없는 프로필은 시지 항목을 내지 않는다", () => {
+    const rel = relationsOf("오", { natal: ["자", "축", "인"], sewun: "미", daeun: "미" });
+    expect(rel.every((r) => r.target !== "시지")).toBe(true);
+  });
+});
+
+describe("weightTotal", () => {
+  it("네 기둥이 다 있으면 12 다", () => {
+    expect(weightTotal({ natal: ["자", "축", "인", "묘"], sewun: "진", daeun: "사" })).toBe(12);
+  });
+
+  it("시지가 없으면 시지 가중(1.5)만큼 줄어든다", () => {
+    expect(weightTotal({ natal: ["자", "축", "인"], sewun: "진", daeun: "사" })).toBe(10.5);
+  });
+});
+
+describe("frictionOf — 시간 미상 보정", () => {
+  it("같은 관계 구성이면 시지 유무와 무관하게 같은 크기가 나온다", () => {
+    // 분자가 0이 아니면 시지 유무로 분모(weightTotal)만 달라져도 값이 갈린다 —
+    // 그래서 branch("오")가 나머지 다섯 자리(년·월·일·세운·대운) 그리고 시지
+    // 후보 모두와 쌍 관계·삼합 어느 쪽으로도 얽히지 않게 골랐다(표로 확인 완료).
+    // 원안의 natal ["자","인","묘"]는 자(오와 충)·묘(오와 파)가 이미 있어
+    // 분자가 0이 아니었고, 그래서 축을 다른 지지로 바꿔도 통과할 수 없었다.
+    const withHour = frictionOf("오", {
+      natal: ["진", "인", "사", "해"],
+      sewun: "신",
+      daeun: "유",
+    });
+    const withoutHour = frictionOf("오", {
+      natal: ["진", "인", "사"],
+      sewun: "신",
+      daeun: "유",
+    });
+    expect(withoutHour).toBeCloseTo(withHour, 10);
   });
 });

@@ -8,7 +8,10 @@
 //
 // 십성은 여기 없다. 십성은 "변화가 어디에서 체감되는가" 를 정하는 축이라
 // 전환 시점 판정에 넣으면 같은 작용을 두 번 반영하고, 범주가 바뀌었다는 이유만으로
-// 실제 세기 차이가 작아도 구간을 억지로 나눈다. (프롬프트의 facts 블록에서는 쓴다)
+// 실제 세기 차이가 작아도 전환을 억지로 만든다.
+//
+// 관계 이름(충·형·육합…)도 같은 대접이다 — relationsOf 로 이름을 꺼내되 변곡점
+// 판정은 frictionOf 가 접은 숫자만 본다. 세기는 점수로, 이름은 재료로.
 
 import {
   STEMS,
@@ -20,6 +23,7 @@ import {
   setRelations,
   type Branch,
   type Element,
+  type PairKind,
   type Stem,
   type Yongsin,
 } from "@/lib/saju-core";
@@ -80,46 +84,86 @@ const SAMHAP_COEFF = -0.8;
  * 세운·대운을 2 로 두는 이유: 지금 들어와 있는 흐름이라 일지만큼 무겁게 본다.
  */
 const NATAL_WEIGHTS = [1.5, 3, 2, 1.5] as const; // 년 · 월 · 일 · 시
+const NATAL_LABELS = ["년지", "월지", "일지", "시지"] as const;
 const SEWUN_WEIGHT = 2;
 const DAEUN_WEIGHT = 2;
 
-/** 정규화 분모. 두 축이 같은 자를 쓰게 하는 값이다. */
-export const WEIGHT_TOTAL =
-  NATAL_WEIGHTS.reduce((a, b) => a + b, 0) + SEWUN_WEIGHT + DAEUN_WEIGHT; // 12
+export type InteractionTarget = (typeof NATAL_LABELS)[number] | "세운" | "대운";
+
+/** 이 달의 지지가 무엇과 어떤 관계를 맺는가. 숫자로 접기 전의 이름이다. */
+export interface Interaction {
+  target: InteractionTarget;
+  kind: PairKind;
+}
+
+/**
+ * 가중치의 유일한 출처. NATAL_WEIGHTS 에서 파생시켜 두 표가 갈리는 것을 막는다.
+ */
+const WEIGHT_OF: Record<InteractionTarget, number> = {
+  년지: NATAL_WEIGHTS[0],
+  월지: NATAL_WEIGHTS[1],
+  일지: NATAL_WEIGHTS[2],
+  시지: NATAL_WEIGHTS[3],
+  세운: SEWUN_WEIGHT,
+  대운: DAEUN_WEIGHT,
+};
 
 export interface FrictionTargets {
-  /** 원국 4지 — [년, 월, 일, 시] 순서 */
+  /** 원국 4지 — [년, 월, 일, 시] 순서. 시간 미상이면 3개로 짧다 */
   natal: readonly Branch[];
   sewun: Branch;
   daeun: Branch;
 }
 
-function pairScore(a: Branch, b: Branch): number {
-  let sum = 0;
-  for (const kind of pairRelations(a, b)) sum += KIND_COEFF[kind];
-  return sum;
+/**
+ * 정규화 분모. **상수가 아니다.**
+ *
+ * 시간 미상 프로필은 시지가 없어 분자에 세 자리만 기여하는데, 분모를 12 로
+ * 고정하면 그 사람의 friction 이 구조적으로 낮게 나온다 — 두 축을 합해 변곡점을
+ * 고르므로 그대로 두면 시간 미상인 사람은 변곡점을 덜 받는다.
+ */
+export function weightTotal(targets: FrictionTargets): number {
+  const natal = targets.natal.reduce((sum, _, i) => sum + (NATAL_WEIGHTS[i] ?? 1), 0);
+  return natal + SEWUN_WEIGHT + DAEUN_WEIGHT;
 }
 
 /**
- * 이 지지가 원국·세운·대운을 얼마나 흔드는가.
+ * 이 지지가 무엇과 어떤 관계를 맺는가.
  *
- * 쌍 관계는 상대별로 가중해 더하고, 삼합은 판 전체를 놓고 한 번만 판정한다 —
- * 세 글자가 있어야 성립하는 관계를 쌍으로 세면 반합을 삼합으로 과대평가한다.
+ * frictionOf 가 이 목록을 가중합해 숫자 하나로 접는다. **이름을 따로 꺼내는 이유는
+ * 프롬프트다** — 07 이 12개 달을 서로 다르게 쓰려면 두 축 말고도 재료가 있어야
+ * 한다. 변곡점 판정에는 쓰지 않는다(십성을 탐지에서 뺀 것과 같은 판단: 범주가
+ * 바뀌었다는 이유만으로 전환을 만들지 않는다).
  */
-export function frictionOf(branch: Branch, targets: FrictionTargets): number {
-  let sum = 0;
-
+export function relationsOf(branch: Branch, targets: FrictionTargets): Interaction[] {
+  const out: Interaction[] = [];
   targets.natal.forEach((b, i) => {
-    sum += pairScore(branch, b) * (NATAL_WEIGHTS[i] ?? 1);
+    const target = NATAL_LABELS[i];
+    if (!target) return; // natal 이 4개를 넘으면 무시한다
+    for (const kind of pairRelations(branch, b)) out.push({ target, kind });
   });
-  sum += pairScore(branch, targets.sewun) * SEWUN_WEIGHT;
-  sum += pairScore(branch, targets.daeun) * DAEUN_WEIGHT;
+  for (const kind of pairRelations(branch, targets.sewun)) out.push({ target: "세운", kind });
+  for (const kind of pairRelations(branch, targets.daeun)) out.push({ target: "대운", kind });
+  return out;
+}
 
-  // 삼합은 이 지지가 들어와서 **새로 완성되는** 것만 센다.
+/**
+ * 이 지지가 들어와서 **새로 완성되는** 삼합의 개수.
+ *
+ * 세 글자가 있어야 성립하는 관계를 쌍으로 세면 반합을 삼합으로 과대평가한다.
+ * 그래서 판 전체를 놓고 전후를 비교한다.
+ */
+export function samhapGain(branch: Branch, targets: FrictionTargets): number {
   const without = [...targets.natal, targets.sewun, targets.daeun];
   const before = setRelations(without).filter((r) => r.kind === "삼합").length;
   const after = setRelations([...without, branch]).filter((r) => r.kind === "삼합").length;
-  if (after > before) sum += SAMHAP_COEFF * (after - before) * SEWUN_WEIGHT;
+  return after - before;
+}
 
-  return sum / WEIGHT_TOTAL;
+/** 이 지지가 원국·세운·대운을 얼마나 흔드는가. 대략 −1 … +1. */
+export function frictionOf(branch: Branch, targets: FrictionTargets): number {
+  let sum = 0;
+  for (const r of relationsOf(branch, targets)) sum += KIND_COEFF[r.kind] * WEIGHT_OF[r.target];
+  sum += SAMHAP_COEFF * samhapGain(branch, targets) * SEWUN_WEIGHT;
+  return sum / weightTotal(targets);
 }
