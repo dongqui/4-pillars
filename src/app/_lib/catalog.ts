@@ -53,8 +53,8 @@ const PAID: Record<Feature, { title: string; desc: string; href: string }> = {
     href: "/consult",
   },
   yearly_flow: {
-    title: "지금의 흐름",
-    desc: "요즘 나를 둘러싼 흐름과, 가까운 변화를 읽어보세요.",
+    title: "한 해의 흐름",
+    desc: "궁금한 해를 골라, 그해의 큰 흐름부터 달마다 달라지는 변화까지.",
     href: "/flow",
   },
 };

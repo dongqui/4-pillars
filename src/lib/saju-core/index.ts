@@ -146,7 +146,7 @@ export {
   type CalendarTime,
 } from "./astro/solar-term";
 
-// 흐름(지금의 흐름 서비스) — 명리 연도와 그 안의 구간
+// 흐름(한 해의 흐름 서비스) — 명리 연도와 그 안의 구간
 export { flowYearAt, flowYearOf, IPCHUN_LONGITUDE, type FlowYearPeriod } from "./flow/year";
 export { monthTermsOf, type MonthTerm } from "./flow/months";
 export { birthInstant, daeunSwitchIn, type DaeunSwitch } from "./flow/switch";

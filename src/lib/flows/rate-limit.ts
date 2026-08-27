@@ -1,7 +1,7 @@
 import { redis } from "@/lib/redis";
 
 /**
- * 지금의 흐름 생성 한도.
+ * 한 해의 흐름 생성 한도.
  *
  * 흐름은 리포트와 달리 프로필+해 조합마다 항상 LLM 을 부르는 것은 아니다 —
  * 이미 만든 프로필·해라면 flows_unique 로 기존 행에 수렴해 LLM 을 부르지 않는다.
@@ -35,7 +35,7 @@ const WINDOW_SECONDS = 60 * 60;
 
 export class FlowRateLimitError extends Error {
   constructor() {
-    super("지금의 흐름 생성 한도를 넘었습니다");
+    super("한 해의 흐름 생성 한도를 넘었습니다");
     this.name = "FlowRateLimitError";
   }
 }

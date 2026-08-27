@@ -17,7 +17,7 @@ export function FlowOutOfTickets({ flowId }: { flowId: string }) {
     >
       <div className="text-[22px] font-bold tracking-tight">이용권이 부족해요</div>
       <p className="mt-3 max-w-[400px] text-[15px] leading-[1.6] text-slate-500 [text-wrap:pretty]">
-        지금의 흐름을 볼 이용권이 없어요. 충전하면 이 화면으로 돌아와 바로 이어서 볼 수 있어요.
+        한 해의 흐름을 볼 이용권이 없어요. 충전하면 이 화면으로 돌아와 바로 이어서 볼 수 있어요.
       </p>
       <Link
         href={`/checkout?next=${encodeURIComponent(`/flow/${flowId}`)}`}

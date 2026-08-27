@@ -9,7 +9,7 @@
  */
 export class FlowTicketsError extends Error {
   constructor() {
-    super("지금의 흐름을 볼 이용권이 부족합니다");
+    super("한 해의 흐름을 볼 이용권이 부족합니다");
     this.name = "FlowTicketsError";
   }
 }

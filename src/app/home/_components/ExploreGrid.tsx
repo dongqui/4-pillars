@@ -33,10 +33,10 @@ export function ExploreGrid({ reportHref, consultHref }: Props) {
         </Link>
 
         <Link href="/flow" className={CARD}>
-          <div className={EYEBROW}>요즘의 나</div>
-          <div className={TITLE}>지금의 흐름</div>
+          <div className={EYEBROW}>한 해의 나</div>
+          <div className={TITLE}>한 해의 흐름</div>
           <p className={DESC}>
-            요즘 나를 둘러싼 흐름과, 가까운 변화를 읽어보세요.
+            궁금한 해를 골라, 그해의 큰 흐름부터 달마다 달라지는 변화까지.
           </p>
           <span className={CTA}>흐름 보기 →</span>
         </Link>
