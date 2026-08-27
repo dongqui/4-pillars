@@ -1,9 +1,14 @@
 import { z } from "zod";
 import {
   FLOW_SECTIONS,
+  type ClosingContent,
+  type FlowSchemaContext,
   type FlowSectionSpec,
-  type SegmentedContent,
-  type TimelineContent,
+  type ItemsContent,
+  type MonthsContent,
+  type OverviewContent,
+  type PivotsContent,
+  type ProseContent,
 } from "./registry";
 
 export type FlowSectionKey = keyof typeof FLOW_SECTIONS;
@@ -11,18 +16,19 @@ export type FlowSectionKey = keyof typeof FLOW_SECTIONS;
 /**
  * 섹션별 content 타입.
  *
- * schema 가 팩토리라 z.infer 로 뽑으면 n 에 따라 타입이 흔들린다. 모양은 두 가지뿐이라
- * (07만 common 이 없다) 여기서 명시적으로 짝지어 준다 — 읽는 쪽이 훨씬 분명하다.
+ * schema 가 팩토리라 z.infer 로 뽑으면 컨텍스트에 따라 타입이 흔들린다. 모양은
+ * 여섯 가지뿐이라 여기서 명시적으로 짝지어 준다 — 읽는 쪽이 훨씬 분명하다.
  */
 export type FlowInterpretation = {
-  now: SegmentedContent;
-  rising: SegmentedContent;
-  straining: SegmentedContent;
-  work: SegmentedContent;
-  relating: SegmentedContent;
-  money: SegmentedContent;
-  ahead: TimelineContent;
-  remember: SegmentedContent;
+  overview: OverviewContent;
+  rising: ItemsContent;
+  straining: ItemsContent;
+  work: ProseContent;
+  relating: ProseContent;
+  money: ProseContent;
+  months: MonthsContent;
+  pivots: PivotsContent;
+  closing: ClosingContent;
 };
 
 export const FLOW_SECTION_KEYS = Object.keys(FLOW_SECTIONS) as FlowSectionKey[];
@@ -42,11 +48,14 @@ export function flowSectionVersion(key: FlowSectionKey): number {
  * LLM tool 의 input_schema. 최상위가 객체여야 하는데 배열인 섹션이 있을 수 있어
  * 전부 { content: ... } 한 겹으로 감싼다 — 리포트·궁합과 같은 계약이다.
  *
- * n 을 받는 것이 리포트·궁합과 다른 점이다. 구간 수가 스키마 안에 박히므로
- * LLM 이 개수를 바꿀 수 없다.
+ * 컨텍스트를 받는 것이 리포트·궁합과 다른 점이다. 08 의 정의역이 스키마 안에
+ * 박히므로 LLM 이 계산되지 않은 달을 변곡점이라고 우길 수 없다.
  */
-export function flowLlmInputSchema(key: FlowSectionKey, n: number): Record<string, unknown> {
-  const content = z.toJSONSchema(spec(key).schema(n)) as Record<string, unknown>;
+export function flowLlmInputSchema(
+  key: FlowSectionKey,
+  ctx: FlowSchemaContext,
+): Record<string, unknown> {
+  const content = z.toJSONSchema(spec(key).schema(ctx)) as Record<string, unknown>;
   delete content.$schema;
   return {
     type: "object",
@@ -60,9 +69,9 @@ export function flowLlmInputSchema(key: FlowSectionKey, n: number): Record<strin
 export function parseFlowSectionContent<K extends FlowSectionKey>(
   key: K,
   raw: unknown,
-  n: number,
+  ctx: FlowSchemaContext,
 ): FlowInterpretation[K] | null {
-  const result = spec(key).schema(n).safeParse(raw);
+  const result = spec(key).schema(ctx).safeParse(raw);
   return result.success ? (result.data as FlowInterpretation[K]) : null;
 }
 
