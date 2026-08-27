@@ -17,7 +17,7 @@ import {
   isFlowRateLimited,
 } from "@/app/api/flows/_lib/gated-generator";
 import { FlowGenerationError, produceFlowSections } from "@/app/api/flows/_lib/produce";
-import { getFlowSections, putFlowSections } from "@/app/api/flows/_lib/store";
+import { putFlowSections } from "@/app/api/flows/_lib/store";
 import { currentMonthIndex } from "./_lib/current-month";
 import { toFlowView } from "./_lib/to-flow-view";
 import { FlowShell } from "./_components/FlowShell";
@@ -132,16 +132,15 @@ async function FlowSections({
     // 반대로 감싸면 이용권부터 깎고 나서야 한도 초과를 알게 되어, 막아야 할
     // 요청에서 먼저 돈을 받는 꼴이 된다.
     //
-    // getStored 는 ctx 를 받지 않는다 — produceFlowSections 가 자신이 검증에 쓰는
-    // schemaCtx 를 그대로 넘겨준다. 여기서 pivotMonths 를 직접 조립해 넘기면 그
-    // 값이 검증 쪽과 어긋날 길이 열린다(produce.ts 의 ProduceFlowDeps.getStored
-    // 문서 참고).
+    // 여기서는 스키마 컨텍스트를 조립할 자리가 아예 없다 — produceFlowSections
+    // 가 저장소 읽기(getFlowSections)를 직접 부르고, 그 호출과 뒤이은 검증이
+    // 같은 schemaCtx 지역 변수를 쓴다(produce.ts 의 ProduceFlowDeps 문서 참고).
+    // client 를 생략하면 store.ts 의 실제 sql 이 쓰인다 — 테스트만 가짜를 준다.
     ({ interpretation } = await produceFlowSections(flow.id, ctx, {
       generator: gateFlowGeneration(
         chargeFlowGeneration(createFlowGenerator(), userId, flow.id),
         userId,
       ),
-      getStored: getFlowSections,
       putStored: putFlowSections,
       sectionKeys: FLOW_SECTION_KEYS,
     }));
