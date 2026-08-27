@@ -103,9 +103,12 @@ describe("decodeFlowSections", () => {
 describe("decodeFlowSections — 손상 판정", () => {
   const CTX = { pivotMonths: [3, 7] };
 
+  // 하드코딩된 숫자를 쓰면 FLOW_SECTIONS.pivots.version 이 오를 때마다 이 테스트가
+  // "버전 불일치로 missing" 경로를 (의도치 않게) 함께 테스트하게 된다 — 이 describe
+  // 가 실제로 보려는 건 손상 판정이지 버전 비교가 아니다.
   const row = (content: unknown) => ({
     section_key: "pivots",
-    schema_version: 1,
+    schema_version: FLOW_SECTIONS.pivots.version,
     content: JSON.stringify(content),
   });
 
