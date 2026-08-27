@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { flowYearAt } from "./year";
+import { flowYearAt, flowYearOf } from "./year";
 
 describe("flowYearAt", () => {
   it("입춘 전이면 전년도다 — 달력 연도가 아니라 명리 연도다", () => {
@@ -30,5 +30,31 @@ describe("flowYearAt", () => {
     const a = flowYearAt(new Date("2026-06-01T00:00:00Z"));
     const b = flowYearAt(new Date("2027-06-01T00:00:00Z"));
     expect(a.end.getTime()).toBe(b.start.getTime());
+  });
+});
+
+describe("flowYearOf", () => {
+  it("연도를 주면 그 해 입춘부터 다음 해 입춘까지를 돌려준다", () => {
+    const p = flowYearOf(2027);
+    expect(p.year).toBe(2027);
+    // 입춘은 2월 3~5일 사이에 든다
+    expect(p.start.getUTCMonth()).toBe(1);
+    expect(p.end.getUTCFullYear()).toBe(2028);
+    expect(p.end.getUTCMonth()).toBe(1);
+  });
+
+  it("flowYearAt 이 고른 해를 flowYearOf 에 넣으면 같은 경계가 나온다", () => {
+    // 두 함수가 같은 절기 계산을 쓰는지 — 갈리면 확인 화면과 리포트가 다른
+    // 기간을 표시한다
+    const at = flowYearAt(new Date("2026-06-15T00:00:00Z"));
+    const of = flowYearOf(at.year);
+    expect(of.start.getTime()).toBe(at.start.getTime());
+    expect(of.end.getTime()).toBe(at.end.getTime());
+  });
+
+  it("1월 20일은 아직 앞 해다 — flowYearOf 로 그 해를 되짚을 수 있다", () => {
+    const at = flowYearAt(new Date("2026-01-20T00:00:00Z"));
+    expect(at.year).toBe(2025);
+    expect(flowYearOf(2025).end.getTime()).toBe(at.end.getTime());
   });
 });

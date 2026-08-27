@@ -1,11 +1,11 @@
 // 월운(月運) — 명리 연도 하나를 12개 절기 구간으로 자른다.
 //
-// 이 12개를 사용자에게 다 보여주지 않는다. 전환점을 고르기 위한 계산 해상도일 뿐이고,
-// 노출은 최대 3구간이다(기획서 §4: 12개월을 모두 해설하지 않는다).
+// 12개를 전부 사용자에게 보여준다(§17). 그중 인접 월 사이의 변화가 큰 달만
+// 변곡점으로 따로 표시한다(§20) — 계산 해상도가 곧 노출 단위다.
 
 import { calculateSajuSimple } from "@fullstackfamily/manseryeok";
 import { MONTH_TERMS, solarTermInstant } from "../astro/solar-term";
-import { flowYearAt, IPCHUN_LONGITUDE } from "./year";
+import { IPCHUN_LONGITUDE } from "./year";
 
 export interface MonthTerm {
   /** 절기 이름 (입춘·경칩 …) */
@@ -69,11 +69,3 @@ export function monthTermsOf(year: number): MonthTerm[] {
   });
 }
 
-/** 주어진 순간이 속한 월운 구간. 못 찾으면 null (범위 밖). */
-export function monthTermAt(at: Date): MonthTerm | null {
-  const { year } = flowYearAt(at);
-  const t = at.getTime();
-  return (
-    monthTermsOf(year).find((m) => t >= m.start.getTime() && t < m.end.getTime()) ?? null
-  );
-}
