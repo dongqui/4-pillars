@@ -53,7 +53,7 @@ describe("chargeFlowGeneration", () => {
     const spend = vi.fn(async () => ({ ok: true as const, kind: "spent" as const, balance: 4 }));
     await chargeFlowGeneration(stub(), "3", "7", spend).generateSections(ctx, ["now"]);
     expect(spend).toHaveBeenCalledWith({
-      userId: "3", feature: "current_flow", subjectKey: "7",
+      userId: "3", feature: "yearly_flow", subjectKey: "7",
     });
   });
 

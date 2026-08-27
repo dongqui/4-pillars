@@ -35,7 +35,7 @@ export async function canCreateFlow(
 ): Promise<FlowAccess> {
   if (!userId) return { ok: false, reason: "unauthenticated" };
   if (!(await deps.peekLimit(userId))) return { ok: false, reason: "rate_limited" };
-  if ((await deps.getBalance(userId)) < FEATURE_COST.current_flow) {
+  if ((await deps.getBalance(userId)) < FEATURE_COST.yearly_flow) {
     return { ok: false, reason: "insufficient_tickets" };
   }
   return { ok: true };

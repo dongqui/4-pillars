@@ -53,14 +53,14 @@ export function chargeFlowGeneration(
   flowId: string,
   spend: (a: {
     userId: string;
-    feature: "current_flow";
+    feature: "yearly_flow";
     subjectKey: string;
   }) => Promise<SpendResult> = spendTicket,
 ): FlowGenerator {
   return {
     model: inner.model,
     async generateSections(ctx, keys) {
-      const result = await spend({ userId, feature: "current_flow", subjectKey: flowId });
+      const result = await spend({ userId, feature: "yearly_flow", subjectKey: flowId });
       if (!result.ok) throw new FlowTicketsError();
       return inner.generateSections(ctx, keys);
     },

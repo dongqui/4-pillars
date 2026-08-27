@@ -26,3 +26,21 @@ export async function hasEntitlement(
   `;
   return rows.length > 0;
 }
+
+/**
+ * 이 사용자가 이 기능에 대해 가진 권한의 subject_key 전부.
+ *
+ * hasEntitlement 는 한 건을 묻는다. 선택 화면은 연도 11칸의 소유 여부를 한 번에
+ * 물어야 해서 배치가 필요하다 — 칸마다 hasEntitlement 를 부르면 왕복이 11번이다.
+ */
+export async function listEntitledSubjects(
+  userId: string,
+  feature: Feature,
+  client: SqlClient = sql,
+): Promise<string[]> {
+  const rows = await client`
+    SELECT subject_key FROM entitlements
+     WHERE user_id = ${userId}::bigint AND feature = ${feature}
+  `;
+  return rows.map((r) => String(r.subject_key));
+}

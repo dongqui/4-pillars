@@ -7,12 +7,13 @@
  *
  * 값은 entitlements.feature 컬럼에 그대로 들어간다. 한 번 나간 값은 사용자의
  * 열람 권한이므로 이름을 바꾸려면 마이그레이션이 필요하다.
+ * (yearly_flow 는 출시 전이라 0043 에서 옛 행을 지우는 것으로 끝났다 — 다음엔 못 한다)
  */
 export const FEATURE_IDS = [
   "full_report",
   "compatibility",
   "consultation",
-  "current_flow",
+  "yearly_flow",
 ] as const;
 
 export type Feature = (typeof FEATURE_IDS)[number];
@@ -22,5 +23,5 @@ export const FEATURE_COST: Record<Feature, number> = {
   full_report: 1,
   compatibility: 1,
   consultation: 1,
-  current_flow: 1,
+  yearly_flow: 1,
 };

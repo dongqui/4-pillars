@@ -18,7 +18,7 @@ export default async function FlowPage() {
   const period = flowYearAt(new Date());
   const existing = profile ? await findFlow(profile.id, period.year) : null;
   const owned = existing
-    ? await hasEntitlement(session.userId, "current_flow", existing.id)
+    ? await hasEntitlement(session.userId, "yearly_flow", existing.id)
     : false;
 
   return (
