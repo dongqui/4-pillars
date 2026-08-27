@@ -97,7 +97,13 @@ function deltaPhrase(prev: MonthScore, cur: MonthScore): string {
   return parts.length > 0 ? parts.join(", ") : "성격은 비슷하되 무게중심이 옮겨감";
 }
 
-/** 오행 분포를 숫자 대신 라벨로. 리포트의 chartFacts 와 달리 점수를 안 준다. */
+/**
+ * 오행 분포를 숫자 대신 라벨로. 리포트의 chartFacts 와 달리 점수를 안 준다.
+ *
+ * 0.35/0.1 경계는 편집적 판단이다 — PIVOT_THRESHOLD(pivots.ts)처럼 실측
+ * 스윕으로 고른 값이 아니라 "5글자 중 2개면 많다, 0~1개면 적다" 정도의 직관을
+ * 그대로 옮긴 것이다. 바꾸려면 근거를 새로 만들 것 — 지금은 없다.
+ */
 function distributionLabel(count: number, total: number): string {
   if (count === 0) return "없음";
   const share = count / total;
@@ -127,6 +133,10 @@ function daeunPhaseOf(analysis: SajuAnalysis, flowYear: number): "초반" | "중
   // 이 해 시작 시점의 정밀 나이 — currentDaeun 이 회차를 고를 때 쓰는 것과 같은 자
   const ageAtStart = (period.start.getTime() - birth) / YEAR_MS;
   const elapsed = Math.min(Math.max(ageAtStart - start, 0), 9.999);
+  // 4/7 도 편집적 판단이다 — 10년을 정확히 삼등분(3.33/6.67)하지 않고 가운데
+  // 구간을 살짝 넓혀 "초반·후반"의 경계가 조금 더 여유 있게 잡히도록 고른
+  // 값이다. PIVOT_THRESHOLD 같은 실측 근거는 없다. 바꾸려면 그 근거를 새로
+  // 만들 것.
   if (elapsed < 4) return "초반";
   if (elapsed < 7) return "중반";
   return "후반";
