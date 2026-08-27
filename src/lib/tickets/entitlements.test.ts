@@ -32,21 +32,29 @@ describe("hasEntitlement", () => {
   });
 });
 
-function fakeClient(rows: Record<string, unknown>[]) {
-  return (() => Promise.resolve(rows)) as never;
-}
-
 describe("listEntitledSubjects", () => {
   it("subject_key 만 문자열로 뽑는다", async () => {
-    const out = await listEntitledSubjects(
-      "1",
-      "yearly_flow",
-      fakeClient([{ subject_key: "7" }, { subject_key: 9 }]),
-    );
+    const { client } = fakeSql([{ subject_key: "7" }, { subject_key: 9 }]);
+    const out = await listEntitledSubjects("1", "yearly_flow", client);
     expect(out).toEqual(["7", "9"]);
   });
 
   it("없으면 빈 배열이다", async () => {
-    expect(await listEntitledSubjects("1", "yearly_flow", fakeClient([]))).toEqual([]);
+    const { client } = fakeSql([]);
+    expect(await listEntitledSubjects("1", "yearly_flow", client)).toEqual([]);
+  });
+
+  // 위 두 테스트는 fakeSql 이 인자와 무관하게 같은 rows 를 돌려주므로 추출
+  // 로직만 본다 — WHERE 절이 통째로 빠진 구현(다른 사용자의 권한까지 새는
+  // 버전)에도 똑같이 통과한다. 여기서는 이 함수가 유료 접근의 핵심 경계라 —
+  // 화면은 이 목록에 없는 연도만 이용권을 요구한다 — 쿼리가 실제로
+  // user_id·feature 둘 다로 걸러지는지, 그 값이 문자열 이어붙이기가 아니라
+  // 바인딩 파라미터로 들어가는지를 직접 본다.
+  it("user_id 와 feature 둘 다로 거른다", async () => {
+    const { client, calls } = fakeSql([]);
+    await listEntitledSubjects("3", "yearly_flow", client);
+    expect(calls[0].text).toContain("user_id");
+    expect(calls[0].text).toContain("feature");
+    expect(calls[0].values).toEqual(["3", "yearly_flow"]);
   });
 });
