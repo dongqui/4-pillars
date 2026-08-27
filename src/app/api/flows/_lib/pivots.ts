@@ -89,6 +89,25 @@ function daeunBonus(
 }
 
 /**
+ * 후보 선정에 실제로 쓰이는 Δ — monthDeltas 에 대운 보너스를 더한 것.
+ *
+ * flowMonths 안에 갇혀 있으면 선정 알고리즘과 무관하게 "무엇이 후보였는가" 를
+ * 볼 방법이 없다. 이 파일의 프로퍼티 테스트와, Task 5 에서 분포를 재는
+ * scripts/flow-threshold.mts 둘 다 선정 *전* 의 Δ 를 그대로 봐야 해서 나눈다 —
+ * 둘 중 하나만을 위해서였다면 나누지 않았을 것이다.
+ */
+export function effectiveDeltas(analysis: SajuAnalysis, year: number): number[] {
+  return applyDaeunBonus(analysis, year, monthScores(analysis, year));
+}
+
+function applyDaeunBonus(analysis: SajuAnalysis, year: number, scores: MonthScore[]): number[] {
+  const deltas = monthDeltas(scores);
+  const bonus = daeunBonus(analysis, year, scores);
+  if (bonus) deltas[bonus.index - 1] += bonus.delta;
+  return deltas;
+}
+
+/**
  * 그 해의 12개월과 변곡점 플래그.
  *
  * 변곡점을 별도 배열이 아니라 월의 플래그로 두는 것이 요점이다 — 두 배열로 나누면
@@ -96,24 +115,30 @@ function daeunBonus(
  */
 export function flowMonths(analysis: SajuAnalysis, year: number): FlowMonth[] {
   const scores = monthScores(analysis, year);
-  const deltas = monthDeltas(scores);
-
-  const bonus = daeunBonus(analysis, year, scores);
-  if (bonus) deltas[bonus.index - 1] += bonus.delta;
+  const deltas = applyDaeunBonus(analysis, year, scores);
 
   // 첫 달을 뺀 나머지가 후보다. Δ 내림차순, 동점이면 이른 달 — 같은 입력이
   // 같은 결과를 내야 한다.
   const candidates = scores
     .slice(1)
     .map((s) => ({ index: s.index, delta: deltas[s.index - 1] }))
+    // 동점 tie-break 를 명시한다. scores.slice(1) 이 이미 index 오름차순이고
+    // ES2019 이후 Array#sort 는 안정 정렬이라 이 항 없이도 결과는 같다 — 하지만
+    // "안정 정렬에 기대고 있다" 는 사실을 읽는 사람이 몰라도 되게, 의도를 코드로
+    // 남겨 둔다. 지우지 말 것.
     .sort((a, b) => b.delta - a.delta || a.index - b.index);
 
   const picked: number[] = [];
   for (const c of candidates) {
     if (picked.length >= MAX_PIVOTS) break;
     if (c.delta < PIVOT_THRESHOLD) continue;
-    // Δ 내림차순으로 훑기 때문에, 이미 뽑힌 이웃이 있다는 것은 그쪽 Δ 가 더
-    // 크다는 뜻이다 — 여기서 건너뛰면 자연히 큰 쪽이 남는다.
+    // Δ 내림차순으로 훑기 때문에 보장되는 것은 "이 후보를 막은 이웃의 Δ 가 이
+    // 후보보다 크다" 는 쌍(pairwise) 관계뿐이다 — "선정된 쪽은 항상 탈락한 쪽보다
+    // 크다" 는 전역 보장이 아니다. 이미 뽑힌 달 옆이라 밀려난 후보 바로 다음 자리가
+    // 간격을 벌리며 더 작은 Δ 로 뽑힐 수 있다(예: 1985-06-20/여성/2028 표본 —
+    // 4번째달 Δ0.879 로 먼저 뽑히고, 5번째달 Δ0.871 은 4번째달과 너무 가까워
+    // 탈락하지만, 6번째달 Δ0.767 은 4번째달과 간격이 벌어져 뽑힌다. 최종 {4,6}:
+    // 더 작은 Δ 가 더 큰 Δ 옆에서 살아남는다).
     const tooClose = picked.some((p) => Math.abs(p - c.index) < MIN_PIVOT_GAP_MONTHS);
     if (tooClose) continue;
     picked.push(c.index);
