@@ -555,10 +555,14 @@ describe("monthScores", () => {
 
 describe("currentDaeun", () => {
   it("그 구간 시작보다 이르거나 같은 전환 중 가장 늦은 회차를 고른다", () => {
+    // ⚠️ periods 안에 있다는 것만 확인하면 아무것도 검증하지 못한다 — 틀린 회차도
+    // periods 안에 있다. **몇 번째** 회차인지를 못박고, 근거를 주석에 남긴다.
+    //    birth + (startAgePrecise + i×10) × YEAR_MS 가 구간 시작보다
+    //    이르거나 같은 i 중 가장 큰 것.
     const a = analyze(BIRTH);
     const period = flowYearOf(2027);
-    const picked = currentDaeun(a, period);
-    expect(a.daeun.periods).toContain(picked);
+    const expected = expectedDaeunIndex(a, period); // 아래 헬퍼로 독립 계산
+    expect(a.daeun.periods.indexOf(currentDaeun(a, period))).toBe(expected);
   });
 
   it("유년기 대운으로 물러서지 않는다", () => {
@@ -567,11 +571,34 @@ describe("currentDaeun", () => {
     const picked = currentDaeun(a, flowYearOf(2027));
     expect(picked).not.toBe(a.daeun.periods[0]);
   });
+
+  // ⚠️ 이 테스트를 빼지 마라. 이 레포에서 **실제로 났던 버그**를 잡는 유일한
+  // 테스트다: currentDaeun 이 반올림된 startAge 를 쓰고 daeunSwitchIn 이
+  // startAgePrecise + i×10 을 쓰던 시절, 둘이 최대 반년 어긋났다. 하필 그
+  // 어긋남이 대운 경계 해에 나면 이웃 회차가 조용히 뽑히고, 그 회차가 그 해
+  // **전체**의 friction 대상이 된다. (1967년생에서 반올림은 갑술, 정밀은 을해)
+  //
+  // "유년기로 안 물러선다" 는 조잡한 실수만 잡고 반년 어긋남은 못 잡는다.
+  it("대운 경계 해에서 daeunSwitchIn 과 같은 회차를 고른다", () => {
+    // 경계에 걸리는 실제 생년을 쓴다. 지운 segments.test.ts 의 픽스처를
+    // 그대로 가져온다 — git show <이 태스크 직전 커밋>:src/app/api/flows/_lib/segments.test.ts
+    const a = analyze({ ...BIRTH, year: 1950 });
+    const period = flowYearOf(2012);
+    const sw = daeunSwitchIn(a, period);
+    expect(sw).not.toBeNull();
+    // 전환이 있는 해에서 currentDaeun 은 전환 **앞쪽**과 같은 회차여야 한다 —
+    // frictionTargets 가 sw.before 를 쓰고, 없을 때만 currentDaeun 으로 물러선다.
+    expect(currentDaeun(a, period).pillar).toBe(sw!.before.pillar);
+  });
 });
 ```
 
-> `analyze` 의 `hour: null` 허용 여부는 `src/lib/saju-core/analyze.ts` 의 `BirthInput`
-> 을 보고 맞출 것. 시간 미상 표현이 다르면(예: `hourKnown: false`) 그 형태로 바꾼다.
+> `analyze` 의 시간 미상 표현은 `hour: null` 이 아니다 — `src/lib/saju-core/chart.ts`
+> 가 `hour?: number` 로 선언하고 `input.hour !== undefined` 로 판정하므로 `undefined`
+> 여야 한다. `null` 을 넣으면 "시간 있음" 으로 읽힌다.
+
+> ⚠️ `expectedDaeunIndex` 헬퍼는 구현을 베끼지 말고 **테스트 안에서 따로** 계산할 것.
+> 구현과 같은 식을 호출하면 둘이 같이 틀려도 통과한다.
 
 - [ ] **Step 2: 테스트가 실패하는지 확인한다**
 
