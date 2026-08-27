@@ -4,7 +4,10 @@ import { FLOW_SECTIONS, flowLlmInputSchema, type FlowSectionKey } from "../secti
 import { flowFacts, type FlowContext } from "./facts";
 import { FLOW_SYSTEM_PROMPT, SECTION_TOOL_NAME } from "./system";
 
-export { buildFlowContext, flowFacts, type FlowContext, type FlowSegmentFacts } from "./facts";
+// flowFacts/MonthFacts/YearFacts 는 여기서 재수출하지 않는다 — 이 파일 밖에서
+// "./facts" 를 거치지 않고 쓰는 곳이 없다(생성기·화면은 FlowContext/buildFlowContext
+// 만 필요로 한다). 쓰지 않는 이름을 배럴에 얹으면 실제 소비처 파악이 흐려진다.
+export { buildFlowContext, type FlowContext } from "./facts";
 export { FLOW_SYSTEM_PROMPT, SECTION_TOOL_NAME } from "./system";
 
 export interface FlowSectionRequest {
@@ -37,7 +40,8 @@ export function buildFlowSectionRequest(
     system: FLOW_SYSTEM_PROMPT,
     user,
     toolName: SECTION_TOOL_NAME,
-    // 구간 수가 스키마에 박힌다 — LLM 이 개수를 바꿀 수 없다.
-    inputSchema: flowLlmInputSchema(key, ctx.segments.length),
+    // 08 의 정의역이 스키마에 박힌다 — LLM 이 계산되지 않은 달을 변곡점이라
+    // 우길 수 없다. 07 은 언제나 12개다.
+    inputSchema: flowLlmInputSchema(key, { pivotMonths: ctx.pivotMonths }),
   };
 }
