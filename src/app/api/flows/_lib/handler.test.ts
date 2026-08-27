@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { handleCreateFlow, type CreateFlowDeps } from "./handler";
+import { flowYearOf } from "@/lib/saju-core";
+import { flowYearRange, handleCreateFlow, type CreateFlowDeps } from "./handler";
 
 const birth = {
   year: 1990, month: 6, day: 15, hour: 10, minute: 30, gender: "male", calendar: "solar",
@@ -93,8 +94,15 @@ describe("handleCreateFlow — 연도", () => {
   });
 
   it("과거 해도 만든다 — 복기가 이 서비스의 절반이다", async () => {
-    const res = await handleCreateFlow({ profileId: "3", year: 2021 }, deps({ now: NOW }));
+    const captured: { flowYear: number }[] = [];
+    const res = await handleCreateFlow(
+      { profileId: "3", year: 2021 },
+      deps({ now: NOW, findOrCreate: async (_u, i) => { captured.push(i as never); return { id: "9", created: true }; } }),
+    );
     expect(res.status).toBeLessThan(400);
+    // status 만 보면 스텁이 그냥 통과시킨 것과 구분이 안 된다 — 실제로 2021년이
+    // 박제됐는지까지 본다.
+    expect(captured[0].flowYear).toBe(2021);
   });
 
   it("범위 밖 연도는 400 이다", async () => {
@@ -127,5 +135,56 @@ describe("handleCreateFlow — 연도", () => {
       deps({ now: NOW, findOrCreate: async (_u, i) => { captured.push(i); return { id: "9", created: true }; } }),
     );
     expect(captured[0].months).toHaveLength(12);
+  });
+});
+
+describe("handleCreateFlow — 태어난 해", () => {
+  // 1990-01-15 03:30(KST)생 — 그 해 입춘(2/4 무렵)보다 앞이라 달력 연도(1990)와
+  // 명리 연도(1989)가 갈린다. birthInstant→flowYearAt으로 직접 확인함:
+  // 1989-01-14T18:30Z, 명리 1989년.
+  const preIpchunBirth = {
+    year: 1990, month: 1, day: 15, hour: 3, minute: 30, gender: "male", calendar: "solar",
+  } as const;
+  // 1992년으로 잡아 flowYearRange(1987~1997)가 1988·1989를 담게 한다 — 범위
+  // 검사가 먼저 걸려 태어난 해 검사를 가리지 않게.
+  const NOW = new Date("1992-06-01T00:00:00Z");
+  const depsPreIpchun = (overrides: Partial<CreateFlowDeps> = {}) =>
+    deps({ now: NOW, getProfile: async () => ({ id: "3", birth: preIpchunBirth }), ...overrides });
+
+  it("명리 생년 이전 해는 400 이다", async () => {
+    const res = await handleCreateFlow({ profileId: "3", year: 1988 }, depsPreIpchun());
+    expect(res.status).toBe(400);
+  });
+
+  it(
+    "입춘 전 출생이면 명리 생년(달력 생년 - 1)을 허용한다 — 회귀 테스트: " +
+      "birth.year(달력 1990)와 비교하면 명리 1989년(대운 데이터가 있는 정당한 " +
+      "구매 대상)을 잘못 막는다",
+    async () => {
+      const res = await handleCreateFlow({ profileId: "3", year: 1989 }, depsPreIpchun());
+      expect(res.status).toBeLessThan(400);
+    },
+  );
+
+  it("명리 생년 자체는 허용한다 — 경계는 포함이다", async () => {
+    // birth 를 입춘 이후로 바꿔 달력 연도와 명리 연도가 같은 평범한 경우도 확인.
+    const res = await handleCreateFlow(
+      { profileId: "3", year: 1990 },
+      deps({ now: NOW, getProfile: async () => ({ id: "3", birth }) }),
+    );
+    expect(res.status).toBeLessThan(400);
+  });
+});
+
+describe("flowYearRange — 입춘 경계", () => {
+  // solar-term.test.ts 등 기존 테스트가 쓰는 것과 같은 방식으로 절기 순간을
+  // 앞뒤로 비껴 잡는다: 입춘 전/후 하루씩.
+  it("입춘 직전과 직후는 서로 다른 명리 연도로 범위를 잡는다", () => {
+    const ipchun2026 = flowYearOf(2026).start;
+    const beforeIpchun = new Date(ipchun2026.getTime() - 24 * 3600_000);
+    const afterIpchun = new Date(ipchun2026.getTime() + 24 * 3600_000);
+
+    expect(flowYearRange(beforeIpchun)).toEqual({ min: 2020, max: 2030 });
+    expect(flowYearRange(afterIpchun)).toEqual({ min: 2021, max: 2031 });
   });
 });

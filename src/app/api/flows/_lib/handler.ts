@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { analyze, flowYearAt, flowYearOf, type SajuAnalysis } from "@/lib/saju-core";
+import { analyze, birthInstant, flowYearAt, flowYearOf, type SajuAnalysis } from "@/lib/saju-core";
 import type { FlowAccess } from "@/lib/flows/access";
 import type { CreateFlowInput } from "@/lib/flows/store";
 import { flowMonths } from "./pivots";
@@ -76,16 +76,22 @@ export async function handleCreateFlow(
   const profile = await deps.getProfile(userId, parsed.data.profileId);
   if (!profile) return { status: 404, body: { error: "프로필을 찾을 수 없습니다" } };
 
+  const analysis: SajuAnalysis = analyze(profile.birth);
+
   // 태어나기 전 해에는 대운이 없다. 화면도 그 칸을 빼지만 화면을 안 거치는
-  // 요청이 있어 여기서도 막는다. 태어난 해 자체는 허용한다 — 경계는 입춘이지만
-  // birth.year 는 달력 연도라 여기서 더 정확히 잴 수 없고, 어긋나는 방향은
-  // "막아야 할 해를 통과시킴"이 아니라 "허용해도 될 생일 해를 막음"이라
-  // 사용자에게 해가 없다.
-  if (year < profile.birth.year) {
+  // 요청이 있어 여기서도 막는다.
+  //
+  // birth.year(달력 연도)와 비교하지 않는다 — 세운은 입춘에 바뀌므로 입춘 전에
+  // 태어난 사람은 달력 연도보다 명리 연도가 하나 작다(예: 1990-01-15 생은
+  // 명리로 1989년생). birth.year 로 비교하면 그 명리 1989년(대운 데이터가
+  // 실제로 있는, 정당히 팔 수 있는 해)을 400 으로 막아 이용권을 못 쓰게 한다 —
+  // analyze 가 이미 계산해 둔 출생 순간을 flowYearAt 으로 다시 재서, 이 핸들러가
+  // 실제로 다루는 축(명리 연도)과 같은 자로 비교한다.
+  const birthYear = flowYearAt(birthInstant(analysis)).year;
+  if (year < birthYear) {
     return { status: 400, body: { error: "선택할 수 없는 연도입니다" } };
   }
 
-  const analysis: SajuAnalysis = analyze(profile.birth);
   const period = flowYearOf(year);
   // 12개월과 기간을 여기서 확정해 행에 박제한다. 임계값을 나중에 튜닝해도 이미
   // 판 흐름의 변곡점은 소급해서 바뀌지 않는다.
