@@ -53,10 +53,11 @@ export interface MonthScore {
 /**
  * 이 구간이 시작될 때 적용 중인 대운.
  *
- * daeunSwitchIn 과 반드시 같은 정밀도로 재야 한다 — 반올림된 periods[i].startAge 로
+ * daeunSwitchIn 과 반드시 같은 정밀도로 재야 한다 — 이 함수는 daeunSwitchIn 이 이
+ * 구간 안에 전환이 없다고 이미 답한 뒤에만 불린다. 반올림된 periods[i].startAge 로
  * 세는 나이를 근사하면 daeunSwitchIn 의 정밀 판정과 최대 반년 어긋날 수 있고,
- * 하필 그 어긋남이 경계에서 나면 이웃 회차를 조용히 골라 그 해 전체의 friction
- * 대상이 틀어진다. 그래서 daeunSwitchIn 과 같은 식
+ * 하필 그 어긋남이 "전환 없음" 판정의 경계에서 나면 이웃 회차를 조용히 골라 그 해
+ * 전체의 friction 대상이 틀어진다. 그래서 daeunSwitchIn 과 같은 식
  * (birth + (startAgePrecise + i×10) × YEAR_MS) 으로, "이 구간 시작보다 이르거나
  * 같은 전환 중 가장 늦은 회차" 를 그대로 고른다.
  */

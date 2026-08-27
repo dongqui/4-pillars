@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { analyze } from "@/lib/saju-core";
-import { flowYearOf } from "@/lib/saju-core";
+import {
+  analyze,
+  daeunSwitchIn,
+  flowYearOf,
+  monthTermsOf,
+  sewunPillars,
+  type Branch,
+} from "@/lib/saju-core";
+import { frictionOf, parsePillar2 } from "./score";
 import { currentDaeun, monthScores } from "./month-scores";
 
 const BIRTH = {
@@ -63,7 +70,16 @@ describe("currentDaeun", () => {
     const a = analyze(BIRTH);
     const period = flowYearOf(2027);
     const picked = currentDaeun(a, period);
-    expect(a.daeun.periods).toContain(picked);
+
+    // 유도(독립 계산, currentDaeun 의 루프를 재사용하지 않는다):
+    //   startAgePrecise = 2.4136834032833576, periods[i].startAge(반올림) = 2,12,22,…
+    //   birthInstant = 1993-04-12T00:20:00Z (KST 09:20 → UTC)
+    //   period.start(2027 입춘)  = 2027-02-04T01:42:10.489Z
+    //   elapsed = (period.start − birthInstant) / YEAR_MS ≈ 33.815 세
+    //   회차별 문턱(startAgePrecise + i×10): 2.41 · 12.41 · 22.41 · 32.41 · 42.41 …
+    //   33.815 는 32.41(i=3) 을 넘고 42.41(i=4) 은 못 넘는다 → periods[3] (4회차·임자)
+    expect(picked).toBe(a.daeun.periods[3]);
+    expect(picked.pillar).toBe("임자");
   });
 
   it("유년기 대운으로 물러서지 않는다", () => {
@@ -71,5 +87,73 @@ describe("currentDaeun", () => {
     const a = analyze(BIRTH);
     const picked = currentDaeun(a, flowYearOf(2027));
     expect(picked).not.toBe(a.daeun.periods[0]);
+  });
+});
+
+// 리뷰 발견(2026-08-26): currentDaeun 이 한때 반올림된 세는 나이
+// (periods[i].startAge)로 "지금 대운"을 근사했다. daeunSwitchIn 은 처음부터
+// startAgePrecise + i×10 의 정밀 시각을 썼으므로 둘이 최대 반년 어긋날 수 있고,
+// 하필 daeunSwitchIn 이 "이 해엔 전환 없음"이라 답한 경계 해 바로 옆에서 어긋나면
+// currentDaeun 이 이웃 회차를 조용히 골라 그 해 전체의 friction 대상이 틀어진다.
+// 아래 생년은 그 불일치가 실제로 벌어졌던 실측 사례다(구 segments.test.ts, 커밋
+// 5152f86) — 2012년(명리 연도) 안에 대운 전환이 있고, 반올림 근사는 그 직전 해
+// (2011)에도 전환 이후 회차를 잘못 골랐다.
+describe("대운 경계 해 — 대운 선택이 정밀 시각과 어긋나지 않는다", () => {
+  const boundarySubject = analyze({
+    year: 1950,
+    month: 12,
+    day: 3,
+    hour: 6,
+    minute: 0,
+    gender: "male",
+    calendar: "solar",
+  });
+  const switchFlowYear = 2012;
+  const beforeYear = switchFlowYear - 1;
+  const afterYear = switchFlowYear + 1;
+
+  const sw = daeunSwitchIn(boundarySubject, flowYearOf(switchFlowYear))!;
+
+  it("전환이 든 해를 확인한다 — 전후 회차는 이웃한 회차고, 앞뒤 해엔 전환이 없다", () => {
+    expect(sw).not.toBeNull();
+    expect(sw.after.index).toBe(sw.before.index + 1);
+    // beforeYear/afterYear 둘 다 daeunSwitchIn 이 null 이어야 currentDaeun 경로가
+    // 실제로 걸린다 — 걸리지 않으면 아래 두 테스트는 아무 것도 증명하지 못한다.
+    expect(daeunSwitchIn(boundarySubject, flowYearOf(beforeYear))).toBeNull();
+    expect(daeunSwitchIn(boundarySubject, flowYearOf(afterYear))).toBeNull();
+  });
+
+  it("currentDaeun 은 전환 바로 전해엔 이전 회차를, 바로 다음해엔 다음 회차를 정밀 시각 기준으로 고른다", () => {
+    // 유도: daeunSwitchIn 은 currentDaeun 과 독립된 조건문으로 같은 정밀식을 잰다.
+    // switchFlowYear 안에 전환이 있고 beforeYear·afterYear 둘 다 "전환 없음"이라면,
+    // beforeYear 시작 시점엔 아직 sw.before 가, afterYear 시작 시점엔 이미 sw.after
+    // 가 적용 중이어야 한다 — 그 사이엔 다른 전환이 없으므로.
+    expect(currentDaeun(boundarySubject, flowYearOf(beforeYear))).toBe(sw.before);
+    expect(currentDaeun(boundarySubject, flowYearOf(afterYear))).toBe(sw.after);
+  });
+
+  it("그 선택이 그 해 전체의 friction 대상에 실제로 반영된다 — monthScores 로 간접 검증", () => {
+    // frictionTargets 는 daeunSwitchIn 이 null 인 해에서만 currentDaeun 을 탄다
+    // (month-scores.ts 의 frictionTargets 참고). expectedFirstMonthFriction 은 같은
+    // natal·sewun 을 두고 daeun 지만 바꿔 frictionOf 로 독립 계산한다 — frictionOf
+    // 는 이미 weightTotal(targets) 로 정규화하므로 여기서 상수를 베끼지 않는다.
+    function expectedFirstMonthFriction(year: number, daeunBranch: Branch): number {
+      const term = monthTermsOf(year)[0];
+      const p = parsePillar2(term.korean)!;
+      const sewun = parsePillar2(sewunPillars(year, 1)[0].korean)!;
+      const c = boundarySubject.chart;
+      const natal = [c.year.branch, c.month.branch, c.day.branch, c.hour?.branch].filter(
+        (b): b is NonNullable<typeof b> => b != null,
+      );
+      return frictionOf(p.branch, { natal, sewun: sewun.branch, daeun: daeunBranch });
+    }
+
+    const actualBefore = monthScores(boundarySubject, beforeYear)[0].friction;
+    const actualAfter = monthScores(boundarySubject, afterYear)[0].friction;
+
+    // 반올림 나이 근사(수정 전)는 beforeYear 에 sw.after.branch 를 잘못 골랐다 —
+    // 아래 toBeCloseTo 는 sw.before/after 를 뒤바꾸면 실패한다.
+    expect(actualBefore).toBeCloseTo(expectedFirstMonthFriction(beforeYear, sw.before.branch));
+    expect(actualAfter).toBeCloseTo(expectedFirstMonthFriction(afterYear, sw.after.branch));
   });
 });
