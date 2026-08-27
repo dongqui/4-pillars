@@ -3108,6 +3108,43 @@ year 에 기본값을 두지 않는다 — 지금으로 조용히 물러서면 �
 
 ## Task 12: `/flow` 선택 화면
 
+> ### ⚠️ 이 태스크의 코드 블록은 낡았다 — 아래 네 가지를 먼저 읽을 것
+>
+> 계획을 쓸 때 읽은 파일들이 그 뒤로 바뀌었다. 아래가 우선한다.
+>
+> **1. `ProfileRow` 에는 `birthYear` 가 없다.** 실제 모양은
+> `birth: { year, month, day }` · `timeKnown: boolean` · `time: { hour, minute } | null` ·
+> `gender` · `kind` 다. `src/lib/profiles/store.ts` 를 볼 것.
+>
+> **2. 프로필 요약을 손으로 만들지 마라.** `@/lib/profiles/option` 의
+> `toPersonOption(row): PersonOption` 이 `{ id, name, initial, birthLabel, saved }` 를 준다.
+> `birthLabel` 은 `"1990.04.05 · 07:20"` 또는 `"1990.04.05 · 시간 모름"` 이다.
+> 계획의 `describeProfile` 과 `ProfileOption` 은 버린다.
+>
+> **3. 드롭다운을 새로 만들지 마라.** `src/app/consult/_components/SubjectSelect.tsx` 가
+> 이미 같은 드롭다운을 갖고 있다 — 바깥 클릭 닫기, Escape, `aria-expanded`/`aria-controls`,
+> 아바타, "새 프로필 추가" 까지. 아래 `FlowConfirm` 의 손수 만든 드롭다운은 그것을 더
+> 나쁘게 복제한 것이다.
+>
+> 프레젠테이션 부분을 공용 컴포넌트로 뽑아 `SubjectSelect` 는 URL 이동을,
+> `FlowConfirm` 은 로컬 상태를 `onPick` 으로 넘기게 한다. **`SubjectSelect` 의 동작은
+> 한 톨도 바뀌면 안 된다** — 방금 나간 화면이다.
+>
+> **4. 출생 연도 필터는 달력 연도가 아니라 명리 연도다.** Task 11 이 서버에서 같은
+> 버그를 고쳤다: 입춘(2월 4일경) 전에 태어난 사람은 명리 출생 연도가 달력 연도보다
+> 하나 작다. 화면이 달력 연도로 칸을 거르면 서버가 허용하는 해를 화면이 감춘다.
+>
+> 서버는 이렇게 잰다:
+> ```ts
+> const birthYear = flowYearAt(birthInstant(analyze(birth))).year;
+> ```
+> **화면과 서버가 갈리지 않도록 이 계산을 한 곳으로 모아라.** 작은 헬퍼 하나를 만들어
+> `handler.ts` 와 화면이 같이 쓰게 하는 것을 권한다 — 두 벌로 두면 언젠가 갈린다.
+> 헬퍼를 만들면 `handler.ts` 의 동작은 그대로여야 하고, 기존 테스트가 그걸 지킨다.
+>
+> 아래 `buildYearOptions` 의 `birthYear` 인자는 **명리 출생 연도**를 받는 것으로 읽어라.
+
+
 **Files:**
 - Rewrite: `src/app/flow/_lib/to-confirm.ts`
 - Modify: `src/app/flow/_lib/to-start-outcome.ts` (문구만)
