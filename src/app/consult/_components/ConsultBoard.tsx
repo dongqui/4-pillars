@@ -3,13 +3,16 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { HomeLink } from "@/components/HomeLink";
+import type { PersonOption } from "@/lib/profiles/option";
 import { MAX_UTTERANCE_CHARS } from "@/lib/consultations/input";
 import { TicketModal } from "./TicketModal";
+import { SubjectSelect } from "./SubjectSelect";
 
 interface Props {
-  /** 홈에서 따라온 프로필. 없으면 계정의 첫 프로필로 연다 */
-  profileId?: string;
+  /** 상담이 근거로 삼는 사람. 서버가 ?profile 또는 계정의 "나" 로 확정해서 넘긴다 */
+  profileId: string;
+  /** 셀렉터에 서는 저장된 사람 전부. 로그인 필수 페이지라 최소 한 줄은 있다 */
+  people: PersonOption[];
   balance: number;
   isEmpty: boolean;
   /** 서버에서 그린 상담 목록. 비어 있으면 대신 빈 상태를 그린다 */
@@ -17,16 +20,17 @@ interface Props {
 }
 
 /**
- * 목록 화면에서 손이 닿는 부분 전부 — 머리글 · 새 상담 · 빈 상태 · 이용권 모달.
+ * 목록 화면에서 손이 닿는 부분 전부 — 머리글 · 사주 셀렉터 · 새 상담 · 빈 상태 ·
+ * 이용권 모달.
  *
- * 한 컴포넌트인 이유는 이 넷이 상태 하나(패널이 열렸는지)를 같이 보기 때문이다.
+ * 한 컴포넌트인 이유는 이들이 상태 하나(패널이 열렸는지)를 같이 보기 때문이다.
  * 머리글의 "+ 새 상담" 과 빈 상태의 "상담 시작하기" 는 같은 버튼이고, 둘 다
  * 이용권이 없으면 패널 대신 모달을 연다.
  *
  * 목록 자체는 서버에서 그려 children 으로 받는다 — 여기서 다시 그리면 상담 목록
  * 조회가 통째로 클라이언트로 넘어온다.
  */
-export function ConsultBoard({ profileId, balance, isEmpty, children }: Props) {
+export function ConsultBoard({ profileId, people, balance, isEmpty, children }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [modal, setModal] = useState(false);
@@ -50,8 +54,7 @@ export function ConsultBoard({ profileId, balance, isEmpty, children }: Props) {
     setError(null);
 
     try {
-      const query = profileId ? `?profile=${encodeURIComponent(profileId)}` : "";
-      const res = await fetch(`/api/consultations${query}`, {
+      const res = await fetch(`/api/consultations?profile=${encodeURIComponent(profileId)}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ text: trimmed }),
@@ -78,11 +81,6 @@ export function ConsultBoard({ profileId, balance, isEmpty, children }: Props) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex-none border-b border-slate-100 px-[clamp(16px,4vw,22px)] pb-3.5 pt-[22px] min-[900px]:px-[26px] min-[900px]:pb-[18px] min-[900px]:pt-[26px]">
-        {/* 상담 목록은 이 흐름의 시작점이라 뒤로 갈 곳이 여기밖에 없다 —
-            없으면 헤더도 없는 화면에 갇힌다(상담방은 ← 로 여기까지만 나온다). */}
-        <div className="mb-3.5">
-          <HomeLink />
-        </div>
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="mb-1.5 text-[11.5px] font-bold tracking-[0.08em] text-slate-400">
@@ -115,6 +113,9 @@ export function ConsultBoard({ profileId, balance, isEmpty, children }: Props) {
           </span>
           <span className="text-slate-400">상담 1건에 1장</span>
         </Link>
+
+        {/* 상담사가 누구의 원국을 근거로 말하는지 — 시안이 머리글에 세워 둔 자리다 */}
+        <SubjectSelect people={people} selectedId={profileId} />
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">

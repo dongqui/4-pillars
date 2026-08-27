@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { analyze } from "@/lib/saju-core";
 import { getSession } from "@/lib/auth/session";
+import { getUser } from "@/lib/auth/users";
+import { resolveDisplayName } from "@/lib/auth/display-name";
 import { getFlow, type FlowRow } from "@/lib/flows/store";
 import { getProfile, type ProfileRow } from "@/lib/profiles/store";
 import { toBirthInput } from "@/lib/profiles/to-birth-input";
@@ -45,8 +47,12 @@ export default async function FlowResultPage({
   const flow = await getFlow(session.userId, id);
   if (!flow) notFound();
 
-  const profile = await getProfile(session.userId, flow.profileId);
+  const [profile, user] = await Promise.all([
+    getProfile(session.userId, flow.profileId),
+    getUser(session.userId),
+  ]);
   if (!profile) notFound();
+  const displayName = resolveDisplayName(user);
 
   // 한 번만 잰다 — FlowShell 도 같은 시각을 써야 "지금 몇 번째 구간인가" 와
   // "이 흐름이 지났는가" 가 서로 다른 순간을 기준으로 어긋나지 않는다.
@@ -58,14 +64,14 @@ export default async function FlowResultPage({
   // (match/[id]/page.tsx 의 analyzePair 와 같은 처리).
   if (!ctx) {
     return (
-      <FlowShell flow={flow} index={index} now={now}>
+      <FlowShell flow={flow} index={index} now={now} displayName={displayName}>
         <FlowError />
       </FlowShell>
     );
   }
 
   return (
-    <FlowShell flow={flow} index={index} now={now}>
+    <FlowShell flow={flow} index={index} now={now} displayName={displayName}>
       <Suspense fallback={<AnalyzingFlow />}>
         <FlowSections flow={flow} userId={session.userId} ctx={ctx} index={index} />
       </Suspense>

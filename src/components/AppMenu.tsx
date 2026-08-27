@@ -11,8 +11,11 @@ interface Props {
 /**
  * 헤더 오른쪽 오버플로 메뉴. 시안은 점 세 개만 있고 내용이 없어서,
  * 기존 랜딩 UserMenu 가 하던 일(계정·로그아웃)을 여기로 옮겼다.
+ *
+ * 홈 전용이 아니다 — 상담·궁합도 같은 헤더를 쓰므로 라우트 폴더가 아니라
+ * 공용 컴포넌트에 산다(AppHeader 가 유일한 호출자다).
  */
-export function HomeMenu({ displayName }: Props) {
+export function AppMenu({ displayName }: Props) {
   const [open, setOpen] = useState(false);
   const menuId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);

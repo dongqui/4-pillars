@@ -3,6 +3,8 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { analyze } from "@/lib/saju-core";
 import { getSession } from "@/lib/auth/session";
+import { getUser } from "@/lib/auth/users";
+import { resolveDisplayName } from "@/lib/auth/display-name";
 import { getProfile } from "@/lib/profiles/store";
 import { readCurrentDraft } from "@/lib/drafts/current";
 import { createGenerator } from "@/app/api/saju/_lib/generator";
@@ -124,6 +126,9 @@ export default async function ReportPage({
   const session = await getSession();
   const access = getReportAccess(sp, session);
   const param = parseProfileParam(sp);
+  // 헤더 메뉴가 로그인/로그아웃 중 무엇을 내밀지 정하는 값. 계정 없이도 보이는
+  // 화면이라 null 갈래가 실제로 온다 — 익명 드래프트를 보는 사람이다.
+  const displayName = session === null ? null : resolveDisplayName(await getUser(session.userId));
 
   // ?profile=abc 처럼 형태가 틀린 값을 데모로 떨어뜨리면 사용자는 남의 리포트를
   // 보고 있다고 오해한다.
@@ -136,13 +141,13 @@ export default async function ReportPage({
     const draft = await readCurrentDraft();
     if (draft === null) {
       return (
-        <ReportShell>
+        <ReportShell displayName={displayName}>
           <ReportBody content={sampleReport} access={access} />
         </ReportShell>
       );
     }
     return (
-      <ReportShell>
+      <ReportShell displayName={displayName}>
         <Suspense fallback={<AnalyzingReport name={draft.name} />}>
           <ProfileReport
             subject={draftToSubject(draft)}
@@ -177,7 +182,7 @@ export default async function ReportPage({
   };
 
   return (
-    <ReportShell>
+    <ReportShell displayName={displayName}>
       <Suspense fallback={<AnalyzingReport name={profile.name} />}>
         <ProfileReport
           subject={profile}
