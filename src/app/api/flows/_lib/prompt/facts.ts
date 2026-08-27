@@ -215,19 +215,26 @@ export function flowFacts(ctx: FlowContext): string {
       .join(" · ")}`,
     `용신: ${analysis.yongsin.yongsin} · 희신: ${analysis.yongsin.huisin}`,
     `올해 간지: ${year.sewunKorean}`,
-    `배경 간지: ${year.daeunKorean} (${year.daeunPhase})`,
-  ];
-
-  // 전환은 초·중·말과 별도 줄이다 — 뭉개면 그 해의 가장 큰 배경 변화가 사라진다.
-  if (year.daeunSwitch) {
-    lines.push(`배경 전환: ${year.daeunSwitch.before} → ${year.daeunSwitch.after}`);
-  }
-
-  lines.push(
     `받쳐줌: ${year.support}`,
     `흔들림: ${year.friction}`,
     `두드러지는 힘: ${year.tenGods.join(" · ")}`,
+  ];
+
+  // 배경(대운) 위치는 보조 사실이다 — "초반" 은 대략 3년쯤 이어지는데, 이 줄을
+  // 위 '올해 간지' 옆에 나란히 두면 무게가 같아 보여 모델이 매년 "새로 시작되는
+  // 해" 라고 반복해서 쓰는 사고가 난다. 그래서 그 해 자체의 사실들 뒤로 옮기고
+  // 라벨에 "참고용" 을 못박는다 — daeunPhase 값 자체는 지우지 않는다, 01 이
+  // 큰 흐름 속 위치를 잡는 데 정말로 필요하기 때문이다.
+  lines.push(
+    `배경(참고용 — 여러 해에 걸쳐 비슷하게 유지됨): ${year.daeunKorean} · ${year.daeunPhase}`,
   );
+
+  // 전환은 배경 중에서도 예외다 — 이 해에 실제로 바뀌는 사실이라, 뭉개면 그
+  // 해의 가장 큰 배경 변화가 사라진다. 위 "참고용" 줄과 달리 이 줄은 지금도
+  // 프롬프트 상 지위를 그대로 유지한다.
+  if (year.daeunSwitch) {
+    lines.push(`배경 전환: ${year.daeunSwitch.before} → ${year.daeunSwitch.after}`);
+  }
 
   for (const m of ctx.months) {
     lines.push(
