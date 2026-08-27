@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
+import { getUser } from "@/lib/auth/users";
+import { resolveDisplayName } from "@/lib/auth/display-name";
 import { getConsultation, listMessages } from "@/lib/consultations/store";
 import { isSequentialId } from "@/lib/profiles/param";
 import { toChatView } from "../_lib/to-chat-view";
@@ -31,10 +33,13 @@ export default async function ConsultRoomPage({
   const consultation = await getConsultation(session.userId, id);
   if (!consultation) notFound();
 
-  const messages = await listMessages(consultation.id);
+  const [messages, user] = await Promise.all([
+    listMessages(consultation.id),
+    getUser(session.userId),
+  ]);
 
   return (
-    <ConsultFrame>
+    <ConsultFrame displayName={resolveDisplayName(user)}>
       <ChatRoom
         consultationId={consultation.id}
         // 첫 턴이 실패한 상담은 아직 제목이 없다. 목록의 "아직 시작하지 않은 상담"

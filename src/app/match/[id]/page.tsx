@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { analyze, analyzeSynastry, type SajuAnalysis, type Synastry } from "@/lib/saju-core";
 import { getSession } from "@/lib/auth/session";
+import { getUser } from "@/lib/auth/users";
+import { resolveDisplayName } from "@/lib/auth/display-name";
 import { getMatch } from "@/lib/matches/store";
 import { getProfile, type ProfileRow } from "@/lib/profiles/store";
 import { toBirthInput } from "@/lib/profiles/to-birth-input";
@@ -66,17 +68,19 @@ export default async function MatchResultPage({
   const match = await getMatch(session.userId, id);
   if (!match) notFound();
 
-  const [subject, counterpart] = await Promise.all([
+  const [subject, counterpart, user] = await Promise.all([
     getProfile(session.userId, match.subjectProfileId),
     getProfile(session.userId, match.counterpartProfileId),
+    getUser(session.userId),
   ]);
   if (!subject || !counterpart) notFound();
+  const displayName = resolveDisplayName(user);
 
   const pair = analyzePair(subject, counterpart);
   // 계산이 깨지면 히어로도 못 만든다 — 껍데기만 남기고 안내로 끝낸다.
   if (!pair) {
     return (
-      <MatchShell>
+      <MatchShell displayName={displayName}>
         <MatchError />
       </MatchShell>
     );
@@ -90,7 +94,7 @@ export default async function MatchResultPage({
   });
 
   return (
-    <MatchShell>
+    <MatchShell displayName={displayName}>
       <MatchHero view={hero} />
       <Suspense fallback={<AnalyzingMatch />}>
         <MatchSections

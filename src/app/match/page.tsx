@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
-import { HomeLink } from "@/components/HomeLink";
+import { AppHeader } from "@/components/AppHeader";
+import { resolveDisplayName } from "@/lib/auth/display-name";
 import { listProfiles } from "@/lib/profiles/store";
 import { listMatches } from "@/lib/matches/store";
 import { getUser } from "@/lib/auth/users";
@@ -48,10 +49,10 @@ export default async function MatchPage() {
   return (
     <div className="min-h-screen flex-1 bg-slate-50">
       {/* 폼과 폴백 둘 다 헤더가 없다 — 나가는 길은 page 가 갖는다.
-          결과 화면(/match/[id])의 MatchShell 헤더와 같은 자리다. */}
-      <div className="mx-auto max-w-[560px] px-5 pt-6 md:px-8">
-        <HomeLink />
-      </div>
+          결과 화면(/match/[id])의 MatchShell 과 같은 AppHeader 다. 안쪽 폭은
+          본문(MatchForm)의 max-w-[520px] px-5/md:px-8 에 맞춘다 — 헤더가 더 넓으면
+          로고가 본문 왼쪽 끝보다 바깥에 선다. */}
+      <AppHeader displayName={resolveDisplayName(user)} inner="max-w-[520px] px-5 md:px-8" />
       {hasSubject ? (
         // 이미 본 궁합은 MatchForm 안으로 넣는다 — 페이지의 가로폭 컨테이너를
         // 그쪽이 갖고 있어서, 밖에 두면 폭과 아래 여백이 어긋난다.
