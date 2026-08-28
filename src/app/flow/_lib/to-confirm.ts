@@ -27,9 +27,13 @@ export interface YearOptionsInput {
 
 export function buildYearOptions(input: YearOptionsInput): YearOption[] {
   const out: YearOption[] = [];
-  for (let y = input.currentYear - input.span; y <= input.currentYear + input.span; y += 1) {
+  const seen = new Set<number>();
+
+  const emit = (y: number) => {
+    if (seen.has(y)) return;
     // 태어나기 전 해에는 대운이 없고 만 나이가 음수가 된다.
-    if (y < input.birthYear) continue;
+    if (y < input.birthYear) return;
+    seen.add(y);
     const hit = input.owned.get(y);
     out.push({
       year: y,
@@ -38,7 +42,23 @@ export function buildYearOptions(input: YearOptionsInput): YearOption[] {
       owned: hit?.entitled ?? false,
       flowId: hit?.flowId ?? null,
     });
+  };
+
+  for (let y = input.currentYear - input.span; y <= input.currentYear + input.span; y += 1) {
+    emit(y);
   }
+
+  // ±span 창은 currentYear 를 따라 미끄러진다. 입춘이 지나 창이 옮겨가도
+  // 이미 값을 치른 해가 칸에서 사라지면 안 된다 — /flow/[id] 로 돌아가는
+  // 유일한 길이 이 그리드뿐이라, 칸이 없어지면 그 리포트는 영영 못 찾는다.
+  // 구매 불가 카드로만 덧붙인다: owned 는 이미 UI 가 "다시 보기" 로 그려
+  // start() 대신 기존 flowId 로 이동시킨다 — 이 창 밖 칸이 새 구매를
+  // 제안하는 일은 없다.
+  for (const [y, entry] of input.owned) {
+    if (entry.entitled) emit(y);
+  }
+
+  out.sort((a, b) => a.year - b.year);
   return out;
 }
 
