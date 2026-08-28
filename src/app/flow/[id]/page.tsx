@@ -168,12 +168,13 @@ async function FlowSections({
   const sections = toFlowView(interpretation);
   return (
     <>
-      <FlowHero sections={sections} />
+      <FlowHero sections={sections} flowYear={flow.flowYear} />
       <FlowBody
         sections={sections}
         months={flow.months}
         currentIndex={currentIndex}
         profileId={flow.profileId}
+        flowYear={flow.flowYear}
       />
     </>
   );

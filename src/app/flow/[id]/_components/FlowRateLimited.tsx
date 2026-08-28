@@ -11,7 +11,7 @@ export function FlowRateLimited() {
     >
       <div className="text-[22px] font-bold tracking-tight">잠시 후에 다시 열어주세요</div>
       <p className="mt-3 max-w-[400px] text-[15px] leading-[1.6] text-slate-500 [text-wrap:pretty]">
-        짧은 시간에 흐름을 너무 많이 열었어요. 한 시간 뒤에 이 화면을 다시 열면 이어서
+        짧은 시간에 흐름을 너무 많이 열었어요. 잠시 후에 이 화면을 다시 열면 이어서
         만들어 드려요.
       </p>
     </div>

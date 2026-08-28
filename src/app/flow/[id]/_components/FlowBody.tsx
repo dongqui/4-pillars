@@ -46,11 +46,13 @@ export function FlowBody({
   months,
   currentIndex,
   profileId,
+  flowYear,
 }: {
   sections: FlowSectionView[];
   months: FlowMonth[];
   currentIndex: number | null;
   profileId: string;
+  flowYear: number;
 }) {
   return (
     <>
@@ -85,7 +87,7 @@ export function FlowBody({
             <section key={view.key} className={SECTION}>
               <SectionHeading
                 no={meta.no}
-                category={meta.category}
+                category={`${flowYear}년의 변곡점`}
                 title="흐름이 크게 달라지는 시기"
               />
               <NoteCard>{c.lead}</NoteCard>
@@ -155,7 +157,7 @@ export function FlowBody({
             </div>
             {view.key === "work" && (
               <p className="mt-5 text-[13.5px] text-slate-500">
-                올해 고민 중인 선택이 있다면{" "}
+                {flowYear}년 고민 중인 선택이 있다면{" "}
                 <Link
                   href={`/consult?profile=${profileId}`}
                   className="font-semibold text-slate-700 underline underline-offset-2"

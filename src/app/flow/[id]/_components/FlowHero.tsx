@@ -8,7 +8,13 @@ import type { FlowSectionView } from "../_lib/to-flow-view";
  * overview 생성이 실패했으면(부분 생성) 대표 문장을 만들 재료가 없다 — 조용히
  * 건너뛴다. 아래 FlowBody 가 확보된 섹션만으로 이어간다.
  */
-export function FlowHero({ sections }: { sections: FlowSectionView[] }) {
+export function FlowHero({
+  sections,
+  flowYear,
+}: {
+  sections: FlowSectionView[];
+  flowYear: number;
+}) {
   const view = sections.find((s) => s.key === "overview");
   if (!view) return null;
   const overview = view.content as OverviewContent;
@@ -21,7 +27,7 @@ export function FlowHero({ sections }: { sections: FlowSectionView[] }) {
       {overview.keywords.length > 0 && (
         <>
           <div className="mt-6 text-[11.5px] font-bold tracking-[0.08em] text-slate-400">
-            올해의 키워드
+            {flowYear}년의 키워드
           </div>
           <div className="mt-2 text-[15px] font-semibold tracking-[-0.02em] text-slate-700">
             {overview.keywords.join(" · ")}
