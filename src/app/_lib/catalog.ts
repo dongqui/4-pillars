@@ -52,6 +52,11 @@ const PAID: Record<Feature, { title: string; desc: string; href: string }> = {
     desc: "내 사주를 바탕으로, 지금 마음에 걸리는 이야기를 나눠보세요.",
     href: "/consult",
   },
+  yearly_flow: {
+    title: "한 해의 흐름",
+    desc: "궁금한 해를 골라, 그해의 큰 흐름부터 달마다 달라지는 변화까지.",
+    href: "/flow",
+  },
 };
 
 /** 무료 항목. 이용권을 쓰지 않는 것만 여기 있다. */

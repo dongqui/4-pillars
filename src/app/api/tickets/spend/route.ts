@@ -26,13 +26,15 @@ async function ownsSubject(
     }
     case "compatibility":
     case "consultation":
-      // 이 둘은 HTTP 로 차감되지 않는다. 궁합은 /match/[id] 렌더 중 생성기 안에서,
-      // 상담은 POST /api/consultations 처리 중 openConsultation 안에서 차감된다 —
-      // 둘 다 서버 내부 경로라 이 엔드포인트를 지난 적이 없다.
+    case "yearly_flow":
+      // 이 셋은 HTTP 로 차감되지 않는다. 궁합은 /match/[id] 렌더 중 생성기 안에서,
+      // 상담은 POST /api/consultations 처리 중 openConsultation 안에서, 흐름은
+      // /flow/[id] 렌더 중 생성기 안에서 차감된다 — 모두 서버 내부 경로라 이
+      // 엔드포인트를 지난 적이 없다.
       //
-      // 소유 확인이 없는 것이 아니라 다른 곳에서 이미 한다: findOrCreateMatch 와
-      // createConsultation 이 user_id 로 행을 만들고 조회한다. 여기를 열면 그
-      // 확인을 우회하는 두 번째 문이 생긴다.
+      // 소유 확인이 없는 것이 아니라 다른 곳에서 이미 한다: findOrCreateMatch,
+      // createConsultation, findOrCreateFlow 가 user_id 로 행을 만들고 조회한다.
+      // 여기를 열면 그 확인을 우회하는 두 번째 문이 생긴다.
       return false;
     default: {
       const exhaustive: never = feature;

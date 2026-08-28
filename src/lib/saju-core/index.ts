@@ -77,6 +77,15 @@ export {
   type TenGodGroup,
 } from "./data/relations";
 
+// 지지 관계 — 쌍(충·형·해·파·원진·육합)과 집합(삼합·반합)을 가른 공용 모듈
+export {
+  pairRelations,
+  setRelations,
+  type PairKind,
+  type SetKind,
+  type SetRelation,
+} from "./branch-relations";
+
 // 캐릭터 — 일주 → 60캐릭터 매핑
 export {
   ALL_CHARACTERS,
@@ -130,7 +139,17 @@ export {
 } from "./data/characters-60";
 
 // 절기(대운/월령 계산에 사용)
-export { MONTH_TERMS, solarTermDate, type CalendarTime } from "./astro/solar-term";
+export {
+  MONTH_TERMS,
+  solarTermDate,
+  solarTermInstant,
+  type CalendarTime,
+} from "./astro/solar-term";
+
+// 흐름(한 해의 흐름 서비스) — 명리 연도와 그 안의 구간
+export { flowYearAt, flowYearOf, IPCHUN_LONGITUDE, type FlowYearPeriod } from "./flow/year";
+export { monthTermsOf, type MonthTerm } from "./flow/months";
+export { birthInstant, daeunSwitchIn, type DaeunSwitch } from "./flow/switch";
 
 // 음력 윤달 판별
 export { hasLeapMonth, getLeapMonth } from "./leap";

@@ -4,18 +4,9 @@
 // 이 파일의 존재 이유다 (프롬프트는 src/app/api/matches/_lib/prompt).
 
 import type { SajuAnalysis } from "./analyze";
+import { pairRelations } from "./branch-relations";
 import type { PillarPosition } from "./ten-gods";
-import {
-  BRANCHES,
-  BRANCH_CHUNG,
-  BRANCH_HAE,
-  BRANCH_HAP,
-  BRANCH_HYEONG,
-  BRANCH_PA,
-  BRANCH_SAMHAP,
-  BRANCH_WONJIN,
-  type Branch,
-} from "./data/branches";
+import { BRANCHES, BRANCH_SAMHAP, type Branch } from "./data/branches";
 import { ELEMENTS, tenGod, type TenGod } from "./data/relations";
 import { STEMS, type Element, type Stem } from "./data/stems";
 import {
@@ -75,16 +66,22 @@ function tieWeight(a: PillarPosition, b: PillarPosition): number {
   return 1;
 }
 
-/** 지지 두 글자 사이의 관계 전부. 한 쌍이 둘 이상 걸릴 수 있다(자미는 해이자 원진). */
+/**
+ * 지지 두 글자 사이의 관계 전부. 한 쌍이 둘 이상 걸릴 수 있다(자미는 해이자 원진).
+ *
+ * ⚠️ 여기의 "삼합" 은 BRANCH_SAMHAP 2항 판정이라 실제로는 반합까지 삼합으로 센다.
+ * 근사인 줄 알면서 두는 이유: match_sections 는 박제된 결과이고 판정을 바꾸면 이미
+ * 판 궁합 전부가 다음 열람에서 다시 생성된다(registry.ts 의 version 주석). 정식
+ * 판정은 branch-relations.ts 의 setRelations 에 있고 흐름 서비스가 쓴다.
+ */
 function tieKinds(mine: Branch, theirs: Branch): TieKind[] {
+  const pairs = pairRelations(mine, theirs);
   const kinds: TieKind[] = [];
-  if (BRANCH_HAP[mine] === theirs) kinds.push("육합");
+  if (pairs.includes("육합")) kinds.push("육합");
   if (BRANCH_SAMHAP[mine].includes(theirs)) kinds.push("삼합");
-  if (BRANCH_CHUNG[mine] === theirs) kinds.push("충");
-  if (BRANCH_HYEONG[mine].includes(theirs)) kinds.push("형");
-  if (BRANCH_HAE[mine] === theirs) kinds.push("해");
-  if (BRANCH_PA[mine] === theirs) kinds.push("파");
-  if (BRANCH_WONJIN[mine] === theirs) kinds.push("원진");
+  for (const k of ["충", "형", "해", "파", "원진"] as const) {
+    if (pairs.includes(k)) kinds.push(k);
+  }
   return kinds;
 }
 
