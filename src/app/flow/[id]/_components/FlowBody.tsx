@@ -9,7 +9,6 @@ import {
   type PivotsContent,
   type ProseContent,
 } from "@/app/api/flows/_lib/sections";
-import { SectionHeading } from "@/app/report/_components/SectionHeading";
 import { InfoCard } from "@/app/report/_components/InfoCard";
 import { NoteCard } from "@/app/report/_components/NoteCard";
 import { monthLabel } from "../_lib/current-month";
@@ -17,6 +16,25 @@ import type { FlowSectionView } from "../_lib/to-flow-view";
 import { MonthTimeline } from "./MonthTimeline";
 
 const SECTION = "mt-[72px]";
+
+/**
+ * 번호·카테고리·제목을 그리는 순수 표시부.
+ *
+ * @/app/report/_components/SectionHeading 를 공유해 쓰지 않고 여기 따로 둔다 —
+ * 이 브랜치가 그 파일을 건드리지 않아야 main 이 그 자리에서 SectionHeading 을
+ * 레지스트리 기반 컴포넌트로 재사용한 변경(5dc26fd, 원래 컴포넌트를
+ * SectionHeadingRaw 로 뽑아냄)이 병합 때 충돌 없이 그대로 들어온다. 지금 이
+ * 파일을 고쳐 그 이름을 미리 만들어 두면 diff 가 main 과 같은 줄을 서로 다르게
+ * 바꾸게 되어 오히려 병합 충돌을 만든다(직접 확인함, `git merge-tree` 결과 참고).
+ */
+function Heading({ no, category, title }: { no: string; category: string; title: string }) {
+  return (
+    <>
+      <div className="text-xs font-bold tracking-[0.08em] text-slate-400 mb-2">{no} · {category}</div>
+      <h2 className="text-[clamp(20px,4vw,24px)] font-bold tracking-[-0.02em] m-0 mb-5">{title}</h2>
+    </>
+  );
+}
 
 /**
  * 01~09 표시 메타. FlowSectionKey 로 색인해 전수 커버리지를 강제한다 —
@@ -30,7 +48,7 @@ const SECTION_META: Record<FlowSectionKey, { no: string; category: string }> = {
   relating: { no: "05", category: "관계" },
   money: { no: "06", category: "돈과 현실" },
   months: { no: "07", category: "월별 흐름" },
-  // pivots 의 category 는 아래 line 88 에서 flowYear 를 담아 동적으로 조립한다
+  // pivots 의 category 는 아래 pivots 케이스에서 flowYear 를 담아 동적으로 조립한다
   pivots: { no: "08", category: "올해의 변곡점" },
   closing: { no: "09", category: "이 해의 포인트" },
 };
@@ -64,7 +82,7 @@ export function FlowBody({
           const c = view.content as OverviewContent;
           return (
             <section key={view.key} className={SECTION}>
-              <SectionHeading no={meta.no} category={meta.category} title={c.title} />
+              <Heading no={meta.no} category={meta.category} title={c.title} />
               <NoteCard>{c.body}</NoteCard>
             </section>
           );
@@ -74,7 +92,7 @@ export function FlowBody({
           const c = view.content as MonthsContent;
           return (
             <section key={view.key} className={SECTION}>
-              <SectionHeading no={meta.no} category={meta.category} title="이렇게 흘러가요" />
+              <Heading no={meta.no} category={meta.category} title="이렇게 흘러가요" />
               <NoteCard>{c.lead}</NoteCard>
               <MonthTimeline content={c} months={months} currentIndex={currentIndex} />
             </section>
@@ -86,7 +104,7 @@ export function FlowBody({
           const metaOf = new Map(months.map((m) => [m.index, m]));
           return (
             <section key={view.key} className={SECTION}>
-              <SectionHeading
+              <Heading
                 no={meta.no}
                 category={`${flowYear}년의 변곡점`}
                 title="흐름이 크게 달라지는 시기"
@@ -117,7 +135,7 @@ export function FlowBody({
           const c = view.content as ClosingContent;
           return (
             <section key={view.key} className={SECTION}>
-              <SectionHeading no={meta.no} category={meta.category} title="기억할 것" />
+              <Heading no={meta.no} category={meta.category} title="기억할 것" />
               <NoteCard>{c.lead}</NoteCard>
               <div className="mt-3 flex flex-col gap-3">
                 {c.items.map((item) => (
@@ -137,7 +155,7 @@ export function FlowBody({
           const c = view.content as ItemsContent;
           return (
             <section key={view.key} className={SECTION}>
-              <SectionHeading no={meta.no} category={meta.category} title={c.lead} />
+              <Heading no={meta.no} category={meta.category} title={c.lead} />
               <div className="mt-3 flex flex-col gap-3">
                 {c.items.map((item) => (
                   <InfoCard key={item.title} label={item.title}>
@@ -152,7 +170,7 @@ export function FlowBody({
         const c = view.content as ProseContent;
         return (
           <section key={view.key} className={SECTION}>
-            <SectionHeading no={meta.no} category={meta.category} title={c.lead} />
+            <Heading no={meta.no} category={meta.category} title={c.lead} />
             <div className="mt-3">
               <InfoCard label={meta.category}>{c.body}</InfoCard>
             </div>
