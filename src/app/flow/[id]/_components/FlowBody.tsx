@@ -30,6 +30,7 @@ const SECTION_META: Record<FlowSectionKey, { no: string; category: string }> = {
   relating: { no: "05", category: "관계" },
   money: { no: "06", category: "돈과 현실" },
   months: { no: "07", category: "월별 흐름" },
+  // pivots 의 category 는 아래 line 88 에서 flowYear 를 담아 동적으로 조립한다
   pivots: { no: "08", category: "올해의 변곡점" },
   closing: { no: "09", category: "이 해의 포인트" },
 };
