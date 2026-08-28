@@ -40,8 +40,6 @@ export function buildFlowSectionRequest(
     system: FLOW_SYSTEM_PROMPT,
     user,
     toolName: SECTION_TOOL_NAME,
-    // 08 의 정의역이 스키마에 박힌다 — LLM 이 계산되지 않은 달을 변곡점이라
-    // 우길 수 없다. 07 은 언제나 12개다.
-    inputSchema: flowLlmInputSchema(key, { pivotMonths: ctx.pivotMonths }),
+    inputSchema: flowLlmInputSchema(key),
   };
 }

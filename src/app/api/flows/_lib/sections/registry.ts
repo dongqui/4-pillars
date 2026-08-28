@@ -37,28 +37,11 @@ export interface MonthsContent {
   months: FlowMonthBody[];
 }
 
-/** 08 — 계산된 변곡점만. 0개일 수 있다 */
-export interface PivotsContent {
-  lead: string;
-  pivots: FlowMonthBody[];
-}
-
-/** 09 — 항목 3개 + 마지막 한 문장 */
+/** 08 — 항목 3개 + 마지막 한 문장 */
 export interface ClosingContent {
   lead: string;
   items: FlowItem[];
   closing: string;
-}
-
-/**
- * 스키마 팩토리가 받는 것.
- *
- * 앞선 설계는 구간 수 n 하나였다. 이제 섹션마다 필요한 값이 달라 객체로 받는다 —
- * 07 은 언제나 12개라 아무것도 필요 없고, 08 만 계산된 변곡점 목록을 쓴다.
- */
-export interface FlowSchemaContext {
-  /** 계산된 변곡점의 달 번호. 0개일 수 있다 */
-  pivotMonths: readonly number[];
 }
 
 export interface FlowSectionSpec {
@@ -71,18 +54,24 @@ export interface FlowSectionSpec {
    */
   version: number;
   /**
-   * content 의 유일한 shape 정의.
+   * content 의 유일한 shape 정의. 리포트·궁합과 같은 상수다.
    *
-   * 리포트·궁합과 달리 **상수가 아니라 팩토리**다 — 08 의 정의역이 그 해의 계산
-   * 결과에 따라 달라지고, 그 좁힘이 곧 검증이기 때문이다.
+   * 한때 팩토리였다 — 삭제된 08(변곡점)의 정의역이 그 해의 계산 결과를 따라
+   * 달라졌기 때문이다. 08 이 사라지면서 컨텍스트가 필요한 섹션이 없어져 상수로
+   * 돌아왔다. 정의역이 런타임 값에 묶이는 섹션을 다시 만들 거면 그 복잡성
+   * (스키마·예시·검증 세 자리가 같은 컨텍스트를 봐야 한다)을 먼저 계산할 것.
    */
-  schema: (ctx: FlowSchemaContext) => z.ZodType;
+  schema: z.ZodType;
   /** 이 섹션만 재생성할 때 LLM 에 줄 지시문 */
   prompt: string;
   /**
    * 문체를 잡아주는 짧은 예시.
+   *
    * ⚠️ 예시도 FLOW_SYSTEM_PROMPT 규칙을 지켜야 한다 — 연도·월·날짜를 쓰면
-   * "쓰지 말라" 는 규칙보다 예시가 이긴다.
+   * "쓰지 말라" 는 규칙보다 예시가 이긴다. **개수도 마찬가지다**: 삭제된 08 은
+   * 변곡점 3개짜리 고정 예시를 들고 있다가, 0개인 해에서 모델이 예시를 따라
+   * 없는 변곡점을 지어내 스키마에 걸렸다. 예시가 스키마를 어길 수 있는 섹션은
+   * 만들지 말 것 — registry.test.ts 가 모든 예시를 자기 스키마로 검증한다.
    */
   example: string;
 }
@@ -93,35 +82,27 @@ const item = z.object({ title: z.string().min(1), body: z.string().min(1) }).str
  * 항목 3개. 기획서는 "3개 정도" 라고 쓰지만 정확히 3개로 굳힌다 — 개수를
  * 프롬프트로 부탁하면 지켜지지 않는 날이 오고, 화면은 그때 2개짜리 목록을 받는다.
  */
-const items = () => z.array(item).length(3);
+const items = z.array(item).length(3);
 
 /**
- * 달 목록. **개수 + 정의역 + 중복 금지** 셋이 모여야 집합이 정확히 일치한다.
- * 하나만 빠져도 "개수는 맞는데 한 달이 비고 다른 달이 두 번" 이 통과한다.
+ * 12개월 목록(07 전용). **개수 + 정의역 + 중복 금지** 셋이 모여야 집합이 정확히
+ * 일치한다. 하나만 빠져도 "개수는 맞는데 한 달이 비고 다른 달이 두 번" 이 통과한다.
+ *
+ * 정의역이 union 리터럴로 그대로 JSON Schema 의 const/enum 이 되어 LLM 이 본다.
+ * refine 으로 좁히면 검증은 되지만 LLM 은 그 제약을 못 봐서 틀린 뒤에야 걸린다.
+ * (중복 금지만은 JSON Schema 로 표현할 수 없어 superRefine — 런타임 몫이다)
  */
-function monthList(allowed: readonly number[]) {
-  // 변곡점이 없는 해. 원소 스키마를 만들 필요 자체가 없다 — 빈 배열만 통과시킨다.
-  // (§21: "변곡점 없음" 도 유효한 결과다. 여기서 그게 문장이 아니라 타입이 된다)
-  if (allowed.length === 0) return z.array(z.never()).length(0);
-
-  // ⚠️ z.union 은 최소 2개를 요구한다. 변곡점이 정확히 1개인 해가 실제로 있어
-  // (임계값을 넘긴 후보가 하나뿐인 경우) 그때 union 을 쓰면 스키마 조립에서
-  // 터진다 — 그 해의 08 이 통째로 생성되지 않는다.
-  const domain =
-    allowed.length === 1
-      ? z.literal(allowed[0])
-      : z.union(
-          allowed.map((n) => z.literal(n)) as [
-            z.ZodLiteral<number>,
-            z.ZodLiteral<number>,
-            ...z.ZodLiteral<number>[],
-          ],
-        );
+function monthList(allowed: readonly [number, number, ...number[]]) {
+  const domain = z.union(
+    allowed.map((n) => z.literal(n)) as [
+      z.ZodLiteral<number>,
+      z.ZodLiteral<number>,
+      ...z.ZodLiteral<number>[],
+    ],
+  );
 
   const body = z
     .object({
-      // 정의역이 그대로 JSON Schema 의 const/enum 이 되어 LLM 이 본다. refine 으로
-      // 좁히면 검증은 되지만 LLM 은 그 제약을 못 봐서 틀린 뒤에야 걸린다.
       monthIndex: domain as z.ZodType<number>,
       title: z.string().min(1),
       body: z.string().min(1),
@@ -140,29 +121,23 @@ function monthList(allowed: readonly number[]) {
 
 const ALL_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
-const overview = () =>
-  z
-    .object({
-      title: z.string().min(1),
-      body: z.string().min(1),
-      keywords: z.array(z.string().min(1)).length(4),
-    })
-    .strict();
+const overview = z
+  .object({
+    title: z.string().min(1),
+    body: z.string().min(1),
+    keywords: z.array(z.string().min(1)).length(4),
+  })
+  .strict();
 
-const withItems = () => z.object({ lead: z.string().min(1), items: items() }).strict();
+const withItems = z.object({ lead: z.string().min(1), items }).strict();
 
-const prose = () => z.object({ lead: z.string().min(1), body: z.string().min(1) }).strict();
+const prose = z.object({ lead: z.string().min(1), body: z.string().min(1) }).strict();
 
-const months = () =>
-  z.object({ lead: z.string().min(1), months: monthList(ALL_MONTHS) }).strict();
+const months = z.object({ lead: z.string().min(1), months: monthList(ALL_MONTHS) }).strict();
 
-const pivots = (ctx: FlowSchemaContext) =>
-  z.object({ lead: z.string().min(1), pivots: monthList(ctx.pivotMonths) }).strict();
-
-const closing = () =>
-  z
-    .object({ lead: z.string().min(1), items: items(), closing: z.string().min(1) })
-    .strict();
+const closing = z
+  .object({ lead: z.string().min(1), items, closing: z.string().min(1) })
+  .strict();
 
 /** 모든 섹션에 걸리는 공통 규칙. 한 곳에 두어 한쪽만 고쳐지는 일을 막는다. */
 const COMMON_RULE =
@@ -269,48 +244,33 @@ export const FLOW_SECTIONS = {
   },
 
   months: {
-    // v2: 예시·프롬프트를 08 과 "같은 사건, 다른 질문" 짝으로 다시 썼다(§R5).
-    // 옛 예시 그대로 캐시된 서술은 이 짝짓기를 못 배운 상태라 다시 만들어야 한다.
-    version: 2,
+    // v3: 08(변곡점 섹션)을 없애면서 그 몫을 여기로 옮겼다 — 변곡점 달의 body 가
+    // "왜 여기서 방향이 꺾이는가" 까지 담는다. 07/08 로 나눴을 때 실제로 벌어진
+    // 일은 역할 분담이 아니라 같은 달을 같은 어휘로 두 번 쓰는 것이었다(둘이
+    // 같은 [사실] 전체를 받았고, 07 프롬프트가 "무엇이 달라지는지를 넣어라" 로
+    // 08 의 질문을 절반 겹쳐 시켰다). 쓰는 손이 하나면 중복은 구조적으로 없다.
+    // v2 는 §R5 의 07/08 짝 예시였다 — 그 짝 설계 자체가 폐기됐다.
+    version: 3,
     schema: months,
     prompt: [
       "07 월별 흐름. 이 해의 12개 달을 **모두** 쓴다. monthIndex 1부터 12까지 하나씩, 빠짐없이.",
       "각 달은 title(그 달을 한 줄로) + body(2~4문장). 장문의 독립 리포트로 만들지 마라.",
-      "**이 섹션은 장면을 쓴다** — 그 달 안에서 무엇을 하게 되고 무엇이 눈에 들어오는가. 왜 그 시점에 바뀌는지, 한 해에서 무슨 의미인지는 08 이 쓴다.",
+      "기본은 **장면**이다 — 그 달 안에서 무엇을 하게 되고 무엇이 눈에 들어오는가.",
+      "**변곡점이라고 표시된 달만 예외다**: 장면에 더해, 앞선 시기까지의 흐름이 여기서 왜 어느 쪽으로 꺾이는지를 body 에 반드시 넣는다. '앞선 시기까지 …하던 힘이 여기서부터 …쪽으로 옮겨가요' 같은 형태다. 표시되지 않은 달에는 이런 전환 서술을 쓰지 마라 — 전환이 흔해지면 진짜 전환이 묻힌다.",
       "각 달의 [사실]에 실린 관계·두드러지는 힘을 재료로 써서 달마다 다른 장면을 만들어라. 두 축(받쳐줌·흔들림)만 보고 쓰면 같은 표현이 여섯 번 반복된다.",
       "**모든 달을 설명하되 모든 달이 특별하다고 말하지 마라.** 변화가 작은 달은 '앞선 흐름이 이어지는 달' 로 솔직하게 쓴다.",
-      "12개 달은 하나의 연간 흐름 안에서 이어져야 한다. 같은 말(예: '새로 시작하는 달')을 여러 달에 반복하지 마라.",
-      "변곡점이라고 표시된 달은 앞 달과 무엇이 달라지는지를 body 에 반드시 넣는다.",
+      "12개 달은 하나의 연간 흐름 안에서 이어져야 한다. 같은 말(예: '새로 시작하는 달')을 여러 달에 반복하지 마라. lead 는 12개 달이 그리는 한 해의 호(弧)를 한두 문장으로 요약한다.",
       COMMON_RULE,
     ].join("\n"),
     example:
       '{"lead":"안으로 다지던 힘이 차례로 밖으로, 다시 여럿에게로 옮겨가다가 끝에는 추리는 쪽으로 정리되는 한 해예요.","months":[{"monthIndex":1,"title":"방향을 잡는 달","body":"당장 무언가를 벌이기보다 무엇을 계속 가져가고 무엇을 내려놓을지 정리하는 데 마음이 쏠려요. 지금 정하는 기준이 앞으로 몇 달의 움직임을 받치는 뼈대가 돼요."},{"monthIndex":2,"title":"다지는 흐름이 이어지는 달","body":"앞선 흐름에서 크게 벗어나지 않고 정리하던 결을 그대로 이어가는 달이에요. 무언가를 새로 벌이기보다 정한 방향을 한 번 더 다져두는 편이 다음 흐름에 도움이 돼요."},{"monthIndex":3,"title":"안에서 밖으로 나서는 달","body":"머릿속에서 그리던 것을 실제로 꺼내 보이고 싶은 마음이 강해지는 시기예요. 다 여물지 않았어도 사람들 앞에 일단 내놓아보는 장면이 잦아지고, 먼저 말을 거는 쪽이 되어보는 경험도 늘어요."},{"monthIndex":4,"title":"관계가 넓어지는 달","body":"새로 마주치는 사람과 자리가 늘면서 나누는 대화도 함께 늘어나요. 낯선 자리라도 가볍게 응해보는 편이 앞서 열어둔 흐름을 이어가는 데 도움이 돼요."},{"monthIndex":5,"title":"속도가 붙는 달","body":"벌여둔 일들이 손에 익으면서 진행이 눈에 띄게 빨라져요. 여러 일을 한꺼번에 끌고 가느라 정작 중요한 것을 놓치지 않도록 살펴야 해요."},{"monthIndex":6,"title":"짐이 함께 늘어나는 달","body":"손댄 일이 늘어난 만큼 혼자 감당해야 할 몫도 같이 불어나요. 새로 벌이기보다 지금 쥔 것을 감당할 여유가 남았는지 먼저 확인해볼 시기예요."},{"monthIndex":7,"title":"곁에 사람을 불러들이는 달","body":"혼자 붙잡고 있던 일을 옆 사람에게 슬쩍 건네보는 장면이 늘어나요. 부탁하는 말이 평소보다 쉽게 나오고, 나누고 나서야 오히려 숨통이 트인다는 걸 느끼게 돼요."},{"monthIndex":8,"title":"되짚어보는 달","body":"바쁘게 벌여온 일들을 잠시 멈춰 되짚어보고 싶은 마음이 올라와요. 무엇이 잘 맞았고 무엇이 헛돌았는지 가려보는 편이 다음 흐름에 도움이 돼요."},{"monthIndex":9,"title":"다시 힘을 모으는 달","body":"앞서 되짚어본 것을 바탕으로 다시 움직일 힘이 모여요. 전부를 되살리기보다 남길 만한 것부터 다시 손대는 편이 자연스러워요."},{"monthIndex":10,"title":"가져갈 것과 놓을 것을 가리는 달","body":"벌여둔 일들 가운데 계속 가져갈 것과 정리할 것을 가려보는 장면이 잦아져요. 새로 손을 대기보다 이미 가진 것들 사이에서 추릴 거리부터 찾게 되고, 정리하고 나면 오히려 손이 가벼워지는 걸 느껴요."},{"monthIndex":11,"title":"남길 것을 정리하는 달","body":"앞서 가리기 시작한 흐름이 그대로 이어지면서 무엇을 끝까지 가져갈지가 더 분명해져요. 손에 남은 것에 힘을 모으는 편이 흐름과 맞아요."},{"monthIndex":12,"title":"한 해를 마무리하는 달","body":"쌓아온 것을 정리하고 다음을 준비하는 힘이 커져요. 새로 벌이기보다 남길 것을 확실히 매듭짓는 데 무게를 두면 좋아요."}]}',
   },
 
-  pivots: {
-    // v2: 07 과 짝짓는 새 예시·"앞뒤 시기" 비교를 한 해 전체로 넓힌 지시(§R5)로
-    // 프롬프트 의미가 바뀌었다. 옛 버전으로 저장된 서술은 이 비교 폭을 안 지킨다.
-    version: 2,
-    schema: pivots,
-    prompt: [
-      "08 올해의 변곡점. **주어진 monthIndex 만** 쓴다. 하나도 없으면 pivots 는 빈 배열이다.",
-      "**이 섹션은 구조를 쓴다** — 왜 하필 그 시점에 방향이 바뀌며, 그 전환이 한 해 전체에서 무슨 의미인가.",
-      "그 달 안에서 무엇을 하게 되는가(장면)는 07 이 이미 썼다. 같은 말을 반복하지 말고, **앞뒤 시기를 반드시 비교**해라 — 바로 앞 달과만 비교하지 말고, 그 전환이 한 해의 앞부분·뒷부분 전체에서 무슨 의미인지 보여줘라. '앞선 시기까지 …하던 힘이 …쪽으로 옮겨가요' 같은 형태.",
-      "아래 예시의 각 달은 07 예시가 같은 달에 쓴 장면과 쌍을 이루도록 설계됐다 — 같은 사건을 '무엇을 하게 되는가' 대신 '왜 여기서 방향이 꺾이는가' 로 다시 답한 것이다. 실제 생성에서도 이 관계(같은 사건, 다른 질문)를 유지해서 써라.",
-      "title 은 그 전환을 한 줄로. 예: '안에서 밖으로 움직이기 시작하는 지점'.",
-      "body 는 2~3문장.",
-      "변곡점이 없으면 lead 하나로 끝낸다 — 없는 변화를 만들지 마라. 흐름이 크게 꺾이지 않고 비슷한 방향이 길게 이어진다는 것도 유효한 결과다.",
-      COMMON_RULE,
-    ].join("\n"),
-    example:
-      '{"lead":"이 해는 방향이 뚜렷하게 꺾이는 지점이 세 번 있고, 그 사이는 앞선 흐름이 그대로 이어지는 시간이에요.","pivots":[{"monthIndex":3,"title":"안에서 밖으로 방향이 꺾이는 지점","body":"앞선 시기까지는 무엇을 남기고 정리할지 다지는 데 힘을 썼다면, 여기서부터는 그 정리를 실제로 꺼내 보이는 쪽으로 무게가 넘어가요. 완성도를 높이는 것보다 일단 내보이는 편이 앞으로 이어질 흐름과 맞아요."},{"monthIndex":7,"title":"혼자에서 여럿으로 무게가 넘어가는 지점","body":"밖으로 나선 뒤 혼자 벌이고 혼자 떠안던 흐름이, 여기서부터는 곁에 사람을 들여 나눠 맡는 쪽으로 옮겨가요. 앞선 시기가 벌이고 쌓는 때였다면, 여기서부터는 나누고 덜어내는 쪽에 무게가 실려요."},{"monthIndex":10,"title":"늘리기보다 남길 것을 고르는 지점","body":"밖으로 나서고 사람을 들이며 계속 넓혀온 흐름이 여기서 한 차례 꺾이면서, 무엇을 유지하고 무엇을 내려놓을지가 중요해져요. 초반이 다지고 벌이는 때였다면, 여기서부터 남은 시간은 그 가운데 무엇을 끝까지 가져갈지 고르는 쪽으로 흘러가요."}]}',
-  },
-
   closing: {
     version: 1,
     schema: closing,
     prompt: [
-      "09 이 해의 포인트. 앞의 내용을 요약하지 말고, 이 흐름에서 가져갈 태도와 행동 3가지를 준다.",
+      "08 이 해의 포인트. 앞의 내용을 요약하지 말고, 이 흐름에서 가져갈 태도와 행동 3가지를 준다.",
       "각 item 의 body 에 실제로 해볼 수 있는 것 하나를 포함한다.",
       "closing 은 '가장 기억할 한 가지' 다 — 한 문장으로 끝낸다.",
       COMMON_RULE,

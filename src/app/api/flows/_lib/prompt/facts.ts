@@ -69,7 +69,7 @@ export interface FlowContext {
   flowYear: number;
   year: YearFacts;
   months: MonthFacts[];
-  /** 변곡점인 달의 순번. 08 의 스키마 정의역이 된다 */
+  /** 변곡점인 달의 순번. [연간] 의 변곡점 줄이 이 값으로 조립된다 */
   pivotMonths: number[];
 }
 
@@ -235,6 +235,15 @@ export function flowFacts(ctx: FlowContext): string {
   if (year.daeunSwitch) {
     lines.push(`배경 전환: ${year.daeunSwitch.before} → ${year.daeunSwitch.after}`);
   }
+
+  // 변곡점을 **연간 사실로도** 적는다. 아래 달 블록의 "변곡점: 예" 만 두면 0개인
+  // 해에는 아무 줄도 안 생겨서, 모델이 보는 것은 "없다는 사실" 이 아니라 "아무 말도
+  // 없음" 이다(§21). 07 이 lead 에서 한 해의 호를 요약할 때 이 줄이 근거가 된다.
+  lines.push(
+    ctx.pivotMonths.length === 0
+      ? "변곡점: 없음 (이 해는 흐름이 크게 꺾이는 지점이 계산되지 않았다)"
+      : `변곡점: ${ctx.pivotMonths.map((n) => `${n}번째 달`).join(" · ")}`,
+  );
 
   for (const m of ctx.months) {
     lines.push(

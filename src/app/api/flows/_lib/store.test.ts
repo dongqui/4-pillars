@@ -3,11 +3,6 @@ import type { SqlClient } from "@/lib/db";
 import { FLOW_SECTIONS } from "./sections";
 import { decodeFlowSections, getFlowSections } from "./store";
 
-// pivots 를 쓰지 않는 섹션(overview)의 검증은 ctx 값에 좌우되지 않으므로 빈
-// pivotMonths 로 고정해 둔다. 변곡점 자체를 검증하는 손상 판정은 아래 별도
-// describe 에서 다룬다.
-const NO_PIVOTS_CTX = { pivotMonths: [] as number[] };
-
 const overview = {
   title: "제목",
   body: "본문",
@@ -25,7 +20,6 @@ describe("decodeFlowSections", () => {
         },
       ],
       ["overview"],
-      NO_PIVOTS_CTX,
     );
     expect(out.have.overview).toEqual(overview);
     expect(out.missing).toEqual([]);
@@ -46,7 +40,6 @@ describe("decodeFlowSections", () => {
         },
       ],
       ["overview"],
-      NO_PIVOTS_CTX,
     );
     const stringified = decodeFlowSections(
       [
@@ -57,7 +50,6 @@ describe("decodeFlowSections", () => {
         },
       ],
       ["overview"],
-      NO_PIVOTS_CTX,
     );
     expect(stringified.have).toEqual(parsed.have);
     expect(stringified.missing).toEqual([]);
@@ -67,16 +59,19 @@ describe("decodeFlowSections", () => {
     const out = decodeFlowSections(
       [{ section_key: "overview", content: overview, schema_version: 0 }],
       ["overview"],
-      NO_PIVOTS_CTX,
     );
     expect(out.missing).toEqual(["overview"]);
   });
 
   it("모르는 키는 무시한다 — 지워진 섹션이다", () => {
+    // 구 pivots(옛 08) 행이 정확히 이 경로로 무시된다 — 섹션 삭제에 데이터
+    // 마이그레이션이 필수가 아닌 이유다.
     const out = decodeFlowSections(
-      [{ section_key: "사라진섹션", content: {}, schema_version: 1 }],
+      [
+        { section_key: "사라진섹션", content: {}, schema_version: 1 },
+        { section_key: "pivots", content: { lead: "l", pivots: [] }, schema_version: 2 },
+      ],
       ["overview"],
-      NO_PIVOTS_CTX,
     );
     expect(out.have).toEqual({});
   });
@@ -93,46 +88,26 @@ describe("decodeFlowSections", () => {
         },
       ],
       ["overview"],
-      NO_PIVOTS_CTX,
     );
     expect(out.missing).toEqual(["overview"]);
     expect(out.have).toEqual({});
   });
-});
 
-describe("decodeFlowSections — 손상 판정", () => {
-  const CTX = { pivotMonths: [3, 7] };
-
-  // 하드코딩된 숫자를 쓰면 FLOW_SECTIONS.pivots.version 이 오를 때마다 이 테스트가
-  // "버전 불일치로 missing" 경로를 (의도치 않게) 함께 테스트하게 된다 — 이 describe
-  // 가 실제로 보려는 건 손상 판정이지 버전 비교가 아니다.
-  const row = (content: unknown) => ({
-    section_key: "pivots",
-    schema_version: FLOW_SECTIONS.pivots.version,
-    content: JSON.stringify(content),
-  });
-
-  it("저장된 변곡점이 계산과 어긋나면 없는 섹션으로 본다", () => {
-    // months 는 박제라 정상적으로는 달라질 수 없다 — 어긋나면 손상이다.
-    // 조용히 통과시키면 08 이 07 과 다른 달을 가리킨다.
-    const bad = row({
-      lead: "l",
-      pivots: [{ monthIndex: 5, title: "t", body: "b" }],
-    });
-    const out = decodeFlowSections([bad], ["pivots"], CTX);
-    expect(out.missing).toContain("pivots");
-  });
-
-  it("일치하면 그대로 쓴다 — 헛되이 재생성하지 않는다", () => {
-    const good = row({
-      lead: "l",
-      pivots: [
-        { monthIndex: 3, title: "t", body: "b" },
-        { monthIndex: 7, title: "t", body: "b" },
+  it("버전은 맞는데 스키마에 걸리는 행도 missing 으로 떨어뜨린다", () => {
+    // jsonb 손상 등 정상적으로는 나올 수 없는 상태다. 조용히 통과시키면 화면이
+    // 깨진 서술을 그리고, missing 으로 떨어뜨리면 다음 열람에서 다시 만들어진다
+    // — 지갑은 entitlements 행이 남아 안전하다.
+    const out = decodeFlowSections(
+      [
+        {
+          section_key: "overview",
+          content: { title: "제목만 있고 나머지가 없다" },
+          schema_version: FLOW_SECTIONS.overview.version,
+        },
       ],
-    });
-    const out = decodeFlowSections([good], ["pivots"], CTX);
-    expect(out.missing).not.toContain("pivots");
+      ["overview"],
+    );
+    expect(out.missing).toEqual(["overview"]);
   });
 });
 
@@ -144,7 +119,7 @@ describe("getFlowSections", () => {
       return Promise.resolve([]);
     }) as unknown as SqlClient;
 
-    expect(await getFlowSections("7", [], NO_PIVOTS_CTX, client)).toEqual({
+    expect(await getFlowSections("7", [], client)).toEqual({
       have: {},
       missing: [],
     });

@@ -20,16 +20,16 @@ import { FlowGenerationError, produceFlowSections } from "@/app/api/flows/_lib/p
 import { putFlowSections } from "@/app/api/flows/_lib/store";
 import { currentMonthIndex } from "./_lib/current-month";
 import { toFlowView } from "./_lib/to-flow-view";
-import { FlowShell } from "./_components/FlowShell";
+import { FlowChrome, FlowShell } from "./_components/FlowShell";
 import { FlowHero } from "./_components/FlowHero";
-import { FlowBody } from "./_components/FlowBody";
+import { FlowBody, type FlowMissingReason } from "./_components/FlowBody";
 import { AnalyzingFlow } from "./_components/AnalyzingFlow";
 import { FlowError } from "./_components/FlowError";
 import { FlowRateLimited } from "./_components/FlowRateLimited";
 import { FlowOutOfTickets } from "./_components/FlowOutOfTickets";
 
 /**
- * 흐름 하나가 9섹션을 한 번에 생성하고, 그중 07 은 12개월을 한 응답에 담는다 —
+ * 흐름 하나가 8섹션을 한 번에 생성하고, 그중 07 은 12개월을 한 응답에 담는다 —
  * 궁합(5섹션)보다 무거워 같은 여유를 둔다.
  */
 export const maxDuration = 60;
@@ -63,16 +63,26 @@ export default async function FlowResultPage({
   // (match/[id]/page.tsx 의 analyzePair 와 같은 처리).
   if (!ctx) {
     return (
-      <FlowShell flow={flow} profileName={profile.name} displayName={displayName}>
-        <FlowError />
+      <FlowShell displayName={displayName}>
+        <FlowChrome flow={flow} profileName={profile.name}>
+          <FlowError />
+        </FlowChrome>
       </FlowShell>
     );
   }
 
   return (
-    <FlowShell flow={flow} profileName={profile.name} displayName={displayName}>
+    <FlowShell displayName={displayName}>
+      {/* 로딩 중에는 스피너만 보인다 — 위치 요약과 하단 링크는 FlowChrome 에 있어
+          FlowSections 가 도착해야 함께 그려진다(FlowShell 의 주석 참고). */}
       <Suspense fallback={<AnalyzingFlow />}>
-        <FlowSections flow={flow} userId={session.userId} ctx={ctx} currentIndex={currentIndex} />
+        <FlowSections
+          flow={flow}
+          userId={session.userId}
+          ctx={ctx}
+          currentIndex={currentIndex}
+          profileName={profile.name}
+        />
       </Suspense>
     </FlowShell>
   );
@@ -111,12 +121,19 @@ async function FlowSections({
   userId,
   ctx,
   currentIndex,
+  profileName,
 }: {
   flow: FlowRow;
   userId: string;
   ctx: FlowContext;
   currentIndex: number | null;
+  profileName: string;
 }) {
+  const chrome = (inner: React.ReactNode) => (
+    <FlowChrome flow={flow} profileName={profileName}>
+      {inner}
+    </FlowChrome>
+  );
   let interpretation: Partial<FlowInterpretation>;
   let rateLimited = false;
   let outOfTickets = false;
@@ -132,9 +149,6 @@ async function FlowSections({
     // 반대로 감싸면 이용권부터 깎고 나서야 한도 초과를 알게 되어, 막아야 할
     // 요청에서 먼저 돈을 받는 꼴이 된다.
     //
-    // 여기서는 스키마 컨텍스트를 조립할 자리가 아예 없다 — produceFlowSections
-    // 가 저장소 읽기(getFlowSections)를 직접 부르고, 그 호출과 뒤이은 검증이
-    // 같은 schemaCtx 지역 변수를 쓴다(produce.ts 의 ProduceFlowDeps 문서 참고).
     // client 를 생략하면 store.ts 의 실제 sql 이 쓰인다 — 테스트만 가짜를 준다.
     ({ interpretation } = await produceFlowSections(flow.id, ctx, {
       generator: gateFlowGeneration(
@@ -156,17 +170,27 @@ async function FlowSections({
     } else {
       // DB 오류 · DEEP_SEEK_API_KEY 누락(createFlowGenerator) 등은 여기서 삼킨다.
       console.error("[/flow/[id]] 해석 확보 실패", e);
-      return <FlowError />;
+      return chrome(<FlowError />);
     }
   }
 
   if (Object.keys(interpretation).length === 0) {
-    if (outOfTickets) return <FlowOutOfTickets flowId={flow.id} />;
-    return rateLimited ? <FlowRateLimited /> : <FlowError />;
+    if (outOfTickets) return chrome(<FlowOutOfTickets flowId={flow.id} />);
+    return chrome(rateLimited ? <FlowRateLimited /> : <FlowError />);
   }
 
+  // 일부만 확보한 경우에도 이 두 플래그를 살려 화면까지 내린다. 예전에는 바로 위
+  // "하나도 없을 때" 분기에서만 읽고 버렸다 — 그래서 다섯은 있고 넷이 한도에 막혔을
+  // 때 그 네 자리가 "새로고침하면 다시 만들어요" 라고 말했다. 새로고침은 한도만 한
+  // 칸 더 먹고 같은 화면을 돌려준다.
+  const missingReason: FlowMissingReason = rateLimited
+    ? "rate-limit"
+    : outOfTickets
+      ? "tickets"
+      : "failed";
+
   const sections = toFlowView(interpretation);
-  return (
+  return chrome(
     <>
       <FlowHero sections={sections} flowYear={flow.flowYear} />
       <FlowBody
@@ -175,7 +199,8 @@ async function FlowSections({
         currentIndex={currentIndex}
         profileId={flow.profileId}
         flowYear={flow.flowYear}
+        missingReason={missingReason}
       />
-    </>
+    </>,
   );
 }

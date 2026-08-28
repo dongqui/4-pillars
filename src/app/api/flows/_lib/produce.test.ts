@@ -4,9 +4,9 @@ import { produceFlowSections, FlowGenerationError } from "./produce";
 import type { SqlClient } from "./store";
 import { FLOW_SECTIONS, type FlowSectionKey } from "./sections";
 
-// pivotMonths 만 있으면 충분하다 — produceFlowSections 는 이 필드만 읽어
-// schemaCtx 를 만든다. 나머지 FlowContext 필드는 프롬프트 조립에만 쓰인다.
-const ctx = { pivotMonths: [3, 7] } as unknown as FlowContext;
+// produceFlowSections 는 ctx 를 생성기에 그대로 넘길 뿐 직접 읽지 않는다 —
+// 프롬프트 조립은 생성기 몫이고 여기 가짜 생성기는 ctx 를 안 본다.
+const ctx = {} as unknown as FlowContext;
 const good = {
   title: "제목",
   body: "본문",
@@ -19,8 +19,8 @@ const good = {
  *
  * getStored 를 모킹하던 이전 버전과 달리, 여기서는 produceFlowSections 가
  * 직접 부르는 getFlowSections(→ decodeFlowSections)의 실제 스키마 검증을
- * 그대로 통과한다 — 그래서 아래 row() 헬퍼가 실제 FLOW_SECTIONS 버전과 실제
- * ctx.pivotMonths 도메인에 맞는 content 를 넣어야 한다.
+ * 그대로 통과한다 — 그래서 아래 row() 헬퍼가 실제 FLOW_SECTIONS 버전에 맞는
+ * content 를 넣어야 한다.
  */
 function fakeClient(rows: Record<string, unknown>[]): SqlClient {
   return (async () => rows) as unknown as SqlClient;
@@ -52,30 +52,54 @@ describe("produceFlowSections", () => {
     expect(out.interpretation.overview).toEqual(good);
   });
 
-  // monthIndex 5 는 ctx.pivotMonths=[3,7] 밖이다 — schemaCtx 가 ctx.pivotMonths
-  // 를 실제로 쓰는지를 이 테스트가 가른다.
-  it("ctx.pivotMonths 밖의 달을 우기면 검증에서 버린다 — 화면과 저장 양쪽에 새지 않게", async () => {
+  it("스키마를 어긴 응답은 검증에서 버린다 — 화면과 저장 양쪽에 새지 않게", async () => {
     let saved: unknown = null;
     const out = await produceFlowSections("7", ctx, {
       generator: {
         model: "m",
         async generateSections() {
+          // items 가 3개가 아니다 — withItems 스키마 위반
           return {
-            pivots: { lead: "l", pivots: [{ monthIndex: 5, title: "t", body: "b" }] },
+            rising: { lead: "l", items: [{ title: "t", body: "b" }] },
           } as never;
         },
       },
       putStored: async (_id, v) => {
         saved = v;
       },
-      sectionKeys: ["pivots"],
+      sectionKeys: ["rising"],
       client: fakeClient([]),
     });
-    expect(out.interpretation.pivots).toBeUndefined();
+    expect(out.interpretation.rising).toBeUndefined();
     expect(saved).toEqual({});
     // 검증에서 전부 버려져 결과가 비어 있어도, 생성을 시도한 이상 "캐시 적중" 이
     // 아니다 — stored 는 여전히 false 여야 한다.
     expect(out.stored).toBe(false);
+  });
+
+  it("레지스트리에 없는 키(구 pivots 등)는 생성기가 돌려줘도 버린다", async () => {
+    // 08 삭제 후 남을 수 있는 두 경로를 함께 막는다 — DB 의 옛 pivots 행은
+    // decodeFlowSections 의 isFlowSectionKey 가, 생성기가 뱉는 모르는 키는
+    // 여기 검증 루프가 거른다.
+    let saved: unknown = null;
+    const out = await produceFlowSections("7", ctx, {
+      generator: {
+        model: "m",
+        async generateSections() {
+          return {
+            overview: good,
+            pivots: { lead: "l", pivots: [] },
+          } as never;
+        },
+      },
+      putStored: async (_id, v) => {
+        saved = v;
+      },
+      sectionKeys: ["overview"],
+      client: fakeClient([]),
+    });
+    expect(out.interpretation).toEqual({ overview: good });
+    expect(saved).toEqual({ overview: good });
   });
 
   it("생성을 시도했으면 전부 성공해도 stored 는 false다 — 캐시 적중이 아니라서다", async () => {
@@ -113,51 +137,5 @@ describe("produceFlowSections", () => {
   it("FlowGenerationError 는 원인을 cause 에 담는다", () => {
     const cause = new Error("inner");
     expect(new FlowGenerationError(cause, {}).cause).toBe(cause);
-  });
-
-  /**
-   * 이 테스트가 지키는 것: produceFlowSections 가 저장소를 읽을 때 쓰는
-   * 스키마 컨텍스트와, 읽어온 값을 검증할 때 쓰는 스키마 컨텍스트가 *같은*
-   * 값이라는 것.
-   *
-   * 저장된 08 행은 실제 ctx.pivotMonths=[3,7] 과 정확히 맞아떨어진다. 두
-   * 컨텍스트가 어긋나면(예: 읽기 쪽에 빈 배열이 새어 들어가면) 이 행의
-   * monthIndex 3·7 이 읽기에 쓰인 도메인 밖이 되어 손상으로 판정되고,
-   * missing 이 비지 않아 생성기가 불린다 — 방금 산 서술을 조회할 때마다
-   * 다시 만드는 것과 같은 모양이다(지갑은 entitlements 행이 남아 안전하지만
-   * LLM 호출은 매번 든다).
-   *
-   * 이 테스트는 실제로 어긋남을 잡는다 — produce.ts 에서
-   * `getFlowSections(flowId, deps.sectionKeys, schemaCtx, deps.client)` 의
-   * schemaCtx 를 `{ pivotMonths: [] }` 로 바꿔 두면(검증 쪽 schemaCtx 는
-   * 그대로 둔 채) 이 테스트는 실패한다 — generatorCalled 가 true 가 되고
-   * out.stored 가 false 가 된다. 리뷰에서 확인한 뒤 원복했다.
-   */
-  it("읽기와 검증이 같은 스키마 컨텍스트를 쓴다 — 어긋나면 방금 저장한 것도 missing 으로 떨어진다", async () => {
-    let generatorCalled = false;
-    const pivotsGood = {
-      lead: "l",
-      pivots: [
-        { monthIndex: 3, title: "t", body: "b" },
-        { monthIndex: 7, title: "t", body: "b" },
-      ],
-    };
-
-    const out = await produceFlowSections("7", ctx, {
-      generator: {
-        model: "m",
-        async generateSections() {
-          generatorCalled = true;
-          return {};
-        },
-      },
-      putStored: async () => {},
-      sectionKeys: ["pivots"],
-      client: fakeClient([row("pivots", pivotsGood)]),
-    });
-
-    expect(generatorCalled).toBe(false);
-    expect(out.stored).toBe(true);
-    expect(out.interpretation.pivots).toEqual(pivotsGood);
   });
 });

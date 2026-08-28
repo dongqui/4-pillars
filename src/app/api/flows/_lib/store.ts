@@ -3,9 +3,8 @@ import {
   assignFlow,
   flowSectionVersion,
   isFlowSectionKey,
-  parseFlowSectionContent,
+  safeParseFlowSectionContent,
   type FlowInterpretation,
-  type FlowSchemaContext,
   type FlowSectionKey,
 } from "./sections";
 
@@ -41,19 +40,14 @@ function parseJsonbContent(v: unknown): unknown {
 }
 
 /**
- * 행 배열을 have/missing 으로 가른다.
+ * 행 배열을 have/missing 으로 가른다. 궁합의 decodeMatchSections 와 같은 계약이다.
  *
- * 버리는 경우가 궁합보다 하나 많다 — **변곡점 불일치**. flows.months 는 박제라
- * 정상적으로는 바뀌지 않으므로, 저장된 08 이 다른 달을 가리킨다면 그것은 손상이다.
- * 조용히 통과시키면 07 과 08 이 서로 다른 달을 말한다.
- *
- * 다시 만드는 비용이 지갑에 닿지 않는다는 점도 근거다 — entitlements 행이 남아
- * 있어 spendTicket 이 kind:"already" 로 돌아온다.
+ * 검증에 걸린 행을 버리고 다시 만드는 비용은 지갑에 닿지 않는다 — entitlements
+ * 행이 남아 있어 spendTicket 이 kind:"already" 로 돌아온다.
  */
 export function decodeFlowSections(
   rows: Record<string, unknown>[],
   keys: FlowSectionKey[],
-  ctx: FlowSchemaContext,
 ): StoredFlowSections {
   const wanted = new Set<string>(keys);
   const have: Partial<FlowInterpretation> = {};
@@ -62,9 +56,19 @@ export function decodeFlowSections(
     const key = row.section_key;
     if (!isFlowSectionKey(key) || !wanted.has(key)) continue;
     if (row.schema_version !== flowSectionVersion(key)) continue;
-    const content = parseFlowSectionContent(key, parseJsonbContent(row.content), ctx);
-    if (content === null) continue;
-    assignFlow(have, key, content);
+    const parsed = safeParseFlowSectionContent(key, parseJsonbContent(row.content));
+    if (!parsed.ok) {
+      // 버전이 맞는데 검증에 걸린 행이다 — 버전 불일치는 바로 위에서 이미 걸러졌다.
+      // 정상적으로는 나올 수 없는 상태(jsonb 손상 등)이고, 조용히 넘기면 매 열람마다
+      // 그 섹션만 영원히 다시 만들어진다. 지갑은 안 깎이지만 LLM 호출은 매번 든다 —
+      // 그러니 흔적을 남긴다.
+      console.warn(
+        `[decodeFlowSections] 저장된 섹션이 검증에 걸림, 다시 만든다: ${key}` +
+          `\n  이유: ${parsed.reason}`,
+      );
+      continue;
+    }
+    assignFlow(have, key, parsed.content);
   }
 
   return { have, missing: keys.filter((k) => !(k in have)) };
@@ -73,7 +77,6 @@ export function decodeFlowSections(
 export async function getFlowSections(
   flowId: string,
   keys: FlowSectionKey[],
-  ctx: FlowSchemaContext,
   client: SqlClient = sql,
 ): Promise<StoredFlowSections> {
   if (keys.length === 0) return { have: {}, missing: [] };
@@ -82,7 +85,7 @@ export async function getFlowSections(
       FROM flow_sections
      WHERE flow_id = ${flowId}::bigint AND section_key = ANY(${keys}::text[])
   `;
-  return decodeFlowSections(rows, keys, ctx);
+  return decodeFlowSections(rows, keys);
 }
 
 export async function putFlowSections(
