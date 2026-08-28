@@ -4,6 +4,8 @@ export interface YearOption {
   year: number;
   /** 만 나이. 시안의 연도 칸에 붙는다 */
   age: number;
+  /** "2026.2.4 – 2027.2.4" — 이 칸이 실제로 파는 입춘 구간. 시안의 연도 칸 세 번째 줄 */
+  range: string;
   tag: "지난" | "올해" | "다가올";
   /**
    * ⚠️ 행 존재가 아니라 **권한**이다.
@@ -22,6 +24,11 @@ export interface YearOptionsInput {
   span: number;
   /** 이 사람의 명리 출생 연도(@/lib/flows/birth-year 의 sajuBirthYearOf). 달력 연도가 아니다 */
   birthYear: number;
+  /**
+   * 연도 → 입춘 구간 라벨. 페이지가 flowYearOf + formatRangeLabel 로 만든다 —
+   * 이 모듈은 순수하게 두고(테스트가 절기 계산 없이 돈다) 계산은 호출부 몫이다.
+   */
+  rangeOf: (year: number) => string;
   owned: Map<number, { flowId: string; entitled: boolean }>;
 }
 
@@ -38,6 +45,7 @@ export function buildYearOptions(input: YearOptionsInput): YearOption[] {
     out.push({
       year: y,
       age: y - input.birthYear,
+      range: input.rangeOf(y),
       tag: y === input.currentYear ? "올해" : y < input.currentYear ? "지난" : "다가올",
       owned: hit?.entitled ?? false,
       flowId: hit?.flowId ?? null,
@@ -60,6 +68,21 @@ export function buildYearOptions(input: YearOptionsInput): YearOption[] {
 
   out.sort((a, b) => a.year - b.year);
   return out;
+}
+
+/**
+ * "2026.2.4 – 2027.2.4" — 연도 칸에 붙는 압축형. 입춘 날짜를 KST 로 그대로 쓴다.
+ *
+ * formatPeriod 와 달리 "초" 로 눅이지 않는다 — 칸이 좁아 한 줄로 끝나야 하고,
+ * 시안이 정확한 날짜를 보여준다. 시각까지는 어차피 안 나가므로 날짜 노출은
+ * formatPeriod 가 피하려던 문제(입춘 시각의 오해)를 만들지 않는다.
+ */
+export function formatRangeLabel(start: Date, end: Date): string {
+  const label = (d: Date) => {
+    const kst = new Date(d.getTime() + 9 * 3600_000);
+    return `${kst.getUTCFullYear()}.${kst.getUTCMonth() + 1}.${kst.getUTCDate()}`;
+  };
+  return `${label(start)} – ${label(end)}`;
 }
 
 /**

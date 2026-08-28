@@ -10,6 +10,11 @@ interface Props {
   selectedId: string;
   /** 다른 사람을 골랐을 때. selectedId 와 같은 것을 다시 고르면 부르지 않는다 */
   onPick: (id: string) => void;
+  /**
+   * 목록 줄 오른쪽 끝의 보조 라벨(id → 문구). 흐름 선택 화면이 "N개 보유" 를
+   * 붙인다. 없거나 빈 문자열이면 아무것도 그리지 않는다 — consult 쪽은 안 쓴다.
+   */
+  trailing?: Record<string, string>;
 }
 
 /**
@@ -24,7 +29,7 @@ interface Props {
  * 고른 값을 어디에 두는지(URL 인가 로컬 상태인가)는 여기서 모른다 — onPick 콜백만
  * 받는다. SubjectSelect 는 router.replace 로, 흐름 선택 화면은 useState 로 받는다.
  */
-export function PersonPicker({ people, selectedId, onPick }: Props) {
+export function PersonPicker({ people, selectedId, onPick, trailing }: Props) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -117,6 +122,11 @@ export function PersonPicker({ people, selectedId, onPick }: Props) {
                     {p.birthLabel}
                   </span>
                 </span>
+                {trailing?.[p.id] ? (
+                  <span className="flex-none text-[11.5px] font-semibold text-slate-400">
+                    {trailing[p.id]}
+                  </span>
+                ) : null}
               </button>
             );
           })}

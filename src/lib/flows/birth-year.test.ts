@@ -24,6 +24,7 @@ describe("buildYearOptions × sajuBirthYearOf — 선택 화면과 서버가 같
       currentYear: 1992,
       span: 5,
       birthYear,
+      rangeOf: () => "",
       owned: new Map(),
     }).map((o) => o.year);
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildYearOptions, formatPeriod } from "./to-confirm";
+import { buildYearOptions, formatPeriod, formatRangeLabel } from "./to-confirm";
 
 const NOW_YEAR = 2026;
 
@@ -8,6 +8,7 @@ function opts(over: Partial<Parameters<typeof buildYearOptions>[0]> = {}) {
     currentYear: NOW_YEAR,
     span: 5,
     birthYear: 1993,
+    rangeOf: (y) => `${y}.2.4 – ${y + 1}.2.4`,
     owned: new Map(),
     ...over,
   });
@@ -23,6 +24,11 @@ describe("buildYearOptions", () => {
     // 만 나이가 음수가 되고, 그 해의 대운이 없다
     const years = opts({ birthYear: 2024 }).map((o) => o.year);
     expect(years).toEqual([2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031]);
+  });
+
+  it("입춘 구간 라벨을 붙인다 — rangeOf 가 그대로 실린다", () => {
+    const o = opts().find((y) => y.year === 2026)!;
+    expect(o.range).toBe("2026.2.4 – 2027.2.4");
   });
 
   it("만 나이를 붙인다", () => {
@@ -73,6 +79,16 @@ describe("buildYearOptions", () => {
     const owned = new Map([[2019, { flowId: "row-only", entitled: false }]]);
     const years = opts({ currentYear: 2028, owned });
     expect(years.some((y) => y.year === 2019)).toBe(false);
+  });
+});
+
+describe("formatRangeLabel", () => {
+  it("KST 날짜를 압축형으로 낸다", () => {
+    // 2026 입춘(KST 2026-02-04 05:02) ~ 2027 입춘(KST 2027-02-04 10:46) 근사값.
+    // UTC 로는 전날 저녁이라, KST 변환 없이는 2.3 으로 하루 밀린다.
+    const start = new Date("2026-02-03T20:02:00Z");
+    const end = new Date("2027-02-04T01:46:00Z");
+    expect(formatRangeLabel(start, end)).toBe("2026.2.4 – 2027.2.4");
   });
 });
 

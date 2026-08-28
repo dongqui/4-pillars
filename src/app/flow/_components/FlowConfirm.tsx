@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PersonOption } from "@/lib/profiles/option";
 import { PersonPicker } from "@/components/PersonPicker";
 import type { YearOption } from "../_lib/to-confirm";
@@ -14,15 +14,26 @@ export interface FlowConfirmProps {
   yearsByProfile: YearOption[][];
   /** 처음 열었을 때 고를 프로필의 인덱스 */
   initialProfile: number;
-  /** 지금의 명리 연도 — 기본 선택값이자, 프로필을 바꿔 고른 해가 사라졌을 때 물러서는 값 */
-  currentYear: number;
-  ticketPriceLabel: string;
+  /**
+   * 보유 이용권 수. 모달의 "보유 N장" 에만 쓰는 스냅숏이다 — 0이어도 버튼을
+   * 막지 않는다(다른 탭에서 충전했을 수 있고, 결제 판정은 서버가 한다).
+   */
+  tickets: number;
 }
 
+/**
+ * 연도 선택 화면. 시안(Saju Yearly Report)이 확정한 구조:
+ *
+ * 칸을 "골라 두고 아래 CTA 로 확정" 하던 앞선 설계를 버리고 **칸이 곧 행동**이다 —
+ * 보유한 해는 누르면 바로 열리고, 안 산 해는 결제 모달이 뜬다. 그래서 이 화면에는
+ * 선택 상태(어느 해가 눌려 있는가)가 없다. 모달이 들고 있는 것은 "무엇을 사려고
+ * 하는가" 하나다.
+ */
 export function FlowConfirm(props: FlowConfirmProps) {
   const router = useRouter();
   const [active, setActive] = useState(props.initialProfile);
-  const [year, setYear] = useState(props.currentYear);
+  // 결제 모달이 겨눈 해. null 이면 닫혀 있다.
+  const [payYear, setPayYear] = useState<YearOption | null>(null);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<StartFailure | null>(null);
 
@@ -45,27 +56,27 @@ export function FlowConfirm(props: FlowConfirmProps) {
 
   const me = props.people[active];
   const years = props.yearsByProfile[active];
-  // 프로필을 바꾸면 고른 해가 그 사람의 범위 밖일 수 있다(태어나기 전이라 칸 자체가
-  // 없다). 그 사람의 마지막(가장 먼 미래) 칸이 아니라 "올해" 로 되돌린다 — 처음
-  // 열었을 때의 기본 선택과 같은 자리라, 프로필만 바꿨을 뿐인데 결제 버튼 위 연도가
-  // 낯선 미래로 튀는 일이 없다. currentYear 는 모든 프로필의 칸에 항상 있다: 이미
-  // 저장된 사람은 태어난 시점이 지금보다 앞이라 명리 출생 연도가 currentYear 를
-  // 넘을 수 없다 — 그래도 만에 하나를 대비해 마지막 칸을 최종 안전망으로 둔다.
-  const selected =
-    years.find((y) => y.year === year) ??
-    years.find((y) => y.year === props.currentYear) ??
-    years[years.length - 1];
-
   const ownedCount = years.filter((y) => y.owned).length;
 
-  async function start() {
+  function openPay(y: YearOption) {
+    setFailure(null);
+    setPayYear(y);
+  }
+
+  function closePay() {
+    if (busy) return; // 결제 요청이 나간 뒤에는 결과를 보고 닫는다
+    setPayYear(null);
+    setFailure(null);
+  }
+
+  async function start(year: number) {
     setBusy(true);
     setFailure(null);
     try {
       const res = await fetch("/api/flows", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profileId: me.id, year: selected.year }),
+        body: JSON.stringify({ profileId: me.id, year }),
       });
       if (!res.ok) {
         // 402·429·401 모두 실제로 닿는 상태다 — 버튼만 다시 눌리게 두면
@@ -91,7 +102,7 @@ export function FlowConfirm(props: FlowConfirmProps) {
         어떤 해를 살펴볼까요?
       </h1>
       <p className="mt-2 max-w-[520px] text-[13.5px] leading-[1.55] text-gray-500">
-        사주와 연도를 고르면 그 해의 큰 흐름부터 달마다 달라지는 변화까지 정리해 드려요.
+        사주와 연도를 고르면 그 해의 기운, 조심할 시기, 잘 흐를 시기를 정리해 드려요.
       </p>
 
       {/* 1 · 프로필 */}
@@ -99,19 +110,39 @@ export function FlowConfirm(props: FlowConfirmProps) {
         <div className="mb-2 text-[11.5px] font-bold tracking-[0.08em] text-slate-400">
           누구의 흐름인가요?
         </div>
-        <PersonPicker
-          people={props.people}
-          selectedId={me.id}
-          onPick={(id) => {
-            const i = props.people.findIndex((p) => p.id === id);
-            if (i >= 0) setActive(i);
-          }}
-        />
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <PersonPicker
+              people={props.people}
+              selectedId={me.id}
+              onPick={(id) => {
+                const i = props.people.findIndex((p) => p.id === id);
+                if (i >= 0) setActive(i);
+              }}
+              trailing={Object.fromEntries(
+                props.people.map((p, i) => {
+                  const n = props.yearsByProfile[i].filter((y) => y.owned).length;
+                  return [p.id, n > 0 ? `${n}개 보유` : ""];
+                }),
+              )}
+            />
+          </div>
+          <Link
+            href="/funnel?step=name"
+            className="flex h-[52px] flex-none items-center gap-1.5 whitespace-nowrap rounded-[14px] border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-700 transition-colors hover:border-accent hover:text-accent"
+          >
+            <span aria-hidden className="text-[17px] font-normal leading-none">
+              +
+            </span>
+            <span className="hidden sm:inline">사주 추가</span>
+            <span className="sm:hidden">추가</span>
+          </Link>
+        </div>
       </div>
 
       {/* 2 · 연도 */}
       <div className="mt-7">
-        <div className="mb-2 flex items-baseline justify-between gap-3">
+        <div className="mb-1 flex items-baseline justify-between gap-3">
           <div className="text-[11.5px] font-bold tracking-[0.08em] text-slate-400">
             어떤 해인가요?
           </div>
@@ -120,109 +151,205 @@ export function FlowConfirm(props: FlowConfirmProps) {
           </span>
         </div>
 
+        {/* 칸의 구간 표기(2.4 시작)가 왜 1.1 이 아닌지를 먼저 말해 둔다(§18) */}
+        <div className="mb-3 flex items-center gap-2.5 rounded-[13px] border border-accent/25 bg-accent-50 px-3.5 py-3">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden className="flex-none">
+            <path
+              d="M12 21c-3.2-2.1-5-4.7-5-7.6C7 10.4 9 8.4 12 3c3 5.4 5 7.4 5 10.4 0 2.9-1.8 5.5-5 7.6z"
+              className="fill-accent/15 stroke-accent"
+              strokeWidth="1.6"
+              strokeLinejoin="round"
+            />
+            <path d="M12 21v-6.5" className="stroke-accent" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+          <span className="text-[13px] leading-[1.5] text-accent [text-wrap:pretty]">
+            <b className="font-bold">사주의 한 해는 입춘부터 시작해요.</b> 1월 1일이 아니라 2월
+            초부터 다음 해 2월 초까지의 흐름입니다.
+          </span>
+        </div>
+
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {years.map((y) => {
-            const on = y.year === selected.year;
-            return (
-              <button
-                key={y.year}
-                type="button"
-                aria-pressed={on}
-                onClick={() => setYear(y.year)}
-                className={`relative flex flex-col gap-0.5 rounded-2xl border-[1.5px] px-4 py-3.5 text-left transition-colors ${
-                  on
-                    ? y.owned
-                      ? "border-slate-900 bg-slate-900"
-                      : "border-accent bg-slate-50"
-                    : "border-slate-200 bg-white"
+          {years.map((y) => (
+            <button
+              key={y.year}
+              type="button"
+              onClick={() =>
+                y.owned && y.flowId ? router.push(`/flow/${y.flowId}`) : openPay(y)
+              }
+              className={`relative flex flex-col gap-0.5 rounded-2xl border-[1.5px] px-[15px] pb-[15px] pt-[13px] text-left transition-colors ${
+                y.owned
+                  ? "border-slate-900 bg-slate-900 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.6)]"
+                  : "border-slate-200 bg-white hover:border-slate-400"
+              }`}
+            >
+              <span className="flex items-center justify-between gap-2">
+                <span
+                  className={`text-[10.5px] font-bold tracking-[0.06em] ${
+                    y.owned ? "text-white/45" : y.tag === "올해" ? "text-accent" : "text-slate-300"
+                  }`}
+                >
+                  {y.tag === "올해" ? "올해" : `${y.tag} 해`}
+                </span>
+                <span
+                  className={`flex flex-none items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-[3px] text-[10.5px] font-bold ${
+                    y.owned ? "bg-white text-slate-900" : "bg-slate-100 text-slate-400"
+                  }`}
+                >
+                  {y.owned && (
+                    <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden>
+                      <path
+                        d="M3.5 8.5l3 3 6-6.5"
+                        stroke="currentColor"
+                        strokeWidth="2.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                  {y.owned ? "보유" : "이용권 1장"}
+                </span>
+              </span>
+              <span
+                className={`mt-1.5 text-[clamp(20px,4.5vw,23px)] font-bold leading-[1.1] tracking-[-0.04em] tabular-nums ${
+                  y.owned ? "text-white" : "text-slate-900"
                 }`}
               >
-                <span
-                  className={`mb-0.5 text-[10.5px] font-bold tracking-[0.07em] ${
-                    on && y.owned ? "text-white/50" : y.tag === "올해" ? "text-accent" : "text-slate-300"
-                  }`}
-                >
-                  {y.tag}
-                </span>
-                <span
-                  className={`text-[21px] font-bold leading-[1.1] tracking-[-0.04em] tabular-nums ${
-                    on && y.owned ? "text-white" : "text-slate-900"
-                  }`}
-                >
-                  {y.year}
-                </span>
-                <span className={`text-xs ${on && y.owned ? "text-white/60" : "text-slate-400"}`}>
-                  만 {y.age}세
-                </span>
-                {y.owned && (
-                  <span
-                    aria-label="이미 구매한 해"
-                    className={`absolute right-2.5 top-2.5 flex size-[17px] items-center justify-center rounded-full text-[10px] font-bold text-white ${
-                      on ? "bg-white/30" : "bg-slate-900"
-                    }`}
-                  >
-                    ✓
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        <p className="mt-3 text-xs text-slate-400">
-          ✓ 이미 구매한 해 · 결제 없이 다시 볼 수 있어요
-        </p>
-      </div>
-
-      {/* 3 · CTA */}
-      <div className="mt-7 flex flex-col gap-4 rounded-[20px] border border-slate-200 bg-slate-50 p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <div className="mb-1 text-xs text-slate-400">
-            {me.name} · {selected.year}년
-          </div>
-          <div className="text-[17px] font-bold tracking-[-0.03em]">
-            {selected.owned
-              ? `${selected.year}년 흐름 다시 보기`
-              : `${selected.year}년 흐름 살펴보기`}
-          </div>
-          <div className="mt-1 text-[13px] text-gray-500">
-            {selected.owned
-              ? "이미 구매한 해예요. 결제 없이 열립니다."
-              : `이용권 1장 또는 ${props.ticketPriceLabel}`}
-          </div>
-        </div>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() =>
-            selected.owned && selected.flowId
-              ? router.push(`/flow/${selected.flowId}`)
-              : void start()
-          }
-          className={`flex-none rounded-[14px] px-6 py-3.5 text-[15px] font-bold text-white disabled:opacity-60 ${
-            selected.owned ? "bg-slate-900" : "bg-accent"
-          }`}
-        >
-          {busy ? "준비하는 중…" : selected.owned ? "바로 열기" : "흐름 보기"}
-        </button>
-      </div>
-
-      {failure && (
-        <p role="alert" className="mt-3 text-[13px] leading-[1.55] text-red-600">
-          {failure.text}
-          {failure.action && (
-            <>
-              {" "}
-              <Link
-                href={failure.action.href}
-                className="font-semibold underline underline-offset-2"
+                {y.year}
+              </span>
+              <span
+                className={`text-[11.5px] tabular-nums ${
+                  y.owned ? "text-white/70" : "text-slate-500"
+                }`}
               >
-                {failure.action.label}
-              </Link>
-            </>
-          )}
-        </p>
+                {y.range}
+              </span>
+              <span className={`text-[11.5px] ${y.owned ? "text-white/40" : "text-slate-300"}`}>
+                만 {y.age}세
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {payYear && (
+        <PayModal
+          name={me.name}
+          option={payYear}
+          tickets={props.tickets}
+          busy={busy}
+          failure={failure}
+          onConfirm={() => void start(payYear.year)}
+          onClose={closePay}
+        />
       )}
     </section>
+  );
+}
+
+/**
+ * 안 산 해를 눌렀을 때의 결제 시트. 모바일에선 바닥에 붙고 sm 부터 가운데 카드다.
+ *
+ * "이용권으로 열기" 는 잔액 0이어도 누를 수 있다 — 잔액은 화면이 뜬 시점의
+ * 스냅숏이라 낡았을 수 있고, 진짜 판정은 서버가 한다. 402 로 돌아오면 충전 링크가
+ * 이 자리(failure)에 뜬다. 잔액이 0으로 보일 땐 흐리게만 그린다(시안의 opacity
+ * 처리 그대로).
+ */
+function PayModal({
+  name,
+  option,
+  tickets,
+  busy,
+  failure,
+  onConfirm,
+  onClose,
+}: {
+  name: string;
+  option: YearOption;
+  tickets: number;
+  busy: boolean;
+  failure: StartFailure | null;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const confirmRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    confirmRef.current?.focus();
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/45 backdrop-blur-[2px] sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${option.year}년 흐름 열기`}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-none rounded-t-[22px] bg-white px-5 pb-6 pt-3.5 shadow-[0_-20px_60px_-20px_rgba(15,23,42,0.35)] sm:max-w-[420px] sm:rounded-[22px] sm:px-6"
+      >
+        <div aria-hidden className="mx-auto mb-4 h-1 w-[38px] rounded-full bg-slate-200" />
+        <div className="mb-1.5 text-[11.5px] font-bold tracking-[0.08em] text-slate-400">
+          {name} · 한 해의 흐름
+        </div>
+        <div className="text-[21px] font-bold leading-[1.25] tracking-[-0.04em]">
+          {option.year}년, 아직 열지 않은 해예요
+        </div>
+        <div className="mt-1.5 text-[13.5px] text-gray-500">{option.range} · 입춘 기준</div>
+
+        <button
+          ref={confirmRef}
+          type="button"
+          disabled={busy}
+          onClick={onConfirm}
+          className={`mt-5 flex w-full items-center justify-between gap-3 rounded-[15px] border-[1.5px] px-4 py-[15px] text-left transition-colors disabled:opacity-60 ${
+            tickets > 0
+              ? "border-slate-900 bg-slate-50 hover:border-slate-700"
+              : "border-slate-200 bg-white opacity-45"
+          }`}
+        >
+          <span className="flex min-w-0 flex-col items-start gap-0.5">
+            <span className="text-[15px] font-bold tracking-[-0.02em]">
+              {busy ? "준비하는 중…" : "이용권으로 열기"}
+            </span>
+            <span className="text-[12.5px] text-slate-400">
+              {tickets > 0 ? `보유 ${tickets}장` : "보유한 이용권이 없어요"}
+            </span>
+          </span>
+          <span className="whitespace-nowrap text-sm font-bold text-slate-900">1장</span>
+        </button>
+
+        {failure && (
+          <p role="alert" className="mt-3 text-[13px] leading-[1.55] text-red-600">
+            {failure.text}
+            {failure.action && (
+              <>
+                {" "}
+                <Link
+                  href={failure.action.href}
+                  className="font-semibold underline underline-offset-2"
+                >
+                  {failure.action.label}
+                </Link>
+              </>
+            )}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-2 w-full pb-0.5 pt-3 text-center text-sm font-semibold text-slate-400 transition-colors hover:text-slate-500"
+        >
+          다음에 볼게요
+        </button>
+      </div>
+    </div>
   );
 }
