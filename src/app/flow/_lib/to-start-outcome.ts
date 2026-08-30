@@ -58,7 +58,7 @@ export function toStartOutcome(status: number): StartFailure | null {
       };
     default:
       // 매치 쪽 rate_limited 응답 본문과 이 레포 여러 곳(DeleteProfileDialog,
-      // AddPersonSheet 등)이 쓰는 중립 문구와 같은 말이다.
+      // AddPersonModal 등)이 쓰는 중립 문구와 같은 말이다.
       return { text: "잠시 후 다시 시도해 주세요." };
   }
 }

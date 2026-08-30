@@ -82,6 +82,27 @@ describe("roleTextColor", () => {
     const seen = new Set(ROLE_ORDER.map(roleTextColor));
     expect(seen.size).toBe(ROLE_ORDER.length);
   });
+
+  it("hue 를 바꾸지 않는다 — 어두워질 뿐 같은 색상 가족이다", () => {
+    // hex → hue 를 독립적으로 계산해 ROLE_HUE 의 h 와 비교한다. 명도만 내리는
+    // 구현이면 hue 는 ±2° 안에 남는다(정수 반올림 오차).
+    const hueOf = (hex: string): number => {
+      const [r, g, b] = toRgb(hex).map((v) => v / 255);
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const d = max - min;
+      if (d === 0) return 0;
+      let h: number;
+      if (max === r) h = ((g - b) / d) % 6;
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      return (h * 60 + 360) % 360;
+    };
+    for (const role of ROLE_ORDER) {
+      const gap = Math.abs(hueOf(roleTextColor(role)) - ROLE_HUE[role].h);
+      expect(Math.min(gap, 360 - gap), role).toBeLessThanOrEqual(2);
+    }
+  });
 });
 
 describe("상태 변조", () => {

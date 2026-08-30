@@ -100,70 +100,81 @@ export function MapShell({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white text-slate-900">
-      <MapHeader shareId={shareId} loggedIn={loggedIn} onToast={showToast} />
+      {/* 추가 모달이 떠 있는 동안 뒤 콘텐츠 전체(헤더 포함)를 포커스·클릭에서
+          뺀다 — 오버레이가 시각적으로 덮어도 Tab 은 뚫고 들어간다. 헤더까지
+          한 wrapper 로 묶는 것은, 헤더만 따로 inert 를 걸면 그 사이 Tab
+          순서에 wrapper 경계가 하나 더 생겨 레이아웃과 무관하게 코드만
+          복잡해지기 때문이다 — 이 wrapper 는 기존 바깥 div 와 같은
+          flex-col/flex-1 이라 자식들의 배치는 그대로다. */}
+      <div inert={adding} className="flex min-h-0 flex-1 flex-col">
+        <MapHeader shareId={shareId} loggedIn={loggedIn} onToast={showToast} />
 
-      {/* 추가 모달이 떠 있는 동안 뒤 콘텐츠를 포커스·클릭에서 뺀다 — 오버레이가
-          시각적으로 덮어도 Tab 은 뚫고 들어간다. */}
-      <div inert={adding} className="flex min-h-0 flex-1 flex-col md:flex-row">
-        <div className="relative min-h-0 flex-1">
-          {/*
-            isolate 가 필수다. drei <Html> 은 카메라 거리로 z-index 를 계산해
-            zIndexRange 안의 값을 마커마다 찍는데, R3F 가 만드는 Html 컨테이너는
-            position:relative + z-index auto 라 쌓임 맥락을 만들지 않는다. 여기서
-            맥락을 끊으면 마커의 z 는 이 div 안에서만 유효해지고, div 자체는
-            z-auto 라 패널·모달이 항상 위다.
-          */}
-          <div className="absolute inset-0 isolate">
-            <World people={people} selectedId={selectedId} onSelect={selectPerson} />
+        <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+          <div className="relative min-h-0 flex-1">
+            {/*
+              isolate 가 필수다. drei <Html> 은 카메라 거리로 z-index 를 계산해
+              zIndexRange 안의 값을 마커마다 찍는데, R3F 가 만드는 Html 컨테이너는
+              position:relative + z-index auto 라 쌓임 맥락을 만들지 않는다. 여기서
+              맥락을 끊으면 마커의 z 는 이 div 안에서만 유효해지고, div 자체는
+              z-auto 라 패널·모달이 항상 위다.
+            */}
+            <div className="absolute inset-0 isolate">
+              <World people={people} selectedId={selectedId} onSelect={selectPerson} />
+            </div>
+
+            {/* 소유자가 아니어도 보인다 — 링크를 받은 사람이 자기를 넣는 것이 이 기능의 전부다. */}
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="absolute right-4 bottom-4 z-10 rounded-full bg-blue-600 px-[18px] py-3 text-[14px] font-bold text-white shadow-elevated hover:bg-blue-700"
+            >
+              + 나도 추가하기
+            </button>
           </div>
 
-          {/* 소유자가 아니어도 보인다 — 링크를 받은 사람이 자기를 넣는 것이 이 기능의 전부다. */}
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="absolute right-4 bottom-4 z-10 rounded-full bg-blue-600 px-[18px] py-3 text-[14px] font-bold text-white shadow-elevated hover:bg-blue-700"
+          {/*
+            사이드 패널. 데스크톱은 우측 400px 고정 컬럼, 모바일은 하단 판이다.
+            모바일에서 접으면 헤더 행만 남고, 펼치면 최대 58vh 까지 (시안).
+          */}
+          <div
+            className={`
+              flex flex-col shrink-0 bg-white
+              border-t border-slate-100 md:border-t-0 md:border-l
+              md:w-[400px] md:max-h-none
+              ${listOpen ? "max-h-[58vh]" : ""}
+            `}
           >
-            + 나도 추가하기
-          </button>
-        </div>
-
-        {/*
-          사이드 패널. 데스크톱은 우측 400px 고정 컬럼, 모바일은 하단 판이다.
-          모바일에서 접으면 헤더 행만 남고, 펼치면 최대 58vh 까지 (시안).
-        */}
-        <div
-          className={`
-            flex flex-col shrink-0 bg-white
-            border-t border-slate-100 md:border-t-0 md:border-l
-            md:w-[400px] md:max-h-none
-            ${listOpen ? "max-h-[58vh]" : ""}
-          `}
-        >
-          <PeopleList
-            people={people}
-            centerElement={centerElement}
-            open={listOpen}
-            onToggle={() => setListOpen((v) => !v)}
-            selectedId={selectedId}
-            onSelect={selectPerson}
-            isOwner={isOwner}
-            onDelete={handleDelete}
-          />
+            <PeopleList
+              people={people}
+              centerElement={centerElement}
+              open={listOpen}
+              onToggle={() => setListOpen((v) => !v)}
+              selectedId={selectedId}
+              onSelect={selectPerson}
+              isOwner={isOwner}
+              onDelete={handleDelete}
+            />
+          </div>
         </div>
       </div>
 
-      <AddPersonModal
-        open={adding}
-        shareId={shareId}
-        onClose={() => setAdding(false)}
-        onAdded={(id) => {
-          setAdding(false);
-          // 서버가 목록의 진실이다. refresh 로 새 사람을 받아오고, 도착하면
-          // selectedId 가 그를 가리켜 카메라가 날아가고 행이 하이라이트된다.
-          setSelectedId(id);
-          router.refresh();
-        }}
-      />
+      {/* open prop 이 아니라 마운트 자체로 연다 — AddPersonModal 은 내부에
+          draft/error state 를 갖는데, 이걸 항상 마운트해 두고 open 으로만
+          가리면 닫았다 다시 열어도 그 state 가 안 지워진다(모달 자신의
+          docstring이 "닫으면 언마운트라 지워진다"고 약속한 바로 그 동작). */}
+      {adding && (
+        <AddPersonModal
+          shareId={shareId}
+          onClose={() => setAdding(false)}
+          onAdded={(id) => {
+            setAdding(false);
+            // 서버가 목록의 진실이다. refresh 로 새 사람을 받아오고, 도착하면
+            // selectedId 가 그를 가리켜 카메라가 날아가고 행이 하이라이트된다.
+            setSelectedId(id);
+            router.refresh();
+          }}
+        />
+      )}
 
       {/* z-40 — 패널(z-10)보다 위다. 목록에서 지운 결과를 목록이 가리면 안 된다. */}
       {toast && (

@@ -48,11 +48,14 @@ export function PeopleList({
   }));
 
   // 3D 에서 고른 사람이 목록 밖에 있으면 찾을 수 없다 — 그 행으로 스크롤한다.
+  // people 도 의존성에 넣는다: 새로 추가된 사람은 selectedId 가 먼저 서버
+  // refresh 로 people 에 그 행이 도착하기 전에 설정되므로, selectedId 만
+  // 보면 이 effect 가 행이 아직 없을 때 한 번 뛰고 끝나 버린다.
   const rowRefs = useRef(new Map<string, HTMLDivElement>());
   useEffect(() => {
     if (selectedId === null) return;
     rowRefs.current.get(selectedId)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [selectedId]);
+  }, [selectedId, people]);
 
   return (
     <>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { hasLeapMonth } from "@/lib/saju-core";
 import { Toggle } from "@/components/Toggle";
 import {
@@ -16,16 +16,16 @@ type BirthField = "y" | "m" | "d";
  * 지도는 일주만 쓰고 일주는 성별·시각·출생지와 무관하다.
  *
  * 시트가 아니라 모달인 것은 시안이다 — 데스크톱은 중앙 420px, 모바일은 하단.
- * 닫으면 언마운트라 입력이 지워진다. 시트 시절에는 마운트를 유지해 입력이
- * 남았지만, 폼이 세 칸뿐이라 다시 치는 비용이 상태 유지 코드보다 싸다.
+ * open prop 은 없다 — 부모(MapShell)가 `{adding && <AddPersonModal .../>}`로
+ * 마운트 자체를 열고 닫는다. 닫으면 언마운트라 입력이 지워진다. 시트 시절에는
+ * 마운트를 유지해 입력이 남았지만, 폼이 세 칸뿐이라 다시 치는 비용이 상태
+ * 유지 코드보다 싸다.
  */
 export function AddPersonModal({
-  open,
   shareId,
   onClose,
   onAdded,
 }: {
-  open: boolean;
   shareId: string;
   onClose: () => void;
   /** 추가된 사람의 id. 부모가 그 사람을 선택해 카메라를 보낸다. */
@@ -38,7 +38,15 @@ export function AddPersonModal({
   const mRef = useRef<HTMLInputElement>(null);
   const dRef = useRef<HTMLInputElement>(null);
 
-  if (!open) return null;
+  // 오버레이 클릭이 아니어도 나갈 방법이 있어야 한다 — 키보드로 들어온
+  // 사용자가 Tab 만으로 카드 밖까지 나가게 하지 않는다.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
 
   const body = toAddBody(draft);
   const name = draft.name.trim();
@@ -119,6 +127,7 @@ export function AddPersonModal({
           <label className="block">
             <span className="mb-[7px] block text-[12.5px] font-bold text-slate-500">이름</span>
             <input
+              autoFocus
               value={draft.name}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
               placeholder="예: 백상현"
