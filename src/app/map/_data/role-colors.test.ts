@@ -1,12 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { ROLE_ORDER, type Feature } from "./roles";
-import { ROLE_HUE, nodeColor, roleColor, roleHsl } from "./role-colors";
+import {
+  MAP_BACKGROUND,
+  ROLE_HUE,
+  nodeColor,
+  roleColor,
+  roleHsl,
+  roleTextColor,
+} from "./role-colors";
 
 const FEATURES: Feature[] = ["none", "yukhap", "chung"];
 
 function toRgb(hex: string): [number, number, number] {
   return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
 }
+// WCAG 상대 휘도·대비. role-colors.ts 의 구현을 import 하지 않고 독립적으로
+// 다시 적는다 — 같은 구현끼리 비교하면 변환이 틀려도 통과한다.
 function relativeLuminance(hex: string): number {
   const [r, g, b] = toRgb(hex).map((v) => {
     const c = v / 255;
@@ -19,29 +28,58 @@ function contrast(a: string, b: string): number {
   return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
 }
 
-const BACKGROUND = "#0f172a"; // World.tsx 의 <color attach="background">
+// 시안(Saju Relationship Map.dc.html) 확정 팔레트. ROLE_HUE 는 이 hex 의 HSL
+// 변환값이라, 표가 바뀌면 여기서 잡힌다.
+const DESIGN_HEX: Record<(typeof ROLE_ORDER)[number], string> = {
+  fill: "#10b981",
+  beside: "#f59e0b",
+  express: "#8b5cf6",
+  move: "#db2760",
+  refine: "#0ea5e9",
+};
 
 describe("Role hue", () => {
   it("5개 역할 전부에 색이 있다", () => {
     for (const role of ROLE_ORDER) expect(ROLE_HUE[role]).toBeDefined();
   });
 
-  it("hue 간격이 40° 이상이다 — 두 역할이 같은 색으로 읽히면 실패다", () => {
-    const hues = ROLE_ORDER.map((r) => ROLE_HUE[r].h).sort((a, b) => a - b);
-    for (let i = 0; i < hues.length; i++) {
-      const gap = i === hues.length - 1 ? 360 - hues[i] + hues[0] : hues[i + 1] - hues[i];
-      expect(gap, `${hues[i]}° 다음 간격`).toBeGreaterThanOrEqual(40);
+  it("그래픽 색이 시안 hex 를 채널당 ±2/255 안에서 복원한다", () => {
+    for (const role of ROLE_ORDER) {
+      const got = toRgb(roleColor(role));
+      const want = toRgb(DESIGN_HEX[role]);
+      got.forEach((v, i) => {
+        expect(Math.abs(v - want[i]), `${role} 채널 ${i}`).toBeLessThanOrEqual(2);
+      });
     }
   });
 
-  it("배경 대비가 4.5 이상이다", () => {
-    for (const role of ROLE_ORDER) {
-      expect(contrast(roleColor(role), BACKGROUND), role).toBeGreaterThanOrEqual(4.5);
+  it("hue 간격이 38° 이상이다 — 두 역할이 같은 색으로 읽히면 실패다", () => {
+    // 예전 하한은 40° 였다. 시안 팔레트의 초록(160.1°)·하늘(198.6°)이 38.5° 라
+    // 시안 hex 유지를 우선해 38 로 내렸다 — 이 두 색은 명도(39 vs 48)로도 갈린다.
+    const hues = ROLE_ORDER.map((r) => ROLE_HUE[r].h).sort((a, b) => a - b);
+    for (let i = 0; i < hues.length; i++) {
+      const gap = i === hues.length - 1 ? 360 - hues[i] + hues[0] : hues[i + 1] - hues[i];
+      expect(gap, `${hues[i]}° 다음 간격`).toBeGreaterThanOrEqual(38);
     }
   });
 
   it("5색이 서로 다르다", () => {
     const seen = new Set(ROLE_ORDER.map(roleColor));
+    expect(seen.size).toBe(ROLE_ORDER.length);
+  });
+});
+
+describe("roleTextColor", () => {
+  it("라이트 배경 대비 4.5 이상이다 — 색 텍스트의 가독 하한", () => {
+    // 그래픽 색에는 대비 하한이 없다(시안 확정 팔레트). 텍스트가 그 색 그대로면
+    // #F59E0B 은 1.9:1 이라 읽을 수 없어, 텍스트만 어두운 변형을 쓴다.
+    for (const role of ROLE_ORDER) {
+      expect(contrast(roleTextColor(role), MAP_BACKGROUND), role).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("5개 텍스트 색이 서로 다르다", () => {
+    const seen = new Set(ROLE_ORDER.map(roleTextColor));
     expect(seen.size).toBe(ROLE_ORDER.length);
   });
 });
@@ -74,10 +112,16 @@ describe("상태 변조", () => {
     }
   });
 
-  it("六合 은 밝아지고 沖 은 채도가 오른다 — 방향이 반대로 붙으면 잡는다", () => {
+  it("六合 은 밝아지고 沖 은 채도가 오르거나 명도가 오른다", () => {
+    // 沖 의 s+12 는 beside(92.1)·refine(88.7) 에서 100 클램프에 걸린다 — 그
+    // 경우에도 l+4 가 있어 세 상태는 구분된다(위 테스트). 여기서는 방향만 잡는다.
     for (const role of ROLE_ORDER) {
       expect(roleHsl(role, "yukhap").l, role).toBeGreaterThan(ROLE_HUE[role].l);
-      expect(roleHsl(role, "chung").s, role).toBeGreaterThan(ROLE_HUE[role].s);
+      const chung = roleHsl(role, "chung");
+      expect(
+        chung.s > ROLE_HUE[role].s || chung.l > ROLE_HUE[role].l,
+        `${role} 沖 이 기본보다 어느 축으로도 오르지 않았다`,
+      ).toBe(true);
     }
   });
 
