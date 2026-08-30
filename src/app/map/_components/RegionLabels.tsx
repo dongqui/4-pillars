@@ -4,7 +4,7 @@ import { useMemo, useRef } from "react";
 import { Html } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { roleColor } from "../_data/role-colors";
+import { roleColor, roleTextColor } from "../_data/role-colors";
 import {
   DISPLAY_TITLES,
   ROLE_ICON,
@@ -109,10 +109,10 @@ function Badge({
         className="flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-[3px] backdrop-blur-[2px] select-none"
         style={{
           borderColor: `${roleColor(role)}4d`,
-          backgroundColor: "#0f172ad9",
-          // 배지 글자는 그 구역 색 그대로다 — 노드와 같은 색이어야
-          // "이 배지가 저 덩어리의 이름"이 설명 없이 읽힌다.
-          color: roleColor(role),
+          backgroundColor: "#ffffffe6",
+          // 배지 글자는 그 구역의 텍스트 변형이다 — 그래픽 hex 그대로는 흰
+          // 배경에서 읽히지 않는 색(주황 1.9:1)이 있다.
+          color: roleTextColor(role),
         }}
       >
         <span className="text-[10px] leading-none" aria-hidden>

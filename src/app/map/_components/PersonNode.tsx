@@ -41,6 +41,7 @@ export function PersonNode({
   selected,
   dimmed,
   nodeScale = 1,
+  colorOverride,
 }: {
   position: Vec3;
   role: RelationRole;
@@ -49,6 +50,8 @@ export function PersonNode({
   dimmed: boolean;
   /** 코어와 근접 halo 에 함께 걸린다. 확산 halo 는 모두가 같은 크기다. */
   nodeScale?: number;
+  /** 지정하면 Role/상태 색 대신 이 색을 쓴다. SelfCore(나 = 프라이머리 블루) 전용. */
+  colorOverride?: string;
 }) {
   const nearSprite = useRef<THREE.Sprite>(null);
   const diffuseSprite = useRef<THREE.Sprite>(null);
@@ -56,7 +59,10 @@ export function PersonNode({
   const diffuseMat = useRef<THREE.SpriteMaterial>(null);
 
   const visual = STATE_VISUAL[feature];
-  const color = useMemo(() => new THREE.Color(nodeColor(role, feature)), [role, feature]);
+  const color = useMemo(
+    () => new THREE.Color(colorOverride ?? nodeColor(role, feature)),
+    [colorOverride, role, feature],
+  );
 
   const nearDiameter = visual.nearRadius * 2 * nodeScale;
   const diffuseDiameter = DIFFUSE_HALO_RADIUS * 2;
@@ -100,6 +106,12 @@ export function PersonNode({
       </mesh>
 
       <sprite ref={nearSprite} scale={[nearDiameter, nearDiameter, 1]}>
+        {/*
+          NormalBlending 이다. Additive 는 다크 배경 전제다 — 밝은 배경 위에
+          빛을 더하면 이미 흰 쪽으로 포화된 배경에서 halo 가 통째로 사라진다.
+          알파 블렌딩이면 halo 가 배경 위에 색으로 얹혀 라이트에서도 보인다.
+          광량 불변식(node-visual.ts)은 α×r² 계산이라 블렌딩 모드와 무관하다.
+        */}
         <spriteMaterial
           ref={nearMat}
           map={HALO_TEXTURE}
@@ -107,7 +119,7 @@ export function PersonNode({
           transparent
           opacity={visual.nearAlpha}
           depthWrite={false}
-          blending={THREE.AdditiveBlending}
+          blending={THREE.NormalBlending}
         />
       </sprite>
 
@@ -120,7 +132,7 @@ export function PersonNode({
           transparent
           opacity={visual.diffuseAlpha}
           depthWrite={false}
-          blending={THREE.AdditiveBlending}
+          blending={THREE.NormalBlending}
         />
       </sprite>
     </group>

@@ -149,8 +149,8 @@ export function PersonMarker({
                 }
                 ${
                   selected
-                    ? "border-blue-400/70 bg-blue-500/25 text-white font-semibold"
-                    : "border-slate-400/25 bg-slate-900/55 text-slate-200 font-medium"
+                    ? "border-blue-600/60 bg-blue-50 text-blue-700 font-semibold"
+                    : "border-slate-200 bg-white/90 text-slate-800 font-medium shadow-sm"
                 }
               `}
             >

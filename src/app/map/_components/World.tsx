@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import type { MapPerson } from "../_data/person";
 import { ROLE_ORDER, type Feature, type RelationRole } from "../_data/roles";
+import { MAP_BACKGROUND } from "../_data/role-colors";
 import { placePeople } from "../_lib/layout";
 import { ConnectionLines } from "./ConnectionLines";
 import { SelfCore } from "./SelfCore";
@@ -72,7 +73,7 @@ export function World({
         }
       }}
     >
-      <color attach="background" args={["#0F172A"]} />
+      <color attach="background" args={[MAP_BACKGROUND]} />
       {/*
         안개는 카메라 기준 깊이의 함수라 카메라 거리와 같은 배율로 민다.
         55/160 은 DEFAULT_BASE_Z 가 40 이던 시절(×3.077)에 잡은 값이라, 26 으로
@@ -82,7 +83,7 @@ export function World({
         앞이다 — 판단해야 할 것이 안개에 묻히지 않는다. C 최대 줌아웃(65)에서
         깊이 57.9~71.7 이 32~53% 로 껴서 예전의 깊이감(22~51%)을 잇는다.
       */}
-      <fog attach="fog" args={["#0F172A", 35.8, 104]} />
+      <fog attach="fog" args={[MAP_BACKGROUND, 35.8, 104]} />
 
       <CameraRig focusOn={selected ? placed.get(selected.id)! : null} />
 

@@ -9,8 +9,10 @@ import { PersonNode } from "./PersonNode";
  * 나도 다른 사람과 같은 규칙을 따른다 — 같은 3층 구조, 같은 색 체계.
  * 다른 것은 크기 하나뿐이다(SELF_NODE_SCALE).
  *
- * 색은 비겁(beside)이다. 나와 나란히 서는 관계가 비겁이므로 나 자신이 그
- * 색상 가족의 원점이다. 상태는 기본 — 나는 나 자신과 六合 하지도 沖 하지도 않는다.
+ * 색은 프라이머리 블루(#2563EB)다. 예전에는 비겁 색이었다 — 나란히 서는
+ * 관계의 원점이 나라는 논리였는데, 라이트 팔레트에서 비겁이 주황(#F59E0B)이
+ * 되면서 나까지 주황이면 다섯 구역 중 하나의 사람으로 읽힌다. 시안은 나를
+ * 구역 밖의 존재로 두고 프라이머리로 칠한다.
  *
  * 명패는 이름이 아니라 "나" 다. 지도의 중심은 언제나 보는 사람 자신이고, 거기에
  * 이름이 적혀 있으면 다른 스무 명과 같은 층위의 한 명으로 읽힌다. 공유 링크를
@@ -27,6 +29,7 @@ export function SelfCore() {
         selected={false}
         dimmed={false}
         nodeScale={SELF_NODE_SCALE}
+        colorOverride="#2563EB"
       />
 
       <Html
@@ -39,7 +42,7 @@ export function SelfCore() {
           STATE_VISUAL.none.nearRadius(0.28) × SELF_NODE_SCALE(5.5) = 1.54 월드,
           진입 화면에서 50px 다. 노드를 더 키우면 이 값도 같이 올려야 한다.
         */}
-        <span className="block translate-y-[-48px] text-[13px] font-semibold tracking-[0.14em] text-slate-200/85 select-none">
+        <span className="block translate-y-[-48px] text-[13px] font-semibold tracking-[0.14em] text-slate-500 select-none">
           나
         </span>
       </Html>
