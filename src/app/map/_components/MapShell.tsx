@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { Element } from "@/lib/saju-core";
 import type { MapPerson } from "../_data/person";
 import { PeopleList } from "./PeopleList";
-import { AddPersonSheet } from "./AddPersonSheet";
+import { AddPersonModal } from "./AddPersonModal";
 import { MapHeader } from "./MapHeader";
 
 const World = dynamic(() => import("./World").then((m) => m.World), {
@@ -152,7 +152,7 @@ export function MapShell({
         </div>
       </div>
 
-      <AddPersonSheet
+      <AddPersonModal
         open={adding}
         shareId={shareId}
         onClose={() => setAdding(false)}
