@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FRIENDS } from "../_data/mock-people";
-import { ROLE_HUE, roleColor } from "../_data/role-colors";
+import { MAP_BACKGROUND, ROLE_HUE, roleColor } from "../_data/role-colors";
 import type { RelationRole } from "../_data/roles";
 import {
   CONNECTION_DIMMED_OPACITY,
@@ -109,21 +109,18 @@ describe("connectionColors", () => {
     });
   });
 
-  it("나 쪽 끝은 linear 값을 같은 비율로 죽인다 — 중심에서 20개가 뭉치지 않게", () => {
-    // 디밍은 광량 연산이라 linear 공간에서 걸려야 한다. sRGB 값에 먼저 곱하면
-    // 표시 밝기가 CONNECTION_SELF_DIM(0.25) 이 아니라 감마 곡선 때문에
-    // 훨씬 밝은 값(~0.53)으로 나온다 — 그 회귀를 이 테스트가 잡는다.
+  it("나 쪽 끝은 linear 공간에서 배경 쪽으로 물러난다 — 중심에서 20개가 뭉치지 않게", () => {
+    // 다크 시절에는 검정 곱이었다. 라이트 배경에서 검정 곱은 중심을 오히려
+    // 진하게 만들므로(어두울수록 대비↑), 같은 의도 — 중심이 탁해지지 않게 —
+    // 를 배경으로의 lerp 로 옮겼다. lerp 는 광량 연산이라 linear 공간에서
+    // 해야 한다. sRGB 에서 먼저 섞으면 감마 곡선 때문에 훨씬 밝게 나온다.
+    const bg = hexToLinear(MAP_BACKGROUND);
     const data = connectionColors(roles);
     roles.forEach((role, i) => {
       const [r, g, b] = hexToLinear(roleColor(role));
-      expect(data[i * 6]).toBeCloseTo(r * CONNECTION_SELF_DIM, 5);
-      expect(data[i * 6 + 1]).toBeCloseTo(g * CONNECTION_SELF_DIM, 5);
-      expect(data[i * 6 + 2]).toBeCloseTo(b * CONNECTION_SELF_DIM, 5);
-
-      // 나 쪽 끝이 정확히 사람 쪽 끝(이미 linear) 의 CONNECTION_SELF_DIM 배다.
-      expect(data[i * 6]).toBeCloseTo(data[i * 6 + 3] * CONNECTION_SELF_DIM, 5);
-      expect(data[i * 6 + 1]).toBeCloseTo(data[i * 6 + 4] * CONNECTION_SELF_DIM, 5);
-      expect(data[i * 6 + 2]).toBeCloseTo(data[i * 6 + 5] * CONNECTION_SELF_DIM, 5);
+      expect(data[i * 6]).toBeCloseTo(bg[0] + (r - bg[0]) * CONNECTION_SELF_DIM, 5);
+      expect(data[i * 6 + 1]).toBeCloseTo(bg[1] + (g - bg[1]) * CONNECTION_SELF_DIM, 5);
+      expect(data[i * 6 + 2]).toBeCloseTo(bg[2] + (b - bg[2]) * CONNECTION_SELF_DIM, 5);
     });
   });
 

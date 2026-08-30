@@ -32,7 +32,7 @@
  * 어긋남을 막는 코드라 "단순화"라며 걷어내면 회귀다.
  */
 
-import { roleColor } from "../_data/role-colors";
+import { MAP_BACKGROUND, roleColor } from "../_data/role-colors";
 import type { RelationRole } from "../_data/roles";
 import { SELF_POSITION, type Vec3 } from "./layout";
 
@@ -65,19 +65,21 @@ export const CONNECTION_SELECTED_OPACITY = 0.55;
 export const CONNECTION_DIMMED_OPACITY = 0.07;
 
 /**
- * 나 쪽 끝에서 선 색을 죽이는 비율. **linear 공간에서의 비율이다.**
+ * 나 쪽 끝에 남는 **그 사람 색의 비율**. 나머지(0.75)는 배경색이다.
  *
  * 20개 선이 원점 한 점으로 모이므로, 양 끝을 같은 채도로 칠하면 중심이
  * 스무 가지 색으로 탁해진다. 사람 쪽에서 자기 Role 색이 살고 나 쪽으로
- * 갈수록 어두워지면 다섯 갈래가 뻗어 나가는 구조가 그대로 읽힌다.
+ * 갈수록 배경에 잠기면 다섯 갈래가 뻗어 나가는 구조가 그대로 읽힌다.
+ *
+ * 다크 시절에는 검정 곱(× 0.25)이었다. 라이트 배경에서 검정 곱은 중심을
+ * 오히려 진하게 만들므로, 같은 의도를 **배경으로의 lerp** 로 옮겼다.
  *
  * **모든 역할에 같은 비율로 건다.** 역할마다 다르면 그 순간 어떤 관계가
  * 더 진하게 이어져 있다는 뜻이 된다.
  *
- * 이 비율은 sRGB→linear 변환 **이후의** linear 값에 곱한다 — 디밍은 빛의
- * 물리량(광량)을 줄이는 연산이라 linear 공간에서 해야 한다. sRGB 값에
- * 먼저 곱하면(과거에 그랬다) 실제 표시 밝기가 0.25 가 아니라 ~0.53 이 된다
- * (감마 곡선이 어두운 쪽을 압축 해제하기 때문). 순서를 바꾸지 말 것.
+ * 이 lerp 는 sRGB→linear 변환 **이후의** linear 값끼리 섞는다 — 섞기는 빛의
+ * 물리량 연산이라 linear 공간에서 해야 한다. sRGB 값끼리 먼저 섞으면 실제
+ * 표시 밝기가 의도보다 밝아진다(감마 곡선). 순서를 바꾸지 말 것.
  */
 export const CONNECTION_SELF_DIM = 0.25;
 
@@ -101,15 +103,20 @@ function srgbToLinear(c: number): number {
 export function connectionColors(roles: readonly RelationRole[]): Float32Array {
   const out = new Float32Array(roles.length * 6);
 
+  // 배경의 linear 값. 모든 선의 나 쪽 끝이 이쪽으로 물러난다.
+  const bg = [1, 3, 5].map((i) =>
+    srgbToLinear(parseInt(MAP_BACKGROUND.slice(i, i + 2), 16) / 255),
+  ) as [number, number, number];
+
   roles.forEach((role, i) => {
     const hex = roleColor(role);
     const r = srgbToLinear(parseInt(hex.slice(1, 3), 16) / 255);
     const g = srgbToLinear(parseInt(hex.slice(3, 5), 16) / 255);
     const b = srgbToLinear(parseInt(hex.slice(5, 7), 16) / 255);
 
-    out[i * 6] = r * CONNECTION_SELF_DIM;
-    out[i * 6 + 1] = g * CONNECTION_SELF_DIM;
-    out[i * 6 + 2] = b * CONNECTION_SELF_DIM;
+    out[i * 6] = bg[0] + (r - bg[0]) * CONNECTION_SELF_DIM;
+    out[i * 6 + 1] = bg[1] + (g - bg[1]) * CONNECTION_SELF_DIM;
+    out[i * 6 + 2] = bg[2] + (b - bg[2]) * CONNECTION_SELF_DIM;
     out[i * 6 + 3] = r;
     out[i * 6 + 4] = g;
     out[i * 6 + 5] = b;
