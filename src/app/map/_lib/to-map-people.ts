@@ -12,6 +12,7 @@ import {
   buildPillars,
   characterOf,
   getRelation,
+  STEMS,
   type DayPillarInput,
   type RelationBadge,
   type RelationKind,
@@ -88,12 +89,17 @@ export function pickMapCenter<T>(
   return null;
 }
 
-/** 지도의 중심. 관계가 없으므로 일주 캐릭터만 담는다. */
+/** 지도의 중심. 관계가 없으므로 일주 캐릭터와 일간 오행만 담는다. */
 export function centerOf(name: string, birth: BirthLite): MapCenter | null {
   const day = dayPillarOf(birth);
   if (!day) return null;
   const character = characterOf(day.stem, day.branch);
-  return { name, pillarKey: character.key, sceneName: character.scene.name };
+  return {
+    name,
+    pillarKey: character.key,
+    sceneName: character.scene.name,
+    element: STEMS[day.stem].element,
+  };
 }
 
 /** 중심의 일주를 기준으로 한 사람의 자리를 정한다. */

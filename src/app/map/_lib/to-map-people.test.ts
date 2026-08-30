@@ -155,12 +155,13 @@ describe("toMapPerson", () => {
 });
 
 describe("centerOf", () => {
-  it("이름과 일주 캐릭터를 담는다", () => {
+  it("이름과 일주 캐릭터, 일간 오행을 담는다", () => {
     const center = centerOf("김동진", solar(BASE.year, BASE.month, BASE.day));
     expect(center).toEqual({
       name: "김동진",
       pillarKey: "경진",
       sceneName: expect.any(String),
+      element: "금",
     });
   });
 

@@ -1,3 +1,4 @@
+import type { Element } from "@/lib/saju-core";
 import type { Feature, RelationRole } from "./roles";
 
 /** 지도 위의 사람 하나. 생년월일은 담지 않는다 — 화면이 쓰지 않고, 남의 지도에 노출되어서도 안 된다. */
@@ -23,4 +24,10 @@ export type MapCenter = {
   readonly name: string;
   readonly pillarKey: string;
   readonly sceneName: string;
+  /**
+   * 일간 오행. 상세 시트의 오행 다리 문장(relation-notes.ts)이 "내가 무슨
+   * 오행인가"를 알아야 해서 싣는다. 오행은 5분류라, 이미 노출 중인 각 사람의
+   * 일주(60분류)보다 훨씬 거친 정보다.
+   */
+  readonly element: Element;
 };
