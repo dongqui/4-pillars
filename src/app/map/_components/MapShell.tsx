@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type { Element } from "@/lib/saju-core";
 import type { MapPerson } from "../_data/person";
-import { PersonSheet } from "./PersonSheet";
 import { PeopleList } from "./PeopleList";
 import { AddPersonSheet } from "./AddPersonSheet";
 import { MapHeader } from "./MapHeader";
@@ -27,7 +26,7 @@ export function MapShell({
   loggedIn,
 }: {
   people: readonly MapPerson[];
-  /** 중심(나)의 일간 오행. PersonSheet 의 궁합 단락이 쓴다. */
+  /** 중심(나)의 일간 오행. PeopleList 의 궁합 단락이 쓴다. */
   centerElement: Element;
   isOwner: boolean;
   shareId: string;
@@ -35,7 +34,7 @@ export function MapShell({
 }) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [listOpen, setListOpen] = useState(false);
+  const [listOpen, setListOpen] = useState(true);
   const [adding, setAdding] = useState(false);
 
   // 토스트는 여기가 갖는다. 공유(MapHeader)와 삭제 실패(handleDelete) 둘 다
@@ -60,19 +59,11 @@ export function MapShell({
     };
   }, []);
 
-  const selected = people.find((p) => p.id === selectedId) ?? null;
-
-  // 아래에서 올라오는 판이 하나라도 열려 있는가. 덮이는 버튼을 tab 순서에서
-  // 빼는 데 쓴다.
-  const anyPanelOpen = selectedId !== null || listOpen || adding;
-
-  // 목록·상세·추가 세 판은 서로 배타적이다 — 화면 아래에서 올라오는 판이 둘
-  // 이상 함께 뜨면 어느 쪽을 닫는 탭인지 알 수 없다. 어디서 선택이 일어나든
-  // (3D 월드를 직접 탭하든, 목록에서 고르든) 이 한 곳을 거쳐 나머지 둘을 접는다.
+  // 3D 노드를 탭하면 목록의 그 행이 답이다 — 패널이 접혀 있으면 펼친다.
+  // (목록 행을 탭한 경우에도 같은 경로로 오지만, 이미 열려 있으니 no-op 다.)
   function selectPerson(id: string | null) {
     setSelectedId(id);
-    setListOpen(false);
-    setAdding(false);
+    if (id !== null) setListOpen(true);
   }
 
   /**
@@ -108,78 +99,58 @@ export function MapShell({
   }
 
   return (
-    <div className="relative w-full h-full">
-      {/*
-        isolate 가 필수다. drei <Html> 은 카메라 거리로 z-index 를 계산해
-        zIndexRange 안의 값을 마커마다 찍는데, R3F 가 만드는 Html 컨테이너는
-        position:relative + z-index auto 라 쌓임 맥락을 만들지 않는다. 그대로 두면
-        명패의 z-30 이 시트(z-20)·토글(z-10)과 같은 맥락에서 겨뤄, 사람을 탭한
-        순간 흰 시트 위로 어두운 명패가 올라앉고 pointerEvents:"auto" 때문에
-        닫기 버튼을 향한 탭까지 가로챈다. 여기서 맥락을 끊으면 마커의 z 는
-        이 div 안에서만 유효해지고, div 자체는 z-auto 라 시트와 토글이 항상 위다.
-      */}
-      <div className="absolute inset-0 isolate">
-        <World people={people} selectedId={selectedId} onSelect={selectPerson} />
+    <div className="flex h-full min-h-0 flex-col bg-white text-slate-900">
+      <MapHeader shareId={shareId} loggedIn={loggedIn} onToast={showToast} />
+
+      {/* 추가 모달이 떠 있는 동안 뒤 콘텐츠를 포커스·클릭에서 뺀다 — 오버레이가
+          시각적으로 덮어도 Tab 은 뚫고 들어간다. */}
+      <div inert={adding} className="flex min-h-0 flex-1 flex-col md:flex-row">
+        <div className="relative min-h-0 flex-1">
+          {/*
+            isolate 가 필수다. drei <Html> 은 카메라 거리로 z-index 를 계산해
+            zIndexRange 안의 값을 마커마다 찍는데, R3F 가 만드는 Html 컨테이너는
+            position:relative + z-index auto 라 쌓임 맥락을 만들지 않는다. 여기서
+            맥락을 끊으면 마커의 z 는 이 div 안에서만 유효해지고, div 자체는
+            z-auto 라 패널·모달이 항상 위다.
+          */}
+          <div className="absolute inset-0 isolate">
+            <World people={people} selectedId={selectedId} onSelect={selectPerson} />
+          </div>
+
+          {/* 소유자가 아니어도 보인다 — 링크를 받은 사람이 자기를 넣는 것이 이 기능의 전부다. */}
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="absolute right-4 bottom-4 z-10 rounded-full bg-blue-600 px-[18px] py-3 text-[14px] font-bold text-white shadow-elevated hover:bg-blue-700"
+          >
+            + 나도 추가하기
+          </button>
+        </div>
+
+        {/*
+          사이드 패널. 데스크톱은 우측 400px 고정 컬럼, 모바일은 하단 판이다.
+          모바일에서 접으면 헤더 행만 남고, 펼치면 최대 58vh 까지 (시안).
+        */}
+        <div
+          className={`
+            flex flex-col shrink-0 bg-white
+            border-t border-slate-100 md:border-t-0 md:border-l
+            md:w-[400px] md:max-h-none
+            ${listOpen ? "max-h-[58vh]" : ""}
+          `}
+        >
+          <PeopleList
+            people={people}
+            centerElement={centerElement}
+            open={listOpen}
+            onToggle={() => setListOpen((v) => !v)}
+            selectedId={selectedId}
+            onSelect={selectPerson}
+            isOwner={isOwner}
+            onDelete={handleDelete}
+          />
+        </div>
       </div>
-
-      <MapHeader
-        isOwner={isOwner}
-        shareId={shareId}
-        loggedIn={loggedIn}
-        onToast={showToast}
-      />
-
-      {/*
-        목록·상세·추가 세 판은 다 화면 아래에서 올라오는 판이라 동시에 열면 어느
-        쪽을 닫는 건지 알 수 없다. 목록을 펴면 선택과 추가 폼을 접고, 목록에서
-        사람을 고르면 목록이 접히면서 시트가 열린다 — 언제나 하나만 떠 있다.
-      */}
-      <PeopleList
-        people={people}
-        open={listOpen}
-        onToggle={() => {
-          setListOpen((v) => {
-            if (!v) {
-              setSelectedId(null);
-              setAdding(false);
-            }
-            return !v;
-          });
-        }}
-        selectedId={selectedId}
-        onSelect={selectPerson}
-        isOwner={isOwner}
-        onDelete={handleDelete}
-      />
-
-      {/*
-        추가 버튼. 소유자가 아니어도 보인다 — 링크를 받은 사람이 자기를 넣는 것이
-        이 기능의 전부다. 목록 손잡이 바로 위, 접힌 목록에 가리지 않는 자리다.
-
-        판이 열리면 inert 다. 이 버튼은 z-10 이라 판(z-20·z-30) 아래로 완전히
-        덮이는데, inert 가 없으면 눈에 보이지 않는 채로 tab 순서에는 남는다 —
-        추가 시트를 열어둔 키보드/스위치 사용자가 시트 안에서 tab 을 돌리다
-        보이지 않는 이 버튼을 눌러 이미 있는 시트를 다시 여는 일이 생긴다.
-        MapHeader·PersonSheet·AddPersonSheet 가 쓰는 것과 같은 방식이다.
-      */}
-      <button
-        type="button"
-        inert={anyPanelOpen}
-        onClick={() => {
-          setSelectedId(null);
-          setListOpen(false);
-          setAdding(true);
-        }}
-        className="fixed right-4 z-10 rounded-full bg-sky-500 px-4 py-3 text-[14px] font-bold text-white shadow-elevated bottom-[calc(max(56px,44px+env(safe-area-inset-bottom))+16px)]"
-      >
-        + 나도 추가하기
-      </button>
-
-      <PersonSheet
-        person={selected}
-        centerElement={centerElement}
-        onClose={() => setSelectedId(null)}
-      />
 
       <AddPersonSheet
         open={adding}
@@ -188,13 +159,13 @@ export function MapShell({
         onAdded={(id) => {
           setAdding(false);
           // 서버가 목록의 진실이다. refresh 로 새 사람을 받아오고, 도착하면
-          // selectedId 가 그를 가리켜 카메라가 날아가고 상세가 열린다.
+          // selectedId 가 그를 가리켜 카메라가 날아가고 행이 하이라이트된다.
           setSelectedId(id);
           router.refresh();
         }}
       />
 
-      {/* z-40 — 판(z-20·z-30)보다 위다. 목록에서 지운 결과를 목록이 가리면 안 된다. */}
+      {/* z-40 — 패널(z-10)보다 위다. 목록에서 지운 결과를 목록이 가리면 안 된다. */}
       {toast && (
         <p
           role="status"

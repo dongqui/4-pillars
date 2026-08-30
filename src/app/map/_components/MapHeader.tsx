@@ -16,12 +16,10 @@ import { BrandLogo } from "@/components/BrandLogo";
  * 아는 곳은 MapShell 이라, 두 벌을 만들지 않고 MapShell 로 올렸다.
  */
 export function MapHeader({
-  isOwner,
   shareId,
   loggedIn,
   onToast,
 }: {
-  isOwner: boolean;
   shareId: string;
   loggedIn: boolean;
   onToast: (message: string) => void;
@@ -52,22 +50,22 @@ export function MapHeader({
         // 내부 flex 행이 h-14 박스보다 커져 블러 배경 밖, 캔버스 위로
         // 삐져나온다. 이 라우트의 기준 기기(375×812)로는 이 코드만으로
         // 실기기 확인을 못 했다 — 노치 폰을 가진 사람이 검증해 주면 좋겠다.
-      className="fixed inset-x-0 top-0 z-30 border-b border-white/10 bg-slate-900/80 pt-[env(safe-area-inset-top)] backdrop-blur-[14px]"
+        // flex 컬럼의 첫 행이라 더는 고정(fixed)이 필요 없다 — shrink-0 으로
+        // in-flow 에 남긴다.
+      className="shrink-0 z-30 border-b border-slate-100 bg-white/90 pt-[env(safe-area-inset-top)] backdrop-blur-[14px]"
     >
       <div className="flex h-14 items-center justify-between gap-3 px-4">
-        <Link href={loggedIn ? "/home" : "/"} className="shrink-0 text-slate-100">
-          <BrandLogo size="xs" tone="light" />
+        <Link href={loggedIn ? "/home" : "/"} className="shrink-0 text-slate-900">
+          <BrandLogo size="xs" tone="dark" />
         </Link>
 
-        {isOwner && (
-          <button
-            type="button"
-            onClick={share}
-            className="rounded-full bg-white/10 px-3.5 py-1.5 text-[13px] font-semibold text-slate-100 hover:bg-white/20"
-          >
-            공유하기
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={share}
+          className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          공유하기
+        </button>
       </div>
     </header>
   );
