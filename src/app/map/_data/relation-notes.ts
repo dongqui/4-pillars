@@ -34,7 +34,7 @@ export const NATURE_WORDS = {
  * 오행의 생극만으로 갈리므로). 그래서 각 칸은 두 오행을 이름으로 직접 부르는
  * 문장을 손으로 쓴다 — 치환이 아니라서 조사와 비유가 자연스럽다.
  *
- * 상대 오행은 relationship.ts 의 relationKind 와 같은 규칙로 정해진다:
+ * 상대 오행은 relationship.ts 의 relationKind 와 같은 규칙으로 정해진다:
  * fill=나를 생, beside=같음, express=내가 생, move=내가 극, refine=나를 극.
  * relation-notes.test.ts 가 25칸 전부에 이 정합을 잠근다.
  */
