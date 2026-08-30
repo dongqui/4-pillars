@@ -2,24 +2,21 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/Badge";
-import { DISPLAY_TITLES, FEATURE_LABELS, FEATURE_NOTE, ROLE_LABELS, type RelationRole } from "../_data/roles";
+import type { Element } from "@/lib/saju-core";
+import { DISPLAY_TITLES, FEATURE_LABELS, ROLE_LABELS } from "../_data/roles";
+import { relationNote } from "../_data/relation-notes";
 import { roleColor } from "../_data/role-colors";
 import { paletteFor } from "../_data/saju-colors";
 import type { MapPerson } from "../_data/person";
 
-const ROLE_NOTE: Record<RelationRole, string> = {
-  fill: "곁에 있으면 비어 있던 자리가 채워지는 사람입니다.",
-  beside: "같은 방향을 보고 나란히 걷는 사람입니다.",
-  express: "이 사람 앞에서는 말이 쉽게 나옵니다.",
-  move: "가만히 있던 마음을 움직이게 하는 사람입니다.",
-  refine: "거친 부분을 깎아 모양을 잡아주는 사람입니다.",
-};
-
 export function PersonSheet({
   person,
+  centerElement,
   onClose,
 }: {
   person: MapPerson | null;
+  /** 중심(나)의 일간 오행 — 궁합 단락의 오행 다리 문장이 쓴다. */
+  centerElement: Element;
   onClose: () => void;
 }) {
   const open = person !== null;
@@ -95,16 +92,15 @@ export function PersonSheet({
             {shown.feature !== "none" && <Badge>{FEATURE_LABELS[shown.feature]}</Badge>}
           </div>
 
+          {/*
+            궁합 단락 — 오행 다리 문장(내 오행 × 구역) + 별명 단락(구역 × 소구역).
+            별명(위 DISPLAY_TITLES 라벨)이 다르면 본문이 다르고, 지도 주인의
+            일간 오행이 다르면 첫 문장이 다르다. 시트가 40vh 라 3~4문장이
+            한도다 — 더 길어지면 overflow 가 아니라 카피를 줄인다.
+          */}
           <p className="text-[15px] leading-relaxed text-slate-700 mt-4 m-0">
-            {ROLE_NOTE[shown.role]}
+            {relationNote(centerElement, shown.role, shown.feature)}
           </p>
-
-          {/* 기본 상태의 FEATURE_NOTE 는 빈 문자열이라 아무것도 렌더링되지 않는다 */}
-          {FEATURE_NOTE[shown.feature] && (
-            <p className="text-[15px] leading-relaxed text-slate-700 mt-2 m-0">
-              {FEATURE_NOTE[shown.feature]}
-            </p>
-          )}
 
           {shown.sameDayPillar && (
             // 六合 도 沖 도 아니라 배치로는 말할 수 없는 사실이다. 여기서만 말한다.

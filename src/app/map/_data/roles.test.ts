@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   DISPLAY_TITLES,
-  FEATURE_NOTE,
   ROLE_LABELS,
   ROLE_ORDER,
   type Feature,
@@ -43,14 +42,6 @@ describe("六合 과 沖 의 무게", () => {
     const sum = (f: "yukhap" | "chung") =>
       ROLE_ORDER.reduce((n, r) => n + DISPLAY_TITLES[r][f].length, 0);
     expect(Math.abs(sum("yukhap") - sum("chung"))).toBeLessThanOrEqual(3);
-  });
-
-  it("설명 문구 길이 차가 3자 이내다", () => {
-    expect(Math.abs(FEATURE_NOTE.yukhap.length - FEATURE_NOTE.chung.length)).toBeLessThanOrEqual(3);
-  });
-
-  it("기본 상태에는 설명 문구가 없다 — 배지도 문구도 붙지 않는다", () => {
-    expect(FEATURE_NOTE.none).toBe("");
   });
 });
 

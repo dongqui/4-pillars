@@ -47,17 +47,6 @@ export const DISPLAY_TITLES: Record<RelationRole, Record<Feature, string>> = {
 };
 
 /**
- * 六合 과 沖 의 설명. 길이와 무게를 맞춘다(23자 / 21자) — 한쪽만 따뜻하게 쓰면
- * 그 순간 좋은 관계 / 나쁜 관계가 된다. 기본 상태는 빈 문자열이라 아무것도
- * 렌더링되지 않는다.
- */
-export const FEATURE_NOTE: Record<Feature, string> = {
-  none: "",
-  yukhap: "둘 사이의 흐름이 끊기지 않고 이어집니다.",
-  chung: "둘 사이의 흐름이 팽팽하게 맞물립니다.",
-};
-
-/**
  * 구역 배지에 붙는 아이콘. **자리를 잡아두는 임시값이다** — 사용자가 나중에
  * 채운다. 이모지라 별도 에셋이 없고, 교체할 때 이 표만 고치면 된다.
  */

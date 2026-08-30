@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import type { Element } from "@/lib/saju-core";
 import type { MapPerson } from "../_data/person";
 import { PersonSheet } from "./PersonSheet";
 import { PeopleList } from "./PeopleList";
@@ -20,11 +21,14 @@ const World = dynamic(() => import("./World").then((m) => m.World), {
 
 export function MapShell({
   people,
+  centerElement,
   isOwner,
   shareId,
   loggedIn,
 }: {
   people: readonly MapPerson[];
+  /** 중심(나)의 일간 오행. PersonSheet 의 궁합 단락이 쓴다. */
+  centerElement: Element;
   isOwner: boolean;
   shareId: string;
   loggedIn: boolean;
@@ -173,6 +177,7 @@ export function MapShell({
 
       <PersonSheet
         person={selected}
+        centerElement={centerElement}
         onClose={() => setSelectedId(null)}
       />
 

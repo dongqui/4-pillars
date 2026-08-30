@@ -19,9 +19,10 @@ const loadMap = cache(async (shareId: string) => {
   const map = await getMapByShareId(shareId);
   if (!map) return null;
 
-  // center 는 돌려주지 않고 관문으로만 쓴다. 화면의 중심 노드는 이름 대신
-  // "나" 를 그리므로(SelfCore) MapShell 이 이 값을 받을 일이 없다 — 그래도
-  // 세워는 봐야 한다. 아래 판정이 그것 때문에 있다.
+  // center 는 두 가지로 쓰인다: (1) 관문 — 중심을 못 세우면 지도가 성립하지
+  // 않는다. (2) 상세 시트의 오행 다리 문장이 "내가 무슨 오행인가"를 알아야
+  // 해서 element 만 화면으로 내려보낸다. 이름·일주는 여전히 안 내려간다 —
+  // 중심 노드는 "나" 를 그린다(SelfCore).
   const center = centerOf(map.center.name, map.center);
   const centerDay = dayPillarOf(map.center);
   // 중심을 못 세우면 지도가 성립하지 않는다. 없는 지도와 똑같이 다룬다 —
@@ -34,7 +35,7 @@ const loadMap = cache(async (shareId: string) => {
     .map((row) => toMapPerson(centerDay, row))
     .filter((p): p is NonNullable<typeof p> => p !== null);
 
-  return { map, people };
+  return { map, people, centerElement: center.element };
 });
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
@@ -57,12 +58,13 @@ export default async function MapPage({ params }: Params) {
   const loaded = await loadMap(share);
   if (!loaded) notFound();
 
-  const { map, people } = loaded;
+  const { map, people, centerElement } = loaded;
   const session = await getSession();
 
   return (
     <MapShell
       people={people}
+      centerElement={centerElement}
       isOwner={session?.userId === map.ownerUserId}
       shareId={map.shareId}
       loggedIn={session !== null}
