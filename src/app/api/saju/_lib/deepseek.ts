@@ -41,6 +41,56 @@ export interface DeepSeekOptions {
    * 캐시가 실제로 걸리는지는 붙여보기 전엔 알 수 없어서 처음부터 뽑아 둔다.
    */
   onUsage?: (key: string, usage: unknown) => void;
+  /**
+   * 한 번의 시도에 거는 제한 시간(ms). 기본 40초.
+   *
+   * 없으면 응답하지 않는 콜 하나가 라우트의 maxDuration 을 통째로 태워, 이미 끝난
+   * 다른 섹션들까지 저장되지 못한 채 함수가 죽는다 — 섹션은 전부 병렬로 나가고
+   * 저장은 전부 끝난 뒤 한 번에 일어나기 때문이다.
+   */
+  timeoutMs?: number;
+  /**
+   * 실패했을 때 더 시도할 횟수. 기본 1.
+   *
+   * 재시도가 없으면 실패한 섹션은 저장되지 않고, 다음 열람에서 다시 missing 으로
+   * 잡혀 LLM 을 또 부른다 — 성공할 때까지 매 열람마다. 한 요청 안에서 한 번 더
+   * 물어보는 편이 사용자에게도 원가에도 싸다.
+   */
+  retries?: number;
+}
+
+/** 상태코드를 들고 다니는 실패. 재시도할 값이 있는지를 이걸로 가른다. */
+class DeepSeekHttpError extends Error {
+  constructor(readonly status: number, body: string) {
+    super(`DeepSeek ${status}: ${body}`);
+    this.name = "DeepSeekHttpError";
+  }
+}
+
+/** 제한 시간을 넘긴 시도. 유일하게 재시도하지 않는 실패다. */
+class DeepSeekTimeoutError extends Error {
+  constructor(key: string, ms: number) {
+    super(`DeepSeek 응답이 제한 시간을 넘겼다 (${key})`);
+    this.name = "DeepSeekTimeoutError";
+    this.cause = ms;
+  }
+}
+
+/**
+ * 다시 물어볼 값이 있는 실패인가.
+ *
+ * 4xx 는 우리가 잘못 보낸 것이라 같은 몸통으로 다시 물으면 같은 답이 온다 — 429만
+ * 예외로, 그건 요청이 틀린 게 아니라 지금 붐빈다는 뜻이다.
+ *
+ * 타임아웃은 재시도하지 않는다. 한 번에 timeoutMs 를 다 쓰고 또 그만큼 쓰면
+ * maxDuration 을 넘겨 **모든** 섹션이 함께 죽는다 — 한 섹션을 구하려고 나머지
+ * 여섯을 거는 거래가 된다.
+ */
+function isRetryable(e: unknown): boolean {
+  if (e instanceof DeepSeekTimeoutError) return false;
+  if (e instanceof DeepSeekHttpError) return e.status === 429 || e.status >= 500;
+  // 네트워크 오류·JSON 파싱 실패·tool 호출 누락 — 전부 다시 물어볼 값이 있다.
+  return true;
 }
 
 /** 응답에서 실제로 읽는 부분만. 나머지 필드는 알 바 아니다. */
@@ -52,10 +102,17 @@ interface ChatCompletion {
 export function createDeepSeekTransport(opts: DeepSeekOptions): DeepSeekTransport {
   const doFetch = opts.fetch ?? fetch;
   const thinking = opts.thinking ?? false;
+  const timeoutMs = opts.timeoutMs ?? 40_000;
+  const retries = opts.retries ?? 1;
 
-  return async (req) => {
-    const res = await doFetch(DEEPSEEK_URL, {
+  const attempt = async (req: DeepSeekSectionRequest): Promise<unknown> => {
+    let res: Response;
+    try {
+      res = await doFetch(DEEPSEEK_URL, {
       method: "POST",
+      // 제한 시간은 시도마다 새로 건다 — 재시도가 첫 시도의 남은 시간을 물려받으면
+      // 두 번째는 시작하자마자 죽는다.
+      signal: AbortSignal.timeout(timeoutMs),
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${opts.apiKey}`,
@@ -76,10 +133,18 @@ export function createDeepSeekTransport(opts: DeepSeekOptions): DeepSeekTranspor
           ? "auto"
           : { type: "function", function: { name: req.toolName } },
       }),
-    });
+      });
+    } catch (e) {
+      // AbortSignal.timeout 은 name 이 "TimeoutError" 인 DOMException 을 던진다.
+      // 그것만 갈라내야 재시도 판단이 선다 — 나머지는 네트워크 오류다.
+      if (e instanceof Error && e.name === "TimeoutError") {
+        throw new DeepSeekTimeoutError(req.key, timeoutMs);
+      }
+      throw e;
+    }
 
     if (!res.ok) {
-      throw new Error(`DeepSeek ${res.status}: ${await res.text()}`);
+      throw new DeepSeekHttpError(res.status, await res.text());
     }
 
     const json = (await res.json()) as ChatCompletion;
@@ -98,5 +163,22 @@ export function createDeepSeekTransport(opts: DeepSeekOptions): DeepSeekTranspor
     } catch {
       throw new Error(`DeepSeek tool arguments 가 JSON 이 아니다 (${req.key}): ${args}`);
     }
+  };
+
+  return async (req) => {
+    let last: unknown;
+    for (let tries = 0; tries <= retries; tries++) {
+      try {
+        return await attempt(req);
+      } catch (e) {
+        last = e;
+        if (tries === retries || !isRetryable(e)) break;
+        console.warn(
+          `[deepseek] ${req.key} 실패, 다시 시도합니다 (${tries + 1}/${retries + 1})`,
+          e instanceof Error ? e.message : e,
+        );
+      }
+    }
+    throw last;
   };
 }
