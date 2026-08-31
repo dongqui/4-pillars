@@ -148,3 +148,111 @@ describe("createDeepSeekTransport", () => {
     expect(onUsage).toHaveBeenCalledWith("strengths", usage);
   });
 });
+
+/**
+ * 재시도가 없던 시절의 실패 모드가 이 테스트들이 막는 것이다.
+ *
+ * 섹션 하나가 실패하면 PromptedGenerator 가 조용히 건너뛰고, 그 섹션은 저장되지
+ * 않는다. 다음 열람에서 다시 missing 으로 잡혀 LLM 을 또 부른다 — 성공할 때까지
+ * 매 열람마다. 실제로 match_sections 에 08-23 자 v1 행이 열흘째 갱신되지 않은 채
+ * 남아 있었다. 한 요청 안에서 한 번 더 시도하면 그 고리가 대부분 끊긴다.
+ */
+describe("재시도", () => {
+  const ok = () => reply({ content: [] });
+
+  it("5xx 면 한 번 더 시도한다", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("boom", { status: 503 }))
+      .mockResolvedValueOnce(ok());
+    expect(await transportWith(fetchMock as unknown as typeof fetch)(req)).toEqual({ content: [] });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("429 면 한 번 더 시도한다 — 잠깐의 혼잡이지 잘못된 요청이 아니다", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("slow down", { status: 429 }))
+      .mockResolvedValueOnce(ok());
+    expect(await transportWith(fetchMock as unknown as typeof fetch)(req)).toEqual({ content: [] });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("네트워크 오류면 한 번 더 시도한다", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce(ok());
+    expect(await transportWith(fetchMock as unknown as typeof fetch)(req)).toEqual({ content: [] });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  // tool 호출 없이 텍스트만 오는 것은 모델이 가끔 하는 일이라 다시 물어볼 값이 있다.
+  it("tool 호출이 없으면 한 번 더 시도한다", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ choices: [{ message: { content: "그냥 글" } }] }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(ok());
+    expect(await transportWith(fetchMock as unknown as typeof fetch)(req)).toEqual({ content: [] });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  // 400 은 우리가 잘못 보낸 것이다. 같은 몸통으로 다시 물으면 같은 400 이 온다.
+  it("400 이면 다시 시도하지 않는다", async () => {
+    const fetchMock = vi.fn(async () => new Response("bad request", { status: 400 }));
+    await expect(transportWith(fetchMock)(req)).rejects.toThrow(/400/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * 타임아웃만은 재시도하지 않는다. 한 번에 timeoutMs 를 다 쓴 뒤 또 그만큼 쓰면
+   * 라우트의 maxDuration 을 넘겨 **모든** 섹션이 함께 죽는다 — 한 섹션을 구하려다
+   * 나머지 여섯을 잃는 거래다.
+   */
+  it("타임아웃이면 다시 시도하지 않는다", async () => {
+    const fetchMock = vi.fn(async () => {
+      throw new DOMException("The operation timed out.", "TimeoutError");
+    });
+    await expect(transportWith(fetchMock)(req)).rejects.toThrow(/시간/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("두 번 다 실패하면 마지막 오류를 던진다", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("first", { status: 500 }))
+      .mockResolvedValueOnce(new Response("second", { status: 502 }));
+    await expect(transportWith(fetchMock as unknown as typeof fetch)(req)).rejects.toThrow(/502/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries: 0 이면 재시도하지 않는다", async () => {
+    const fetchMock = vi.fn(async () => new Response("boom", { status: 500 }));
+    await expect(
+      createDeepSeekTransport({
+        apiKey: "sk-test",
+        model: "deepseek-v4-flash",
+        fetch: fetchMock,
+        retries: 0,
+      })(req),
+    ).rejects.toThrow(/500/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("모든 시도에 제한 시간을 건다 — 끝나지 않는 콜이 라우트를 통째로 잡아먹지 않게", async () => {
+    const fetchMock = vi.fn(async () => ok());
+    await createDeepSeekTransport({
+      apiKey: "sk-test",
+      model: "deepseek-v4-flash",
+      fetch: fetchMock,
+      timeoutMs: 1234,
+    })(req);
+
+    const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+});

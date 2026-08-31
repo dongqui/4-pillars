@@ -15,13 +15,18 @@ import {
   isMatchRateLimited,
   spendOnMatchGeneration,
 } from "@/app/api/matches/_lib/gated-generator";
-import { getMatchSections, putMatchSections } from "@/app/api/matches/_lib/store";
+import {
+  getMatchSections,
+  putMatchSections,
+  type StoredMatchSections,
+} from "@/app/api/matches/_lib/store";
 import { MatchGenerationError, produceMatchSections } from "@/app/api/matches/_lib/produce";
-import { toMatchHeroView } from "./_lib/to-match-view";
+import { toMatchHeroView, type MatchHeroView } from "./_lib/to-match-view";
+import { matchLoadingMode } from "./_lib/to-loading-mode";
 import { MatchShell } from "./_components/MatchShell";
 import { MatchHero } from "./_components/MatchHero";
 import { MatchBody } from "./_components/MatchBody";
-import { AnalyzingMatch } from "./_components/AnalyzingMatch";
+import { AnalyzingMatch, AnalyzingRestOfMatch } from "./_components/AnalyzingMatch";
 import { MatchError } from "./_components/MatchError";
 import { MatchRateLimited } from "./_components/MatchRateLimited";
 import { MatchOutOfTickets } from "./_components/MatchOutOfTickets";
@@ -93,13 +98,52 @@ export default async function MatchResultPage({
     counterpartName: counterpart.name,
   });
 
+  // 저장된 섹션을 먼저 읽는다. DB 한 번이라 빠르고, 여기서 읽어 두면 두 가지가 갈린다:
+  // 생성기를 아예 만들지 않아도 되는 경우와, 기다리는 동안 보여줄 것이 있는 경우.
+  const stored = await getMatchSections(match.id, MATCH_SECTION_KEYS);
+  const mode = matchLoadingMode(stored);
+
+  // 다 있으면 <Suspense> 자체를 세우지 않는다. 스피너가 한 프레임도 스치지 않는다.
+  if (mode === "complete") {
+    return (
+      <MatchShell displayName={displayName}>
+        <MatchHero view={hero} />
+        <MatchBody interpretation={stored.have} relation={match.relation} />
+      </MatchShell>
+    );
+  }
+
+  /*
+    fallback 에 스피너 대신 **이미 저장된 섹션**을 넣는다.
+
+    이게 이 파일에서 가장 중요한 결정이다. 예전에는 섹션 하나가 없으면 나머지 여섯이
+    DB 에 멀쩡히 있는데도 화면 전체가 스피너였다 — 한 섹션의 LLM 왕복을 기다리느라
+    이미 확보한 것을 볼모로 잡은 셈이다. fallback 을 부분 본문으로 두면 번호 순서가
+    그대로 유지된 채 있는 것부터 읽히고, 생성이 끝나면 완성본으로 갈린다.
+
+    저장된 것이 하나도 없을 때만 순수 스피너다. 그때는 히어로도 함께 감춘다 — 보여줄
+    본문이 없는 화면에 이름과 아바타만 떠 있으면 기다림이 더 길게 느껴진다.
+  */
+  const fallback =
+    mode === "partial" ? (
+      <>
+        <MatchHero view={hero} />
+        <MatchBody interpretation={stored.have} relation={match.relation} />
+        <AnalyzingRestOfMatch />
+      </>
+    ) : (
+      <AnalyzingMatch />
+    );
+
   return (
     <MatchShell displayName={displayName}>
-      <MatchHero view={hero} />
-      <Suspense fallback={<AnalyzingMatch />}>
+      {/* 히어로는 <Suspense> 안쪽이다 — 본문이 없는 로딩 화면에 이름만 뜨지 않게. */}
+      <Suspense fallback={fallback}>
         <MatchSections
           matchId={match.id}
           userId={session.userId}
+          hero={hero}
+          stored={stored}
           ctx={{ ...pair, relation: match.relation }}
         />
       </Suspense>
@@ -117,10 +161,16 @@ export default async function MatchResultPage({
 async function MatchSections({
   matchId,
   userId,
+  hero,
+  stored,
   ctx,
 }: {
   matchId: string;
   userId: string;
+  /** 히어로도 이 안에서 그린다 — 본문과 함께 나타나야 로딩 화면이 깨끗하다. */
+  hero: MatchHeroView;
+  /** 페이지가 이미 읽어 둔 것. 같은 쿼리를 두 번 던지지 않는다. */
+  stored: StoredMatchSections;
   ctx: Parameters<typeof produceMatchSections>[1];
 }) {
   let interpretation: Partial<MatchInterpretation>;
@@ -143,7 +193,8 @@ async function MatchSections({
         spendOnMatchGeneration(createMatchGenerator(), { userId, matchId }),
         userId,
       ),
-      getStored: getMatchSections,
+      // 페이지가 방금 읽은 것을 그대로 쓴다. 같은 쿼리를 두 번 던질 이유가 없다.
+      getStored: async () => stored,
       putStored: putMatchSections,
       sectionKeys: MATCH_SECTION_KEYS,
     }));
@@ -163,9 +214,16 @@ async function MatchSections({
       return <MatchError />;
     }
   }
+  // 보여줄 본문이 하나도 없으면 히어로도 세우지 않는다 — 이름만 떠 있는 안내 화면을
+  // 만들지 않기 위해서다. 위의 로딩 fallback 과 같은 규칙이다.
   if (Object.keys(interpretation).length === 0) {
     if (outOfTickets) return <MatchOutOfTickets matchId={matchId} />;
     return rateLimited ? <MatchRateLimited /> : <MatchError />;
   }
-  return <MatchBody interpretation={interpretation} relation={ctx.relation} />;
+  return (
+    <>
+      <MatchHero view={hero} />
+      <MatchBody interpretation={interpretation} relation={ctx.relation} />
+    </>
+  );
 }
