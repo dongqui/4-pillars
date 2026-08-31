@@ -106,16 +106,19 @@ export function ChatRoom({
         </Link>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-[15.5px] font-bold tracking-[-0.025em]">{title}</h1>
-          <div className="mt-0.5 flex items-center gap-1.5">
-            {/* 진행중인지 끝났는지가 색으로 먼저 읽히고, 남은 횟수는 글자가 말한다 */}
-            <span
-              aria-hidden
-              className={`h-1.5 w-1.5 rounded-full ${closed ? "bg-slate-300" : "bg-green-600"}`}
-            />
-            <span className="text-[12.5px] text-slate-400">
-              {closed ? "상담 마무리" : `남은 대화 ${remaining}회`}
-            </span>
-          </div>
+          {/* 열려 있는 동안에는 아무 말도 하지 않는다. 예전에는 여기 "남은 대화 9회"가
+              제목 바로 아래 상시로 서 있어서, 고민을 말하는 내내 남은 횟수가 같이
+              읽혔다 — 상담이 아니라 계량기를 보는 화면이 된다(대화 설계 §20.2). 남은
+              횟수는 입력창 위로 내려갔고, 여기에는 끝났다는 사실만 남는다. */}
+          {closed && (
+            <div className="mt-0.5 flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className="h-1.5 w-1.5 rounded-full bg-slate-300"
+              />
+              <span className="text-[12.5px] text-slate-400">상담 마무리</span>
+            </div>
+          )}
         </div>
       </header>
 
@@ -152,13 +155,16 @@ export function ChatRoom({
 
       {suggestions.length > 0 && (
         <div className="flex-none px-[clamp(16px,4vw,28px)] pb-2">
-          <div className="mx-auto flex max-w-[640px] gap-2">
+          {/* 개수가 고정이 아니다 — 갈래가 없는 턴에는 아예 안 오고, 한 개만 오기도
+              한다(대화 설계 §18). flex-1 로 두면 한 개일 때 통짜 버튼이 되어 "이걸 누르라"는
+              말처럼 보이므로, 폭은 글자만큼만 준다. */}
+          <div className="mx-auto flex max-w-[640px] flex-wrap gap-2">
             {suggestions.map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => send(s)}
-                className="flex-1 rounded-[14px] border border-slate-200 px-3 py-2.5 text-left text-[13px] leading-[1.4] text-slate-500 hover:bg-slate-50"
+                className="max-w-full rounded-[14px] border border-slate-200 px-3 py-2.5 text-left text-[13px] leading-[1.4] text-slate-500 hover:bg-slate-50"
               >
                 {s}
               </button>
@@ -178,7 +184,16 @@ export function ChatRoom({
           </Link>
         </div>
       ) : (
-        <Composer disabled={pending} onSend={send} />
+        <>
+          {/* 입력창 옆의 작은 상태 표시. 필요할 때 눈에 들어오되, 대화를 읽는 동안에는
+              배경으로 남는 자리다. */}
+          <div className="flex-none px-[clamp(16px,4vw,28px)]">
+            <p className="mx-auto max-w-[640px] text-right text-[11.5px] text-slate-300">
+              {remaining}회 남음
+            </p>
+          </div>
+          <Composer disabled={pending} onSend={send} />
+        </>
       )}
     </div>
   );

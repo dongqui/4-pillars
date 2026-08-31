@@ -209,6 +209,9 @@ async function persistTurn(
     bubbles: result.reply.bubbles,
     suggestions: result.reply.suggestions,
     crisis: result.reply.crisis,
+    // 다음 턴의 되묻기 억제가 이 값을 읽는다. 여기서 안 남기면 그 판단이 다시
+    // 물음표 짐작으로 떨어진다(대화 설계 §4).
+    asksUser: result.reply.asksUser,
     turnNo,
   });
 

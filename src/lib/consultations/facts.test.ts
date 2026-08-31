@@ -38,4 +38,29 @@ describe("factsForProfile", () => {
     const broken = { ...profile, birth: { year: 1700, month: 1, day: 1 } };
     expect(factsForProfile(broken)).toBeNull();
   });
+
+  // ─── 원국과 요즘 흐름 (대화 설계 §12·§16) ───
+  const AT = new Date("2026-08-31T03:00:00.000Z");
+
+  it("원국과 요즘 흐름을 라벨로 갈라 함께 세운다", () => {
+    const facts = factsForProfile(profile, AT);
+    expect(facts).toContain("[사실 · 원국]");
+    expect(facts).toContain("[사실 · 요즘 흐름]");
+  });
+
+  it("원국이 흐름보다 앞에 선다 — 성향이 먼저, 지나가는 것이 나중이다", () => {
+    const facts = factsForProfile(profile, AT) ?? "";
+    expect(facts.indexOf("[사실 · 원국]")).toBeLessThan(facts.indexOf("[사실 · 요즘 흐름]"));
+  });
+
+  it("흐름을 잴 수 없어도 원국은 남는다 — 세 줄 때문에 상담이 막히면 안 된다", () => {
+    // 만세력 범위 밖 시각이라 luckFacts 가 null 을 준다.
+    const facts = factsForProfile(profile, new Date("2400-01-01T00:00:00.000Z"));
+    expect(facts).toContain("[사실 · 원국]");
+    expect(facts).not.toContain("[사실 · 요즘 흐름]");
+  });
+
+  it("흐름 블록에도 나이가 새지 않는다", () => {
+    expect(factsForProfile(profile, AT)).not.toMatch(/\d+세/);
+  });
 });

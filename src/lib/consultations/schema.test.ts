@@ -3,7 +3,7 @@ import {
   COUNSEL_TOOL_NAME,
   MAX_BUBBLES,
   MIN_BUBBLES,
-  SUGGESTION_COUNT,
+  MAX_SUGGESTIONS,
   TITLE_MAX_CHARS,
   replyToolSchema,
   parseReply,
@@ -31,10 +31,12 @@ describe("replyToolSchema", () => {
     expect(p.bubbles.maxItems).toBe(MAX_BUBBLES);
   });
 
-  it("중간 턴은 추천질문을 정확히 두 개 요구한다", () => {
+  // 예전에는 minItems 도 2 였다. 그러면 낼 갈래가 없는 턴에도 모델이 두 개를
+  // 지어내야 해서, 대부분이 방금 한 제안에 서명하게 만드는 문장이 됐다(대화 설계 §18).
+  it("추천 답변에 하한을 걸지 않는다 — 갈래가 없으면 안 내는 것이 맞다", () => {
     const p = props(middle);
-    expect(p.user_replies.minItems).toBe(SUGGESTION_COUNT);
-    expect(p.user_replies.maxItems).toBe(SUGGESTION_COUNT);
+    expect(p.user_replies.minItems).toBe(0);
+    expect(p.user_replies.maxItems).toBe(MAX_SUGGESTIONS);
   });
 
   it("마지막 턴은 추천질문을 요구하지 않는다 — 더 물어볼 수 없는데 물으라고 하면 안 된다", () => {
@@ -51,6 +53,25 @@ describe("replyToolSchema", () => {
     expect(replyToolSchema({ first: true, last: false }).required).toContain("title");
   });
 
+  it("asks_user 를 필수로 건다 — 다음 턴의 되묻기 억제가 이 값을 읽는다", () => {
+    expect(replyToolSchema(middle).required).toContain("asks_user");
+  });
+
+  // 프롬프트로 "마지막엔 묻지 마세요" 라고 부탁하는 대신 값 자체를 스키마로 좁힌다.
+  it("마지막 턴은 asks_user 를 false 로 못 박는다", () => {
+    const p = replyToolSchema({ first: false, last: true })
+      .properties as Record<string, { enum?: unknown[] }>;
+    expect(p.asks_user.enum).toEqual([false]);
+    expect(
+      (
+        replyToolSchema(middle).properties as Record<
+          string,
+          { enum?: unknown[] }
+        >
+      ).asks_user.enum,
+    ).toBeUndefined();
+  });
+
   it("crisis 는 어느 턴에나 있다", () => {
     expect(props(middle).crisis).toBeDefined();
     expect(props({ first: true, last: true }).crisis).toBeDefined();
@@ -62,6 +83,7 @@ describe("parseReply", () => {
     bubbles: ["첫 마디예요", "두 번째 마디예요"],
     user_replies: ["그럼 지금 옮겨도 될까요?", "아직 준비가 안 된 것 같아요"],
     crisis: false,
+    asks_user: true,
   };
 
   it("계약대로 온 응답을 통과시킨다", () => {
@@ -71,7 +93,18 @@ describe("parseReply", () => {
       // 그 되돌림이 여기서 깨지면 화면에 칩이 아예 뜨지 않는다.
       suggestions: good.user_replies,
       crisis: false,
+      asksUser: true,
     });
+  });
+
+  // ─── asks_user (대화 설계 §4) ───
+  it("표시가 빠지면 null 이다 — false 로 접으면 짐작이 물러설 자리를 잃는다", () => {
+    const noFlag = { bubbles: good.bubbles, user_replies: good.user_replies, crisis: false };
+    expect(parseReply(noFlag, middle).asksUser).toBeNull();
+  });
+
+  it("마지막 턴은 모델이 뭐라 하든 false 다", () => {
+    expect(parseReply(good, { first: false, last: true }).asksUser).toBe(false);
   });
 
   it("첫 턴에는 제목을 함께 읽는다", () => {
@@ -79,8 +112,17 @@ describe("parseReply", () => {
     expect(r.title).toBe("직장에서의 답답함");
   });
 
-  it("말풍선이 하나뿐이면 거부한다", () => {
-    expect(() => parseReply({ ...good, bubbles: ["하나"] }, middle)).toThrow();
+  // 공감과 해석을 한 말풍선에 묶으면 한 개로 끝나는 턴이 생긴다(대화 설계 §20.1).
+  // 예전 하한 2 는 그런 답을 통째로 버렸다.
+  it("말풍선 하나짜리 답도 통과시킨다", () => {
+    expect(
+      parseReply({ ...good, bubbles: ["한 호흡으로 끝나는 답이에요"] }, middle)
+        .bubbles,
+    ).toHaveLength(1);
+  });
+
+  it("말풍선이 비면 거부한다", () => {
+    expect(() => parseReply({ ...good, bubbles: [] }, middle)).toThrow();
   });
 
   it("말풍선이 상한을 넘으면 거부한다", () => {
