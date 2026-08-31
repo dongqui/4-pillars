@@ -41,6 +41,7 @@ const dbMessage = {
   bubbles: ["첫 마디예요", "두 번째 마디예요"],
   suggestions: ["그럼 지금 옮겨도 될까요?", "아직 준비가 안 됐어요"],
   crisis: false,
+  asks_user: true,
   turn_no: 2,
   created_at: "2026-08-17T00:01:00.000Z",
 };
@@ -86,6 +87,21 @@ describe("toMessageRow", () => {
   it("배열이 아닌 값이 오면 빈 배열로 떨어뜨린다", () => {
     const row = toMessageRow({ ...dbMessage, bubbles: 42 });
     expect(row.bubbles).toEqual([]);
+  });
+
+  it("asks_user 를 boolean 으로 읽는다", () => {
+    expect(toMessageRow(dbMessage).asksUser).toBe(true);
+    expect(toMessageRow({ ...dbMessage, asks_user: false }).asksUser).toBe(
+      false,
+    );
+  });
+
+  // 여기서 `=== true` 로 접으면 옛 행이 전부 "되묻지 않았다" 가 되어, 물음표
+  // 짐작이 물러서서 답할 자리를 잃는다(prompt.ts 의 askedLastTurn).
+  it("표시가 없는 옛 행은 false 가 아니라 null 이다", () => {
+    expect(toMessageRow({ ...dbMessage, asks_user: null }).asksUser).toBeNull();
+    // 컬럼이 없는 행은 드라이버가 그 키를 안 준다 — 속성 접근이 undefined 다.
+    expect(toMessageRow({ ...dbMessage, asks_user: undefined }).asksUser).toBeNull();
   });
 });
 
@@ -149,6 +165,37 @@ describe("appendMessage", () => {
     expect(calls[0].values[1]).toBe("user");
     expect(calls[0].values[2]).toBe(JSON.stringify(["회사가 힘들어요"]));
     expect(calls[0].values[3]).toBeNull();
+  });
+
+  it("상담사 답의 되묻기 표시를 함께 남긴다", async () => {
+    const { client, calls } = fakeClient([dbMessage]);
+    await appendMessage(
+      {
+        consultationId: "7",
+        role: "counselor",
+        bubbles: ["그렇군요"],
+        suggestions: [],
+        asksUser: true,
+        turnNo: 3,
+      },
+      client,
+    );
+    expect(calls[0].sql).toContain("asks_user");
+    expect(calls[0].values[5]).toBe(true);
+  });
+
+  it("사용자 발화는 표시를 남기지 않는다 — 되묻는 것은 상담사뿐이다", async () => {
+    const { client, calls } = fakeClient([dbMessage]);
+    await appendMessage(
+      {
+        consultationId: "7",
+        role: "user",
+        bubbles: ["회사가 힘들어요"],
+        turnNo: 3,
+      },
+      client,
+    );
+    expect(calls[0].values[5]).toBeNull();
   });
 });
 

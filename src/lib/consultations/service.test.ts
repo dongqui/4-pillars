@@ -233,6 +233,7 @@ describe("advanceConsultation", () => {
       bubbles: ["안내"],
       suggestions: [],
       crisis: true,
+      asksUser: null,
       turnNo: 1,
       createdAt: "2026-08-17T00:00:00.000Z",
     };

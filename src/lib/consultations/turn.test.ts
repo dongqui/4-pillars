@@ -75,8 +75,9 @@ describe("runTurn", () => {
     expect(r.reply.title).toBeUndefined();
   });
 
+  // 말풍선 하나짜리는 이제 정상이다(대화 설계 §20.1) — 깨진 것은 말풍선이 아예 없는 응답이다.
   it("깨진 응답이면 던진다 — 차감 없이 실패해야 한다", async () => {
-    const { transport } = fakeTransport({ bubbles: ["하나뿐"] });
+    const { transport } = fakeTransport({ bubbles: [] });
     await expect(runTurn(base, { transport, model: "m" })).rejects.toThrow();
   });
 

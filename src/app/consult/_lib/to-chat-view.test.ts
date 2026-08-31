@@ -9,6 +9,7 @@ function msg(over: Partial<MessageRow>): MessageRow {
     bubbles: ["안녕하세요"],
     suggestions: null,
     crisis: false,
+    asksUser: null,
     turnNo: 1,
     createdAt: "2026-08-17T00:00:00.000Z",
     ...over,

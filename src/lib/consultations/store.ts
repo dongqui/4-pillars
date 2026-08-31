@@ -27,6 +27,14 @@ export interface MessageRow {
   /** counselor 만 갖는다. 마지막 턴에는 빈 배열 */
   suggestions: string[] | null;
   crisis: boolean;
+  /**
+   * 이 답이 사용자에게 되물어 답을 요구했는가. counselor 행만 갖는다.
+   *
+   * null 은 "아니다"가 아니라 **모른다**다 — asks_user 컬럼(0044)이 생기기 전에
+   * 쌓인 행이다. 다음 턴의 되묻기 억제는 그때만 물음표 짐작으로 물러선다
+   * (prompt.ts 의 askedLastTurn).
+   */
+  asksUser: boolean | null;
   turnNo: number;
   createdAt: string;
 }
@@ -81,6 +89,9 @@ export function toMessageRow(r: Record<string, unknown>): MessageRow {
     suggestions:
       suggestions === null || suggestions === undefined ? null : toStringArray(suggestions),
     crisis: r.crisis === true,
+    // 여기서 `=== true` 로 접으면 안 된다 — 모르는 것(null)과 아니라는 것(false)이
+    // 다른 자리다. 접으면 옛 행 전부가 "되묻지 않았다" 가 되어 짐작이 안 돈다.
+    asksUser: typeof r.asks_user === "boolean" ? r.asks_user : null,
     turnNo: Number(r.turn_no),
     createdAt: String(r.created_at),
   };
@@ -170,6 +181,8 @@ export interface AppendMessageInput {
   bubbles: string[];
   suggestions?: string[] | null;
   crisis?: boolean;
+  /** counselor 행에만 준다. user 행은 null 로 남는다 */
+  asksUser?: boolean | null;
   turnNo: number;
 }
 
@@ -186,13 +199,14 @@ export async function appendMessage(
 
   const rows = await client`
     INSERT INTO consultation_messages
-      (consultation_id, role, bubbles, suggestions, crisis, turn_no)
+      (consultation_id, role, bubbles, suggestions, crisis, asks_user, turn_no)
     VALUES (
       ${input.consultationId}::bigint,
       ${input.role},
       ${JSON.stringify(input.bubbles)}::jsonb,
       ${suggestions}::jsonb,
       ${input.crisis ?? false},
+      ${input.asksUser ?? null},
       ${input.turnNo}
     )
     RETURNING *
