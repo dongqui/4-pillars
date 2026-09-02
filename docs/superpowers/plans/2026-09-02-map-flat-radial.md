@@ -228,7 +228,7 @@ export function allocateSlots(
 - [ ] **Step 4: 통과를 확인한다**
 
 Run: `npx vitest run src/app/map/_lib/radial.test.ts`
-Expected: PASS (9 tests)
+Expected: PASS (`radial.test.ts` 전부. 개수는 목표가 아니다 — 분포마다 불변식을 거는 테스트라 케이스를 더해도 좋다)
 
 - [ ] **Step 5: 커밋**
 
