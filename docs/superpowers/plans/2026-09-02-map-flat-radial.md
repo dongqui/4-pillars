@@ -13,6 +13,8 @@
 - 설계 문서: `docs/superpowers/specs/2026-09-02-map-flat-radial-design.md` — 충돌하면 스펙이 이긴다.
 - **라이트 팔레트 유지.** `_data/role-colors.ts` 의 `MAP_BACKGROUND`(`#F8FAFC`), `roleColor`, `nodeColor`, `roleTextColor` 를 그대로 쓴다. 색 값을 새로 만들지 않는다.
 - **링 순서 불변:** 六合 < 기본 < 沖 (나로부터의 거리). 이 순서를 바꾸는 변경은 스펙 위반이다.
+- **평면이 기본, 층은 예외.** 현실적인 분포(시드 25명·한도 50명)는 전부 바닥 층에 놓인다. 층은 한 칸에 사람이 비정상적으로 몰렸을 때만 생기고, 기울여 보면 갈라진다.
+- **카메라는 위에서 내려다보는 것이 기본이고, 사용자가 돌리고 당길 수 있다.** 팬은 열지 않는다 — 중심이 "나" 라는 것이 이 화면의 전부다.
 - **각도 규약:** 12시가 0, 시계방향이 +. 좌표 변환은 `(x, y, z) = (r·sin a, r·cos a, 0)` 하나뿐이고 `radial.ts` 밖에서 다시 정의하지 않는다.
 - **구역 순서:** `ROLE_ORDER`(`fill, beside, express, move, refine`) 를 12시부터 시계방향으로. 이 배열을 재정렬하지 않는다.
 - **칸 별명 문구는 기존 표를 쓴다:** `DISPLAY_TITLES[role][feature]`. 새 문구를 짓지 않는다.
@@ -29,7 +31,8 @@
 |---|---|
 | `src/app/map/_lib/radial.ts` (신규) | 좌표 계산 전부 — 슬롯 각도, 링 반지름, 칸 안 격자, 배지 자리, 화면 배율 |
 | `src/app/map/_lib/radial.test.ts` (신규) | 위 모듈의 불변식 — 상자 안에 있다 / 안 겹친다 / 결정적 |
-| `src/app/map/_components/World.tsx` (수정) | 직교 고정 카메라 + 맞춤, `radial.placePeople` 사용 |
+| `src/app/map/_components/World.tsx` (수정) | 씬을 눕히고 `radial.placePeople` 로 자리를 잡는다 |
+| `src/app/map/_components/MapCamera.tsx` (신규) | 위에서 내려다보는 직교 카메라 + 화면 맞춤 + 회전·줌 조작 |
 | `src/app/map/_components/PersonMarker.tsx` (수정) | 점 + 호버·선택 시에만 이름칩 |
 | `src/app/map/_components/RegionLabels.tsx` (수정) | 15슬롯 배지 |
 | `src/app/map/_components/SelfCore.tsx` (수정) | 중심 "나" 오브. `PersonNode` 의존을 끊고 DOM 으로 |
@@ -565,9 +568,211 @@ git commit -m "feat(map): 링 반지름과 칸 안 격자를 계산한다"
 
 ---
 
-### Task 3: 겹침 불변식 — 화면에서 재고, 배지 자리를 정한다
+### Task 3: 넘치는 줄은 위로 쌓는다
 
-지금까지의 테스트는 "상자 안에 있다" 까지만 본다. 상자 안에 있어도 화면에서 붙을 수 있으므로 여기서 **화면 거리**를 잰다. 이것이 이 재설계의 이유다.
+Task 2 는 줄이 모자라면 바깥으로 한 줄 더 만든다. 그러면 지도 반지름이 커지고,
+카메라가 그 반지름을 화면에 맞추느라 배율이 같은 비율로 줄어 **간격을 벌리려는
+시도가 전부 상쇄된다.** 상수 5개를 5,040 조합 + 좌표하강으로 훑어도 모바일
+375px 에서 한 칸 40명은 19.7px 에서 멈췄다(이론 상한 ~20.4px). 이 태스크가 그
+상쇄를 끊는다: 평면 줄 수에 상한을 두고, 넘치는 줄은 **위로** 보낸다.
+
+**Files:**
+- Modify: `src/app/map/_lib/radial.ts`
+- Test: `src/app/map/_lib/radial.test.ts`
+
+**Interfaces:**
+- Consumes: Task 2 의 `buildLayout`, `placePeople`, `CellLayout`, 모듈 내부의 `at`·`rowsFor`·`colsAt`
+- Produces:
+  - 상수 `MAX_FLAT_ROWS`, `LAYER_HEIGHT`
+  - `CellLayout` 에 `layerOf: readonly number[]` 추가 (줄별 층 번호)
+  - `at(r, a, z)` 의 세 번째 인자
+
+- [ ] **Step 1: 실패하는 테스트를 쓴다**
+
+`radial.test.ts` 에 덧붙인다:
+
+```ts
+import { LAYER_HEIGHT, MAX_FLAT_ROWS, RING_START, ROW_PITCH } from "./radial";
+
+describe("넘치는 줄은 위로", () => {
+  it.each([["시드 25명", SEEDED], ["한도 50명", FULL]] as [string, CellCounts][])(
+    "%s — 층이 하나도 생기지 않는다",
+    (_name, c) => {
+      for (const p of placePeople(peopleOf(c)).values()) expect(p[2]).toBe(0);
+    },
+  );
+
+  it("한 칸에 몰리면 층이 생긴다", () => {
+    const zs = [...placePeople(peopleOf(LOPSIDED)).values()].map((p) => p[2]);
+    expect(Math.max(...zs)).toBeGreaterThan(0);
+  });
+
+  it("층은 0 부터 빠짐없이 이어지고 높이는 LAYER_HEIGHT 의 배수다", () => {
+    const zs = [...placePeople(peopleOf(LOPSIDED)).values()].map((p) => p[2]);
+    const layers = [...new Set(zs.map((z) => Math.round(z / LAYER_HEIGHT)))].sort(
+      (a, b) => a - b,
+    );
+    layers.forEach((l, i) => expect(l).toBe(i));
+    for (const z of zs) expect(z).toBeCloseTo(Math.round(z / LAYER_HEIGHT) * LAYER_HEIGHT, 9);
+  });
+
+  it("한 층이 쓰는 평면 줄 수는 MAX_FLAT_ROWS 를 넘지 않는다", () => {
+    const layout = buildLayout(LOPSIDED);
+    for (const role of ROLES)
+      for (const f of FEATURES) {
+        const cell = layout.cells[role][f];
+        if (!cell) continue;
+        const perLayer = new Map<number, number>();
+        for (const l of cell.layerOf) perLayer.set(l, (perLayer.get(l) ?? 0) + 1);
+        for (const rows of perLayer.values()) expect(rows).toBeLessThanOrEqual(MAX_FLAT_ROWS);
+      }
+  });
+
+  it("층이 아무리 쌓여도 반지름은 상한을 넘지 않는다", () => {
+    // LOPSIDED 는 기본 링에만 사람이 있다 — 링 하나가 쓸 수 있는 최대 두께가 곧 상한이다.
+    expect(buildLayout(LOPSIDED).outerRadius).toBeLessThanOrEqual(
+      RING_START + (MAX_FLAT_ROWS - 1) * ROW_PITCH + 1e-9,
+    );
+  });
+});
+```
+
+- [ ] **Step 2: 실패를 확인한다**
+
+Run: `npx vitest run src/app/map/_lib/radial.test.ts`
+Expected: FAIL — `LAYER_HEIGHT`/`MAX_FLAT_ROWS` 를 못 찾는다.
+
+Task 2 가 남긴 상자 테스트의 `expect(p[2]).toBe(0)` 도 함께 깨진다. **그 줄을
+지우지 말고** 아래로 바꾼다 — z 가 0 이라는 주장이 "z 는 층 높이의 배수" 로
+약해지는 것이지, 검사가 사라지는 것이 아니다:
+
+```ts
+      expect(p[2]).toBeCloseTo(Math.round(p[2] / LAYER_HEIGHT) * LAYER_HEIGHT, 9);
+      expect(p[2]).toBeGreaterThanOrEqual(0);
+```
+
+- [ ] **Step 3: 구현**
+
+`at` 에 높이를 받는다:
+
+```ts
+/** 각도·높이 → 좌표. 12시가 0, 시계방향이 +. 이 변환은 이 파일에만 있다. */
+function at(r: number, a: number, z = 0): Vec3 {
+  return [r * Math.sin(a), r * Math.cos(a), z];
+}
+```
+
+상수를 더한다:
+
+```ts
+/**
+ * 한 칸이 평면에서 쓸 수 있는 최대 줄 수. 그보다 더 필요하면 바깥이 아니라 위로 간다.
+ *
+ * 상한이 없으면 배치가 성립하지 않는다. 줄이 밖으로 늘어나면 지도 반지름이
+ * 커지고, 카메라가 그 반지름을 화면에 맞추느라 배율이 같은 비율로 줄어 간격을
+ * 벌리려는 시도가 상쇄된다 — 상수 5개를 5,040 조합으로 훑어도 모바일 375px 에서
+ * 한 칸 40명은 19.7px 에서 멈췄다(이론 상한 ~20.4px). 층은 반지름을 늘리지
+ * 않으므로 그 상쇄를 끊는다.
+ *
+ * 값은 **측정으로** 정한다: 현실적인 분포(시드 25명·한도 50명)에 층이 하나도
+ * 생기지 않는 가장 작은 값이어야 한다. 층은 예외지 상시 동작이 아니다.
+ */
+export const MAX_FLAT_ROWS = 4;
+
+/**
+ * 층과 층 사이 높이.
+ *
+ * 기본 시점(바로 위에서 직교)에서는 투영에 영향이 없다 — 겹쳐 보이는 것이
+ * "여기 사람이 겹칠 만큼 많다"는 신호고, 카메라를 기울이는 순간 갈라진다.
+ * 겹침을 깊이로 말하는 것이 이 값의 일이다.
+ */
+export const LAYER_HEIGHT = 0.22;
+```
+
+`CellLayout` 에 층을 싣는다:
+
+```ts
+export type CellLayout = {
+  readonly slot: Slot;
+  /** 줄별 반지름. 층이 여럿이면 같은 반지름이 층마다 다시 나온다. */
+  readonly radii: readonly number[];
+  /** 줄별 인원 */
+  readonly perRow: readonly number[];
+  /** 줄별 층 번호 (0 = 바닥) */
+  readonly layerOf: readonly number[];
+};
+```
+
+`rowsFor` 가 상한에서 층을 올린다:
+
+```ts
+function rowsFor(n: number, startRadius: number, half: number) {
+  const radii: number[] = [];
+  const perRow: number[] = [];
+  const layerOf: number[] = [];
+  let left = n;
+  let row = 0;
+  let layer = 0;
+  while (left > 0) {
+    // 평면 줄을 다 쓰면 바깥이 아니라 위로 간다 — 반지름은 여기서 멈춘다.
+    if (row === MAX_FLAT_ROWS) {
+      row = 0;
+      layer += 1;
+    }
+    const radius = startRadius + row * ROW_PITCH;
+    const take = Math.min(colsAt(radius, half), left);
+    radii.push(radius);
+    perRow.push(take);
+    layerOf.push(layer);
+    left -= take;
+    row += 1;
+  }
+  return { radii, perRow, layerOf };
+}
+```
+
+WARNING: `buildLayout` 이 `thickest` 를 구할 때 쓰던 `radii[radii.length - 1]` 은
+이제 틀린다 — 마지막 줄은 다음 층의 **첫** 줄이라 가장 안쪽일 수 있다.
+`Math.max(...radii)` 로 바꾼다.
+
+`placePeople` 이 층 높이를 실어 준다:
+
+```ts
+    cell.radii.forEach((radius, row) => {
+      const inRow = cell.perRow[row];
+      const z = cell.layerOf[row] * LAYER_HEIGHT;
+      const cols = colsAt(radius, cell.slot.half);
+      const step = cols > 1 ? (2 * cell.slot.half) / (cols - 1) : 0;
+      for (let i = 0; i < inRow; i += 1) {
+        const offset = (i - (inRow - 1) / 2) * step;
+        out.set(ids[cursor], at(radius, base + offset, z));
+        cursor += 1;
+      }
+    });
+```
+
+- [ ] **Step 4: 통과할 때까지 MAX_FLAT_ROWS 를 맞춘다**
+
+Run: `npx vitest run src/app/map/_lib/radial.test.ts`
+
+`시드 25명`·`한도 50명`에 층이 생기면 `MAX_FLAT_ROWS` 를 하나 올리고 다시
+돌린다. 반대로 상한이 필요 이상으로 크면 반지름이 헛되이 커지므로, **층이 안
+생기는 가장 작은 값**에서 멈춘다. 고른 값과 그 근거(어느 픽스처의 어느 칸이
+몇 명이라 몇 줄이 필요했는지)를 상수 주석에 남긴다.
+
+- [ ] **Step 5: 커밋**
+
+```bash
+git add src/app/map/_lib/radial.ts src/app/map/_lib/radial.test.ts
+git commit -m "feat(map): 평면에 안 들어가는 줄을 층으로 올린다"
+```
+
+---
+
+### Task 4: 겹침 불변식 — 화면에서 재고, 배지 자리를 정한다
+
+지금까지의 테스트는 "상자 안에 있다" 까지만 본다. 상자 안에 있어도 화면에서
+붙을 수 있으므로 여기서 **화면 거리**를 잰다. 이것이 이 재설계의 이유다.
 
 **Files:**
 - Modify: `src/app/map/_lib/radial.ts`
@@ -587,33 +792,55 @@ import { badgeAnchor, layoutExtent, screenScale, type Vec3 } from "./radial";
 
 /** 실측 화면 두 벌. 데스크톱은 400px 사이드 패널을 뺀 지도 영역이다. */
 const VIEWPORTS: [string, number, number][] = [
-  ["데스크톱 700×500", 700, 500],
-  ["모바일 375×420", 375, 420],
+  ["데스크톱 700x500", 700, 500],
+  ["모바일 375x420", 375, 420],
 ];
 
-/** 점 지름 16px + 여유. 이보다 가까우면 두 점이 한 덩어리로 보인다. */
+/** 점 지름 15px + 흰 테두리 2px. 이보다 가까우면 두 점이 한 덩어리로 보인다. */
 const MIN_NODE_PX = 22;
-/** 배지 높이 20px + 여유. */
-const MIN_BADGE_PX = 26;
+
+/**
+ * 배지와 점은 원이 아니라 사각형으로 잰다. 배지는 가로로 긴 알약이고 점은
+ * 작은 원이라, 중심점 거리 하나로 재면 가로로는 턱없이 모자라고 세로로는
+ * 과하다 — 실제로 그렇게 쟀다가 통과할 수 없는 문턱을 만들었다.
+ */
+const BADGE_BOX = { w: 88, h: 22 };
+const NODE_BOX = { w: 17, h: 17 };
+
+function overlaps(
+  a: Vec3,
+  aBox: { w: number; h: number },
+  b: Vec3,
+  bBox: { w: number; h: number },
+  scale: number,
+): boolean {
+  return (
+    Math.abs((a[0] - b[0]) * scale) < (aBox.w + bBox.w) / 2 &&
+    Math.abs((a[1] - b[1]) * scale) < (aBox.h + bBox.h) / 2
+  );
+}
 
 describe("화면에서 겹치지 않는다", () => {
   for (const [vpName, w, h] of VIEWPORTS) {
     for (const [caseName, c] of CASES) {
-      it(`${vpName} · ${caseName} — 점끼리 ${MIN_NODE_PX}px 이상 떨어진다`, () => {
+      it(`${vpName} · ${caseName} — 같은 층의 점끼리 ${MIN_NODE_PX}px 이상 떨어진다`, () => {
         const layout = buildLayout(c);
         const scale = screenScale(w, h, layoutExtent(layout));
         const pts = [...placePeople(peopleOf(c)).values()];
         let worst = Infinity;
         for (let i = 0; i < pts.length; i += 1)
-          for (let j = i + 1; j < pts.length; j += 1)
+          for (let j = i + 1; j < pts.length; j += 1) {
+            // 층이 다르면 높이로 갈린다 — 기본 시점에서 겹쳐 보이는 것이 설계다.
+            if (Math.abs(pts[i][2] - pts[j][2]) > 1e-9) continue;
             worst = Math.min(
               worst,
               Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]) * scale,
             );
+          }
         expect(worst).toBeGreaterThanOrEqual(MIN_NODE_PX);
       });
 
-      it(`${vpName} · ${caseName} — 배지끼리, 배지와 점이 ${MIN_BADGE_PX}px 이상 떨어진다`, () => {
+      it(`${vpName} · ${caseName} — 배지가 점과도, 다른 배지와도 겹치지 않는다`, () => {
         const layout = buildLayout(c);
         const scale = screenScale(w, h, layoutExtent(layout));
         const badges: Vec3[] = [];
@@ -622,16 +849,14 @@ describe("화면에서 겹치지 않는다", () => {
             const b = badgeAnchor(layout, role, f);
             if (b) badges.push(b);
           }
-        const px = (a: Vec3, b: Vec3) =>
-          Math.hypot(a[0] - b[0], a[1] - b[1]) * scale;
 
         for (let i = 0; i < badges.length; i += 1)
           for (let j = i + 1; j < badges.length; j += 1)
-            expect(px(badges[i], badges[j])).toBeGreaterThanOrEqual(MIN_BADGE_PX);
+            expect(overlaps(badges[i], BADGE_BOX, badges[j], BADGE_BOX, scale)).toBe(false);
 
         for (const b of badges)
           for (const p of placePeople(peopleOf(c)).values())
-            expect(px(b, p)).toBeGreaterThanOrEqual(MIN_BADGE_PX);
+            expect(overlaps(b, BADGE_BOX, p, NODE_BOX, scale)).toBe(false);
       });
     }
   }
@@ -640,8 +865,7 @@ describe("화면에서 겹치지 않는다", () => {
     for (const [, w, h] of VIEWPORTS) {
       const layout = buildLayout(FULL);
       const extent = layoutExtent(layout);
-      const scale = screenScale(w, h, extent);
-      expect(extent * scale * 2).toBeLessThanOrEqual(Math.min(w, h) + 1e-9);
+      expect(extent * screenScale(w, h, extent) * 2).toBeLessThanOrEqual(Math.min(w, h) + 1e-9);
     }
   });
 
@@ -652,7 +876,7 @@ describe("화면에서 겹치지 않는다", () => {
     expect(badgeAnchor(layout, "beside", "none")).toBeNull();
   });
 
-  it("배지는 자기 칸 사람들보다 바깥이다", () => {
+  it("배지는 자기 칸 사람들보다 바깥이고 바닥 층에 있다", () => {
     const layout = buildLayout(SEEDED);
     for (const role of ROLES)
       for (const f of FEATURES) {
@@ -660,6 +884,7 @@ describe("화면에서 겹치지 않는다", () => {
         const cell = layout.cells[role][f];
         if (!b || !cell) continue;
         expect(Math.hypot(b[0], b[1])).toBeGreaterThan(Math.max(...cell.radii));
+        expect(b[2]).toBe(0);
       }
   });
 });
@@ -679,10 +904,10 @@ export const BADGE_MARGIN = 0.14;
 /**
  * 배지가 설 자리. 사람이 없는 칸은 null 이다.
  *
- * 자리는 그 칸 슬롯의 각도 위, 그 칸 사람들보다 바깥이다. 이 배치의 핵심이
- * 여기서 값을 한다: **한 칸은 자기 각도를 통째로 소유하고 그 바깥은 비어
- * 있다.** 그래서 배지를 밀어낼 방향을 찾을 필요가 없다 — 옛 badge-offset.ts
- * 가 화면공간에서 하던 그 일이 통째로 사라진다.
+ * 자리는 그 칸 슬롯의 각도 위, 그 칸 사람들보다 바깥이고 바닥 층이다. 이
+ * 배치의 핵심이 여기서 값을 한다: **한 칸은 자기 각도를 통째로 소유하고 그
+ * 바깥은 비어 있다.** 그래서 배지를 밀어낼 방향을 찾을 필요가 없다 — 옛
+ * badge-offset.ts 가 매 프레임 화면공간에서 하던 그 일이 통째로 사라진다.
  */
 export function badgeAnchor(
   layout: MapLayout,
@@ -707,7 +932,7 @@ export function layoutExtent(layout: MapLayout): number {
 }
 
 /**
- * 월드 1 단위당 화면 픽셀. 직교 카메라의 zoom 이 곧 이 값이다.
+ * 월드 1 단위당 화면 픽셀. 기본 시점 직교 카메라의 zoom 이 곧 이 값이다.
  *
  * 짧은 변에 맞춘다 — 지도는 원반이라 긴 변에 맞추면 짧은 변에서 잘린다.
  * 데스크톱의 납작한 캔버스(가로 700 · 세로 500)에서 직전 설계가 깨진 지점이
@@ -722,66 +947,102 @@ export function screenScale(width: number, height: number, extent: number): numb
 
 Run: `npx vitest run src/app/map/_lib/radial.test.ts`
 
-떨어지면 **테스트의 문턱(`MIN_NODE_PX`, `MIN_BADGE_PX`)을 낮추지 말고** 아래 순서로 상수를 조정하고, 무엇을 왜 바꿨는지 그 상수의 주석에 실측값과 함께 남긴다:
+떨어지면 **테스트의 문턱(`MIN_NODE_PX`, `BADGE_BOX`, `NODE_BOX`)을 낮추지 말고**
+아래 순서로 상수를 조정하고, 무엇을 왜 바꿨는지 그 상수의 주석에 실측값과 함께
+남긴다:
 
-1. 점끼리 붙으면 → `MIN_GAP` ↑ (칸이 넓어지고 줄이 늘어난다)
-2. 줄끼리 붙으면 → `ROW_PITCH` ↑
-3. 이웃 링의 점끼리 붙으면 → `RING_GAP` ↑
-4. 배지와 점이 붙으면 → `BADGE_MARGIN` ↑
-5. 지도가 커져 전체가 작아 보이면 → `RING_START` ↓ (안쪽 구멍을 줄인다. 단 중심 오브가 0.3 정도를 쓴다)
+1. 점끼리 붙으면 → `MIN_GAP` 올린다
+2. 줄끼리 붙으면 → `ROW_PITCH` 올린다
+3. 이웃 링의 점끼리 붙으면 → `RING_GAP` 올린다
+4. 배지와 점이 겹치면 → `BADGE_MARGIN` 올린다
+5. 지도가 커져 전체가 작아 보이면 → `RING_START` 내린다 (중심 오브가 0.3 정도를 쓴다)
+
+WARNING: `MIN_GAP` 이나 `ROW_PITCH` 를 올리면 한 층에 들어가는 인원이 줄어
+**Task 3 의 "현실적인 분포에는 층이 생기지 않는다" 가 깨질 수 있다.** 두
+불변식은 함께 성립해야 한다 — 깨지면 `MAX_FLAT_ROWS` 를 올려 되찾는다. 그래도
+둘을 동시에 만족시키지 못하면 도달한 수치와 함께 BLOCKED 로 보고한다. **문턱을
+낮춰 통과를 만들지 않는다** — 아무것도 증명하지 못하는 초록 테스트는 정직한
+실패보다 나쁘다.
 
 - [ ] **Step 5: 커밋**
 
 ```bash
 git add src/app/map/_lib/radial.ts src/app/map/_lib/radial.test.ts
-git commit -m "test(map): 화면 겹침을 25·50명 × 두 화면 비율로 잠근다"
+git commit -m "test(map): 화면 겹침을 25·50명 x 두 화면 비율로 잠근다"
 ```
 
 ---
 
-### Task 4: World 를 직교 고정 카메라로 바꾼다
+### Task 5: World 를 위에서 내려다보는 직교 카메라로 바꾼다
 
 **Files:**
 - Modify: `src/app/map/_components/World.tsx`
-- Create: `src/app/map/_components/FitCamera.tsx`
+- Create: `src/app/map/_components/MapCamera.tsx`
 
 **Interfaces:**
-- Consumes: Task 3 의 `placePeople`, `buildLayout`, `layoutExtent`, `screenScale`, `MapLayout`
-- Produces: `<FitCamera extent={number} />` — 캔버스 크기가 바뀔 때마다 직교 카메라의 zoom 을 다시 맞춘다
+- Consumes: Task 4 의 `placePeople`, `buildLayout`, `layoutExtent`, `screenScale`, `MapLayout`
+- Produces: `<MapCamera extent={number} />` — 지도를 화면에 맞추고, 회전·줌 조작을 붙인다
 
-- [ ] **Step 1: FitCamera 를 만든다**
+- [ ] **Step 1: MapCamera 를 만든다**
 
-`src/app/map/_components/FitCamera.tsx`:
+`src/app/map/_components/MapCamera.tsx`:
 
 ```tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { OrbitControls } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { screenScale } from "../_lib/radial";
 
+/** 기울임 상한. 완전히 옆에서 보면 원반이 선이 되어 아무것도 안 읽힌다. */
+const MAX_TILT = (70 * Math.PI) / 180;
+
+/** 기본 배율 대비 줌 한계. 조밀한 칸을 파고들 수 있을 만큼은 열되, 길은 잃지 않게. */
+const ZOOM_RANGE = { min: 0.7, max: 5 };
+
 /**
- * 직교 카메라를 지도 크기에 맞춘다.
+ * 지도를 화면에 맞추고, 사용자가 돌리고 당길 수 있게 한다.
  *
- * 원근 카메라를 쓰지 않는 이유: 배치가 평면이라 원근이 할 일이 없고, 직교면
- * "화면에 꽉 차게" 가 zoom 한 값 계산으로 끝난다. 그 덕에 월드 거리와 화면
- * 픽셀이 상수배로 묶여, radial.test.ts 가 브라우저 없이 화면 겹침을 잴 수 있다.
+ * 직교 카메라를 쓰는 이유: 배치가 평면이라 원근이 할 일이 없고, 직교면
+ * "화면에 꽉 차게" 가 zoom 한 값 계산으로 끝난다. 그 덕에 기본 시점에서
+ * 월드 거리와 화면 픽셀이 상수배로 묶여, radial.test.ts 가 브라우저 없이
+ * 화면 겹침을 잴 수 있다.
  *
- * 카메라를 움직이는 코드는 여기 말고 없다. 사람을 선택해도 카메라는 가만히
- * 있는다 — 전부가 늘 보이는데 날아갈 이유가 없다.
+ * 회전을 여는 이유는 하나다: 한 칸에 사람이 몰리면 평면만으로는 간격을 지킬
+ * 수 없어 넘치는 줄을 위로 쌓는데(radial.ts 의 MAX_FLAT_ROWS), 그 층은
+ * 기울여야만 갈라진다. 팬은 열지 않는다 — 중심이 "나" 라는 것이 이 화면의
+ * 전부이고, 팬은 그 중심을 잃게 한다.
+ *
+ * 크기가 바뀌면 배율을 다시 맞춘다. 사용자가 손으로 준 줌은 그때 초기화되는데,
+ * 창 크기가 바뀐 뒤에도 옛 배율을 지키면 지도가 잘리거나 한쪽에 몰리는 편이
+ * 더 나쁘다.
  */
-export function FitCamera({ extent }: { extent: number }) {
+export function MapCamera({ extent }: { extent: number }) {
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
+  const [base, setBase] = useState(1);
 
   useEffect(() => {
+    const next = screenScale(size.width, size.height, extent);
+    setBase(next);
     if (!(camera instanceof THREE.OrthographicCamera)) return;
-    camera.zoom = screenScale(size.width, size.height, extent);
+    camera.zoom = next;
     camera.updateProjectionMatrix();
   }, [camera, size.width, size.height, extent]);
 
-  return null;
+  return (
+    <OrbitControls
+      makeDefault
+      enablePan={false}
+      target={[0, 0, 0]}
+      minPolarAngle={0}
+      maxPolarAngle={MAX_TILT}
+      minZoom={base * ZOOM_RANGE.min}
+      maxZoom={base * ZOOM_RANGE.max}
+    />
+  );
 }
 ```
 
@@ -791,46 +1052,70 @@ export function FitCamera({ extent }: { extent: number }) {
 
 1. `import { CameraRig } from "./CameraRig";` 와 `import { CAMERA_FOV, DEFAULT_CAMERA_POSITION } from "../_lib/camera";` 를 지운다.
 2. `import { placePeople } from "../_lib/layout";` → `import { buildLayout, layoutExtent, placePeople } from "../_lib/radial";`
-3. `import { FitCamera } from "./FitCamera";` 를 더한다.
-4. `<Canvas>` 의 camera prop 을 바꾼다:
+3. `import { MapCamera } from "./MapCamera";` 를 더한다.
+4. `<Canvas>` 의 camera prop 을 바꾼다. 카메라는 지도 평면 **위**에 선다:
 
 ```tsx
     <Canvas
       orthographic
-      camera={{ position: [0, 0, 10], zoom: 1, near: 0.1, far: 100 }}
+      camera={{ position: [0, 10, 0], zoom: 1, near: 0.1, far: 100 }}
 ```
 
-5. `counts` 를 `buildLayout` 에도 넘겨 extent 를 구한다 (`counts` 를 만드는 `useMemo` 는 그대로 두고 그 아래에 더한다):
+5. `counts` 를 만드는 `useMemo` 아래에 더한다:
 
 ```tsx
   const layout = useMemo(() => buildLayout(counts), [counts]);
   const extent = useMemo(() => layoutExtent(layout), [layout]);
 ```
 
-6. `<CameraRig ... />` 줄을 `<FitCamera extent={extent} />` 로 바꾼다.
-7. `<fog ... />` 줄을 지운다 — 모든 점이 같은 깊이라 아무 일도 하지 않는다.
-8. `<RegionLabels counts={counts} />` 는 **이 태스크에서 그대로 둔다.** Task 6 이 그 컴포넌트의 props 를 바꾸면서 이 줄도 함께 고친다 — 여기서 미리 `layout` 을 넘기면 타입이 맞지 않아 이 태스크가 컴파일되지 않는다.
+6. `<CameraRig ... />` 줄을 `<MapCamera extent={extent} />` 로 바꾼다.
+7. `<fog ... />` 줄을 지운다.
+8. **씬 전체를 눕힌다.** `radial.ts` 는 배치를 xy 평면에 그리고 층 높이를 +z 로
+   준다. three 의 조작계는 +y 가 위라고 보므로, 그대로 두면 회전이 엉뚱한 축을
+   돈다. `<ConnectionLines>`·`<SelfCore>`·`<RegionLabels>`·사람 마커 전부를 한
+   group 으로 감싼다 — 이 회전이 배치의 (x, y, z) 를 월드의 (x, z, −y) 로 보내,
+   층 높이가 월드에서 진짜 "위" 가 된다:
+
+```tsx
+      <group rotation={[-Math.PI / 2, 0, 0]}>
+        {/* ConnectionLines · SelfCore · RegionLabels · PersonMarker 들 */}
+      </group>
+```
+
+   `<MapCamera>` 는 이 group **밖**에 둔다 — 카메라는 월드에 서 있지 지도에
+   실려 있지 않다.
+
+9. `<RegionLabels counts={counts} />` 는 **이 태스크에서 그대로 둔다.** Task 7 이
+   그 컴포넌트의 props 를 바꾸면서 이 줄도 함께 고친다 — 여기서 미리 `layout` 을
+   넘기면 타입이 맞지 않아 이 태스크가 컴파일되지 않는다.
 
 - [ ] **Step 3: 화면에서 확인한다**
 
-dev 서버는 이미 `:3000` 에서 돌고 있다. 브라우저 도구로 `http://localhost:3000/map/39c91384-6df1-44f7-bda8-d5e039862b8b` 를 열고:
+dev 서버는 이미 `:3000` 에서 돌고 있다. 브라우저 도구로
+`http://localhost:3000/map/39c91384-6df1-44f7-bda8-d5e039862b8b` 를 열고:
 
 - `read_console_messages` 로 에러가 없는지 본다.
 - `computer {action: "screenshot"}` 로 원반이 잘리지 않고 통째로 보이는지 본다.
-- `resize_window {preset: "mobile"}` 로 바꾼 뒤 다시 스크린샷 — 모바일에서도 통째로 보여야 한다. 확인 후 `preset: "desktop"` 으로 되돌린다.
+- 캔버스를 드래그해(`computer {action: "left_click_drag"}`) 지도가 기울어지는지,
+  손을 떼도 원반이 화면 안에 남는지 본다.
+- `resize_window {preset: "mobile"}` 로 바꾼 뒤 다시 스크린샷 — 모바일에서도
+  통째로 보여야 한다. 확인 후 `preset: "desktop"` 으로 되돌린다.
 
-이 시점에는 아직 명패가 옛 방식이라 겹쳐 보이고, **구역 배지는 엉뚱한 자리에 뜬다** — `RegionLabels` 가 아직 옛 구면 좌표(`subAnchor`)로 자리를 잡기 때문이고 Task 6 에서 고친다. 여기서는 **점의 배치가 다섯 덩어리 × 세 줄로 정돈됐는지**만 본다.
+이 시점에는 아직 명패가 옛 방식이라 겹쳐 보이고, **구역 배지는 엉뚱한 자리에
+뜬다** — `RegionLabels` 가 아직 옛 구면 좌표(`subAnchor`)로 자리를 잡기 때문이고
+Task 7 에서 고친다. 여기서는 **점의 배치가 다섯 덩어리로 정돈됐는지**와
+**기울이기가 도는지**만 본다.
 
 - [ ] **Step 4: 커밋**
 
 ```bash
-git add src/app/map/_components/World.tsx src/app/map/_components/FitCamera.tsx
-git commit -m "feat(map): 카메라를 직교 고정으로 바꾸고 지도를 화면에 맞춘다"
+git add src/app/map/_components/World.tsx src/app/map/_components/MapCamera.tsx
+git commit -m "feat(map): 지도를 위에서 내려다보게 하고 돌려볼 수 있게 한다"
 ```
 
 ---
 
-### Task 5: 점만 남기고, 이름은 선택·호버한 한 명만
+### Task 6: 점만 남기고, 이름은 선택·호버한 한 명만
 
 **Files:**
 - Modify: `src/app/map/_components/PersonMarker.tsx`
@@ -998,7 +1283,7 @@ export function SelfCore() {
 }
 ```
 
-`PersonNode` 는 이제 아무도 부르지 않는다 — 파일 삭제는 Task 7 에서 한다.
+`PersonNode` 는 이제 아무도 부르지 않는다 — 파일 삭제는 Task 8 에서 한다.
 
 - [ ] **Step 4: 화면에서 확인한다**
 
@@ -1016,13 +1301,13 @@ git commit -m "feat(map): 노드를 점으로 줄이고 이름은 선택·호버
 
 ---
 
-### Task 6: 15슬롯 배지
+### Task 7: 15슬롯 배지
 
 **Files:**
 - Modify: `src/app/map/_components/RegionLabels.tsx`
 
 **Interfaces:**
-- Consumes: Task 3 의 `badgeAnchor`, `MapLayout`; World 가 `layout` 과 `counts` 를 내려준다
+- Consumes: Task 4 의 `badgeAnchor`, `MapLayout`; World 가 `layout` 과 `counts` 를 내려준다
 - Produces: `<RegionLabels layout={MapLayout} counts={CellCounts} />`
 
 - [ ] **Step 1: 다시 쓴다**
@@ -1129,7 +1414,7 @@ function Badge({
 
 - [ ] **Step 2: World 가 layout 을 내려주게 한다**
 
-`World.tsx` 의 `<RegionLabels counts={counts} />` 를 아래로 바꾼다. `layout` 은 Task 4 에서 이미 만들어 뒀다.
+`World.tsx` 의 `<RegionLabels counts={counts} />` 를 아래로 바꾼다. `layout` 은 Task 5 에서 이미 만들어 뒀다.
 
 ```tsx
       <RegionLabels layout={layout} counts={counts} />
@@ -1142,7 +1427,7 @@ function Badge({
 - 배지가 점이나 다른 배지와 겹치지 않는지
 - 모바일 프리셋에서도 같은지 (확인 후 desktop 으로 되돌린다)
 
-겹쳐 보이면 `radial.test.ts` 의 배지 테스트를 통과했는데도 겹친 것이므로 **테스트의 `MIN_BADGE_PX` 가 실제 배지 크기보다 작다는 뜻이다.** 실제 배지의 화면 크기를 재서 그 값을 올리고 Task 3 의 조정 절차를 다시 밟는다.
+겹쳐 보이면 `radial.test.ts` 의 배지 테스트를 통과했는데도 겹친 것이므로 **테스트의 `MIN_BADGE_PX` 가 실제 배지 크기보다 작다는 뜻이다.** 실제 배지의 화면 크기를 재서 그 값을 올리고 Task 4 의 조정 절차를 다시 밟는다.
 
 - [ ] **Step 4: 커밋**
 
@@ -1153,7 +1438,7 @@ git commit -m "feat(map): 구역 배지를 15슬롯 위에 계산으로 놓는�
 
 ---
 
-### Task 7: 옛 3D 배치 코드를 지운다
+### Task 8: 옛 3D 배치 코드를 지운다
 
 **Files:**
 - Delete: `src/app/map/_lib/layout.ts`, `layout.test.ts`, `camera.ts`, `badge-offset.ts`, `badge-offset.test.ts`, `node-visual.ts`, `node-visual.test.ts`
@@ -1197,7 +1482,7 @@ npm run lint
 npm test
 ```
 
-Expected: 셋 다 통과. `layout.test.ts` 가 잠그던 보증(등거리·화면 안·최소 간격)은 Task 2·3 의 테스트가 이어받았다.
+Expected: 셋 다 통과. `layout.test.ts` 가 잠그던 보증(등거리·화면 안·최소 간격)은 Task 2·3·4 의 테스트가 이어받았다.
 
 - [ ] **Step 5: 마지막으로 화면을 본다**
 
@@ -1225,7 +1510,8 @@ git commit -m "refactor(map): 구면 배치·카메라 조작 코드를 걷어�
 ## 완료 기준 (스펙 §완료 기준과 같다)
 
 1. 데스크톱(≈700×500)·모바일(375×812) 양쪽에서 25명·50명 지도가 잘리지 않고 전부 보인다
-2. 점끼리, 배지끼리, 배지와 점이 겹치지 않는다 — `radial.test.ts` 가 네 조합에서 잠근다
-3. 사람이 있는 칸의 배지가 전부 읽힌다
-4. 선택·호버·목록 연동이 지금과 같이 동작한다
-5. `npm run typecheck` · `npm run lint` · `npm test` 통과
+2. 같은 층의 점끼리, 배지끼리, 배지와 점이 겹치지 않는다 — `radial.test.ts` 가 네 조합에서 잠근다
+3. 25명·50명에는 층이 생기지 않는다. 한 칸에 몰린 지도만 층으로 쌓이고, 기울이면 갈라져 보인다
+4. 사람이 있는 칸의 배지가 전부 읽힌다
+5. 선택·호버·목록 연동이 지금과 같이 동작한다
+6. `npm run typecheck` · `npm run lint` · `npm test` 통과
