@@ -803,8 +803,13 @@ const MIN_NODE_PX = 22;
  * 배지와 점은 원이 아니라 사각형으로 잰다. 배지는 가로로 긴 알약이고 점은
  * 작은 원이라, 중심점 거리 하나로 재면 가로로는 턱없이 모자라고 세로로는
  * 과하다 — 실제로 그렇게 쟀다가 통과할 수 없는 문턱을 만들었다.
+ *
+ * 폭 56 은 아이콘을 빼고 글자를 줄인 배지의 실측 폭이다. 88(아이콘 + 큰 글자)로는
+ * 성립하지 않는다: 15칸이 다 찬 지도에서 이웃 슬롯의 각도 간격은 18.67° 이고,
+ * 그때 두 배지 중심 사이의 화면 거리가 모바일에서 60.8px 이라 88 폭은 무조건
+ * 겹친다. **Task 7 이 그리는 배지가 이 상자와 같아야 한다.**
  */
-const BADGE_BOX = { w: 88, h: 22 };
+const BADGE_BOX = { w: 56, h: 22 };
 const NODE_BOX = { w: 17, h: 17 };
 
 function overlaps(
@@ -898,16 +903,25 @@ Expected: FAIL — `badgeAnchor is not a function`
 - [ ] **Step 3: 구현**
 
 ```ts
-/** 배지를 그 칸 가장 바깥 줄에서 얼마나 더 밀어낼지. */
-export const BADGE_MARGIN = 0.14;
+/** 사람이 놓인 가장 바깥에서 배지 원까지의 거리. */
+export const BADGE_MARGIN = 0.2;
 
 /**
  * 배지가 설 자리. 사람이 없는 칸은 null 이다.
  *
- * 자리는 그 칸 슬롯의 각도 위, 그 칸 사람들보다 바깥이고 바닥 층이다. 이
- * 배치의 핵심이 여기서 값을 한다: **한 칸은 자기 각도를 통째로 소유하고 그
- * 바깥은 비어 있다.** 그래서 배지를 밀어낼 방향을 찾을 필요가 없다 — 옛
- * badge-offset.ts 가 매 프레임 화면공간에서 하던 그 일이 통째로 사라진다.
+ * **모든 배지가 지도 바깥 같은 원 위에 선다.** 각도는 그 칸의 슬롯이라 배지는
+ * 여전히 자기 칸을 가리키지만, 반지름은 칸마다 다르지 않다.
+ *
+ * 칸마다 "자기 줄 바로 바깥" 에 두는 편이 더 가까워 보이고 실제로 그렇게 짰다가
+ * 되돌렸다. 그것은 성립하지 않는다 — 六合 링은 가장 안쪽이라 그 배지를 바깥으로
+ * 밀면 기본 링의 영역 한가운데에 떨어지고, 두 슬롯은 SLOT_MARGIN(1°) 만 두고
+ * 붙어 있어 기본 칸 가장자리의 사람과 겹친다(실측: 모바일 375px · 한도 50명에서
+ * 6.6px 침범). 어떤 상수를 만져도 안 풀린다 — 간격을 벌리는 모든 조정이
+ * layoutExtent 를 같이 키워 배율로 상쇄되기 때문이다.
+ *
+ * 바깥 원은 그 충돌을 구조적으로 없앤다: 사람은 전부 outerRadius 안쪽이고 배지는
+ * 전부 그 바깥이라, 배지와 점이 겹칠 방법 자체가 없다. 남는 것은 배지끼리인데
+ * 그것은 각도로 갈린다.
  */
 export function badgeAnchor(
   layout: MapLayout,
@@ -916,19 +930,12 @@ export function badgeAnchor(
 ): Vec3 | null {
   const cell = layout.cells[role][feature];
   if (!cell) return null;
-  const outer = Math.max(...cell.radii);
-  return at(outer + BADGE_MARGIN, sectorAngle(role) + cell.slot.center);
+  return at(layout.outerRadius + BADGE_MARGIN, sectorAngle(role) + cell.slot.center);
 }
 
 /** 배지까지 포함한 지도의 반지름. 카메라가 이 값을 화면에 맞춘다. */
 export function layoutExtent(layout: MapLayout): number {
-  let extent = layout.outerRadius;
-  for (const role of ROLE_ORDER)
-    for (const feature of FEATURE_ORDER) {
-      const b = badgeAnchor(layout, role, feature);
-      if (b) extent = Math.max(extent, Math.hypot(b[0], b[1]));
-    }
-  return extent;
+  return layout.outerRadius + BADGE_MARGIN;
 }
 
 /**
@@ -954,7 +961,7 @@ Run: `npx vitest run src/app/map/_lib/radial.test.ts`
 1. 점끼리 붙으면 → `MIN_GAP` 올린다
 2. 줄끼리 붙으면 → `ROW_PITCH` 올린다
 3. 이웃 링의 점끼리 붙으면 → `RING_GAP` 올린다
-4. 배지와 점이 겹치면 → `BADGE_MARGIN` 올린다
+4. 배지와 점이 겹치면 → `BADGE_MARGIN` 올린다 (배지 원 전체가 바깥으로 나간다)
 5. 지도가 커져 전체가 작아 보이면 → `RING_START` 내린다 (중심 오브가 0.3 정도를 쓴다)
 
 WARNING: `MIN_GAP` 이나 `ROW_PITCH` 를 올리면 한 층에 들어가는 인원이 줄어
@@ -1321,7 +1328,6 @@ import { Html } from "@react-three/drei";
 import { roleColor, roleTextColor } from "../_data/role-colors";
 import {
   DISPLAY_TITLES,
-  ROLE_ICON,
   ROLE_ORDER,
   type Feature,
   type RelationRole,
@@ -1390,20 +1396,24 @@ function Badge({
       style={{ pointerEvents: "none" }}
     >
       <div
-        className="flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-[3px] select-none"
+        className="flex items-center gap-1 whitespace-nowrap rounded-full border px-1.5 py-[2px] select-none"
         style={{
           borderColor: `${roleColor(role)}4d`,
           backgroundColor: "#ffffffe6",
           color: roleTextColor(role),
         }}
       >
-        <span className="text-[10px] leading-none" aria-hidden>
-          {ROLE_ICON[role]}
-        </span>
-        <span className="text-[10px] font-semibold leading-none tracking-[0.02em]">
+        {/*
+          이 배지의 화면 크기는 radial.test.ts 의 BADGE_BOX(56x22)와 같아야 한다.
+          그 상자가 겹침 불변식의 기준이라, 여기서 아이콘을 되살리거나 글자를
+          키우면 테스트는 초록인데 화면에서는 겹친다. 아이콘(ROLE_ICON)이 빠진
+          것도 그래서다 — 15칸이 다 찬 지도에서 이웃 배지 사이 화면 거리가
+          모바일 60.8px 이라 88px 짜리 배지는 들어가지 않는다.
+        */}
+        <span className="text-[9px] font-semibold leading-none tracking-[0.02em]">
           {DISPLAY_TITLES[role][feature]}
         </span>
-        <span className="text-[10px] font-bold leading-none tabular-nums opacity-80">
+        <span className="text-[9px] font-bold leading-none tabular-nums opacity-80">
           {count}
         </span>
       </div>
