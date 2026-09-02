@@ -83,9 +83,9 @@ export type Vec3 = readonly [number, number, number];
 /** 지도의 중심. 관계가 없으므로 슬롯도 링도 없다. */
 export const SELF_POSITION: Vec3 = [0, 0, 0];
 
-/** 각도 → 좌표. 12시가 0, 시계방향이 +. 이 변환은 이 파일에만 있다. */
-function at(r: number, a: number): Vec3 {
-  return [r * Math.sin(a), r * Math.cos(a), 0];
+/** 각도·높이 → 좌표. 12시가 0, 시계방향이 +. 이 변환은 이 파일에만 있다. */
+function at(r: number, a: number, z = 0): Vec3 {
+  return [r * Math.sin(a), r * Math.cos(a), z];
 }
 
 /**
@@ -104,12 +104,46 @@ export const ROW_PITCH = 0.13;
 /** 같은 줄에서 사람과 사람 사이 최소 간격. 열 수를 정하는 것이 이 값이다. */
 export const MIN_GAP = 0.17;
 
+/**
+ * 한 칸이 평면에서 쓸 수 있는 최대 줄 수. 그보다 더 필요하면 바깥이 아니라 위로 간다.
+ *
+ * 상한이 없으면 배치가 성립하지 않는다. 줄이 밖으로 늘어나면 지도 반지름이
+ * 커지고, 카메라가 그 반지름을 화면에 맞추느라 배율이 같은 비율로 줄어 간격을
+ * 벌리려는 시도가 상쇄된다 — 상수 5개를 5,040 조합으로 훑어도 모바일 375px 에서
+ * 한 칸 40명은 19.7px 에서 멈췄다(이론 상한 ~20.4px). 층은 반지름을 늘리지
+ * 않으므로 그 상쇄를 끊는다.
+ *
+ * 값은 **측정으로** 정한다: 현실적인 분포(시드 25명·한도 50명)에 층이 하나도
+ * 생기지 않는 가장 작은 값이어야 한다. 층은 예외지 상시 동작이 아니다.
+ *
+ * 측정(buildLayout 출력을 직접 셌다): 시드 25명에서 가장 붐비는 칸은
+ * fill/none 등 n=3 으로 2줄이면 끝난다. 한도 50명에서 가장 붐비는 칸은
+ * fill/none·beside/none 으로 각 n=9, perRow=[2,2,3,2] — 정확히 4줄이
+ * 필요하다. MAX_FLAT_ROWS=3 이면 이 9명 칸의 마지막 2명이 층 1 로 밀려나
+ * "현실적인 분포는 층이 없어야 한다"는 요구를 어긴다. 4 는 두 픽스처 모두
+ * 층 없이 통과하는 가장 작은 값이라 이걸로 고정했다. (반대로 LOPSIDED 의
+ * beside/none=40 은 11줄이 필요해 4에서도 층 0/1/2 세 층으로 쌓인다 — 이건
+ * 의도된 예외다.)
+ */
+export const MAX_FLAT_ROWS = 4;
+
+/**
+ * 층과 층 사이 높이.
+ *
+ * 기본 시점(바로 위에서 직교)에서는 투영에 영향이 없다 — 겹쳐 보이는 것이
+ * "여기 사람이 겹칠 만큼 많다"는 신호고, 카메라를 기울이는 순간 갈라진다.
+ * 겹침을 깊이로 말하는 것이 이 값의 일이다.
+ */
+export const LAYER_HEIGHT = 0.22;
+
 export type CellLayout = {
   readonly slot: Slot;
-  /** 줄별 반지름 (안 → 바깥) */
+  /** 줄별 반지름. 층이 여럿이면 같은 반지름이 층마다 다시 나온다. */
   readonly radii: readonly number[];
   /** 줄별 인원 */
   readonly perRow: readonly number[];
+  /** 줄별 층 번호 (0 = 바닥) */
+  readonly layerOf: readonly number[];
 };
 
 export type MapLayout = {
@@ -132,20 +166,32 @@ function colsAt(radius: number, half: number): number {
   return Math.max(1, Math.floor(arc / MIN_GAP) + 1);
 }
 
-/** n 명을 줄로 나눈다. 안쪽 줄부터 채우고, 모자라면 바깥으로 한 줄 더. */
+/**
+ * n 명을 줄로 나눈다. 안쪽 줄부터 채우고, 평면 줄이 MAX_FLAT_ROWS 를 넘으면
+ * 바깥이 아니라 위로 — 다음 층의 첫 줄(다시 startRadius)로 돌아간다.
+ */
 function rowsFor(n: number, startRadius: number, half: number) {
   const radii: number[] = [];
   const perRow: number[] = [];
-  let radius = startRadius;
+  const layerOf: number[] = [];
   let left = n;
+  let row = 0;
+  let layer = 0;
   while (left > 0) {
+    // 평면 줄을 다 쓰면 바깥이 아니라 위로 간다 — 반지름은 여기서 멈춘다.
+    if (row === MAX_FLAT_ROWS) {
+      row = 0;
+      layer += 1;
+    }
+    const radius = startRadius + row * ROW_PITCH;
     const take = Math.min(colsAt(radius, half), left);
     radii.push(radius);
     perRow.push(take);
+    layerOf.push(layer);
     left -= take;
-    radius += ROW_PITCH;
+    row += 1;
   }
-  return { radii, perRow };
+  return { radii, perRow, layerOf };
 }
 
 /**
@@ -176,9 +222,11 @@ export function buildLayout(counts: CellCounts): MapLayout {
       const n = counts[role][feature];
       const slot = slots[role][feature];
       if (n === 0 || !slot) continue;
-      const { radii, perRow } = rowsFor(n, ringStart, slot.half);
-      cells[role][feature] = { slot, radii, perRow };
-      thickest = Math.max(thickest, radii[radii.length - 1]);
+      const { radii, perRow, layerOf } = rowsFor(n, ringStart, slot.half);
+      cells[role][feature] = { slot, radii, perRow, layerOf };
+      // 층이 있으면 마지막 줄이 다음 층의 첫 줄(가장 안쪽 반지름)일 수 있다 —
+      // radii[radii.length - 1] 이 아니라 실제 최댓값을 써야 한다.
+      thickest = Math.max(thickest, ...radii);
       ringEmpty = false;
     }
     // 다섯 구역 모두에 이 feature 가 없으면 이 링 자체가 없는 것이다 —
@@ -230,12 +278,13 @@ export function placePeople(people: readonly Placeable[]): Map<string, Vec3> {
     let cursor = 0;
     cell.radii.forEach((radius, row) => {
       const inRow = cell.perRow[row];
+      const z = cell.layerOf[row] * LAYER_HEIGHT;
       const cols = colsAt(radius, cell.slot.half);
       // 열 간격은 슬롯 폭을 (열 수 − 1)로 나눈 각도다. 한 열뿐이면 간격이 없다.
       const step = cols > 1 ? (2 * cell.slot.half) / (cols - 1) : 0;
       for (let i = 0; i < inRow; i += 1) {
         const offset = (i - (inRow - 1) / 2) * step;
-        out.set(ids[cursor], at(radius, base + offset));
+        out.set(ids[cursor], at(radius, base + offset, z));
         cursor += 1;
       }
     });

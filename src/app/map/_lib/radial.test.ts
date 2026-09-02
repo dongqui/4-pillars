@@ -88,7 +88,10 @@ describe("슬롯 배분", () => {
 import {
   buildLayout,
   placePeople,
+  LAYER_HEIGHT,
+  MAX_FLAT_ROWS,
   RING_START,
+  ROW_PITCH,
   SELF_POSITION,
   type CellCounts,
   type Placeable,
@@ -182,7 +185,8 @@ describe("링과 격자", () => {
       expect(Math.abs(rel - cell.slot.center)).toBeLessThanOrEqual(cell.slot.half + 1e-9);
       expect(r).toBeGreaterThanOrEqual(Math.min(...cell.radii) - 1e-9);
       expect(r).toBeLessThanOrEqual(Math.max(...cell.radii) + 1e-9);
-      expect(p[2]).toBe(0);
+      expect(p[2]).toBeCloseTo(Math.round(p[2] / LAYER_HEIGHT) * LAYER_HEIGHT, 9);
+      expect(p[2]).toBeGreaterThanOrEqual(0);
     }
   });
 
@@ -225,8 +229,11 @@ describe("빈 링과 outerRadius", () => {
       for (const f of FEATURES) {
         const cell = layout.cells[role][f];
         if (!cell) continue;
-        const last = cell.radii[cell.radii.length - 1];
-        max = max === null ? last : Math.max(max, last);
+        // 층이 있으면 마지막 줄이 다음 층의 첫 줄(가장 안쪽 반지름)일 수 있다 —
+        // radii 배열의 마지막 원소가 아니라 실제 최댓값을 써야 한다. buildLayout
+        // 이 thickest 를 구할 때 겪는 것과 같은 함정이다.
+        const furthest = Math.max(...cell.radii);
+        max = max === null ? furthest : Math.max(max, furthest);
       }
     }
     return max;
@@ -265,6 +272,48 @@ describe("빈 링과 outerRadius", () => {
     const y = layout.cells.fill.yukhap!;
     const ch = layout.cells.fill.chung!;
     expect(Math.max(...y.radii)).toBeLessThan(Math.min(...ch.radii));
+  });
+});
+
+describe("넘치는 줄은 위로", () => {
+  it.each([["시드 25명", SEEDED], ["한도 50명", FULL]] as [string, CellCounts][])(
+    "%s — 층이 하나도 생기지 않는다",
+    (_name, c) => {
+      for (const p of placePeople(peopleOf(c)).values()) expect(p[2]).toBe(0);
+    },
+  );
+
+  it("한 칸에 몰리면 층이 생긴다", () => {
+    const zs = [...placePeople(peopleOf(LOPSIDED)).values()].map((p) => p[2]);
+    expect(Math.max(...zs)).toBeGreaterThan(0);
+  });
+
+  it("층은 0 부터 빠짐없이 이어지고 높이는 LAYER_HEIGHT 의 배수다", () => {
+    const zs = [...placePeople(peopleOf(LOPSIDED)).values()].map((p) => p[2]);
+    const layers = [...new Set(zs.map((z) => Math.round(z / LAYER_HEIGHT)))].sort(
+      (a, b) => a - b,
+    );
+    layers.forEach((l, i) => expect(l).toBe(i));
+    for (const z of zs) expect(z).toBeCloseTo(Math.round(z / LAYER_HEIGHT) * LAYER_HEIGHT, 9);
+  });
+
+  it("한 층이 쓰는 평면 줄 수는 MAX_FLAT_ROWS 를 넘지 않는다", () => {
+    const layout = buildLayout(LOPSIDED);
+    for (const role of ROLES)
+      for (const f of FEATURES) {
+        const cell = layout.cells[role][f];
+        if (!cell) continue;
+        const perLayer = new Map<number, number>();
+        for (const l of cell.layerOf) perLayer.set(l, (perLayer.get(l) ?? 0) + 1);
+        for (const rows of perLayer.values()) expect(rows).toBeLessThanOrEqual(MAX_FLAT_ROWS);
+      }
+  });
+
+  it("층이 아무리 쌓여도 반지름은 상한을 넘지 않는다", () => {
+    // LOPSIDED 는 기본 링에만 사람이 있다 — 링 하나가 쓸 수 있는 최대 두께가 곧 상한이다.
+    expect(buildLayout(LOPSIDED).outerRadius).toBeLessThanOrEqual(
+      RING_START + (MAX_FLAT_ROWS - 1) * ROW_PITCH + 1e-9,
+    );
   });
 });
 
