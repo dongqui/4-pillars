@@ -324,3 +324,109 @@ function normalize(a: number): number {
   while (x < -Math.PI) x += 2 * Math.PI;
   return x;
 }
+
+import { badgeAnchor, layoutExtent, screenScale, type Vec3 } from "./radial";
+
+/** 실측 화면 두 벌. 데스크톱은 400px 사이드 패널을 뺀 지도 영역이다. */
+const VIEWPORTS: [string, number, number][] = [
+  ["데스크톱 700x500", 700, 500],
+  ["모바일 375x420", 375, 420],
+];
+
+/** 점 지름 15px + 흰 테두리 2px. 이보다 가까우면 두 점이 한 덩어리로 보인다. */
+const MIN_NODE_PX = 22;
+
+/**
+ * 배지와 점은 원이 아니라 사각형으로 잰다. 배지는 가로로 긴 알약이고 점은
+ * 작은 원이라, 중심점 거리 하나로 재면 가로로는 턱없이 모자라고 세로로는
+ * 과하다 — 실제로 그렇게 쟀다가 통과할 수 없는 문턱을 만들었다.
+ *
+ * 폭 56 은 아이콘을 빼고 글자를 줄인 배지의 실측 폭이다. 88(아이콘 + 큰 글자)로는
+ * 성립하지 않는다: 15칸이 다 찬 지도에서 이웃 슬롯의 각도 간격은 18.67° 이고,
+ * 그때 두 배지 중심 사이의 화면 거리가 모바일에서 60.8px 이라 88 폭은 무조건
+ * 겹친다. **Task 7 이 그리는 배지가 이 상자와 같아야 한다.**
+ */
+const BADGE_BOX = { w: 56, h: 22 };
+const NODE_BOX = { w: 17, h: 17 };
+
+function overlaps(
+  a: Vec3,
+  aBox: { w: number; h: number },
+  b: Vec3,
+  bBox: { w: number; h: number },
+  scale: number,
+): boolean {
+  return (
+    Math.abs((a[0] - b[0]) * scale) < (aBox.w + bBox.w) / 2 &&
+    Math.abs((a[1] - b[1]) * scale) < (aBox.h + bBox.h) / 2
+  );
+}
+
+describe("화면에서 겹치지 않는다", () => {
+  for (const [vpName, w, h] of VIEWPORTS) {
+    for (const [caseName, c] of CASES) {
+      it(`${vpName} · ${caseName} — 같은 층의 점끼리 ${MIN_NODE_PX}px 이상 떨어진다`, () => {
+        const layout = buildLayout(c);
+        const scale = screenScale(w, h, layoutExtent(layout));
+        const pts = [...placePeople(peopleOf(c)).values()];
+        let worst = Infinity;
+        for (let i = 0; i < pts.length; i += 1)
+          for (let j = i + 1; j < pts.length; j += 1) {
+            // 층이 다르면 높이로 갈린다 — 기본 시점에서 겹쳐 보이는 것이 설계다.
+            if (Math.abs(pts[i][2] - pts[j][2]) > 1e-9) continue;
+            worst = Math.min(
+              worst,
+              Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]) * scale,
+            );
+          }
+        expect(worst).toBeGreaterThanOrEqual(MIN_NODE_PX);
+      });
+
+      it(`${vpName} · ${caseName} — 배지가 점과도, 다른 배지와도 겹치지 않는다`, () => {
+        const layout = buildLayout(c);
+        const scale = screenScale(w, h, layoutExtent(layout));
+        const badges: Vec3[] = [];
+        for (const role of ROLES)
+          for (const f of FEATURES) {
+            const b = badgeAnchor(layout, role, f);
+            if (b) badges.push(b);
+          }
+
+        for (let i = 0; i < badges.length; i += 1)
+          for (let j = i + 1; j < badges.length; j += 1)
+            expect(overlaps(badges[i], BADGE_BOX, badges[j], BADGE_BOX, scale)).toBe(false);
+
+        for (const b of badges)
+          for (const p of placePeople(peopleOf(c)).values())
+            expect(overlaps(b, BADGE_BOX, p, NODE_BOX, scale)).toBe(false);
+      });
+    }
+  }
+
+  it("지도 전체가 화면 안에 들어온다", () => {
+    for (const [, w, h] of VIEWPORTS) {
+      const layout = buildLayout(FULL);
+      const extent = layoutExtent(layout);
+      expect(extent * screenScale(w, h, extent) * 2).toBeLessThanOrEqual(Math.min(w, h) + 1e-9);
+    }
+  });
+
+  it("빈 칸에는 배지 자리가 없다", () => {
+    const layout = buildLayout(counts({ "fill/none": 2 }));
+    expect(badgeAnchor(layout, "fill", "none")).not.toBeNull();
+    expect(badgeAnchor(layout, "fill", "chung")).toBeNull();
+    expect(badgeAnchor(layout, "beside", "none")).toBeNull();
+  });
+
+  it("배지는 자기 칸 사람들보다 바깥이고 바닥 층에 있다", () => {
+    const layout = buildLayout(SEEDED);
+    for (const role of ROLES)
+      for (const f of FEATURES) {
+        const b = badgeAnchor(layout, role, f);
+        const cell = layout.cells[role][f];
+        if (!b || !cell) continue;
+        expect(Math.hypot(b[0], b[1])).toBeGreaterThan(Math.max(...cell.radii));
+        expect(b[2]).toBe(0);
+      }
+  });
+});

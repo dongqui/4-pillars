@@ -92,17 +92,42 @@ function at(r: number, a: number, z = 0): Vec3 {
  * 가장 안쪽 링이 시작하는 반지름. 이 안쪽은 중심 "나" 오브의 자리다.
  * 단위는 임의다 — 화면에 맞추는 것은 카메라의 일이고(screenScale), 그래서
  * 사람이 늘어 지도가 커져도 이 파일은 아무것도 몰라도 된다.
+ *
+ * Task 4 에서 0.38 → 0.3066 으로 내렸다. 배지가 이제 outerRadius 하나에
+ * 모이면서(아래 badgeAnchor 주석 참고) 남은 문제가 순수 화면-배율 싸움이 됐다 —
+ * 이 값을 낮추면 지도 전체가 줄어 같은 절대 간격도 더 큰 화면 비율을 받는다.
+ * 중심 오브가 쓰는 자리는 여전히 0.3 정도로 남긴다(브리프의 order-5 지침).
  */
-export const RING_START = 0.38;
+export const RING_START = 0.3066;
 
-/** 링과 링 사이 빈 구간. 여기가 좁으면 이웃 링의 점끼리 붙는다. */
-export const RING_GAP = 0.1;
+/**
+ * 링과 링 사이 빈 구간. 여기가 좁으면 이웃 링의 점끼리 붙는다.
+ *
+ * 0.1 → 0.2636 으로 올렸다(order-3). 이 값을 다시 0.1 근처로 낮추면(다른 넷은
+ * 고정한 채) 화면 간격이 아니라 MAX_FLAT_ROWS=4 자체가 깨진다 — 기본 링이
+ * 六合 바로 뒤에 붙어 시작하면 그만큼 반지름이 작아 한 줄에 드는 열 수가
+ * 줄고, 시드 25명·한도 50명이 4줄로 못 끝난다. 즉 이 값의 실제 하한은
+ * "화면에서 붙는다"가 아니라 "층이 생긴다"쪽이 먼저 걸린다.
+ */
+export const RING_GAP = 0.2636;
 
-/** 한 칸 안에서 줄과 줄 사이 간격. */
-export const ROW_PITCH = 0.13;
+/**
+ * 한 칸 안에서 줄과 줄 사이 간격.
+ *
+ * 0.13 → 0.2336 으로 올렸다(order-2). 실측: 이 값만 0.02 낮추면(나머지 넷은
+ * 고정) 한도 50명 모바일에서 beside/none 의 인접한 두 줄(#5, #8)이
+ * 21.69px — 못 미친다. 최종값에서는 22.97px 로 통과한다.
+ */
+export const ROW_PITCH = 0.2336;
 
-/** 같은 줄에서 사람과 사람 사이 최소 간격. 열 수를 정하는 것이 이 값이다. */
-export const MIN_GAP = 0.17;
+/**
+ * 같은 줄에서 사람과 사람 사이 최소 간격. 열 수를 정하는 것이 이 값이다.
+ *
+ * 0.17 → 0.2890 으로 올렸다(order-1). 실측: 이 값만 0.02 낮추면(나머지 넷은
+ * 고정) 한쪽에 몰린 50명(LOPSIDED)의 모바일 간격이 13.04px 까지 떨어진다 —
+ * 인접 구역 경계의 사람끼리(fill/none vs beside/none) 붙는 사례다.
+ */
+export const MIN_GAP = 0.2890;
 
 /**
  * 한 칸이 평면에서 쓸 수 있는 최대 줄 수. 그보다 더 필요하면 바깥이 아니라 위로 간다.
@@ -124,6 +149,11 @@ export const MIN_GAP = 0.17;
  * 층 없이 통과하는 가장 작은 값이라 이걸로 고정했다. (반대로 LOPSIDED 의
  * beside/none=40 은 11줄이 필요해 4에서도 층 0/1/2 세 층으로 쌓인다 — 이건
  * 의도된 예외다.)
+ *
+ * Task 4 에서 MIN_GAP·ROW_PITCH·RING_GAP·RING_START 를 모두 다시 튜닝한 뒤
+ * 재확인했다: 3 으로는 시드 25명·한도 50명 배치가 성립하지 않는다(같은
+ * buildLayout 출력 기준으로 층 없이 못 끝난다). 4 는 그대로 최솟값이라
+ * 바꾸지 않았다.
  */
 export const MAX_FLAT_ROWS = 4;
 
@@ -239,6 +269,60 @@ export function buildLayout(counts: CellCounts): MapLayout {
   }
 
   return { cells, outerRadius };
+}
+
+/**
+ * 사람이 놓인 가장 바깥에서 배지 원까지의 거리.
+ *
+ * 0.2 → 0.3721 으로 올렸다. 沖 은 늘 n=1 이라 그 한 명이 정확히 outerRadius에
+ * 놓이고, 그 배지도 같은 각도라 둘 사이 거리는 이 값 하나뿐이다(순수 반지름
+ * 방향, order-4 규칙) — 0.2 에서는 이 배지-점 쌍이 실측 3.2px 겹쳤다. 0.25
+ * 부터 그 쌍은 풀리지만, 이 값이 outerRadius 와 나란히 layoutExtent 를 키우는
+ * 항이라 다른 네 상수와 함께 다시 맞춰 최종값이 0.3721 이 됐다.
+ */
+export const BADGE_MARGIN = 0.3721;
+
+/**
+ * 배지가 설 자리. 사람이 없는 칸은 null 이다.
+ *
+ * **모든 배지가 지도 바깥 같은 원 위에 선다.** 각도는 그 칸의 슬롯이라 배지는
+ * 여전히 자기 칸을 가리키지만, 반지름은 칸마다 다르지 않다.
+ *
+ * 칸마다 "자기 줄 바로 바깥" 에 두는 편이 더 가까워 보이고 실제로 그렇게 짰다가
+ * 되돌렸다. 그것은 성립하지 않는다 — 六合 링은 가장 안쪽이라 그 배지를 바깥으로
+ * 밀면 기본 링의 영역 한가운데에 떨어지고, 두 슬롯은 SLOT_MARGIN(1°) 만 두고
+ * 붙어 있어 기본 칸 가장자리의 사람과 겹친다(실측: 모바일 375px · 한도 50명에서
+ * 6.6px 침범). 어떤 상수를 만져도 안 풀린다 — 간격을 벌리는 모든 조정이
+ * layoutExtent 를 같이 키워 배율로 상쇄되기 때문이다.
+ *
+ * 바깥 원은 그 충돌을 구조적으로 없앤다: 사람은 전부 outerRadius 안쪽이고 배지는
+ * 전부 그 바깥이라, 배지와 점이 겹칠 방법 자체가 없다. 남는 것은 배지끼리인데
+ * 그것은 각도로 갈린다.
+ */
+export function badgeAnchor(
+  layout: MapLayout,
+  role: RelationRole,
+  feature: Feature,
+): Vec3 | null {
+  const cell = layout.cells[role][feature];
+  if (!cell) return null;
+  return at(layout.outerRadius + BADGE_MARGIN, sectorAngle(role) + cell.slot.center);
+}
+
+/** 배지까지 포함한 지도의 반지름. 카메라가 이 값을 화면에 맞춘다. */
+export function layoutExtent(layout: MapLayout): number {
+  return layout.outerRadius + BADGE_MARGIN;
+}
+
+/**
+ * 월드 1 단위당 화면 픽셀. 기본 시점 직교 카메라의 zoom 이 곧 이 값이다.
+ *
+ * 짧은 변에 맞춘다 — 지도는 원반이라 긴 변에 맞추면 짧은 변에서 잘린다.
+ * 데스크톱의 납작한 캔버스(가로 700 · 세로 500)에서 직전 설계가 깨진 지점이
+ * 정확히 여기다.
+ */
+export function screenScale(width: number, height: number, extent: number): number {
+  return Math.min(width, height) / (2 * extent);
 }
 
 export type Placeable = {
