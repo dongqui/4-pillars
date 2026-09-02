@@ -84,3 +84,128 @@ describe("슬롯 배분", () => {
     assertSlotInvariants(counts);
   });
 });
+
+import {
+  buildLayout,
+  placePeople,
+  SELF_POSITION,
+  type CellCounts,
+  type Placeable,
+} from "./radial";
+import { ROLE_ORDER as ROLES, type RelationRole } from "../_data/roles";
+
+/** 칸별 인원표를 만든다. 안 적은 칸은 0 이다. */
+function counts(spec: Partial<Record<string, number>>): CellCounts {
+  const out = {} as CellCounts;
+  for (const role of ROLES) {
+    out[role] = { none: 0, yukhap: 0, chung: 0 };
+    for (const f of FEATURES) out[role][f] = spec[`${role}/${f}`] ?? 0;
+  }
+  return out;
+}
+
+/** 인원표를 사람 배열로 편다. id 는 `${role}/${feature}#${i}`. */
+function peopleOf(c: CellCounts): Placeable[] {
+  const out: Placeable[] = [];
+  for (const role of ROLES)
+    for (const f of FEATURES)
+      for (let i = 0; i < c[role][f]; i += 1)
+        out.push({ id: `${role}/${f}#${i}`, role, feature: f });
+  return out;
+}
+
+/** 시드 스크립트가 넣은 25명과 같은 분포. */
+const SEEDED = counts({
+  "fill/none": 3, "fill/yukhap": 1, "fill/chung": 1,
+  "beside/none": 4, "beside/yukhap": 1, "beside/chung": 1,
+  "express/none": 3, "express/yukhap": 1, "express/chung": 1,
+  "move/none": 3, "move/yukhap": 1, "move/chung": 1,
+  "refine/none": 2, "refine/yukhap": 1, "refine/chung": 1,
+});
+
+/** 한도 50명. 六合·沖 은 지지 12개 중 하나씩이라 실제로도 드물다. */
+const FULL = counts({
+  "fill/none": 9, "fill/yukhap": 1, "fill/chung": 1,
+  "beside/none": 9, "beside/yukhap": 1, "beside/chung": 1,
+  "express/none": 8, "express/yukhap": 1, "express/chung": 1,
+  "move/none": 7, "move/yukhap": 1, "move/chung": 1,
+  "refine/none": 7, "refine/yukhap": 1, "refine/chung": 1,
+});
+
+/** 한 칸에 몰린 최악. 배치가 무너지는지 보는 것이지 실제 분포는 아니다. */
+const LOPSIDED = counts({ "beside/none": 40, "fill/none": 10 });
+
+const CASES: [string, CellCounts][] = [
+  ["시드 25명", SEEDED],
+  ["한도 50명", FULL],
+  ["한쪽에 몰린 50명", LOPSIDED],
+];
+
+describe("링과 격자", () => {
+  it.each(CASES)("%s — 인원이 그대로 배치된다", (_name, c) => {
+    const people = peopleOf(c);
+    const placed = placePeople(people);
+    expect(placed.size).toBe(people.length);
+    expect(new Set(placed.keys())).toEqual(new Set(people.map((p) => p.id)));
+  });
+
+  it.each(CASES)("%s — 링 순서가 六合 < 기본 < 沖 이다", (_name, c) => {
+    const layout = buildLayout(c);
+    for (const role of ROLES) {
+      const cell = layout.cells[role];
+      const mid = (f: Feature) => {
+        const l = cell[f];
+        if (!l) return null;
+        return l.radii.reduce((a, b) => a + b, 0) / l.radii.length;
+      };
+      const [y, n, ch] = [mid("yukhap"), mid("none"), mid("chung")];
+      if (y !== null && n !== null) expect(y).toBeLessThan(n);
+      if (n !== null && ch !== null) expect(n).toBeLessThan(ch);
+    }
+  });
+
+  it.each(CASES)("%s — 누구도 자기 칸의 상자 밖으로 나가지 않는다", (_name, c) => {
+    const layout = buildLayout(c);
+    const placed = placePeople(peopleOf(c));
+    for (const [id, p] of placed) {
+      const [role, rest] = id.split("/") as [RelationRole, string];
+      const feature = rest.split("#")[0] as Feature;
+      const cell = layout.cells[role][feature]!;
+      const r = Math.hypot(p[0], p[1]);
+      // 각도: 12시 기준 시계방향
+      const a = Math.atan2(p[0], p[1]);
+      const rel = normalize(a - sectorAngle(role));
+      expect(Math.abs(rel - cell.slot.center)).toBeLessThanOrEqual(cell.slot.half + 1e-9);
+      expect(r).toBeGreaterThanOrEqual(Math.min(...cell.radii) - 1e-9);
+      expect(r).toBeLessThanOrEqual(Math.max(...cell.radii) + 1e-9);
+      expect(p[2]).toBe(0);
+    }
+  });
+
+  it("같은 명단이면 같은 좌표다", () => {
+    const people = peopleOf(SEEDED);
+    const a = placePeople(people);
+    const b = placePeople(people);
+    for (const [id, p] of a) expect(b.get(id)).toEqual(p);
+  });
+
+  it("다섯 구역은 원점에서 등거리다 — 어떤 역할도 더 가깝지 않다", () => {
+    const layout = buildLayout(counts(
+      Object.fromEntries(ROLES.map((r) => [`${r}/none`, 3])),
+    ));
+    const radii = ROLES.map((r) => layout.cells[r].none!.radii[0]);
+    for (const r of radii) expect(r).toBeCloseTo(radii[0], 9);
+  });
+
+  it("나는 원점이다", () => {
+    expect(SELF_POSITION).toEqual([0, 0, 0]);
+  });
+});
+
+/** −π..π 로 접는다. */
+function normalize(a: number): number {
+  let x = a;
+  while (x > Math.PI) x -= 2 * Math.PI;
+  while (x < -Math.PI) x += 2 * Math.PI;
+  return x;
+}

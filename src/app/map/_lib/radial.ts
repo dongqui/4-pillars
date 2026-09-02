@@ -77,3 +77,153 @@ export function allocateSlots(
   }
   return out;
 }
+
+export type Vec3 = readonly [number, number, number];
+
+/** 지도의 중심. 관계가 없으므로 슬롯도 링도 없다. */
+export const SELF_POSITION: Vec3 = [0, 0, 0];
+
+/** 각도 → 좌표. 12시가 0, 시계방향이 +. 이 변환은 이 파일에만 있다. */
+function at(r: number, a: number): Vec3 {
+  return [r * Math.sin(a), r * Math.cos(a), 0];
+}
+
+/**
+ * 가장 안쪽 링이 시작하는 반지름. 이 안쪽은 중심 "나" 오브의 자리다.
+ * 단위는 임의다 — 화면에 맞추는 것은 카메라의 일이고(screenScale), 그래서
+ * 사람이 늘어 지도가 커져도 이 파일은 아무것도 몰라도 된다.
+ */
+export const RING_START = 0.38;
+
+/** 링과 링 사이 빈 구간. 여기가 좁으면 이웃 링의 점끼리 붙는다. */
+export const RING_GAP = 0.1;
+
+/** 한 칸 안에서 줄과 줄 사이 간격. */
+export const ROW_PITCH = 0.13;
+
+/** 같은 줄에서 사람과 사람 사이 최소 간격. 열 수를 정하는 것이 이 값이다. */
+export const MIN_GAP = 0.17;
+
+export type CellLayout = {
+  readonly slot: Slot;
+  /** 줄별 반지름 (안 → 바깥) */
+  readonly radii: readonly number[];
+  /** 줄별 인원 */
+  readonly perRow: readonly number[];
+};
+
+export type MapLayout = {
+  readonly cells: Record<RelationRole, Record<Feature, CellLayout | null>>;
+  /** 사람이 놓인 가장 바깥 반지름. 카메라와 배지가 쓴다. */
+  readonly outerRadius: number;
+};
+
+/** 한 줄에 몇 명까지 들어가는가. 호 길이를 최소 간격으로 나눈 값이다. */
+function colsAt(radius: number, half: number): number {
+  const arc = 2 * half * radius;
+  return Math.max(1, Math.floor(arc / MIN_GAP) + 1);
+}
+
+/** n 명을 줄로 나눈다. 안쪽 줄부터 채우고, 모자라면 바깥으로 한 줄 더. */
+function rowsFor(n: number, startRadius: number, half: number) {
+  const radii: number[] = [];
+  const perRow: number[] = [];
+  let radius = startRadius;
+  let left = n;
+  while (left > 0) {
+    const take = Math.min(colsAt(radius, half), left);
+    radii.push(radius);
+    perRow.push(take);
+    left -= take;
+    radius += ROW_PITCH;
+  }
+  return { radii, perRow };
+}
+
+/**
+ * 지도 전체의 자리를 정한다.
+ *
+ * 링은 안에서 바깥으로 한 번에 흐른다: 六合 링이 필요한 줄 수만큼 두께를
+ * 차지하고, 그 바깥에 기본 링이, 다시 그 바깥에 沖 링이 선다. 링의 두께는
+ * 그 링에서 가장 붐비는 구역이 정한다 — 다섯 구역이 같은 원을 공유해야
+ * "안쪽이 六合" 이라는 규칙이 화면에서 읽히기 때문이다.
+ *
+ * 반복도 수렴도 없다. 각 링의 시작 반지름이 그 링을 계산하기 전에 이미
+ * 정해져 있어서, 줄 수를 구하는 데 필요한 호 길이를 그 자리에서 알 수 있다.
+ */
+export function buildLayout(counts: CellCounts): MapLayout {
+  const cells = {} as Record<RelationRole, Record<Feature, CellLayout | null>>;
+  const slots = {} as Record<RelationRole, Record<Feature, Slot | null>>;
+  for (const role of ROLE_ORDER) slots[role] = allocateSlots(counts[role]);
+  for (const role of ROLE_ORDER) cells[role] = { none: null, yukhap: null, chung: null };
+
+  let ringStart = RING_START;
+  let outerRadius = RING_START;
+
+  for (const feature of FEATURE_ORDER) {
+    let thickest = ringStart;
+    for (const role of ROLE_ORDER) {
+      const n = counts[role][feature];
+      const slot = slots[role][feature];
+      if (n === 0 || !slot) continue;
+      const { radii, perRow } = rowsFor(n, ringStart, slot.half);
+      cells[role][feature] = { slot, radii, perRow };
+      thickest = Math.max(thickest, radii[radii.length - 1]);
+    }
+    outerRadius = Math.max(outerRadius, thickest);
+    ringStart = thickest + RING_GAP;
+  }
+
+  return { cells, outerRadius };
+}
+
+export type Placeable = {
+  readonly id: string;
+  readonly role: RelationRole;
+  readonly feature: Feature;
+};
+
+/**
+ * 사람 → 좌표.
+ *
+ * 한 줄 안에서는 그 칸의 열 간격(호 길이 ÷ (열 수 − 1))을 그대로 쓰고,
+ * 슬롯 중심을 기준으로 좌우 대칭이 되게 놓는다. 줄마다 인원이 달라도 같은
+ * 간격을 쓰므로 격자가 어긋나 보이지 않고, 인원이 열 수보다 적으면 자연히
+ * 가운데로 모인다.
+ */
+export function placePeople(people: readonly Placeable[]): Map<string, Vec3> {
+  const counts = {} as CellCounts;
+  for (const role of ROLE_ORDER) counts[role] = { none: 0, yukhap: 0, chung: 0 };
+  for (const p of people) counts[p.role][p.feature] += 1;
+
+  const layout = buildLayout(counts);
+  const queue = new Map<string, string[]>();
+  for (const p of people) {
+    const key = `${p.role}/${p.feature}`;
+    const ids = queue.get(key);
+    if (ids) ids.push(p.id);
+    else queue.set(key, [p.id]);
+  }
+
+  const out = new Map<string, Vec3>();
+  for (const [key, ids] of queue) {
+    const [role, feature] = key.split("/") as [RelationRole, Feature];
+    const cell = layout.cells[role][feature]!;
+    const base = sectorAngle(role) + cell.slot.center;
+
+    let cursor = 0;
+    cell.radii.forEach((radius, row) => {
+      const inRow = cell.perRow[row];
+      const cols = colsAt(radius, cell.slot.half);
+      // 열 간격은 슬롯 폭을 (열 수 − 1)로 나눈 각도다. 한 열뿐이면 간격이 없다.
+      const step = cols > 1 ? (2 * cell.slot.half) / (cols - 1) : 0;
+      for (let i = 0; i < inRow; i += 1) {
+        const offset = (i - (inRow - 1) / 2) * step;
+        out.set(ids[cursor], at(radius, base + offset));
+        cursor += 1;
+      }
+    });
+  }
+
+  return out;
+}
