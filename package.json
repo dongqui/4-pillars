@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "demo": "tsx src/lib/saju-core/demo.ts",
     "dump": "tsx --env-file=.env.local scripts/dump-sections.mts",
-    "db:migrate": "tsx --env-file=.env.local scripts/migrate.mts"
+    "db:migrate": "tsx --env-file=.env.local scripts/migrate.mts",
+    "map:seed": "tsx --env-file=.env.local scripts/seed-map.mts"
   },
   "dependencies": {
     "@fullstackfamily/manseryeok": "^1.0.8",
