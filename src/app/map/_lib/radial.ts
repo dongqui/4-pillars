@@ -93,41 +93,46 @@ function at(r: number, a: number, z = 0): Vec3 {
  * 단위는 임의다 — 화면에 맞추는 것은 카메라의 일이고(screenScale), 그래서
  * 사람이 늘어 지도가 커져도 이 파일은 아무것도 몰라도 된다.
  *
- * Task 4 에서 0.38 → 0.3066 으로 내렸다. 배지가 이제 outerRadius 하나에
- * 모이면서(아래 badgeAnchor 주석 참고) 남은 문제가 순수 화면-배율 싸움이 됐다 —
- * 이 값을 낮추면 지도 전체가 줄어 같은 절대 간격도 더 큰 화면 비율을 받는다.
- * 중심 오브가 쓰는 자리는 여전히 0.3 정도로 남긴다(브리프의 order-5 지침).
+ * Task 4 에서 0.38 → 0.218 으로 내렸다. screenScale 이 배지·점 상자까지
+ * 화면 안에 넣도록 고쳐지면서(아래 screenScale 주석 참고) 배율이 다시 줄었고,
+ * 남은 예산을 이 값으로 되찾았다 — 중심 오브는 26px 정도만 있으면 되니
+ * 0.3 근처까지 갈 필요는 없었다. 다시 올리면(다른 넷 고정) 점점 배율이
+ * 줄어든다: +0.02 만 해도 전체 점수가 2.29px 부족 → 10.28px 부족으로
+ * 나빠진다(LOPSIDED 데스크톱이 28.08px 에서 16.70px 로 떨어진다).
  */
-export const RING_START = 0.3066;
+export const RING_START = 0.218;
 
 /**
  * 링과 링 사이 빈 구간. 여기가 좁으면 이웃 링의 점끼리 붙는다.
  *
- * 0.1 → 0.2636 으로 올렸다(order-3). 이 값을 다시 0.1 근처로 낮추면(다른 넷은
- * 고정한 채) 화면 간격이 아니라 MAX_FLAT_ROWS=4 자체가 깨진다 — 기본 링이
- * 六合 바로 뒤에 붙어 시작하면 그만큼 반지름이 작아 한 줄에 드는 열 수가
- * 줄고, 시드 25명·한도 50명이 4줄로 못 끝난다. 즉 이 값의 실제 하한은
- * "화면에서 붙는다"가 아니라 "층이 생긴다"쪽이 먼저 걸린다.
+ * 0.1 → 0.1846 으로 올렸다(order-3). 실측: 이 값만 0.02 낮추면(나머지 넷은
+ * 고정) 화면 간격이 아니라 MAX_FLAT_ROWS=4 자체가 깨진다(score 가 Infinity —
+ * buildLayout 이 시드 25명·한도 50명을 4줄로 못 끝낸다) — 기본 링이 六合
+ * 바로 뒤에 붙어 시작하면 그만큼 반지름이 작아 한 줄에 드는 열 수가 준다.
+ * 즉 이 값의 실제 하한은 "화면에서 붙는다"가 아니라 "층이 생긴다"쪽이
+ * 먼저 걸린다.
  */
-export const RING_GAP = 0.2636;
+export const RING_GAP = 0.1846;
 
 /**
  * 한 칸 안에서 줄과 줄 사이 간격.
  *
- * 0.13 → 0.2336 으로 올렸다(order-2). 실측: 이 값만 0.02 낮추면(나머지 넷은
- * 고정) 한도 50명 모바일에서 beside/none 의 인접한 두 줄(#5, #8)이
- * 21.69px — 못 미친다. 최종값에서는 22.97px 로 통과한다.
+ * 0.13 → 0.1746 으로 올렸다(order-2). 실측: 이 값만 0.02 낮추면(나머지 넷은
+ * 고정) 한도 50명 모바일에서 express/none 의 인접한 두 줄(#4, #7)이
+ * 18.24px 까지 떨어진다. 최종값에서도 이 칸 자체는 여전히 22px 문턱에 못
+ * 미친다 — 남은 부족분은 이 값이 아니라 RING_START/screenScale 이 쥔 화면
+ * 예산 전체의 한계다(아래 MIN_NODE_PX 테스트, task-4-report.md 참고).
  */
-export const ROW_PITCH = 0.2336;
+export const ROW_PITCH = 0.1746;
 
 /**
  * 같은 줄에서 사람과 사람 사이 최소 간격. 열 수를 정하는 것이 이 값이다.
  *
- * 0.17 → 0.2890 으로 올렸다(order-1). 실측: 이 값만 0.02 낮추면(나머지 넷은
- * 고정) 한쪽에 몰린 50명(LOPSIDED)의 모바일 간격이 13.04px 까지 떨어진다 —
+ * 0.17 → 0.2055 으로 올렸다(order-1). 실측: 이 값만 0.02 낮추면(나머지 넷은
+ * 고정) 한쪽에 몰린 50명(LOPSIDED)의 데스크톱 간격이 15.59px 까지 떨어진다 —
  * 인접 구역 경계의 사람끼리(fill/none vs beside/none) 붙는 사례다.
  */
-export const MIN_GAP = 0.2890;
+export const MIN_GAP = 0.2055;
 
 /**
  * 한 칸이 평면에서 쓸 수 있는 최대 줄 수. 그보다 더 필요하면 바깥이 아니라 위로 간다.
@@ -145,15 +150,16 @@ export const MIN_GAP = 0.2890;
  * fill/none 등 n=3 으로 2줄이면 끝난다. 한도 50명에서 가장 붐비는 칸은
  * fill/none·beside/none 으로 각 n=9, perRow=[2,2,3,2] — 정확히 4줄이
  * 필요하다. MAX_FLAT_ROWS=3 이면 이 9명 칸의 마지막 2명이 층 1 로 밀려나
- * "현실적인 분포는 층이 없어야 한다"는 요구를 어긴다. 4 는 두 픽스처 모두
- * 층 없이 통과하는 가장 작은 값이라 이걸로 고정했다. (반대로 LOPSIDED 의
+ * "현실적인 분포는 층이 없어야 한다"는 요구를 어긴다. (반대로 LOPSIDED 의
  * beside/none=40 은 11줄이 필요해 4에서도 층 0/1/2 세 층으로 쌓인다 — 이건
  * 의도된 예외다.)
  *
- * Task 4 에서 MIN_GAP·ROW_PITCH·RING_GAP·RING_START 를 모두 다시 튜닝한 뒤
- * 재확인했다: 3 으로는 시드 25명·한도 50명 배치가 성립하지 않는다(같은
- * buildLayout 출력 기준으로 층 없이 못 끝난다). 4 는 그대로 최솟값이라
- * 바꾸지 않았다.
+ * 정정: 이전 버전의 이 주석은 "3 으로는 시드 25명·한도 50명 둘 다 층 없이
+ * 못 끝난다"고 적었는데 틀렸다 — 재측정(현재 MIN_GAP·ROW_PITCH·RING_GAP
+ * 값으로 buildLayout 을 직접 돌려 최고층을 셌다): MAX_FLAT_ROWS=3 에서도
+ * 시드 25명은 층 0 에 다 들어간다. 4 를 강제하는 것은 한도 50명(FULL) 뿐이다
+ * — 3 이면 FULL 이 층 1 까지 쓴다. 값은 그대로 4 다: FULL 이 그 최솟값을
+ * 요구하는 쪽이니 결론은 바뀌지 않고, 근거만 고쳤다.
  */
 export const MAX_FLAT_ROWS = 4;
 
@@ -272,15 +278,31 @@ export function buildLayout(counts: CellCounts): MapLayout {
 }
 
 /**
+ * 배지의 실제 렌더 크기(px). screenScale 이 이 상자가 화면 밖으로 안 나가는
+ * 배율을 계산하는 데 쓴다. **Task 7 이 그리는 배지 마크업이 이 값과 같아야
+ * 한다** — 여기서 좁히고 거기서 안 좁히면 이 파일의 계산은 거짓이 된다.
+ */
+export const BADGE_PX = { width: 56, height: 22 } as const;
+
+/** 점의 실제 렌더 크기(px). 지름 15px 원 + 흰 테두리 2px. */
+export const NODE_PX = { width: 17, height: 17 } as const;
+
+/**
  * 사람이 놓인 가장 바깥에서 배지 원까지의 거리.
  *
- * 0.2 → 0.3721 으로 올렸다. 沖 은 늘 n=1 이라 그 한 명이 정확히 outerRadius에
- * 놓이고, 그 배지도 같은 각도라 둘 사이 거리는 이 값 하나뿐이다(순수 반지름
- * 방향, order-4 규칙) — 0.2 에서는 이 배지-점 쌍이 실측 3.2px 겹쳤다. 0.25
- * 부터 그 쌍은 풀리지만, 이 값이 outerRadius 와 나란히 layoutExtent 를 키우는
- * 항이라 다른 네 상수와 함께 다시 맞춰 최종값이 0.3721 이 됐다.
+ * 0.2 → 0.3036 으로 올렸다. 실측(다른 넷은 최종값 고정, 모든 배지-점 쌍을
+ * 다 잰 값 — diag 는 가장 심한 쌍 하나만 보여주므로 전수 조사했다): 0.2 에서
+ * 沖 배지가 자기 칸의 유일한 사람과 겹치는 사례가 beside·move·refine 셋
+ * (沖 은 늘 n=1 이라 그 한 명이 정확히 outerRadius, 배지도 같은 각도라
+ * 거리는 이 값 하나뿐이다 — 순수 반지름 방향, order-4 규칙). 0.25 에서도
+ * beside·move 둘은 남는다. **최종값 0.3036 에서도 move 는 완전히 안 풀린다**
+ * (1.1px 겹침, beside 는 2.28px) — 이 무렵엔 이미 모바일 노드-노드 간격
+ * 부족(FULL 19.72px, LOPSIDED 19.71px, 22px 문턱에 못 미침)이 더 큰
+ * 제약이라, BADGE_MARGIN 을 이 쌍이 풀릴 때까지 더 올리는 것보다 다섯
+ * 상수를 함께 맞춘 전체 최적점이 이 값을 골랐다. task-4-report.md 에 이
+ * 잔여 침범의 정확한 수치를 남겼다.
  */
-export const BADGE_MARGIN = 0.3721;
+export const BADGE_MARGIN = 0.3036;
 
 /**
  * 배지가 설 자리. 사람이 없는 칸은 null 이다.
@@ -317,12 +339,34 @@ export function layoutExtent(layout: MapLayout): number {
 /**
  * 월드 1 단위당 화면 픽셀. 기본 시점 직교 카메라의 zoom 이 곧 이 값이다.
  *
- * 짧은 변에 맞춘다 — 지도는 원반이라 긴 변에 맞추면 짧은 변에서 잘린다.
- * 데스크톱의 납작한 캔버스(가로 700 · 세로 500)에서 직전 설계가 깨진 지점이
- * 정확히 여기다.
+ * 점 반지름만 맞추면 배지가 잘린다 — 배지는 월드가 아니라 화면에서 크기가
+ * 고정된 상자라, 원반의 동/서/남/북 끝에 선 배지는 상자의 절반이 밖으로
+ * 나간다(실측: 모바일에서 최대 27.9px). 그래서 상자의 귀가 전부 화면 안에
+ * 들어오는 배율 중 가장 작은 것을 고른다 — 뷰포트에서 상자 절반을 미리
+ * 빼는 일률적인 여백이 아니라, 배지마다 실제 각도에서 필요한 배율을 각각
+ * 계산해 그 최솟값을 쓴다(일률적 여백보다 항상 같거나 더 큰 배율이 나온다).
  */
-export function screenScale(width: number, height: number, extent: number): number {
-  return Math.min(width, height) / (2 * extent);
+export function screenScale(width: number, height: number, layout: MapLayout): number {
+  const fit = (half: number, halfBox: number, offset: number) =>
+    offset === 0 ? Infinity : (half - halfBox) / Math.abs(offset);
+
+  let scale = Math.min(width, height) / (2 * layoutExtent(layout));
+  scale = Math.min(
+    scale,
+    fit(width / 2, NODE_PX.width / 2, layout.outerRadius),
+    fit(height / 2, NODE_PX.height / 2, layout.outerRadius),
+  );
+  for (const role of ROLE_ORDER)
+    for (const feature of FEATURE_ORDER) {
+      const b = badgeAnchor(layout, role, feature);
+      if (!b) continue;
+      scale = Math.min(
+        scale,
+        fit(width / 2, BADGE_PX.width / 2, b[0]),
+        fit(height / 2, BADGE_PX.height / 2, b[1]),
+      );
+    }
+  return scale;
 }
 
 export type Placeable = {

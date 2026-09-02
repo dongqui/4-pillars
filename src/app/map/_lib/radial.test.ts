@@ -325,7 +325,7 @@ function normalize(a: number): number {
   return x;
 }
 
-import { badgeAnchor, layoutExtent, screenScale, type Vec3 } from "./radial";
+import { badgeAnchor, screenScale, BADGE_PX, NODE_PX, type Vec3 } from "./radial";
 
 /** 실측 화면 두 벌. 데스크톱은 400px 사이드 패널을 뺀 지도 영역이다. */
 const VIEWPORTS: [string, number, number][] = [
@@ -341,13 +341,17 @@ const MIN_NODE_PX = 22;
  * 작은 원이라, 중심점 거리 하나로 재면 가로로는 턱없이 모자라고 세로로는
  * 과하다 — 실제로 그렇게 쟀다가 통과할 수 없는 문턱을 만들었다.
  *
+ * radial.ts 가 내보내는 BADGE_PX/NODE_PX 를 그대로 쓴다 — 여기서 값을 따로
+ * 적으면 screenScale 이 실제로 맞추는 상자 크기와 테스트가 재는 상자 크기가
+ * 몰래 어긋날 수 있다(이 파일이 잡으려는 바로 그 종류의 거짓 통과).
+ *
  * 폭 56 은 아이콘을 빼고 글자를 줄인 배지의 실측 폭이다. 88(아이콘 + 큰 글자)로는
  * 성립하지 않는다: 15칸이 다 찬 지도에서 이웃 슬롯의 각도 간격은 18.67° 이고,
  * 그때 두 배지 중심 사이의 화면 거리가 모바일에서 60.8px 이라 88 폭은 무조건
  * 겹친다. **Task 7 이 그리는 배지가 이 상자와 같아야 한다.**
  */
-const BADGE_BOX = { w: 56, h: 22 };
-const NODE_BOX = { w: 17, h: 17 };
+const BADGE_BOX = { w: BADGE_PX.width, h: BADGE_PX.height };
+const NODE_BOX = { w: NODE_PX.width, h: NODE_PX.height };
 
 function overlaps(
   a: Vec3,
@@ -367,24 +371,29 @@ describe("화면에서 겹치지 않는다", () => {
     for (const [caseName, c] of CASES) {
       it(`${vpName} · ${caseName} — 같은 층의 점끼리 ${MIN_NODE_PX}px 이상 떨어진다`, () => {
         const layout = buildLayout(c);
-        const scale = screenScale(w, h, layoutExtent(layout));
+        const scale = screenScale(w, h, layout);
         const pts = [...placePeople(peopleOf(c)).values()];
         let worst = Infinity;
+        let comparablePairs = 0;
         for (let i = 0; i < pts.length; i += 1)
           for (let j = i + 1; j < pts.length; j += 1) {
             // 층이 다르면 높이로 갈린다 — 기본 시점에서 겹쳐 보이는 것이 설계다.
             if (Math.abs(pts[i][2] - pts[j][2]) > 1e-9) continue;
+            comparablePairs += 1;
             worst = Math.min(
               worst,
               Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]) * scale,
             );
           }
+        // 같은 층 쌍이 하나도 없으면 worst 가 Infinity 로 남아 아래 assert 가
+        // 공허하게 통과한다 — 그 함정을 여기서 막는다.
+        expect(comparablePairs).toBeGreaterThan(0);
         expect(worst).toBeGreaterThanOrEqual(MIN_NODE_PX);
       });
 
       it(`${vpName} · ${caseName} — 배지가 점과도, 다른 배지와도 겹치지 않는다`, () => {
         const layout = buildLayout(c);
-        const scale = screenScale(w, h, layoutExtent(layout));
+        const scale = screenScale(w, h, layout);
         const badges: Vec3[] = [];
         for (const role of ROLES)
           for (const f of FEATURES) {
@@ -403,13 +412,43 @@ describe("화면에서 겹치지 않는다", () => {
     }
   }
 
-  it("지도 전체가 화면 안에 들어온다", () => {
-    for (const [, w, h] of VIEWPORTS) {
-      const layout = buildLayout(FULL);
-      const extent = layoutExtent(layout);
-      expect(extent * screenScale(w, h, extent) * 2).toBeLessThanOrEqual(Math.min(w, h) + 1e-9);
+  /**
+   * 이전 버전은 `extent * screenScale(...) * 2 <= min(w,h)` 를 쟀다 —
+   * screenScale 이 `min(w,h)/(2*extent)` 로 정의되니 좌변은 항상 정확히
+   * min(w,h) 다. 무엇을 하든 통과하는 항등식이었고, 그래서 점 반지름만 맞춘
+   * 배율에서 배지 상자가 화면 밖으로 나가는 걸 아무것도 못 잡았다. 대신 배지
+   * 상자와 점 상자의 네 변이 전부 뷰포트 안에 있는지 좌표로 직접 잰다.
+   */
+  for (const [vpName, w, h] of VIEWPORTS) {
+    for (const [caseName, c] of CASES) {
+      it(`${vpName} · ${caseName} — 배지·점 상자가 뷰포트 밖으로 안 나간다`, () => {
+        const layout = buildLayout(c);
+        const scale = screenScale(w, h, layout);
+
+        function assertInside(pos: Vec3, box: { w: number; h: number }, label: string) {
+          const x = pos[0] * scale;
+          const y = pos[1] * scale;
+          const left = x - box.w / 2;
+          const right = x + box.w / 2;
+          const top = y - box.h / 2;
+          const bottom = y + box.h / 2;
+          expect(left, `${label} 왼쪽 변이 뷰포트 밖`).toBeGreaterThanOrEqual(-w / 2 - 1e-9);
+          expect(right, `${label} 오른쪽 변이 뷰포트 밖`).toBeLessThanOrEqual(w / 2 + 1e-9);
+          expect(top, `${label} 위 변이 뷰포트 밖`).toBeGreaterThanOrEqual(-h / 2 - 1e-9);
+          expect(bottom, `${label} 아래 변이 뷰포트 밖`).toBeLessThanOrEqual(h / 2 + 1e-9);
+        }
+
+        for (const role of ROLES)
+          for (const f of FEATURES) {
+            const b = badgeAnchor(layout, role, f);
+            if (b) assertInside(b, BADGE_BOX, `배지 ${role}/${f}`);
+          }
+
+        for (const [id, p] of placePeople(peopleOf(c)))
+          assertInside(p, NODE_BOX, `점 ${id}`);
+      });
     }
-  });
+  }
 
   it("빈 칸에는 배지 자리가 없다", () => {
     const layout = buildLayout(counts({ "fill/none": 2 }));
