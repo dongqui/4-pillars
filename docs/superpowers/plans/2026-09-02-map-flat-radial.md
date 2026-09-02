@@ -168,7 +168,15 @@ export const SECTOR_SPAN = (2 * Math.PI) / 5;
  */
 export const SECTOR_USED = deg(56);
 
-/** 사람이 있는 칸이 보장받는 최소 각도 폭. 한 명뿐인 칸도 자기 자리를 갖는다. */
+/**
+ * 사람이 있는 칸이 보장받는 최소 **쓸 수 있는** 각도 폭. 한 명뿐인 칸도 자기
+ * 자리를 갖는다.
+ *
+ * 배분되는 폭이 아니라 여백을 뺀 뒤의 폭이다 — 배치가 실제로 쓰는 값이
+ * slot.half 이므로 하한도 거기 걸어야 뜻이 하나로 남는다. 그래서 배분할 때는
+ * 칸마다 MIN_SLOT + 2·SLOT_MARGIN 을 먼저 떼어 둔다(세 칸이 다 차도 30° 라
+ * SECTOR_USED 56° 안이다).
+ */
 export const MIN_SLOT = deg(8);
 
 /** 슬롯 양끝에서 떼는 여백. 이웃 슬롯의 끝 사람과 붙지 않게 한다. */
@@ -201,12 +209,15 @@ export function allocateSlots(
   if (live.length === 0) return out;
 
   const total = live.reduce((sum, f) => sum + counts[f], 0);
-  const extra = SECTOR_USED - MIN_SLOT * live.length;
+  // 여백은 폭에서 깎이는 것이 아니라 미리 떼어 두는 것이다 — 그래야 남은
+  // 폭(slot.half × 2)이 MIN_SLOT 아래로 내려가지 않는다.
+  const floor = MIN_SLOT + 2 * SLOT_MARGIN;
+  const extra = SECTOR_USED - floor * live.length;
 
   let cursor = -SECTOR_USED / 2;
   for (const f of FEATURE_ORDER) {
     if (counts[f] === 0) continue;
-    const width = MIN_SLOT + extra * (counts[f] / total);
+    const width = floor + extra * (counts[f] / total);
     out[f] = { center: cursor + width / 2, half: Math.max(0, width / 2 - SLOT_MARGIN) };
     cursor += width;
   }
