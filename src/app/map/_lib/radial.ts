@@ -114,7 +114,15 @@ export type CellLayout = {
 
 export type MapLayout = {
   readonly cells: Record<RelationRole, Record<Feature, CellLayout | null>>;
-  /** 사람이 놓인 가장 바깥 반지름. 카메라와 배지가 쓴다. */
+  /**
+   * 사람이 실제로 놓인 가장 바깥 반지름. 카메라와 배지가 쓴다.
+   *
+   * 아무도 없는 링은 이 값에 반영되지 않는다 — 六合·沖 이 통째로 비어도
+   * RING_GAP 만큼의 "유령 여백"이 여기 얹히면, 그 여백을 기준으로 줌을 잡는
+   * Task 3 의 카메라가 사람 없는 구간까지 화면에 끌어안느라 정작 있는
+   * 사람들을 더 작게 그린다. 아무도 없으면 RING_START — 중심 "나" 오브가
+   * 끝나는 자리 — 를 바닥값으로 쓴다.
+   */
   readonly outerRadius: number;
 };
 
@@ -158,10 +166,12 @@ export function buildLayout(counts: CellCounts): MapLayout {
   for (const role of ROLE_ORDER) cells[role] = { none: null, yukhap: null, chung: null };
 
   let ringStart = RING_START;
+  // 아무도 없을 때의 바닥값 — 위 MapLayout.outerRadius 주석 참고.
   let outerRadius = RING_START;
 
   for (const feature of FEATURE_ORDER) {
     let thickest = ringStart;
+    let ringEmpty = true;
     for (const role of ROLE_ORDER) {
       const n = counts[role][feature];
       const slot = slots[role][feature];
@@ -169,7 +179,13 @@ export function buildLayout(counts: CellCounts): MapLayout {
       const { radii, perRow } = rowsFor(n, ringStart, slot.half);
       cells[role][feature] = { slot, radii, perRow };
       thickest = Math.max(thickest, radii[radii.length - 1]);
+      ringEmpty = false;
     }
+    // 다섯 구역 모두에 이 feature 가 없으면 이 링 자체가 없는 것이다 —
+    // thickest/ringStart 를 밀지 않고 다음 feature 가 이 자리를 그대로 쓰게
+    // 둔다. 그렇지 않으면 六合이 통째로 빈 지도에서도 기본 링이 RING_GAP 만큼
+    // 밖으로 밀려나고, 그 빈 여백이 outerRadius 에 새어 들어간다.
+    if (ringEmpty) continue;
     outerRadius = Math.max(outerRadius, thickest);
     ringStart = thickest + RING_GAP;
   }

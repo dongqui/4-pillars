@@ -88,6 +88,7 @@ describe("슬롯 배분", () => {
 import {
   buildLayout,
   placePeople,
+  RING_START,
   SELF_POSITION,
   type CellCounts,
   type Placeable,
@@ -134,6 +135,9 @@ const FULL = counts({
 
 /** 한 칸에 몰린 최악. 배치가 무너지는지 보는 것이지 실제 분포는 아니다. */
 const LOPSIDED = counts({ "beside/none": 40, "fill/none": 10 });
+
+/** 아무도 없는 지도. LOPSIDED 와 함께 outerRadius 의 바닥/누수를 잡는다. */
+const EMPTY = counts({});
 
 const CASES: [string, CellCounts][] = [
   ["시드 25명", SEEDED],
@@ -199,6 +203,68 @@ describe("링과 격자", () => {
 
   it("나는 원점이다", () => {
     expect(SELF_POSITION).toEqual([0, 0, 0]);
+  });
+});
+
+/**
+ * 링 중 하나(혹은 전부)가 통째로 비었을 때 outerRadius 와 링 시작점이
+ * 어떻게 움직여야 하는지를 잠근다.
+ *
+ * buildLayout 은 각 feature 를 순서대로 훑으며 ringStart 를 다음 링에
+ * 넘긴다 — 그런데 다섯 구역 모두에 그 feature 가 없으면 "링 자체가 없는"
+ * 것이라, 넘길 두께가 없다. 이걸 놓치면 빈 링도 RING_GAP 만큼 다음 링을
+ * 밖으로 밀어내고, 그 유령 여백이 outerRadius 에 쌓인다 — 카메라가 그
+ * 여백까지 화면에 끌어안느라 정작 있는 사람들이 작아진다.
+ */
+describe("빈 링과 outerRadius", () => {
+  /** 실제로 배치된 사람들 중 가장 바깥 반지름. layout.outerRadius 와 별개 경로로 구해 비교한다. */
+  function maxPlacedRadius(c: CellCounts): number | null {
+    const layout = buildLayout(c);
+    let max: number | null = null;
+    for (const role of ROLES) {
+      for (const f of FEATURES) {
+        const cell = layout.cells[role][f];
+        if (!cell) continue;
+        const last = cell.radii[cell.radii.length - 1];
+        max = max === null ? last : Math.max(max, last);
+      }
+    }
+    return max;
+  }
+
+  it.each(CASES)("%s — outerRadius 는 실제로 놓인 사람의 최대 반지름과 정확히 같다", (_name, c) => {
+    const layout = buildLayout(c);
+    const max = maxPlacedRadius(c);
+    expect(max).not.toBeNull();
+    expect(layout.outerRadius).toBe(max);
+  });
+
+  it("아무도 없으면 outerRadius 는 RING_START 다 — 중심 오브가 끝나는 자리가 바닥값이다", () => {
+    const layout = buildLayout(EMPTY);
+    expect(layout.outerRadius).toBe(RING_START);
+    expect(maxPlacedRadius(EMPTY)).toBeNull();
+    expect(placePeople(peopleOf(EMPTY)).size).toBe(0);
+  });
+
+  it("맨 앞 링(六合)이 다섯 구역 모두 비면 기본 링은 밀려나지 않고 RING_START 에서 시작한다", () => {
+    // LOPSIDED 는 六合·沖 이 다섯 구역 모두 비어 있고 기본만 찼다.
+    const layout = buildLayout(LOPSIDED);
+    let checked = 0;
+    for (const role of ROLES) {
+      const cell = layout.cells[role].none;
+      if (!cell) continue;
+      expect(cell.radii[0]).toBe(RING_START);
+      checked += 1;
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it("가운데 기본 링이 다섯 구역 모두 비어도 六合 < 沖 순서는 유지된다", () => {
+    const c = counts({ "fill/yukhap": 2, "fill/chung": 2 });
+    const layout = buildLayout(c);
+    const y = layout.cells.fill.yukhap!;
+    const ch = layout.cells.fill.chung!;
+    expect(Math.max(...y.radii)).toBeLessThan(Math.min(...ch.radii));
   });
 });
 
