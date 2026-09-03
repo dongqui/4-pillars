@@ -83,9 +83,9 @@ function Badge({
           w-[52px] 는 radial.test.ts 의 BADGE_BOX 와 같은 값이어야 한다 — 폭을
           글자 수로 어림하지 않고 못 박는 이유가 그것이다.
           그 상자가 겹침 불변식의 기준이라, 여기서 아이콘을 되살리거나 글자를
-          키우면 테스트는 초록인데 화면에서는 겹친다. 아이콘(ROLE_ICON)이 빠진
-          것도 그래서다 — 15칸이 다 찬 지도에서 이웃 배지 사이 화면 거리가
-          모바일 60.8px 이라 88px 짜리 배지는 들어가지 않는다.
+          키우면 테스트는 초록인데 화면에서는 겹친다. 아이콘이 빠진 것도
+          그래서다 — 15칸이 다 찬 지도에서 이웃 배지 사이 화면 거리가 모바일
+          60.8px 이라 88px 짜리 배지는 들어가지 않는다.
         */}
         <span className="text-[9px] font-semibold leading-none tracking-[0.02em]">
           {DISPLAY_TITLES[role][feature]}

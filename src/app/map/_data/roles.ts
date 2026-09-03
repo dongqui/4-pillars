@@ -47,18 +47,6 @@ export const DISPLAY_TITLES: Record<RelationRole, Record<Feature, string>> = {
 };
 
 /**
- * 구역 배지에 붙는 아이콘. **자리를 잡아두는 임시값이다** — 사용자가 나중에
- * 채운다. 이모지라 별도 에셋이 없고, 교체할 때 이 표만 고치면 된다.
- */
-export const ROLE_ICON: Record<RelationRole, string> = {
-  fill: "🔋", //    인성 · 배터리
-  beside: "🤝", //  비겁 · 동지
-  express: "🎨", // 식상 · 놀이터
-  move: "⏰", //    재성 · 알람
-  refine: "🛡️", //  관성 · 울타리
-};
-
-/**
  * 구역 배지에 쓰는 짧은 이름.
  *
  * ROLE_LABELS 는 "나를 채워주는 사람"처럼 문장이라 배지에 안 들어간다.
