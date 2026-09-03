@@ -30,6 +30,10 @@ export function SelfCore() {
         <span
           className="grid h-[52px] w-[52px] place-items-center rounded-full text-[15px] font-bold text-white select-none"
           style={{
+            // 코어 #2563EB · 하이라이트 #7EB3FF 는 발명한 값이 아니라 승인된
+            // 라이트 리디자인 시안의 지정값이다 — 임의로 고쳐 쓰지 말 것
+            // (docs/superpowers/specs/2026-08-30-map-light-redesign-design.md:51,
+            // "나 오브를 블루 계열로 — 코어 #2563EB, 하이라이트 #7EB3FF").
             background: "radial-gradient(circle at 35% 30%, #7EB3FF, #2563EB)",
           }}
         >
