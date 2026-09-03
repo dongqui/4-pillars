@@ -829,12 +829,18 @@ const NODE_THRESHOLD: Record<string, number> = {
  * 작은 원이라, 중심점 거리 하나로 재면 가로로는 턱없이 모자라고 세로로는
  * 과하다 — 실제로 그렇게 쟀다가 통과할 수 없는 문턱을 만들었다.
  *
- * 폭 56 은 아이콘을 빼고 글자를 줄인 배지의 실측 폭이다. 88(아이콘 + 큰 글자)로는
- * 성립하지 않는다: 15칸이 다 찬 지도에서 이웃 슬롯의 각도 간격은 18.67° 이고,
- * 그때 두 배지 중심 사이의 화면 거리가 모바일에서 60.8px 이라 88 폭은 무조건
- * 겹친다. **Task 7 이 그리는 배지가 이 상자와 같아야 한다.**
+ * 폭 52 는 **추정이 아니라 고정값**이다. Task 7 이 배지에 w-[52px] 를 박아
+ * 그리므로 이 상자와 화면이 정의상 같다 — 글자 수로 폭을 어림하면 그 어림이
+ * 틀렸을 때 테스트만 초록이 된다(실제로 56 으로 어림했다가 진짜 배지가 73px 인
+ * 것을 뒤늦게 쟀다).
+ *
+ * 52 인 이유는 물리적 상한이다: 15칸이 다 찬 지도에서 이웃 배지 중심 사이의
+ * 화면 거리가 모바일 375px 에서 **54.7px** 밖에 안 된다(측정). 배지 15개가 원
+ * 둘레를 나눠 갖는 구조라 상수로는 못 늘린다 — 반지름을 키우면 배율이 그만큼
+ * 줄어 제자리다. 그래서 배지가 그 안에 들어가야 하고, 별명을 3자 이내로 줄인
+ * 것도 그래서다(DISPLAY_TITLES).
  */
-const BADGE_BOX = { w: 56, h: 22 };
+const BADGE_BOX = { w: 52, h: 22 };
 const NODE_BOX = { w: 17, h: 17 };
 
 function overlaps(
@@ -1422,7 +1428,7 @@ function Badge({
       style={{ pointerEvents: "none" }}
     >
       <div
-        className="flex items-center gap-1 whitespace-nowrap rounded-full border px-1.5 py-[2px] select-none"
+        className="flex w-[52px] items-center justify-center gap-1 whitespace-nowrap rounded-full border py-[2px] select-none"
         style={{
           borderColor: `${roleColor(role)}4d`,
           backgroundColor: "#ffffffe6",
@@ -1430,7 +1436,8 @@ function Badge({
         }}
       >
         {/*
-          이 배지의 화면 크기는 radial.test.ts 의 BADGE_BOX(56x22)와 같아야 한다.
+          w-[52px] 는 radial.test.ts 의 BADGE_BOX 와 같은 값이어야 한다 — 폭을
+          글자 수로 어림하지 않고 못 박는 이유가 그것이다.
           그 상자가 겹침 불변식의 기준이라, 여기서 아이콘을 되살리거나 글자를
           키우면 테스트는 초록인데 화면에서는 겹친다. 아이콘(ROLE_ICON)이 빠진
           것도 그래서다 — 15칸이 다 찬 지도에서 이웃 배지 사이 화면 거리가
