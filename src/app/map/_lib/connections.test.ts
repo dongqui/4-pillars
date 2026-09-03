@@ -10,7 +10,7 @@ import {
   connectionColors,
   connectionSegments,
 } from "./connections";
-import { placePeople, SELF_POSITION, type Vec3 } from "./layout";
+import { placePeople, SELF_POSITION, type Vec3 } from "./radial";
 
 describe("connectionSegments", () => {
   const targets: Vec3[] = [

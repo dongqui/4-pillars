@@ -84,7 +84,31 @@ export function PeopleList({
       </button>
 
       {open && (
-        <ul className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pb-[max(18px,env(safe-area-inset-bottom))] m-0 list-none">
+        /*
+          모바일에서 이 <ul> 이 늘어날 수 있는 최대 높이. MapShell.tsx 가 지도에
+          최소 420px 를 보장하는 계산(100dvh − 420px 지도 − 57px 헤더)을 여기
+          그대로 옮겨 오되, 이 <ul> 의 위 형제들이 이미 차지하는 높이를 마저
+          뺀다 — 펼치기 버튼(53px, pt-[17px]+pb-[13px]+글자줄+자기 border-b
+          1px 를 getBoundingClientRect 로 잰 값)과, wrapper 자신의
+          border-t(1px, MapShell.tsx 의 패널 wrapper — 모바일에서만 켜진다)다.
+          이 둘은 이 <ul> 의 부모(wrapper div) 안에서 자기 높이를 그대로
+          차지하는 평범한 상자라, 목록에게 남는 몫은 그만큼씩 더 줄어야
+          420px 지도 보장이 정확히 맞는다(420+57+53+1=531).
+
+          예전엔 이 calc 전체를 <ul> 의 부모(wrapper div, MapShell.tsx)에
+          걸었다. 세로가 짧은 화면(가로로 눕힌 폰)에서는 100dvh 가 531px 를
+          넘지 못해 이 값이 음수가 되고, CSS 는 음수 max-height 를 0 으로
+          자른다 — wrapper 전체가 접히면 펼치기 버튼까지 같이 사라져 다시 열
+          방법이 없어지는 회귀였다. 지금은 이 <ul> 한 칸에만 걸려 있어서,
+          같은 상황에서도 목록만 0 으로 접히고(펼치기 버튼이 있는데 안이
+          비어 보이는 정도) 버튼 자신은 wrapper 의 평범한 첫 자식이라 자기
+          높이 그대로 남는다 — 늘 화면 안에서 누를 수 있다.
+
+          md:max-h-none 은 데스크톱(우측 400px 고정 컬럼)에서 이 계산 자체가
+          뜻이 없어 끈다 — 그 폭에서는 wrapper 가 flex-row 의 한 칸이라 세로를
+          꽉 채우고, 목록은 그 안에서 flex-1 로 남는 공간을 그대로 쓴다.
+        */
+        <ul className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pb-[max(18px,env(safe-area-inset-bottom))] m-0 list-none max-h-[calc(100dvh-531px)] md:max-h-none">
           {byRole.map(({ role, people }) => (
             <li key={role} className="pt-2.5">
               <p className="flex items-center gap-[7px] px-2 pb-0.5 m-0">

@@ -134,15 +134,49 @@ export function MapShell({
 
           {/*
             사이드 패널. 데스크톱은 우측 400px 고정 컬럼, 모바일은 하단 판이다.
-            모바일에서 접으면 헤더 행만 남고, 펼치면 최대 58vh 까지 (시안).
+            모바일에서 접으면 헤더 행만 남고, 펼치면 안쪽 목록이 늘어난다(시안).
+
+            예전엔 화면의 58% 를 그냥 목록에 줬다(max-h-[58vh]) — 지도가 나머지를
+            가져가는 셈이라, 목록에 실제 사람이 몇 명 있든 지도 영역은 항상
+            "100vh − 헤더 − 58vh" 였다. 375×812 폰에서 그 값은 284px 였는데,
+            radial.test.ts 가 재는 화면(모바일 375×420)이 지키는 겹침 없음
+            보장은 그 아래로 내려가면 깨진다 — 점끼리 붙기 시작하는 문턱이 딱
+            거기다(radial.ts 의 RING_START 주석 참고). 반대로 사람 목록은 몇 줄
+            안 보여도 화면의 42%(342px)를 그냥 내줘 버렸다.
+
+            그래서 규칙을 뒤집었다: 목록에게 "화면의 몇 %" 를 주는 대신, 지도가
+            먼저 자기 최소 높이(420px)를 떼어 가고, 목록은 남는 만큼(헤더까지 뺀
+            나머지)을 갖는다 — 화면이 커지면 그 여유는 전부 목록으로 간다. 420 은
+            임의가 아니라 실측이다: 375px 폭에서 지도 영역 높이를 늘려 가며
+            screenScale 을 재면 420px 부터는 더 늘려도 배율이 그대로다(폭이
+            먼저 막힌다 — 배지가 3/9시 방향에서 가로로 걸리는 것이 그 다음
+            병목이다) — 그 위로 목록에게 더 뺏기지 않되, 그 아래로는 절대
+            내려가지 않는 값이 420 이다. 57 은 MapHeader 의 실제 높이(h-14=56px
+            + border-b 1px, 세이프 에어리어는 노치 없는 기기에서 0)다.
+            100dvh 를 쓰는 것은 100vh 와 달리 모바일 브라우저의 주소창이
+            나타났다 사라졌다 해도 그만큼을 몰래 목록에 뺏기지 않기 위해서다
+            (이 레포에서 100vh 대신 100dvh 를 쓰는 선례는 ConsultFrame.tsx 의
+            h-dvh).
+
+            처음엔 이 "420px + 57px" 계산을 이 wrapper div 의 max-height 로
+            직접 걸었다 — 그런데 세로가 짧은 화면(가로로 눕힌 폰, 이 라우트의
+            md 분기는 폭 기준이라 그런 화면도 여전히 이 모바일 레이아웃이다)
+            에서는 100dvh 가 477px(420+57) 를 넘지 못해 이 calc 가 음수가 되고,
+            CSS 는 음수 max-height 를 0 으로 자른다. 이 div 는 펼치기 버튼과 목록을
+            같이 담고 있어서, wrapper 가 0 이 되면 버튼까지 같이 사라졌다 —
+            게다가 layout.tsx 의 fixed inset-0 overflow-hidden 이 넘치는 내용을
+            밖으로 새어 나오게 두지 않고 그대로 잘라, 펼치기 버튼을 다시 찾을
+            방법이 없어졌다(회귀).
+
+            그래서 max-height 를 이 wrapper 가 아니라 PeopleList.tsx 의 스크롤
+            목록(<ul>)에만 건다. 버튼은 이 wrapper 의 첫 자식이고 자기 높이만큼만
+            차지하는 평범한 요소라, 목록 쪽 calc 가 얼마나 음수든 버튼과는
+            무관하다 — 목록만 0 으로 접히고 버튼은 항상 자기 높이(53px, 실측)
+            그대로 남는다. 자세한 계산과 회귀 이유는 PeopleList.tsx 의 <ul>
+            위 주석 참고.
           */}
           <div
-            className={`
-              flex flex-col shrink-0 bg-white
-              border-t border-slate-100 md:border-t-0 md:border-l
-              md:w-[400px] md:max-h-none
-              ${listOpen ? "max-h-[58vh]" : ""}
-            `}
+            className="flex flex-col shrink-0 bg-white border-t border-slate-100 md:border-t-0 md:border-l md:w-[400px]"
           >
             <PeopleList
               people={people}

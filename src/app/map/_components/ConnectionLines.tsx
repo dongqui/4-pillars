@@ -9,7 +9,7 @@ import {
   connectionColors,
   connectionSegments,
 } from "../_lib/connections";
-import type { Vec3 } from "../_lib/layout";
+import type { Vec3 } from "../_lib/radial";
 import type { RelationRole } from "../_data/roles";
 
 /**
@@ -57,11 +57,17 @@ export function ConnectionLines({
   // 선택이 바뀔 때 지오메트리를 다시 만들지 않고 이 값만 갈아 끼운다 —
   // 위 useMemo 의 의존성에 selectedIndex 를 넣으면 사람을 고를 때마다
   // 20개 정점 버퍼가 통째로 재생성된다.
+  // object 는 three 가 관리하는 가변 지오메트리/재질이다 — 위 주석대로
+  // selectedIndex 마다 다시 만들지 않고 재질 하나만 갈아 끼우는 것이 의도된
+  // 동작이다. react-hooks/immutability 는 useMemo 가 준 three 객체를 직접
+  // mutate 하는 이 관용구를 모르므로 블록째 끈다.
+  /* eslint-disable react-hooks/immutability */
   useEffect(() => {
     const material = object.material as THREE.LineBasicMaterial;
     material.opacity =
       selectedIndex === null ? CONNECTION_OPACITY : CONNECTION_DIMMED_OPACITY;
   }, [object, selectedIndex]);
+  /* eslint-enable react-hooks/immutability */
 
   useEffect(() => {
     // <primitive> 는 자동 해제되지 않는다. 직접 버린다.

@@ -1,49 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Html } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
-import { roleColor } from "../_data/role-colors";
+import { nodeColor, roleTextColor } from "../_data/role-colors";
+import { DISPLAY_TITLES } from "../_data/roles";
 import type { MapPerson } from "../_data/person";
-import type { Vec3 } from "../_lib/layout";
-import { PersonNode } from "./PersonNode";
-
-type Tier = "full" | "compact" | "dot";
-
-// 경계값은 눈으로 맞춘 값이다. 375px 에서 이름이 겹치기 시작하는 지점이 곧 경계다.
-// 진입 거리가 41 → 26 으로 줄었으므로(camera.ts) 같은 화면상 밀도를 만들려면
-// 이 경계도 같은 비율(26/40 = 0.65)로 내려야 한다. 35/50 을 그대로 두면
-// 기본 진입에서도, A 모드 전체에서도 20명이 전부 full 로 뜬다.
-// 23/33 은 기본 진입에서 dot 0 · full 다수로, "이름이 더 명확해야 한다"는
-// 설계 문서 5절 의도를 satisfy 한다. dot 은 여전히 죽은 코드가 아니다 — A 모드
-// 최대 줌, B·C 모드 최대 줌에서 실제로 나온다.
-const NEAR = 23;
-// 앵커의 깊이는 20.86~33.16 이고 관성 사람들은 32.07~32.66 에 놓인다.
-// FAR = 33 이면 관성 2명이 진입 화면에서 전부 dot 이 되어 이름이 안 보인다 —
-// 명패 티어가 Role 과 상관관계를 갖는 것은 의도가 아니다. dot 은 여전히
-// 죽은 코드가 아니다(C 모드 최대 줌아웃 65).
-const FAR = 36;
-
-// 명패는 노드보다 위에 떠야 하지만, world-space Y 오프셋으로 만들면 C 모드
-// (minPolar 15°~maxPolar 140°)에서 world Y 축이 시선축에 거의 나란해지는
-// 각도가 나온다 — 화면 중앙이 아닌 사람은 그 순간 오프셋이 옆으로 새어(parallax)
-// 명패가 노드 위가 아니라 대각선으로 어긋난다. 그래서 오프셋을 화면공간(px)으로
-// 준다: 카메라 각도·줌과 무관하게 항상 화면상 수직으로 위에 뜬다.
-const LABEL_LIFT_PX = 32;
-
-function tierFor(distance: number): Tier {
-  if (distance < NEAR) return "full";
-  if (distance < FAR) return "compact";
-  return "dot";
-}
-
-const ORDER: Tier[] = ["dot", "compact", "full"];
-
-/** 선택된 성운의 사람은 한 단계 올린다. dim 처리와 같은 동작이라 개념이 늘지 않는다. */
-function boost(tier: Tier): Tier {
-  return ORDER[Math.min(ORDER.length - 1, ORDER.indexOf(tier) + 1)];
-}
+import type { Vec3 } from "../_lib/radial";
 
 export function PersonMarker({
   person,
@@ -60,105 +22,107 @@ export function PersonMarker({
   boosted: boolean;
   onSelect: (id: string) => void;
 }) {
-  const [tier, setTier] = useState<Tier>("compact");
-  const current = useRef<Tier>("compact");
-  // 지연 초기화: useRef(new THREE.Vector3(...)) 로 쓰면 매 렌더마다 새
-  // Vector3 를 만들고 버리면서도(ref 는 첫 값만 쓴다) 그 할당 자체는 매번
-  // 일어난다. 아래 패턴은 최초 렌더에서 딱 한 번만 만든다.
-  const world = useRef<THREE.Vector3 | null>(null);
-  if (world.current === null) world.current = new THREE.Vector3(...position);
-
-  useFrame((state) => {
-    // 매 프레임 setState 하면 20개가 리렌더를 쏟아낸다. 단계가 바뀔 때만 올린다.
-    const next = tierFor(state.camera.position.distanceTo(world.current!));
-    if (next !== current.current) {
-      current.current = next;
-      setTier(next);
-    }
-  });
-
-  const shown = boosted ? boost(tier) : tier;
-  const opacity = selected ? 1 : dimmed ? 0.28 : 0.92;
-
-  // dot 은 이름이 안 보이는 티어라 색이 유일한 단서다. 그 단서는 Role 이어야 한다.
-  const dotColor = roleColor(person.role);
+  const [hovered, setHovered] = useState(false);
+  // 이름은 평소에 없다. 25명 전원의 이름표를 항상 띄우던 것이 이 화면이
+  // 읽히지 않던 이유였고, 50명에서는 어떤 배치로도 겹친다.
+  const showName = selected || hovered;
+  const opacity = selected ? 1 : dimmed ? 0.32 : boosted ? 1 : 0.9;
 
   return (
-    <group>
-      <PersonNode
-        position={position}
-        role={person.role}
-        feature={person.feature}
-        selected={selected}
-        dimmed={dimmed}
-      />
-      <Html
-        position={position as unknown as [number, number, number]}
-        center
-        zIndexRange={[30, 0]}
-        style={{ pointerEvents: "auto", transition: "opacity 220ms ease", opacity }}
+    <Html
+      position={position as unknown as [number, number, number]}
+      center
+      zIndexRange={[30, 0]}
+      style={{ pointerEvents: "auto", transition: "opacity 220ms ease", opacity }}
+    >
+      <button
+        type="button"
+        aria-label={`${person.name} ${DISPLAY_TITLES[person.role][person.feature]}`}
+        onClick={() => onSelect(person.id)}
+        // 터치 브라우저는 곧잘 pointerenter 만 쏘고 짝이 되는 pointerleave 를
+        // 안 보낸다 — 한 손가락으로 두 점을 차례로 누르면 두 호버 상태가 눌어
+        // 붙어 칩이 둘 다 뜬다. "한 번에 한 명"이 이 화면의 요구라서, 실제로
+        // hover 개념이 있는 마우스에서만 이 상태를 켠다. leave 는 꺼도 안전
+        // 하니(이미 false 였다면 no-op) 그대로 둔다.
+        onPointerEnter={(event) => {
+          if (event.pointerType === "mouse") setHovered(true);
+        }}
+        onPointerLeave={() => setHovered(false)}
+        onFocus={() => setHovered(true)}
+        onBlur={() => setHovered(false)}
+        // 히트 박스는 점(15px)보다 커야 누르기 쉽지만, 이웃 점과 겹칠 만큼
+        // 커지면 안 된다 — 50명 한도에서 레이아웃이 보장하는 점 중심 간 최소
+        // 간격은 19px 뿐이다(radial.ts 의 NO_OVERLAP_PX). 박스 한 변이 그
+        // 문턱(19px)을 넘으면 이웃한 두 박스가 겹쳐, 그 겹친 틈을 누르면
+        // 위에 그려진 쪽이 가로채 버린다 — 원래 겨냥한 사람이 아니라 옆
+        // 사람이 선택된다. 18px(그 아래)로 여유를 남긴다. 더 큰 터치 영역이
+        // 편하긴 하지만, 엉뚱한 사람이 눌리는 쪽이 더 나쁘다.
+        className="relative grid place-items-center w-[18px] h-[18px] -m-[9px] cursor-pointer border-0 bg-transparent p-0"
       >
-        {/*
-          명패는 LABEL_LIFT_PX 만큼 위로 떠 있어 노드 자체는 히트 타깃이
-          없었다 — 화면에서 가장 크고 눈에 띄는 노드를 탭하면 아무것도 맞지
-          않고 World.tsx 의 onPointerMissed 로 빠져 선택이 풀렸다. Html 이
-          `center` 로 감싸는 wrapper 는 자기 자신의 bounding box 중심을 투영된
-          지점에 맞춘다(drei Html.js) — 그 중심(50%, 50%)에 absolute 로 얹으면
-          아래 라벨 div 의 크기와 무관하게 항상 노드의 실제 화면 위치에 온다.
-          화면상 사람 간 최소 간격이 27.67px 이므로(layout.test.ts), 두 히트
-          타깃이 서로 닿지 않으려면 지름이 그 절반(11.81px)보다 작아야 한다 —
-          10px 로 여유를 남긴다. 시각적으로는 아무것도 바뀌지 않는다(투명,
-          테두리 없음). 명패의 접근성 컨트롤과 중복되는 보조 히트존이라
-          aria-hidden + tabIndex=-1 로 스크린리더·Tab 순서에서는 뺀다.
-        */}
-        <button
-          type="button"
-          aria-hidden="true"
-          tabIndex={-1}
-          onClick={() => onSelect(person.id)}
-          className="absolute cursor-pointer bg-transparent border-0 p-0 rounded-full"
-          style={{ left: "50%", top: "50%", width: 10, height: 10, transform: "translate(-50%, -50%)" }}
+        {/* 六合 은 은은한 halo, 沖 은 바깥 링. 색은 구역, 형태는 상태다 —
+            색 하나로 15칸을 감당하지 않아도 되게 나눠 진다. */}
+        {person.feature === "yukhap" && (
+          // 점 지름 15px 위에 11px 여유를 둔 26px halo — 점을 가리지 않으면서
+          // 은은하게 번지는 정도로, 沖 링(22px)보다 한 단계 크게 잡아 "맑아진다"는
+          // 六合 쪽 인상과 맞춘다.
+          <span
+            aria-hidden
+            className="absolute rounded-full"
+            style={{
+              width: 26,
+              height: 26,
+              backgroundColor: nodeColor(person.role, person.feature),
+              opacity: 0.18,
+            }}
+          />
+        )}
+        {person.feature === "chung" && (
+          // 점 지름 15px 위에 7px 여유를 둔 22px 링 — halo보다 촘촘해 "또렷해진다"는
+          // 沖 쪽 인상에 맞춘, 테두리만 있는 형태.
+          <span
+            aria-hidden
+            className="absolute rounded-full border"
+            style={{
+              width: 22,
+              height: 22,
+              borderColor: nodeColor(person.role, person.feature),
+              opacity: 0.6,
+            }}
+          />
+        )}
+        <span
+          aria-hidden
+          className="block rounded-full border-2 border-white"
+          style={{
+            width: 15,
+            height: 15,
+            backgroundColor: nodeColor(person.role, person.feature),
+            // 점 테두리(흰 2px) 밖으로 3px 더 두르는 색 링 — 선택 상태를
+            // 흰 테두리와 헷갈리지 않게 구분하는 최소 두께다.
+            boxShadow: selected
+              ? `0 0 0 3px ${nodeColor(person.role, person.feature)}55`
+              : undefined,
+          }}
         />
-        <div style={{ transform: `translateY(-${LABEL_LIFT_PX}px)` }}>
-          {shown === "dot" ? (
-            <button
-              type="button"
-              aria-label={person.name}
-              onClick={() => onSelect(person.id)}
-              className="grid place-items-center w-11 h-11 -m-[14px] cursor-pointer bg-transparent border-0"
-            >
-              <span
-                className="block w-[7px] h-[7px] rounded-full"
-                style={{
-                  backgroundColor: dotColor,
-                  opacity: selected ? 1 : 0.8,
-                }}
-              />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => onSelect(person.id)}
-              className={`
-                flex items-center justify-center whitespace-nowrap cursor-pointer
-                rounded-md border backdrop-blur-[2px] transition-all
-                ${
-                  shown === "full"
-                    ? "min-h-11 px-3 text-[13px]"
-                    : "min-h-8 px-2 text-[11px] relative after:absolute after:content-[''] after:-inset-1.5"
-                }
-                ${
-                  selected
-                    ? "border-blue-600/60 bg-blue-50 text-blue-700 font-semibold"
-                    : "border-slate-200 bg-white/90 text-slate-800 font-medium shadow-sm"
-                }
-              `}
-            >
-              {person.name}
-            </button>
-          )}
+      </button>
+
+      {showName && (
+        <div
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2 py-1 text-center shadow-sm"
+          // 점 지름 15 + 흰 테두리 2 위에 1px 여유를 더해 칩이 점에 닿지 않게 띄운다.
+          style={{ bottom: 18 }}
+        >
+          <span className="block text-[12px] font-bold leading-tight text-slate-900">
+            {person.name}
+          </span>
+          <span
+            className="block text-[10px] leading-tight"
+            style={{ color: roleTextColor(person.role) }}
+          >
+            {DISPLAY_TITLES[person.role][person.feature]}
+          </span>
         </div>
-      </Html>
-    </group>
+      )}
+    </Html>
   );
 }

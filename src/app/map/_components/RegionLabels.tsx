@@ -1,62 +1,54 @@
 "use client";
 
-import { useMemo, useRef } from "react";
 import { Html } from "@react-three/drei";
-import { useFrame, useThree } from "@react-three/fiber";
-import * as THREE from "three";
 import { roleColor, roleTextColor } from "../_data/role-colors";
 import {
   DISPLAY_TITLES,
-  ROLE_ICON,
   ROLE_ORDER,
   type Feature,
   type RelationRole,
 } from "../_data/roles";
-import { badgeOffset } from "../_lib/badge-offset";
-import { SELF_POSITION, subAnchor, type Vec3 } from "../_lib/layout";
+import { badgeAnchor, type CellCounts, type MapLayout } from "../_lib/radial";
 
-const FEATURES: Feature[] = ["none", "yukhap", "chung"];
-
+const FEATURES: Feature[] = ["yukhap", "none", "chung"];
 
 /**
- * 15개 관계마다 "무슨 관계인지 · 몇 명인지"를 띄우는 배지.
+ * 15개 칸마다 "무슨 관계인지 · 몇 명인지" 를 띄우는 배지.
  *
- * 색은 "다섯으로 갈렸다"까지만 말하고 "이 덩어리가 무엇인가"는 말하지 못한다.
- * Role 단위 배지 다섯 개로 시작했지만, 같은 색 안에서도 기본/六合/沖 은 서로
- * 다른 관계다 — 라이벌과 동지가 같은 파랑인데 이름이 하나뿐이면 그 구분이
- * 사라진다. 그래서 소구역마다 하나씩 붙인다.
+ * 색은 "다섯으로 갈렸다" 까지만 말한다. 라이벌과 동지가 같은 파랑인데 이름이
+ * 하나뿐이면 그 구분이 사라지므로 칸마다 하나씩 붙인다.
  *
- * **사람이 없는 소구역에는 아무것도 그리지 않는다.** 목 데이터의 관성 沖 이
- * 그렇다. 빈 자리에 이름표만 떠 있으면 없는 관계가 있는 것처럼 읽힌다.
+ * **사람이 없는 칸에는 아무것도 그리지 않는다.** 빈 자리에 이름표만 떠 있으면
+ * 없는 관계가 있는 것처럼 읽힌다.
+ *
+ * 자리는 radial.badgeAnchor 가 계산한다 — 옛 구현은 매 프레임 화면공간에서
+ * 배지를 밀어내야 했는데(badge-offset.ts), 이제 각 칸이 자기 각도를 소유하고
+ * 그 바깥이 비어 있어 밀어낼 이유가 없다.
  */
 export function RegionLabels({
+  layout,
   counts,
 }: {
-  counts: Record<RelationRole, Record<Feature, number>>;
+  layout: MapLayout;
+  counts: CellCounts;
 }) {
-  const shown = useMemo(
-    () =>
-      ROLE_ORDER.flatMap((role) =>
-        FEATURES.filter((f) => counts[role][f] > 0).map((feature) => ({
-          role,
-          feature,
-          at: subAnchor(role, feature),
-        })),
-      ),
-    [counts],
-  );
-
   return (
     <group>
-      {shown.map(({ role, feature, at }) => (
-        <Badge
-          key={`${role}/${feature}`}
-          role={role}
-          feature={feature}
-          at={at}
-          count={counts[role][feature]}
-        />
-      ))}
+      {ROLE_ORDER.flatMap((role) =>
+        FEATURES.map((feature) => {
+          const at = badgeAnchor(layout, role, feature);
+          if (!at) return null;
+          return (
+            <Badge
+              key={`${role}/${feature}`}
+              role={role}
+              feature={feature}
+              at={at}
+              count={counts[role][feature]}
+            />
+          );
+        }),
+      )}
     </group>
   );
 }
@@ -69,34 +61,9 @@ function Badge({
 }: {
   role: RelationRole;
   feature: Feature;
-  at: Vec3;
+  at: readonly [number, number, number];
   count: number;
 }) {
-  const box = useRef<HTMLDivElement>(null);
-  const camera = useThree((s) => s.camera);
-  const size = useThree((s) => s.size);
-
-  // 매 프레임 새 객체를 만들지 않는다 — 배지가 14개다.
-  const scratch = useMemo(() => ({ a: new THREE.Vector3(), b: new THREE.Vector3() }), []);
-
-  useFrame(() => {
-    if (!box.current) return;
-    // NDC → 화면 픽셀. y 는 NDC 가 위로 +, 화면은 아래로 + 다.
-    const a = scratch.a.set(at[0], at[1], at[2]).project(camera);
-    const b = scratch.b.set(SELF_POSITION[0], SELF_POSITION[1], SELF_POSITION[2]).project(camera);
-    const toPx = (v: THREE.Vector3) => ({
-      x: (v.x * 0.5 + 0.5) * size.width,
-      y: (0.5 - v.y * 0.5) * size.height,
-    });
-
-    // 미는 계산 자체는 badge-offset.ts 의 순수 함수다 — useFrame 안에 두면
-    // 브라우저 없이는 아무도 검증하지 못한다. 실제로 이 프로젝트의 미리보기
-    // 창은 rAF 를 돌리지 않아 useFrame 이 아예 실행되지 않았고, 그래서 이
-    // 오프셋이 적용되기 전 위치를 세 번 연속으로 재고 있었다.
-    const off = badgeOffset(toPx(b), toPx(a));
-    box.current.style.transform = `translate(${off.x.toFixed(1)}px, ${off.y.toFixed(1)}px)`;
-  });
-
   return (
     <Html
       position={at as unknown as [number, number, number]}
@@ -105,23 +72,25 @@ function Badge({
       style={{ pointerEvents: "none" }}
     >
       <div
-        ref={box}
-        className="flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-[3px] backdrop-blur-[2px] select-none"
+        className="flex w-[52px] items-center justify-center gap-1 whitespace-nowrap rounded-full border py-[2px] select-none"
         style={{
           borderColor: `${roleColor(role)}4d`,
           backgroundColor: "#ffffffe6",
-          // 배지 글자는 그 구역의 텍스트 변형이다 — 그래픽 hex 그대로는 흰
-          // 배경에서 읽히지 않는 색(주황 1.9:1)이 있다.
           color: roleTextColor(role),
         }}
       >
-        <span className="text-[10px] leading-none" aria-hidden>
-          {ROLE_ICON[role]}
-        </span>
-        <span className="text-[10px] font-semibold leading-none tracking-[0.02em]">
+        {/*
+          w-[52px] 는 radial.test.ts 의 BADGE_BOX 와 같은 값이어야 한다 — 폭을
+          글자 수로 어림하지 않고 못 박는 이유가 그것이다.
+          그 상자가 겹침 불변식의 기준이라, 여기서 아이콘을 되살리거나 글자를
+          키우면 테스트는 초록인데 화면에서는 겹친다. 아이콘이 빠진 것도
+          그래서다 — 15칸이 다 찬 지도에서 이웃 배지 사이 화면 거리가 모바일
+          60.8px 이라 88px 짜리 배지는 들어가지 않는다.
+        */}
+        <span className="text-[9px] font-semibold leading-none tracking-[0.02em]">
           {DISPLAY_TITLES[role][feature]}
         </span>
-        <span className="text-[10px] font-bold leading-none tabular-nums opacity-80">
+        <span className="text-[9px] font-bold leading-none tabular-nums opacity-80">
           {count}
         </span>
       </div>

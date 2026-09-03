@@ -34,7 +34,7 @@
 
 import { MAP_BACKGROUND, roleColor } from "../_data/role-colors";
 import type { RelationRole } from "../_data/roles";
-import { SELF_POSITION, type Vec3 } from "./layout";
+import { SELF_POSITION, type Vec3 } from "./radial";
 
 /**
  * 선 하나의 불투명도.
