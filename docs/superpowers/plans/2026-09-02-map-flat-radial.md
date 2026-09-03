@@ -1019,8 +1019,8 @@ git commit -m "test(map): 화면 겹침을 25·50명 x 두 화면 비율로 잠�
 - Create: `src/app/map/_components/MapCamera.tsx`
 
 **Interfaces:**
-- Consumes: Task 4 의 `placePeople`, `buildLayout`, `layoutExtent`, `screenScale`, `MapLayout`
-- Produces: `<MapCamera extent={number} />` — 지도를 화면에 맞추고, 회전·줌 조작을 붙인다
+- Consumes: Task 4 의 `placePeople`, `buildLayout`, `screenScale`, `MapLayout`
+- Produces: `<MapCamera layout={MapLayout} />` — 지도를 화면에 맞추고, 회전·줌 조작을 붙인다
 
 - [ ] **Step 1: MapCamera 를 만든다**
 
@@ -1033,7 +1033,7 @@ import { useEffect, useState } from "react";
 import { OrbitControls } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { screenScale } from "../_lib/radial";
+import { screenScale, type MapLayout } from "../_lib/radial";
 
 /** 기울임 상한. 완전히 옆에서 보면 원반이 선이 되어 아무것도 안 읽힌다. */
 const MAX_TILT = (70 * Math.PI) / 180;
@@ -1049,6 +1049,10 @@ const ZOOM_RANGE = { min: 0.7, max: 5 };
  * 월드 거리와 화면 픽셀이 상수배로 묶여, radial.test.ts 가 브라우저 없이
  * 화면 겹침을 잴 수 있다.
  *
+ * screenScale 이 layout 을 통째로 받는 것은 점의 반지름만으로는 맞출 수 없기
+ * 때문이다 — 배지는 월드가 아니라 화면에서 크기가 고정이라, 반지름만 맞추면
+ * 원반 가장자리의 배지가 잘린다(실측: 모바일 27.9px, 데스크톱 11px).
+ *
  * 회전을 여는 이유는 하나다: 한 칸에 사람이 몰리면 평면만으로는 간격을 지킬
  * 수 없어 넘치는 줄을 위로 쌓는데(radial.ts 의 MAX_FLAT_ROWS), 그 층은
  * 기울여야만 갈라진다. 팬은 열지 않는다 — 중심이 "나" 라는 것이 이 화면의
@@ -1058,18 +1062,18 @@ const ZOOM_RANGE = { min: 0.7, max: 5 };
  * 창 크기가 바뀐 뒤에도 옛 배율을 지키면 지도가 잘리거나 한쪽에 몰리는 편이
  * 더 나쁘다.
  */
-export function MapCamera({ extent }: { extent: number }) {
+export function MapCamera({ layout }: { layout: MapLayout }) {
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
   const [base, setBase] = useState(1);
 
   useEffect(() => {
-    const next = screenScale(size.width, size.height, extent);
+    const next = screenScale(size.width, size.height, layout);
     setBase(next);
     if (!(camera instanceof THREE.OrthographicCamera)) return;
     camera.zoom = next;
     camera.updateProjectionMatrix();
-  }, [camera, size.width, size.height, extent]);
+  }, [camera, size.width, size.height, layout]);
 
   return (
     <OrbitControls
@@ -1090,7 +1094,7 @@ export function MapCamera({ extent }: { extent: number }) {
 `World.tsx` 에서:
 
 1. `import { CameraRig } from "./CameraRig";` 와 `import { CAMERA_FOV, DEFAULT_CAMERA_POSITION } from "../_lib/camera";` 를 지운다.
-2. `import { placePeople } from "../_lib/layout";` → `import { buildLayout, layoutExtent, placePeople } from "../_lib/radial";`
+2. `import { placePeople } from "../_lib/layout";` → `import { buildLayout, placePeople } from "../_lib/radial";`
 3. `import { MapCamera } from "./MapCamera";` 를 더한다.
 4. `<Canvas>` 의 camera prop 을 바꾼다. 카메라는 지도 평면 **위**에 선다:
 
@@ -1104,10 +1108,9 @@ export function MapCamera({ extent }: { extent: number }) {
 
 ```tsx
   const layout = useMemo(() => buildLayout(counts), [counts]);
-  const extent = useMemo(() => layoutExtent(layout), [layout]);
 ```
 
-6. `<CameraRig ... />` 줄을 `<MapCamera extent={extent} />` 로 바꾼다.
+6. `<CameraRig ... />` 줄을 `<MapCamera layout={layout} />` 로 바꾼다.
 7. `<fog ... />` 줄을 지운다.
 8. **씬 전체를 눕힌다.** `radial.ts` 는 배치를 xy 평면에 그리고 층 높이를 +z 로
    준다. three 의 조작계는 +y 가 위라고 보므로, 그대로 두면 회전이 엉뚱한 축을
