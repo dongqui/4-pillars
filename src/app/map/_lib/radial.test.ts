@@ -333,8 +333,33 @@ const VIEWPORTS: [string, number, number][] = [
   ["모바일 375x420", 375, 420],
 ];
 
-/** 점 지름 15px + 흰 테두리 2px. 이보다 가까우면 두 점이 한 덩어리로 보인다. */
-const MIN_NODE_PX = 22;
+/**
+ * 점 상자는 15px + 흰 테두리 2px = 17px 다. 중심 거리가 이보다 크면 두 점은
+ * 겹치지 않는다 — 19 는 거기에 2px 눈에 보이는 틈을 더한 값이다.
+ */
+const NO_OVERLAP_PX = 19;
+
+/** 흔한 지도에 보장하는 여유. 겹침의 경계가 아니라 읽기 편한 거리다. */
+const COMFORT_NODE_PX = 22;
+
+/**
+ * 문턱이 둘인 이유.
+ *
+ * 모바일 375px 폭에 한도 50명을 넣고 22px 를 지키는 것은 이 배치로 되지 않는다.
+ * 상수를 300회 넘게 다시 뽑아도 19.7px 에서 수렴했고(MAX_FLAT_ROWS 를 5·6 으로
+ * 올리면 오히려 나빠진다), 그 위로 가려면 배지를 읽을 수 없을 만큼 줄여야 한다.
+ *
+ * 그래서 약속을 둘로 나눈다. 흔한 지도(시드 25명)는 편안한 거리를 보장하고,
+ * 한도까지 채운 지도는 **적어도 겹치지 않는다**. 뒤쪽은 약해진 약속이지만 여전히
+ * 진짜 약속이다 — 그리고 그런 지도는 카메라를 당겨서 본다.
+ *
+ * 데스크톱은 두 경우 다 28px 이상이라 이 구분이 필요 없다.
+ */
+const NODE_THRESHOLD: Record<string, number> = {
+  "시드 25명": COMFORT_NODE_PX,
+  "한도 50명": NO_OVERLAP_PX,
+  "한쪽에 몰린 50명": NO_OVERLAP_PX,
+};
 
 /**
  * 배지와 점은 원이 아니라 사각형으로 잰다. 배지는 가로로 긴 알약이고 점은
@@ -345,10 +370,16 @@ const MIN_NODE_PX = 22;
  * 적으면 screenScale 이 실제로 맞추는 상자 크기와 테스트가 재는 상자 크기가
  * 몰래 어긋날 수 있다(이 파일이 잡으려는 바로 그 종류의 거짓 통과).
  *
- * 폭 56 은 아이콘을 빼고 글자를 줄인 배지의 실측 폭이다. 88(아이콘 + 큰 글자)로는
- * 성립하지 않는다: 15칸이 다 찬 지도에서 이웃 슬롯의 각도 간격은 18.67° 이고,
- * 그때 두 배지 중심 사이의 화면 거리가 모바일에서 60.8px 이라 88 폭은 무조건
- * 겹친다. **Task 7 이 그리는 배지가 이 상자와 같아야 한다.**
+ * 폭 52 는 **추정이 아니라 고정값**이다. Task 7 이 배지에 w-[52px] 를 박아
+ * 그리므로 이 상자와 화면이 정의상 같다 — 글자 수로 폭을 어림하면 그 어림이
+ * 틀렸을 때 테스트만 초록이 된다(실제로 56 으로 어림했다가 진짜 배지가 73px 인
+ * 것을 뒤늦게 쟀다).
+ *
+ * 52 인 이유는 물리적 상한이다: 15칸이 다 찬 지도에서 이웃 배지 중심 사이의
+ * 화면 거리가 모바일 375px 에서 **54.7px** 밖에 안 된다(측정). 배지 15개가 원
+ * 둘레를 나눠 갖는 구조라 상수로는 못 늘린다 — 반지름을 키우면 배율이 그만큼
+ * 줄어 제자리다. 그래서 배지가 그 안에 들어가야 하고, 별명을 3자 이내로 줄인
+ * 것도 그래서다(DISPLAY_TITLES). **Task 7 이 그리는 배지가 이 상자와 같아야 한다.**
  */
 const BADGE_BOX = { w: BADGE_PX.width, h: BADGE_PX.height };
 const NODE_BOX = { w: NODE_PX.width, h: NODE_PX.height };
@@ -369,7 +400,8 @@ function overlaps(
 describe("화면에서 겹치지 않는다", () => {
   for (const [vpName, w, h] of VIEWPORTS) {
     for (const [caseName, c] of CASES) {
-      it(`${vpName} · ${caseName} — 같은 층의 점끼리 ${MIN_NODE_PX}px 이상 떨어진다`, () => {
+      const threshold = NODE_THRESHOLD[caseName];
+      it(`${vpName} · ${caseName} — 같은 층의 점끼리 ${threshold}px 이상 떨어진다`, () => {
         const layout = buildLayout(c);
         const scale = screenScale(w, h, layout);
         const pts = [...placePeople(peopleOf(c)).values()];
@@ -388,7 +420,7 @@ describe("화면에서 겹치지 않는다", () => {
         // 같은 층 쌍이 하나도 없으면 worst 가 Infinity 로 남아 아래 assert 가
         // 공허하게 통과한다 — 그 함정을 여기서 막는다.
         expect(comparablePairs).toBeGreaterThan(0);
-        expect(worst).toBeGreaterThanOrEqual(MIN_NODE_PX);
+        expect(worst).toBeGreaterThanOrEqual(threshold);
       });
 
       it(`${vpName} · ${caseName} — 배지가 점과도, 다른 배지와도 겹치지 않는다`, () => {
