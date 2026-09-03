@@ -99,7 +99,7 @@ export function World({
         <SelfCore />
 
         {/* 어떤 관계의 구역이고 몇 명인지. 색은 "다섯으로 갈렸다"까지만 말한다. */}
-        <RegionLabels counts={counts} />
+        <RegionLabels layout={layout} counts={counts} />
 
         {/*
           dim 은 '다른 role 그룹'에만 건다. 같은 그룹 사람까지 흐리면 boosted 로 한
