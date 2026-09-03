@@ -325,17 +325,29 @@ function normalize(a: number): number {
   return x;
 }
 
-import { badgeAnchor, screenScale, BADGE_PX, NODE_PX, type Vec3 } from "./radial";
+import { badgeAnchor, screenScale, BADGE_PX, NODE_PX, SELF_PX, type Vec3 } from "./radial";
 
-/** 실측 화면 두 벌. 데스크톱은 400px 사이드 패널을 뺀 지도 영역이다. */
+/**
+ * 실측 화면 두 벌. 데스크톱은 400px 사이드 패널을 뺀 지도 영역이다.
+ *
+ * 모바일은 375×420 이 아니라 375×284 다 — getBoundingClientRect 로 실제
+ * MapShell 을 재서 고쳤다. 375×812 폰에서 헤더(57px, h-14+테두리)를 빼고
+ * 남은 755px 를 지도 영역과 하단 사람 목록 판이 나눠 쓰는데, 목록은 기본
+ * 펼쳐진 상태이고(listOpen=true) max-h-[58vh](=470.96px, 뷰포트 기준) 로
+ * 잘린다 — 25명·50명 둘 다 이 상한을 채운다(실측: 두 인원 모두 지도 영역이
+ * 정확히 284.05px 다). 755 − 470.96 ≈ 284.05, 소수점은 버렸다. 옛 420 은
+ * 이 목록 판을 빼놓고 잰 값이라 실제보다 136px 더 여유로웠다 — 이 파일이
+ * 지키던 겹침 없음 약속이 실기기에서는 한 번도 검증된 적이 없었다는 뜻이다.
+ */
 const VIEWPORTS: [string, number, number][] = [
   ["데스크톱 700x500", 700, 500],
-  ["모바일 375x420", 375, 420],
+  ["모바일 375x284", 375, 284],
 ];
 
 /**
- * 점 상자는 15px + 흰 테두리 2px = 17px 다. 중심 거리가 이보다 크면 두 점은
- * 겹치지 않는다 — 19 는 거기에 2px 눈에 보이는 틈을 더한 값이다.
+ * 점 상자는 NODE_PX(15×15, 측정값 — radial.ts 참고) 다. 중심 거리가 이
+ * 폭보다 크면 두 점은 겹치지 않는다 — 19 는 거기에 4px 눈에 보이는 틈을
+ * 더한 값이다.
  */
 const NO_OVERLAP_PX = 19;
 
@@ -343,17 +355,37 @@ const NO_OVERLAP_PX = 19;
 const COMFORT_NODE_PX = 22;
 
 /**
+ * 중심 "나" 오브와 가장 안쪽 점 사이에 남아야 하는 눈에 보이는 틈.
+ * NO_OVERLAP_PX 가 점-점 겹침에 "닿지 않는 것 + 4px" 를 요구하는 것과 같은
+ * 규약이다 — 여기서도 오브 반지름 + 점 반지름만으로는 부족하고, 그 위에
+ * 눈으로 알아볼 만큼의 틈이 더 있어야 한다.
+ */
+const SELF_CLEARANCE_PX = 4;
+
+/**
  * 문턱이 둘인 이유.
  *
  * 모바일 375px 폭에 한도 50명을 넣고 22px 를 지키는 것은 이 배치로 되지 않는다.
- * 상수를 300회 넘게 다시 뽑아도 19.7px 에서 수렴했고(MAX_FLAT_ROWS 를 5·6 으로
- * 올리면 오히려 나빠진다), 그 위로 가려면 배지를 읽을 수 없을 만큼 줄여야 한다.
+ * 상수를 여러 번 다시 뽑아도(375×420 기준) 19.7px 에서 수렴했고, 그 위로
+ * 가려면 배지를 읽을 수 없을 만큼 줄여야 한다.
  *
  * 그래서 약속을 둘로 나눈다. 흔한 지도(시드 25명)는 편안한 거리를 보장하고,
  * 한도까지 채운 지도는 **적어도 겹치지 않는다**. 뒤쪽은 약해진 약속이지만 여전히
  * 진짜 약속이다 — 그리고 그런 지도는 카메라를 당겨서 본다.
  *
  * 데스크톱은 두 경우 다 28px 이상이라 이 구분이 필요 없다.
+ *
+ * ⚠️ 알려진 결함(모바일 375×284, 한도 50명·한쪽에 몰린 50명): 위 300회 재탐색은
+ * 375×420 기준이었다. 모바일 지도 영역의 실측 높이가 284px 로 확인된 뒤(위
+ * VIEWPORTS 주석) 다섯 상수(RING_START·RING_GAP·ROW_PITCH·MIN_GAP·
+ * BADGE_MARGIN)를 그 높이에 맞춰 다시 최적화했지만, 한도 50명의 가장 가까운
+ * 점 쌍은 약 14.7px 까지만 좁혀진다 — NO_OVERLAP_PX(19px)에 4.3px 모자란다.
+ * radial.ts 의 BADGE_MARGIN 주석에 적은 대로, 같은 375×284 에서 六合 구역의
+ * 배지 세 개도 서로 겹친다(12시 근방은 각도차가 화면에서 거의 가로로만
+ * 나타나 반지름·배율을 아무리 흔들어도 상쇄된다) — 다섯 상수로는 못 푸는
+ * 구조적 문제라 판단해 여기서 멈췄다. 아래 두 테스트("같은 층의 점끼리...",
+ * "배지가 점과도...")는 이 두 케이스의 모바일에서 **실제로 빨간불이다** —
+ * 문턱을 낮추는 대신 실패를 그대로 남긴다.
  */
 const NODE_THRESHOLD: Record<string, number> = {
   "시드 25명": COMFORT_NODE_PX,
@@ -370,16 +402,17 @@ const NODE_THRESHOLD: Record<string, number> = {
  * 적으면 screenScale 이 실제로 맞추는 상자 크기와 테스트가 재는 상자 크기가
  * 몰래 어긋날 수 있다(이 파일이 잡으려는 바로 그 종류의 거짓 통과).
  *
- * 폭 52 는 **추정이 아니라 고정값**이다. Task 7 이 배지에 w-[52px] 를 박아
- * 그리므로 이 상자와 화면이 정의상 같다 — 글자 수로 폭을 어림하면 그 어림이
- * 틀렸을 때 테스트만 초록이 된다(실제로 56 으로 어림했다가 진짜 배지가 73px 인
- * 것을 뒤늦게 쟀다).
+ * 폭 52 는 **추정이 아니라 고정값**이다. RegionLabels.tsx 가 배지에
+ * w-[52px] 를 박아 그리므로 이 상자와 화면이 정의상 같다 — 글자 수로 폭을
+ * 어림하면 그 어림이 틀렸을 때 테스트만 초록이 된다(실제로 56 으로 어림했다가
+ * 진짜 배지가 73px 인 것을 뒤늦게 쟀다).
  *
  * 52 인 이유는 물리적 상한이다: 15칸이 다 찬 지도에서 이웃 배지 중심 사이의
- * 화면 거리가 모바일 375px 에서 **54.7px** 밖에 안 된다(측정). 배지 15개가 원
- * 둘레를 나눠 갖는 구조라 상수로는 못 늘린다 — 반지름을 키우면 배율이 그만큼
- * 줄어 제자리다. 그래서 배지가 그 안에 들어가야 하고, 별명을 3자 이내로 줄인
- * 것도 그래서다(DISPLAY_TITLES). **Task 7 이 그리는 배지가 이 상자와 같아야 한다.**
+ * 화면 거리가 모바일 375px 에서 **46.13px** 밖에 안 된다
+ * (측정). 배지 15개가 원 둘레를 나눠 갖는 구조라 상수로는 못 늘린다 —
+ * 반지름을 키우면 배율이 그만큼 줄어 제자리다. 그래서 배지가 그 안에
+ * 들어가야 하고, 별명을 3자 이내로 줄인 것도 그래서다(DISPLAY_TITLES).
+ * **RegionLabels.tsx 가 그리는 배지가 이 상자와 같아야 한다.**
  */
 const BADGE_BOX = { w: BADGE_PX.width, h: BADGE_PX.height };
 const NODE_BOX = { w: NODE_PX.width, h: NODE_PX.height };
@@ -440,6 +473,21 @@ describe("화면에서 겹치지 않는다", () => {
         for (const b of badges)
           for (const p of placePeople(peopleOf(c)).values())
             expect(overlaps(b, BADGE_BOX, p, NODE_BOX, scale)).toBe(false);
+      });
+
+      it(`${vpName} · ${caseName} — 가장 안쪽 점이 "나" 오브에서 눈에 보이는 만큼 떨어진다`, () => {
+        // SelfCore.tsx 는 SELF_PX(52px, 반지름 26px) 원을 중심에 그린다. 가장
+        // 안쪽 점(항상 RING_START 반지름에 있다 — 六合 링이 비어도 기본 링이
+        // 그 자리에서 시작한다)이 오브에 가려지지 않으려면 화면 거리가
+        // 오브 반지름 + 점 자신의 반지름(NODE_PX 를 원으로 근사)을 넘어야
+        // 하고, 거기에 눈으로 보이는 틈이 더 있어야 "닿을 듯 말 듯"이 아니라
+        // 분명히 떨어져 보인다. SELF_CLEARANCE_PX 는 그 틈이다.
+        const layout = buildLayout(c);
+        const scale = screenScale(w, h, layout);
+        const pts = [...placePeople(peopleOf(c)).values()];
+        const innermost = Math.min(...pts.map((p) => Math.hypot(p[0], p[1]))) * scale;
+        const margin = innermost - SELF_PX / 2 - NODE_PX.width / 2;
+        expect(margin).toBeGreaterThanOrEqual(SELF_CLEARANCE_PX);
       });
     }
   }

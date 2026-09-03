@@ -24,7 +24,7 @@ describe("DISPLAY_TITLES", () => {
 
   it("전부 3자 이내다 — 52px 고정 배지 폭이 그 이상을 못 그린다", () => {
     // 배지는 w-[52px] 고정이고, 15칸이 다 찬 지도에서 이웃 배지 중심 사이의
-    // 화면 거리는 모바일 375px 에서 54.7px 뿐이다(radial.ts BADGE_PX 주석
+    // 화면 거리는 모바일 375px 에서 46.13px 뿐이다(radial.ts BADGE_PX 주석
     // 참고) — 그 안에 들어가야 다음 배지와 겹치지 않으므로 글자 수 자체를
     // 여기서 막는다.
     for (const role of ROLE_ORDER) {
