@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { OrbitControls } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
@@ -36,15 +36,21 @@ const ZOOM_RANGE = { min: 0.7, max: 5 };
 export function MapCamera({ layout }: { layout: MapLayout }) {
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
-  const [base, setBase] = useState(1);
+  // screenScale 은 props/state 에서 결정론적으로 나오는 순수 계산이라, 상태로
+  // 들고 effect 에서 채우기보다 렌더마다 직접 구하는 편이 맞다 — 그래야 첫
+  // 렌더부터 OrbitControls 의 min/maxZoom 이 실제 배율을 반영한다.
+  const base = screenScale(size.width, size.height, layout);
 
+  // three 의 카메라는 React 가 소유하지 않는 가변 객체다 — R3F 의 표준
+  // 패턴대로 effect 안에서 직접 zoom 을 맞춘다. react-hooks/immutability 는
+  // useThree 가 준 값을 건드리는 이 R3F 관용구를 모르므로 블록째 끈다.
+  /* eslint-disable react-hooks/immutability */
   useEffect(() => {
-    const next = screenScale(size.width, size.height, layout);
-    setBase(next);
     if (!(camera instanceof THREE.OrthographicCamera)) return;
-    camera.zoom = next;
+    camera.zoom = base;
     camera.updateProjectionMatrix();
-  }, [camera, size.width, size.height, layout]);
+  }, [camera, base]);
+  /* eslint-enable react-hooks/immutability */
 
   return (
     <OrbitControls
