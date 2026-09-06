@@ -15,7 +15,7 @@
 | 수단 | **4개 그대로.** 카드 / 네이버페이 / 카카오페이 / 토스페이 |
 | 간편결제 호출 | **허브형 UI 직접 호출.** `payMethod: "EASY_PAY"` + `easyPay.easyPayProvider`. KCP 는 KAKAOPAY·NAVERPAY·TOSSPAY 셋 다 허브형으로 지원한다(SDK `EasyPayProvider.d.ts` 와 KCP v2 연동 문서) |
 | 수단 on/off | **`PORTONE_METHODS` 목록 env.** 이니시스 설계와 같다 |
-| 확정 경로 | **완료 API(PC) · 모바일 착지 라우트 · 웹훅** 셋이 `confirmPayment` 하나를 공유. 판단은 포트원 조회 API 결과로만 |
+| 확정 경로 | **완료 API(PC) · 모바일 착지 라우트 · 웹훅** 셋이 `confirmPayment` 하나를 공유. 판단은 포트원 조회 API 결과로만. 웹훅이 유일한 복구 경로라 `PORTONE_WEBHOOK_SECRET` 없이는 결제창 자체를 열지 않는다(§6.1) |
 | 완료 화면 | **`/checkout/done` 유지.** 세 경로 모두 확정 뒤 여기로 모인다 |
 | 복귀 경로 | **`checkout_next` 쿠키 유지.** 토스 때문에 생겼지만 이미 있고 테스트돼 있다. 포트원 redirectUrl 에 쿼리를 실을 수 있지만 바꿀 이유가 없다 |
 | 구매자 정보 | **이름 + 이메일만.** 휴대폰은 보내지 않는다 (§8) |
@@ -96,7 +96,7 @@ getStoreId / getApiSecret / getWebhookSecret / getAppOrigin
 getChannelKey   → PORTONE_CHANNEL_KEY_KCP
 enabledMethods  → PORTONE_METHODS 를 정규 목록으로 거른다
 getChannel(id)  → 채널키 없거나 꺼진 수단이면 null
-availableMethods → storeId·apiSecret·channelKey 셋 다 있어야 enabledMethods
+availableMethods → storeId·apiSecret·channelKey·webhookSecret 넷 다 있어야 enabledMethods
 ```
 
 ### 6.2 `src/lib/payments/portone.ts` (신규, `toss.ts` 삭제)

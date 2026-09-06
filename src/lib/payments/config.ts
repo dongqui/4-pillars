@@ -113,8 +113,13 @@ export function getChannel(
  * PortOneNotConfiguredError 로 막힌다. 결제창은 열렸는데 확정할 수 없는 상태로
  * 화면을 켜 두면 고객 돈은 잡히고 완료 API 는 503, 행은 pending 에 갇힌다.
  * 확정 자격이 없으면 애초에 결제창을 열지 않는다.
+ *
+ * 웹훅 시크릿도 같이 본다 — 탭을 닫아 완료 API 도 모바일 착지도 못 타는 결제는
+ * 웹훅이 유일한 복구 경로인데, 시크릿이 없으면 웹훅 라우트가 매번 503 으로
+ * 닫힌다. 그러면 그 결제는 영영 확정될 길이 없으므로 애초에 결제창을 열지 않는다.
  */
 export function availableMethods(env: NodeJS.ProcessEnv = process.env): PaymentMethodId[] {
-  if (!getStoreId(env) || !getApiSecret(env) || !getChannelKey(env)) return [];
+  if (!getStoreId(env) || !getApiSecret(env) || !getChannelKey(env) || !getWebhookSecret(env))
+    return [];
   return enabledMethods(env);
 }

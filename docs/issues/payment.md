@@ -10,6 +10,7 @@
 
 - 주문 생성 → 결제창(포트원이 승인까지) → 완료 API(PC) / 착지 라우트(모바일) / 웹훅 삼중 확정. 판단은 언제나 포트원 조회 API 결과다. 금액은 `purchases.amount` 로만 대조한다.
 - 노출 수단은 `PORTONE_METHODS` env 가 정한다. 간편결제는 포트원 콘솔의 KCP 채널에 제휴가 켜진 뒤에만 켠다 — 계약 없이 켜면 화면에는 뜨고 결제창에서 실패한다.
+- 배포 전 체크: `.env.production.local`·호스팅 env 의 옛 `PORTONE_CHANNEL_KEY_INICIS` 를 `PORTONE_CHANNEL_KEY_KCP` 로 바꿔 채우고, `PORTONE_WEBHOOK_SECRET` 을 콘솔 값과 맞춘다(없으면 결제 화면이 잠긴다). 간편결제는 KCP 채널에 제휴가 켜진 뒤에만 `PORTONE_METHODS` 에 넣는다.
 - 주문 ID 는 `saju` + 32자(하이픈 없는 uuid). KCP 가 영숫자 40자만 받는다. 옛 `saju-…` 행은 그대로다.
 - 구매자 정보는 이름·이메일만 보낸다. 휴대폰은 없다 — KCP 가 실제로 요구하면 입력 UI 는 별건.
 - 환불·취소 API 는 범위 밖. 당분간 포트원 콘솔에서 수동으로 한다(아래).

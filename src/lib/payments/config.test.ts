@@ -12,6 +12,7 @@ const full = {
   PORTONE_STORE_ID: "store-1",
   PORTONE_API_SECRET: "secret-1",
   PORTONE_CHANNEL_KEY_KCP: "ch-kcp",
+  PORTONE_WEBHOOK_SECRET: "wh-1",
   PORTONE_METHODS: "card,naver,kakao,toss",
 } as unknown as NodeJS.ProcessEnv;
 
@@ -111,6 +112,10 @@ describe("availableMethods", () => {
 
   it("채널키가 없으면 빈 배열 — 켠 수단이 있어도 열 채널이 없다", () => {
     expect(availableMethods({ ...full, PORTONE_CHANNEL_KEY_KCP: "" })).toEqual([]);
+  });
+
+  it("웹훅 시크릿이 없으면 빈 배열 — 창을 닫은 결제를 되살릴 웹훅이 503 이라 열지 않는다", () => {
+    expect(availableMethods({ ...full, PORTONE_WEBHOOK_SECRET: "" })).toEqual([]);
   });
 });
 
