@@ -1,4 +1,6 @@
 import { z } from "zod";
+import type { Payment } from "@portone/server-sdk/payment";
+import type { Unrecognized } from "@portone/server-sdk";
 import { getApiSecret } from "./config";
 
 export const PORTONE_API_BASE = "https://api.portone.io";
@@ -11,10 +13,10 @@ export const paymentSchema = z.object({
   id: z.string(),
   status: z.enum([
     "READY",
-    "PENDING",
+    "PAY_PENDING",
     "VIRTUAL_ACCOUNT_ISSUED",
     "PAID",
-    "PARTIALLY_CANCELLED",
+    "PARTIAL_CANCELLED",
     "CANCELLED",
     "FAILED",
   ]),
@@ -25,6 +27,21 @@ export const paymentSchema = z.object({
 });
 
 export type PortOnePayment = z.infer<typeof paymentSchema>;
+
+// 포트원이 status 를 바꾸거나 우리가 이름을 잘못 적으면 여기서 typecheck 가 깨진다.
+// zod enum 은 닫혀 있어서, 이름이 하나라도 어긋나면 실제 응답이 파싱에서 던진다 —
+// 런타임 500 보다 컴파일 오류가 낫다. 2026-09-06 에 PENDING/PARTIALLY_CANCELLED 로
+// 잘못 적었던 것을 이 검사가 잡도록 한다.
+//
+// SDK 의 Payment 유니온에는 알려진 7개 상태 말고도 `{ status: Unrecognized }` 분기가
+// 하나 더 있다 — SDK 자신도 모르는 미래 상태를 위해 열어 둔 자리표시자다(unique symbol
+// 이라 실제 문자열과 절대 겹치지 않는다). 우리 7개 값과 그대로 맞대면 이 분기 때문에
+// 항상 어긋나므로, Exclude 로 그 자리표시자를 뺀 "이름이 있는 상태"만 비교한다.
+type SdkKnownStatus = Exclude<Payment["status"], Unrecognized>;
+type OurStatus = PortOnePayment["status"];
+type AssertSame<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
+const _statusesMatchSdk: AssertSame<OurStatus, SdkKnownStatus> = true;
+void _statusesMatchSdk;
 
 export class PortOneError extends Error {
   readonly type: string | undefined;

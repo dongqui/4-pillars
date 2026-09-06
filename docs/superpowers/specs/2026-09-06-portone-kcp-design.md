@@ -101,7 +101,7 @@ availableMethods → storeId·apiSecret·channelKey 셋 다 있어야 enabledMet
 
 ### 6.2 `src/lib/payments/portone.ts` (신규, `toss.ts` 삭제)
 
-`GET https://api.portone.io/payments/{paymentId}`, `Authorization: PortOne <secret>`. 응답을 zod 로 좁힌다: `id`, `status`(READY/PENDING/VIRTUAL_ACCOUNT_ISSUED/PAID/PARTIALLY_CANCELLED/CANCELLED/FAILED), `amount.total`, `currency`, `transactionId?`. 시크릿 없으면 `PortOneNotConfiguredError`, 비 2xx 는 `PortOneError(type)`. `fetchImpl`·`env` 주입.
+`GET https://api.portone.io/payments/{paymentId}`, `Authorization: PortOne <secret>`. 응답을 zod 로 좁힌다: `id`, `status`(READY/PAY_PENDING/VIRTUAL_ACCOUNT_ISSUED/PAID/PARTIAL_CANCELLED/CANCELLED/FAILED), `amount.total`, `currency`, `transactionId?`. 시크릿 없으면 `PortOneNotConfiguredError`, 비 2xx 는 `PortOneError(type)`. `fetchImpl`·`env` 주입. 이름은 `@portone/server-sdk` 의 `Payment["status"]` 판별자와 타입으로 맞물려 있다(§6.1 `_statusesMatchSdk`) — 어긋나면 typecheck 가 깨진다.
 
 ### 6.3 `src/lib/payments/confirm.ts`
 
@@ -116,8 +116,8 @@ export interface ConfirmDeps {
 
 상태 분류(switch + never 유지):
 - `PAID` → paid
-- `CANCELLED` · `FAILED` · `PARTIALLY_CANCELLED` → dead (행을 failed 로)
-- `READY` · `PENDING` · `VIRTUAL_ACCOUNT_ISSUED` → waiting (행을 건드리지 않는다)
+- `CANCELLED` · `FAILED` · `PARTIAL_CANCELLED` → dead (행을 failed 로)
+- `READY` · `PAY_PENDING` · `VIRTUAL_ACCOUNT_ISSUED` → waiting (행을 건드리지 않는다)
 
 금액 대조는 `payment.amount.total !== order.amount`, 통화는 `"KRW"`. `transactionId` 를 `markPaid` 에 넘긴다. 나머지(이미 paid 면 조기 반환, markPaid false 뒤 재조회)는 지금 그대로.
 

@@ -69,4 +69,45 @@ describe("getPayment", () => {
     ).rejects.toThrow(PortOneNotConfiguredError);
     expect(calls).toHaveLength(0);
   });
+
+  it("PAY_PENDING 은 파싱된다 — SDK 이름 그대로다", async () => {
+    const { fetchImpl } = fakeFetch({ ...paid, status: "PAY_PENDING" });
+    const p = await getPayment("sajuabc", { fetchImpl, env });
+    expect(p.status).toBe("PAY_PENDING");
+  });
+
+  it("PARTIAL_CANCELLED 는 파싱된다 — SDK 이름 그대로다", async () => {
+    const { fetchImpl } = fakeFetch({ ...paid, status: "PARTIAL_CANCELLED" });
+    const p = await getPayment("sajuabc", { fetchImpl, env });
+    expect(p.status).toBe("PARTIAL_CANCELLED");
+  });
+
+  it("에러 응답 본문이 JSON 이 아니면 fallback 메시지로 던진다", async () => {
+    const fetchImpl = (async () => {
+      return {
+        ok: false,
+        status: 502,
+        json: async () => {
+          throw new Error("not json");
+        },
+      } as unknown as Response;
+    }) as typeof fetch;
+    await expect(getPayment("sajuabc", { fetchImpl, env })).rejects.toThrow(
+      "포트원 결제 조회 실패 (HTTP 502)",
+    );
+  });
+
+  it("PortOneError.type 은 에러 본문의 type 이다", async () => {
+    const { fetchImpl } = fakeFetch(
+      { type: "PaymentNotFoundError", message: "결제 건이 없습니다" },
+      { ok: false, status: 404 },
+    );
+    try {
+      await getPayment("sajunone", { fetchImpl, env });
+      throw new Error("should have thrown");
+    } catch (e) {
+      expect(e).toBeInstanceOf(PortOneError);
+      expect((e as PortOneError).type).toBe("PaymentNotFoundError");
+    }
+  });
 });

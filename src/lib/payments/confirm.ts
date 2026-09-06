@@ -41,12 +41,12 @@ function classify(status: PortOnePayment["status"]): StatusClass {
     // 부분 취소는 돈이 잡혔다가 일부 돌아간 상태다. 단건 디지털 상품에 이 상태가
     // 나왔다면 정상 결제가 아니므로 행을 내린다 — 그대로 두면 아무도 확정하지 않아
     // 행이 영원히 pending 으로 남는다.
-    case "PARTIALLY_CANCELLED":
+    case "PARTIAL_CANCELLED":
       return "dead";
     // 아직 결제가 아니지만 죽지도 않았다. 행을 건드리지 않고 물러난다 —
     // 웹훅이 뒤이어 도착하면 그때 확정된다.
     case "READY":
-    case "PENDING":
+    case "PAY_PENDING":
     case "VIRTUAL_ACCOUNT_ISSUED":
       return "waiting";
     default: {

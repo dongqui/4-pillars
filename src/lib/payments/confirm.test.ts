@@ -77,8 +77,8 @@ describe("confirmPayment", () => {
     expect(await confirmPayment("sajuabc", d)).toEqual({ ok: false, kind: "not_paid" });
   });
 
-  it("FAILED / CANCELLED / PARTIALLY_CANCELLED 는 not_paid 이고 행을 내린다", async () => {
-    for (const status of ["FAILED", "CANCELLED", "PARTIALLY_CANCELLED"] as const) {
+  it("FAILED / CANCELLED / PARTIAL_CANCELLED 는 not_paid 이고 행을 내린다", async () => {
+    for (const status of ["FAILED", "CANCELLED", "PARTIAL_CANCELLED"] as const) {
       const d = deps({ lookupPayment: vi.fn(async () => ({ ...paid, status })) });
       expect(await confirmPayment("sajuabc", d)).toEqual({ ok: false, kind: "not_paid" });
       expect(d.markFailed).toHaveBeenCalledWith("sajuabc");
@@ -86,8 +86,8 @@ describe("confirmPayment", () => {
     }
   });
 
-  it("READY / PENDING / VIRTUAL_ACCOUNT_ISSUED 는 not_paid 지만 행을 건드리지 않는다 — 웹훅이 뒤이어 확정할 수 있다", async () => {
-    for (const status of ["READY", "PENDING", "VIRTUAL_ACCOUNT_ISSUED"] as const) {
+  it("READY / PAY_PENDING / VIRTUAL_ACCOUNT_ISSUED 는 not_paid 지만 행을 건드리지 않는다 — 웹훅이 뒤이어 확정할 수 있다", async () => {
+    for (const status of ["READY", "PAY_PENDING", "VIRTUAL_ACCOUNT_ISSUED"] as const) {
       const d = deps({ lookupPayment: vi.fn(async () => ({ ...paid, status })) });
       expect(await confirmPayment("sajuabc", d)).toEqual({ ok: false, kind: "not_paid" });
       expect(d.markFailed).not.toHaveBeenCalled();
