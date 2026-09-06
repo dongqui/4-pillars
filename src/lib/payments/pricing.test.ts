@@ -47,3 +47,11 @@ describe("packageOrderName", () => {
     }
   });
 });
+
+describe("packageOrderName", () => {
+  it("100바이트를 넘지 않는다 — NHN KCP 의 orderName 상한이다 (한글은 3바이트)", () => {
+    for (const p of listPackages()) {
+      expect(Buffer.byteLength(packageOrderName(p), "utf8")).toBeLessThanOrEqual(100);
+    }
+  });
+});
