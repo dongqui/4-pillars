@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { confirmPayment } from "@/lib/payments/confirm";
-import { approveDeps } from "@/lib/payments/deps";
+import { confirmDeps } from "@/lib/payments/deps";
 import { CHECKOUT_NEXT_COOKIE } from "@/lib/payments/order";
 import { findOrderByPaymentId } from "@/lib/payments/store";
 import { safeNextPath } from "@/lib/nav/next-param";
@@ -12,17 +12,18 @@ function withErrorMarker(backTo: string): string {
 }
 
 /**
- * 토스 결제창이 돌아오는 자리. 성공이면 ?paymentKey·?orderId·?amount 가,
- * 실패·취소면 ?code·?message 가 붙어 온다. 복귀 경로는 쿠키에서 읽는다.
- * 승인이 끝나면 완료 화면(/checkout/done)으로, 실패하면 충전 화면으로 되돌린다.
+ * 모바일 결제창이 돌아오는 자리. 포트원이 ?paymentId(진행) 또는 ?code·?message(실패)를
+ * 붙여 보낸다. 복귀 경로는 쿠키에서 읽는다. 확정이 끝나면 완료 화면(/checkout/done)으로,
+ * 실패하면 충전 화면으로 되돌린다.
  *
  * 페이지가 아니라 라우트 핸들러인 이유:
  *  1. 이 자리는 화면을 그린 적이 없다 — 확정하고 곧장 옮긴다.
  *  2. 쓰고 버려야 할 쿠키(checkout_next)를 지워야 하는데, 서버 컴포넌트 렌더 중에는
  *     쿠키를 지울 수 없다(Next 문서: .delete 는 Server Function·Route Handler 에서만).
  *
- * ⚠️ 여기가 승인을 부르는 유일한 자리다. 토스 결제창은 인증까지만 하므로,
- * 이 요청이 성공해야 비로소 돈이 잡힌다.
+ * 승인을 부르지 않는다 — 포트원 결제창이 이미 승인까지 끝냈다. 여기서는 조회로
+ * "정말 PAID 인지, 금액이 맞는지"만 확인한다. PC 는 이 자리를 지나지 않고
+ * /api/payments/complete 로 같은 확인을 한다.
  */
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const q = req.nextUrl.searchParams;
@@ -40,44 +41,31 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return res;
   };
 
-  // 토스가 실패를 code 로 알려준다. 승인을 시도할 이유가 없다.
+  // 포트원이 실패를 code 로 알려준다. 확정을 시도할 이유가 없다.
   if (q.get("code")) return go(withErrorMarker(backTo));
 
-  const paymentKey = q.get("paymentKey");
-  const orderId = q.get("orderId");
-  const amount = q.get("amount");
-  // 토스는 정상적으로 돌아올 때 code(실패) 아니면 셋 다(성공) 를 싣는다 — 아무것도
-  // 없이 여기 닿는 건 결제를 시도한 적 없는 방문(주소 직접 입력·북마크)뿐이다.
-  // 시도하지 않은 사용자에게 오류 배너를 띄우지 않는다.
-  if (!paymentKey || !orderId || !amount) return go(backTo);
+  const paymentId = q.get("paymentId");
+  // 포트원은 정상적으로 돌아올 때 code(실패) 아니면 paymentId(진행) 를 반드시
+  // 싣는다 — 둘 다 없이 여기 닿는 건 결제를 시도한 적 없는 방문(주소 직접 입력·
+  // 북마크)뿐이다. 시도하지 않은 사용자에게 오류 배너를 띄우지 않는다.
+  if (!paymentId) return go(backTo);
 
   const session = await getSession();
   if (session === null) return go(`/login?next=${encodeURIComponent(backTo)}`);
 
-  // 남의 주문을 승인해 주지 않는다. 없는 주문과 남의 주문을 구분하지 않는다:
-  // 구분하면 orderId 로 존재 여부를 훑을 수 있다.
-  const order = await findOrderByPaymentId(orderId);
+  // 남의 주문을 확정해 주지 않는다. 없는 주문과 남의 주문을 구분하지 않는다:
+  // 구분하면 paymentId 로 존재 여부를 훑을 수 있다.
+  const order = await findOrderByPaymentId(paymentId);
   if (order === null || order.userId !== session.userId) return go(withErrorMarker(backTo));
-
-  // ⚠️ 승인 전에 금액을 대조한다. 토스가 "쿼리의 amount 와 결제 요청 금액이 같은지
-  // 반드시 확인하라"고 못박은 자리다 — 주소창에서 amount 를 낮춰 다시 부르는 시도를
-  // 여기서 끊는다. 기준은 쿼리가 아니라 주문 생성 때 서버가 박은 order.amount 다.
-  if (Number(amount) !== order.amount) {
-    console.error(
-      `[/checkout/complete] 금액 불일치 orderId=${orderId} 주문=${order.amount} 쿼리=${amount}`,
-    );
-    return go(withErrorMarker(backTo));
-  }
 
   let ok = false;
   try {
-    const result = await confirmPayment(orderId, approveDeps({ paymentKey, amount: order.amount }));
+    const result = await confirmPayment(paymentId, confirmDeps);
     ok = result.ok;
   } catch (e) {
-    // 승인이 실패해도 돈이 잡히지 않았을 뿐이라 사용자를 충전 화면으로 돌려보낸다.
-    // 이미 승인된 뒤(ALREADY_PROCESSED_PAYMENT)라면 confirmPayment 가 앞에서
-    // already 로 접었을 것이므로, 여기 오는 것은 진짜 실패다.
-    console.error("[/checkout/complete] 승인 실패", e);
+    // 조회 장애면 웹훅이 뒤이어 확정한다. 사용자를 충전 화면으로 돌려보내면
+    // 잔액이 이미 올라가 있는 경우 화면이 그 값을 보여준다.
+    console.error("[/checkout/complete] 확정 실패", e);
   }
 
   if (!ok) return go(withErrorMarker(backTo));
@@ -85,6 +73,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   // 곧장 next 로 보내지 않고 완료 화면을 한 번 거친다 — 결제창에서 튕겨 나오자마자
   // 원래 화면이 뜨면 무엇이 늘었는지 알 자리가 없다. 그 화면이 2.6초 뒤 next 로 옮긴다.
   // orderId 만 넘기고 장수는 넘기지 않는다: 화면이 DB 에서 직접 읽는다.
-  const q2 = new URLSearchParams({ orderId, next });
+  const q2 = new URLSearchParams({ orderId: paymentId, next });
   return go(`/checkout/done?${q2}`);
 }
