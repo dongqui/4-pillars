@@ -4,10 +4,10 @@ import { handleCreateOrder, type CreateOrderDeps } from "./handler";
 function deps(over: Partial<CreateOrderDeps> = {}): CreateOrderDeps {
   return {
     userId: "7",
-    getClientKey: () => "test_ck_1",
-    getMethod: () => ({ flowMode: "DEFAULT" }),
+    getStoreId: () => "store-1",
+    getChannel: () => ({ channelKey: "ch-kcp", payMethod: "CARD" }),
     getAppOrigin: () => "https://saju.example",
-    newPaymentId: () => "saju-abc",
+    newPaymentId: () => "sajuabc",
     getBuyer: async () => ({ displayName: "김동진", email: "buyer@example.com" }),
     createPending: vi.fn(async () => {}),
     ...over,
@@ -24,7 +24,7 @@ describe("handleCreateOrder", () => {
     expect(r.status).toBe(200);
     expect(createPending).toHaveBeenCalledWith({
       userId: "7",
-      paymentId: "saju-abc",
+      paymentId: "sajuabc",
       product: "t5",
       amount: 5000,
       tickets: 6,
@@ -34,15 +34,17 @@ describe("handleCreateOrder", () => {
   it("응답 금액은 pending 행에 박은 금액과 같다 — 갈라지면 확정에서 금액 불일치가 난다", async () => {
     const r = await handleCreateOrder(body, deps());
     expect(r.body).toMatchObject({
-      clientKey: "test_ck_1",
-      orderId: "saju-abc",
-      flowMode: "DEFAULT",
+      storeId: "store-1",
+      channelKey: "ch-kcp",
+      paymentId: "sajuabc",
+      payMethod: "CARD",
       orderName: "이용권 6장",
-      amount: { currency: "KRW", value: 5000 },
+      totalAmount: 5000,
+      currency: "CURRENCY_KRW",
     });
   });
 
-  it("orderId 는 pending 행의 paymentId 와 같은 값이다 — 승인 때 이 값으로 대조한다", async () => {
+  it("paymentId 는 pending 행의 paymentId 와 같은 값이다 — 확정 때 이 값으로 대조한다", async () => {
     let pending: { paymentId: string } | null = null;
     const r = await handleCreateOrder(
       body,
@@ -52,15 +54,15 @@ describe("handleCreateOrder", () => {
         },
       }),
     );
-    expect((r.body as { orderId: string }).orderId).toBe(pending!.paymentId);
+    expect((r.body as { paymentId: string }).paymentId).toBe(pending!.paymentId);
   });
 
-  it("구매자 이름과 이메일을 싣는다", async () => {
+  it("구매자는 이름과 이메일만 싣는다 — 휴대폰은 받은 적이 없어 보내지 않는다", async () => {
     const r = await handleCreateOrder(body, deps());
     expect(r.body).toMatchObject({
-      customerName: "김동진",
-      customerEmail: "buyer@example.com",
+      customer: { fullName: "김동진", email: "buyer@example.com" },
     });
+    expect((r.body as { customer: object }).customer).not.toHaveProperty("phoneNumber");
   });
 
   it("표시 이름이 없어도 빈 이름을 내보내지 않는다 — 소셜 제공자가 이름을 안 줄 수 있다", async () => {
@@ -69,7 +71,7 @@ describe("handleCreateOrder", () => {
         body,
         deps({ getBuyer: async () => ({ displayName, email: "buyer@example.com" }) }),
       );
-      expect(r.body).toMatchObject({ customerName: "회원" });
+      expect(r.body).toMatchObject({ customer: { fullName: "회원" } });
     }
   });
 
@@ -114,8 +116,8 @@ describe("handleCreateOrder", () => {
 
   it("결제 설정이 없으면 503 — 장애가 아니라 미설정이다, pending 행도 만들지 않는다", async () => {
     for (const over of [
-      { getClientKey: () => null },
-      { getMethod: () => null },
+      { getStoreId: () => null },
+      { getChannel: () => null },
       { getAppOrigin: () => null },
     ] as Partial<CreateOrderDeps>[]) {
       const createPending = vi.fn(async () => {});
@@ -125,12 +127,9 @@ describe("handleCreateOrder", () => {
     }
   });
 
-  it("성공·실패가 같은 착지 주소다 — 토스 쿼리(paymentKey/code)로 갈린다", async () => {
+  it("모바일 착지 주소는 쿼리 없이 나간다 — 포트원이 paymentId/code 를 붙이고, 복귀 경로는 쿠키다", async () => {
     const r = await handleCreateOrder(body, deps());
-    expect(r.body).toMatchObject({
-      successUrl: "https://saju.example/checkout/complete",
-      failUrl: "https://saju.example/checkout/complete",
-    });
+    expect(r.body).toMatchObject({ redirectUrl: "https://saju.example/checkout/complete" });
   });
 
   it("복귀 경로는 착지 주소가 아니라 next 로 따로 나간다 — 라우트가 쿠키로 심는다", async () => {
@@ -144,16 +143,23 @@ describe("handleCreateOrder", () => {
     expect(r.next).toBe("/home");
   });
 
-  it("간편결제는 결제수단이 준 조합을 그대로 싣는다 — 쪼개면 어긋난 조합이 나간다", async () => {
+  it("간편결제는 채널이 준 조합을 그대로 싣는다 — 쪼개면 어긋난 조합이 나간다", async () => {
     const r = await handleCreateOrder(
       { packageId: "t10", method: "toss" },
-      deps({ getMethod: () => ({ flowMode: "DIRECT", easyPay: "TOSSPAY" }) }),
+      deps({
+        getChannel: () => ({
+          channelKey: "ch-kcp",
+          payMethod: "EASY_PAY",
+          easyPayProvider: "TOSSPAY",
+        }),
+      }),
     );
     expect(r.body).toMatchObject({
-      flowMode: "DIRECT",
-      easyPay: "TOSSPAY",
+      channelKey: "ch-kcp",
+      payMethod: "EASY_PAY",
+      easyPayProvider: "TOSSPAY",
       orderName: "이용권 13장",
-      amount: { currency: "KRW", value: 10000 },
+      totalAmount: 10000,
     });
   });
 });

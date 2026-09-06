@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getUser } from "@/lib/auth/users";
-import { getAppOrigin, getClientKey, getMethod } from "@/lib/payments/config";
+import { getAppOrigin, getChannel, getStoreId } from "@/lib/payments/config";
 import { newPaymentId } from "@/lib/payments/order-id";
 import { CHECKOUT_NEXT_COOKIE, CHECKOUT_NEXT_MAX_AGE } from "@/lib/payments/order";
 import { createPendingPurchase } from "@/lib/payments/store";
@@ -20,8 +20,8 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const result = await handleCreateOrder(raw, {
       userId: session?.userId ?? null,
-      getClientKey: () => getClientKey(),
-      getMethod: (id) => getMethod(id),
+      getStoreId: () => getStoreId(),
+      getChannel: (id) => getChannel(id),
       getAppOrigin: () => getAppOrigin(),
       newPaymentId,
       getBuyer: (userId) => getUser(userId),
@@ -29,8 +29,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
 
     const res = NextResponse.json(result.body, { status: result.status });
-    // 복귀 경로는 응답이 아니라 쿠키로 나간다 — 토스 successUrl 에 우리 쿼리를
-    // 실을 수 없어서다(handler.ts 의 CreateOrderResult.next 주석 참조).
+    // 복귀 경로는 응답이 아니라 쿠키로 나간다 (order.ts 의 CHECKOUT_NEXT_COOKIE 주석 참조).
     if (result.next !== undefined) {
       res.cookies.set(CHECKOUT_NEXT_COOKIE, result.next, {
         httpOnly: true,

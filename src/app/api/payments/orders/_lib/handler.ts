@@ -1,8 +1,8 @@
 import { z } from "zod";
 import {
   PAYMENT_METHOD_IDS,
+  type PaymentChannel,
   type PaymentMethodId,
-  type PaymentRequestKind,
 } from "@/lib/payments/config";
 import {
   TICKET_PACKAGE_IDS,
@@ -30,8 +30,8 @@ const createOrderSchema = z.object({
 export interface CreateOrderDeps {
   /** 세션이 없으면 null */
   userId: string | null;
-  getClientKey(): string | null;
-  getMethod(id: PaymentMethodId): PaymentRequestKind | null;
+  getStoreId(): string | null;
+  getChannel(id: PaymentMethodId): PaymentChannel | null;
   getAppOrigin(): string | null;
   newPaymentId(): string;
   /** 결제창에 넘길 구매자. 행이 없거나 필드가 비어 있을 수 있다. */
@@ -51,10 +51,8 @@ export interface CreateOrderResult {
   /**
    * 결제 후 돌아갈 자리. 200 일 때만 실린다.
    *
-   * 응답 본문이 아니라 따로 내보내는 이유: 라우트가 이 값을 쿠키로 심는다.
-   * successUrl 에 `?next=` 로 실으면 토스가 거기에 자기 쿼리를 덧붙이는데,
-   * 이어 붙이는 방식에 우리가 기댈 수 없다 — 소셜 로그인이 oauth_next 쿠키를
-   * 쓰는 것과 같은 이유이고, 같은 방식으로 푼다.
+   * 응답 본문이 아니라 따로 내보내는 이유: 라우트가 이 값을 쿠키로 심는다
+   * (order.ts 의 CHECKOUT_NEXT_COOKIE 주석 참조).
    */
   next?: string;
 }
@@ -75,11 +73,11 @@ export async function handleCreateOrder(
   if (d.userId === null) return { status: 401, body: { error: "로그인이 필요합니다" } };
 
   const pkg = getPackage(parsed.data.packageId);
-  const clientKey = d.getClientKey();
-  const method = d.getMethod(parsed.data.method);
+  const storeId = d.getStoreId();
+  const channel = d.getChannel(parsed.data.method);
   const origin = d.getAppOrigin();
   // 셋 중 하나라도 없으면 결제창을 열 수 없다. 장애가 아니라 미설정이라 503 이다.
-  if (!clientKey || !method || !origin) {
+  if (!storeId || !channel || !origin) {
     return { status: 503, body: { error: "결제를 준비 중입니다" } };
   }
 
@@ -95,7 +93,7 @@ export async function handleCreateOrder(
 
   // 이름은 헤더에 쓰는 표시 이름을 그대로 쓴다 — 별도로 입력받지 않는다.
   // resolveDisplayName 을 거치는 이유: 빈 이름을 결제창에 넘기지 않기 위해서다.
-  const customerName = resolveDisplayName({ displayName: buyer?.displayName ?? null });
+  const fullName = resolveDisplayName({ displayName: buyer?.displayName ?? null });
 
   const paymentId = d.newPaymentId();
   // 행을 먼저 만들고 결제창을 연다 — 순서가 반대면 결제는 됐는데 대조할 주문이 없다.
@@ -108,25 +106,23 @@ export async function handleCreateOrder(
   });
 
   const next = safeNextPath(parsed.data.next);
-  // 성공도 실패도 같은 자리로 돌아온다. 토스가 붙여 보내는 쿼리(성공은 paymentKey,
-  // 실패는 code)로 갈라지므로, 착지 페이지 하나가 둘을 다 받는다.
-  const landing = `${origin}/checkout/complete`;
 
   return {
     status: 200,
     next,
     body: {
-      clientKey,
-      orderId: paymentId,
-      // 결제창 여는 방법을 한 덩이로 넘긴다 — 따로 옮기면 flowMode 와
-      // easyPay 가 어긋난 조합을 만들 수 있다.
-      ...method,
+      storeId,
+      paymentId,
+      // 채널키와 판별자를 한 덩이로 넘긴다 — 따로 옮기면 payMethod 와
+      // easyPayProvider 가 어긋난 조합을 만들 수 있다.
+      ...channel,
       orderName: packageOrderName(pkg),
-      amount: { currency: "KRW", value: pkg.amount },
-      successUrl: landing,
-      failUrl: landing,
-      customerName,
-      customerEmail: email,
+      totalAmount: pkg.amount,
+      currency: "CURRENCY_KRW",
+      // 모바일은 결제창이 페이지를 떠난다. 돌아올 자리를 여기서 정한다.
+      // 쿼리는 싣지 않는다 — 포트원이 자기 쿼리를 붙이고, 복귀 경로는 쿠키로 간다.
+      redirectUrl: `${origin}/checkout/complete`,
+      customer: { fullName, email },
     },
   };
 }
