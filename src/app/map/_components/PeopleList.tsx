@@ -42,7 +42,7 @@ export function PeopleList({
   /** 소유자만 삭제 버튼을 본다. 누구나 추가할 수 있으니 지울 사람이 있어야 한다. */
   isOwner: boolean;
   onDelete: (id: string) => void;
-  /** 헤더의 "나도 추가하기". 소유자가 아니어도 보인다 — 링크를 받은 사람이 자기를 넣는 것이 이 기능의 전부다. */
+  /** 헤더의 "나도 추가". 소유자가 아니어도 보인다 — 링크를 받은 사람이 자기를 넣는 것이 이 기능의 전부다. */
   onAdd: () => void;
 }) {
   const byRole = ROLE_ORDER.map((role) => ({
@@ -63,7 +63,7 @@ export function PeopleList({
   return (
     <>
       {/*
-        헤더 행. 인원수 · "나도 추가하기" · 펼치기 토글이 한 줄에 선다.
+        헤더 행. 인원수 · 펼치기 토글 · "나도 추가" 가 한 줄에 선다.
 
         추가 버튼이 여기 있는 이유: 예전에는 지도 위에 떠 있는 파란 알약이었는데,
         배치가 바뀌면서(radial.ts) 배지가 원 둘레를 한 바퀴 돌게 되어 어느
@@ -76,43 +76,49 @@ export function PeopleList({
         없다. 대신 토글이 인원수와 남는 폭을 함께 먹어(flex-1) 탭 영역은 그대로
         넓다.
       */}
-      <div className="relative shrink-0 flex items-center gap-2 px-5 pt-[17px] pb-[13px] bg-white border-b border-slate-100">
+      <div className="relative shrink-0 flex items-center gap-2.5 pt-[15px] pr-4 pb-[11px] pl-5 bg-white border-b border-slate-100">
         {/* 모바일 손잡이 */}
         <span
           aria-hidden
           className="md:hidden absolute left-1/2 top-1.5 -translate-x-1/2 w-9 h-1 rounded-full bg-slate-200"
         />
+        {/* flex-1 은 인원수 옆의 남는 폭까지 토글의 탭 영역으로 먹는다 —
+            시안에서 화살표가 인원수 바로 옆에 붙어 있어(justify-between 이
+            아니다) 그러지 않으면 누를 곳이 글자만큼으로 좁아진다. */}
         <button
           type="button"
           onClick={onToggle}
           aria-expanded={open}
-          className="flex flex-1 items-center justify-between gap-3 cursor-pointer bg-transparent border-0 p-0 text-left"
+          className="flex flex-1 min-w-0 items-center gap-[7px] cursor-pointer bg-transparent border-0 p-0 text-left"
         >
           <span className="text-[14.5px] font-bold tracking-[-0.02em] text-slate-900">
             전체 <span className="text-blue-600">{people.length}</span>명
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="text-[12.5px] font-semibold text-slate-400">
-              {open ? "접기" : "펼치기"}
-            </span>
-            <span
-              aria-hidden
-              className={`grid place-items-center w-[22px] h-[22px] rounded-full bg-slate-100 text-slate-500 text-[11px] transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-            >
-              ▼
-            </span>
+          <span
+            aria-hidden
+            className={`shrink-0 grid place-items-center w-5 h-5 rounded-full bg-slate-100 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M6 9l6 6 6-6"
+                stroke="#64748B"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </span>
         </button>
 
         <button
           type="button"
           onClick={onAdd}
-          className="shrink-0 flex items-center gap-1 rounded-full bg-blue-600 py-1.5 pr-3 pl-2.5 text-[12.5px] font-semibold text-white hover:bg-blue-700"
+          className="shrink-0 flex items-center gap-[5px] h-8 px-[13px] rounded-full border border-[#DCE6FB] bg-[#F5F8FF] text-[13px] font-bold text-blue-600 hover:bg-[#EBF1FE]"
         >
-          <span aria-hidden className="text-[14px] leading-none font-normal">
+          <span aria-hidden className="text-[15px] leading-none font-normal">
             +
           </span>
-          나도 추가하기
+          나도 추가
         </button>
       </div>
 
@@ -127,19 +133,19 @@ export function PeopleList({
           지도에서 뺏어 올 것이 없고, 이 값이 정하는 것은 **원반을 얼마나
           가릴 것인가** 하나뿐이다.
 
-          44dvh 를 고른 근거는 지도가 실제로 그리는 세로 폭이다. 375px 폭
+          42dvh 를 고른 근거는 지도가 실제로 그리는 세로 폭이다. 375px 폭
           폰에서 그 값은 **332px** 다(시드 25명 332.2 · 한도 50명 333.6, 실측).
           원반이 폭에 꽉 차지 않는 것은 screenScale 이 배지 상자가 화면 밖으로
           나가지 않도록 그만큼을 미리 빼기 때문이다 — 폭 375 에서 그리는 폭은
           375 가 아니다.
 
           그래서 조건은 "시트에 가려지지 않고 남는 띠 ≥ 334px" 이다. 812px
-          폰에서 본문은 755px 이고 헤더 행이 62px 이므로, 목록이 42dvh(341px)
-          면 시트는 403px 이고 띠가 352px 남는다 — 18px 여유로 통과한다. 지도
+          폰에서 본문은 755px 이고 헤더 행이 59px 이므로, 목록이 42dvh(341px)
+          면 시트는 400px 이고 띠가 355px 남는다 — 21px 여유로 통과한다. 지도
           내용을 시트 높이의 절반만큼 위로 민 뒤(MapShell 의 --sheet-shift) 그
           띠의 한가운데에 원반이 놓인다.
 
-          상한은 시트 421px(=755−334), 즉 목록 44.2dvh 근처다. 그보다 키우면
+          상한은 시트 421px(=755−334), 즉 목록 44.6dvh 근처다. 그보다 키우면
           원반의 위아래가, 정확히는 12시·6시 방향 배지가 먼저 잘린다. 폰 화면이
           지도와 목록 둘 다에게 넉넉하기엔 모자라서 생기는 한계고, 목록을 더
           보고 싶으면 스크롤하거나 접었다 펴는 쪽이 지도를 잘라 내는 것보다
