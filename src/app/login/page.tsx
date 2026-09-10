@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { BrandLogo } from "@/components/BrandLogo";
 
-type ProviderId = "kakao" | "line" | "google";
+type ProviderId = "kakao" | "google";
 
 const PROVIDERS: { id: ProviderId; label: string; className: string; icon: React.ReactNode }[] = [
   {
@@ -12,16 +12,6 @@ const PROVIDERS: { id: ProviderId; label: string; className: string; icon: React
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
         <path fill="#191919" d="M12 3C6.48 3 2 6.54 2 10.9c0 2.8 1.86 5.26 4.66 6.65l-.95 3.5c-.08.31.27.56.54.38l4.18-2.77c.51.05 1.03.08 1.57.08 5.52 0 10-3.54 10-7.9S17.52 3 12 3z" />
-      </svg>
-    ),
-  },
-  {
-    id: "line",
-    label: "LINE으로 계속하기",
-    className: "bg-[#06C755] text-white hover:brightness-[.96]",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
-        <path fill="#fff" d="M12 3C6.48 3 2 6.54 2 10.9c0 2.8 1.86 5.26 4.66 6.65l-.95 3.5c-.08.31.27.56.54.38l4.18-2.77c.51.05 1.03.08 1.57.08 5.52 0 10-3.54 10-7.9S17.52 3 12 3z" />
       </svg>
     ),
   },
@@ -111,9 +101,6 @@ export default async function LoginPage({
               개인정보 처리방침
             </a>
             에 동의하는 것으로 간주됩니다.
-          </p>
-          <p className="mt-2.5 flex items-center justify-center gap-1.5 text-[12.5px] text-slate-300">
-            🔒 입력하신 출생 정보는 안전하게 보관돼요
           </p>
         </div>
       </div>
