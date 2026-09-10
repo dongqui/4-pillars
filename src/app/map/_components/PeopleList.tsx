@@ -30,6 +30,7 @@ export function PeopleList({
   onSelect,
   isOwner,
   onDelete,
+  onAdd,
 }: {
   people: readonly MapPerson[];
   /** 지도 주인의 일간 오행 — 궁합 단락의 오행 다리 문장이 쓴다. */
@@ -41,6 +42,8 @@ export function PeopleList({
   /** 소유자만 삭제 버튼을 본다. 누구나 추가할 수 있으니 지울 사람이 있어야 한다. */
   isOwner: boolean;
   onDelete: (id: string) => void;
+  /** 헤더의 "나도 추가하기". 소유자가 아니어도 보인다 — 링크를 받은 사람이 자기를 넣는 것이 이 기능의 전부다. */
+  onAdd: () => void;
 }) {
   const byRole = ROLE_ORDER.map((role) => ({
     role,
@@ -59,56 +62,98 @@ export function PeopleList({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className="relative shrink-0 flex items-center justify-between gap-3 px-5 pt-[17px] pb-[13px] cursor-pointer bg-white border-0 border-b border-slate-100 text-left"
-      >
+      {/*
+        헤더 행. 인원수 · "나도 추가하기" · 펼치기 토글이 한 줄에 선다.
+
+        추가 버튼이 여기 있는 이유: 예전에는 지도 위에 떠 있는 파란 알약이었는데,
+        배치가 바뀌면서(radial.ts) 배지가 원 둘레를 한 바퀴 돌게 되어 어느
+        모서리에 두든 배지를 가렸다 — 지도가 보이는 띠를 거의 꽉 채우기 때문에
+        네 모서리가 전부 무언가와 겹친다(실측). 여기로 옮기면 지도를 전혀 덮지
+        않고, 목록을 접어도 이 행은 늘 보이므로 링크를 받은 사람이 "여기서 나를
+        넣는다" 를 놓치지 않는다.
+
+        행 전체를 <button> 으로 감싸던 것을 풀었다 — 버튼 안에 버튼을 넣을 수는
+        없다. 대신 토글이 인원수와 남는 폭을 함께 먹어(flex-1) 탭 영역은 그대로
+        넓다.
+      */}
+      <div className="relative shrink-0 flex items-center gap-2 px-5 pt-[17px] pb-[13px] bg-white border-b border-slate-100">
         {/* 모바일 손잡이 */}
-        <span className="md:hidden absolute left-1/2 top-1.5 -translate-x-1/2 w-9 h-1 rounded-full bg-slate-200" />
-        <span className="text-[14.5px] font-bold tracking-[-0.02em] text-slate-900">
-          전체 <span className="text-blue-600">{people.length}</span>명
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="text-[12.5px] font-semibold text-slate-400">
-            {open ? "접기" : "펼치기"}
+        <span
+          aria-hidden
+          className="md:hidden absolute left-1/2 top-1.5 -translate-x-1/2 w-9 h-1 rounded-full bg-slate-200"
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="flex flex-1 items-center justify-between gap-3 cursor-pointer bg-transparent border-0 p-0 text-left"
+        >
+          <span className="text-[14.5px] font-bold tracking-[-0.02em] text-slate-900">
+            전체 <span className="text-blue-600">{people.length}</span>명
           </span>
-          <span
-            aria-hidden
-            className={`grid place-items-center w-[22px] h-[22px] rounded-full bg-slate-100 text-slate-500 text-[11px] transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-          >
-            ▼
+          <span className="flex items-center gap-1.5">
+            <span className="text-[12.5px] font-semibold text-slate-400">
+              {open ? "접기" : "펼치기"}
+            </span>
+            <span
+              aria-hidden
+              className={`grid place-items-center w-[22px] h-[22px] rounded-full bg-slate-100 text-slate-500 text-[11px] transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            >
+              ▼
+            </span>
           </span>
-        </span>
-      </button>
+        </button>
+
+        <button
+          type="button"
+          onClick={onAdd}
+          className="shrink-0 flex items-center gap-1 rounded-full bg-blue-600 py-1.5 pr-3 pl-2.5 text-[12.5px] font-semibold text-white hover:bg-blue-700"
+        >
+          <span aria-hidden className="text-[14px] leading-none font-normal">
+            +
+          </span>
+          나도 추가하기
+        </button>
+      </div>
 
       {open && (
         /*
-          모바일에서 이 <ul> 이 늘어날 수 있는 최대 높이. MapShell.tsx 가 지도에
-          최소 420px 를 보장하는 계산(100dvh − 420px 지도 − 57px 헤더)을 여기
-          그대로 옮겨 오되, 이 <ul> 의 위 형제들이 이미 차지하는 높이를 마저
-          뺀다 — 펼치기 버튼(53px, pt-[17px]+pb-[13px]+글자줄+자기 border-b
-          1px 를 getBoundingClientRect 로 잰 값)과, wrapper 자신의
-          border-t(1px, MapShell.tsx 의 패널 wrapper — 모바일에서만 켜진다)다.
-          이 둘은 이 <ul> 의 부모(wrapper div) 안에서 자기 높이를 그대로
-          차지하는 평범한 상자라, 목록에게 남는 몫은 그만큼씩 더 줄어야
-          420px 지도 보장이 정확히 맞는다(420+57+53+1=531).
+          모바일에서 이 <ul> 이 늘어날 수 있는 최대 높이.
 
-          예전엔 이 calc 전체를 <ul> 의 부모(wrapper div, MapShell.tsx)에
-          걸었다. 세로가 짧은 화면(가로로 눕힌 폰)에서는 100dvh 가 531px 를
-          넘지 못해 이 값이 음수가 되고, CSS 는 음수 max-height 를 0 으로
-          자른다 — wrapper 전체가 접히면 펼치기 버튼까지 같이 사라져 다시 열
-          방법이 없어지는 회귀였다. 지금은 이 <ul> 한 칸에만 걸려 있어서,
-          같은 상황에서도 목록만 0 으로 접히고(펼치기 버튼이 있는데 안이
-          비어 보이는 정도) 버튼 자신은 wrapper 의 평범한 첫 자식이라 자기
-          높이 그대로 남는다 — 늘 화면 안에서 누를 수 있다.
+          패널이 지도 위를 덮는 시트가 되면서(MapShell.tsx) 이 값의 성격이
+          바뀌었다. 예전에는 지도와 세로를 나눠 갖는 계산이었다 — 지도에게
+          최소 420px 를 떼어 주고 남는 만큼(100dvh − 420 − 57 − 53 − 1)이
+          목록 몫이었다. 지금은 목록이 얼마를 갖든 지도 영역은 그대로라
+          지도에서 뺏어 올 것이 없고, 이 값이 정하는 것은 **원반을 얼마나
+          가릴 것인가** 하나뿐이다.
+
+          44dvh 를 고른 근거는 지도가 실제로 그리는 세로 폭이다. 375px 폭
+          폰에서 그 값은 **332px** 다(시드 25명 332.2 · 한도 50명 333.6, 실측).
+          원반이 폭에 꽉 차지 않는 것은 screenScale 이 배지 상자가 화면 밖으로
+          나가지 않도록 그만큼을 미리 빼기 때문이다 — 폭 375 에서 그리는 폭은
+          375 가 아니다.
+
+          그래서 조건은 "시트에 가려지지 않고 남는 띠 ≥ 334px" 이다. 812px
+          폰에서 본문은 755px 이고 헤더 행이 62px 이므로, 목록이 42dvh(341px)
+          면 시트는 403px 이고 띠가 352px 남는다 — 18px 여유로 통과한다. 지도
+          내용을 시트 높이의 절반만큼 위로 민 뒤(MapShell 의 --sheet-shift) 그
+          띠의 한가운데에 원반이 놓인다.
+
+          상한은 시트 421px(=755−334), 즉 목록 44.2dvh 근처다. 그보다 키우면
+          원반의 위아래가, 정확히는 12시·6시 방향 배지가 먼저 잘린다. 폰 화면이
+          지도와 목록 둘 다에게 넉넉하기엔 모자라서 생기는 한계고, 목록을 더
+          보고 싶으면 스크롤하거나 접었다 펴는 쪽이 지도를 잘라 내는 것보다
+          낫다고 봤다.
+
+          시트가 본문보다 커지지 않는 것은 MapShell 의 wrapper 가 max-h-full
+          을 들고 있어서다 — 이 값이 화면보다 커지는 상황에서도 헤더를 밀거나
+          화면 밖으로 넘치지 않는다.
 
           md:max-h-none 은 데스크톱(우측 400px 고정 컬럼)에서 이 계산 자체가
           뜻이 없어 끈다 — 그 폭에서는 wrapper 가 flex-row 의 한 칸이라 세로를
           꽉 채우고, 목록은 그 안에서 flex-1 로 남는 공간을 그대로 쓴다.
         */
-        <ul className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pb-[max(18px,env(safe-area-inset-bottom))] m-0 list-none max-h-[calc(100dvh-531px)] md:max-h-none">
+        <ul className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pb-[max(18px,env(safe-area-inset-bottom))] m-0 list-none max-h-[42dvh] md:max-h-none">
           {byRole.map(({ role, people }) => (
             <li key={role} className="pt-2.5">
               <p className="flex items-center gap-[7px] px-2 pb-0.5 m-0">

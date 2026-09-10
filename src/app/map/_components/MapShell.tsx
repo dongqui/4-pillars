@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type { Element } from "@/lib/saju-core";
@@ -36,6 +36,32 @@ export function MapShell({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [listOpen, setListOpen] = useState(true);
   const [adding, setAdding] = useState(false);
+
+  /**
+   * 모바일 시트가 지금 몇 px 를 덮고 있는지. 지도 내용을 그 절반만큼 위로 밀어,
+   * 가려지지 않는 띠의 한가운데에 원반이 오게 하는 데 쓴다.
+   *
+   * 크기가 아니라 위치만 건드리는 것이 요점이다. 캔버스는 늘 본문 전체 높이라
+   * 목록을 여닫아도 리사이즈되지 않고(=지도가 다시 맞춰지지 않고) 원반 크기도
+   * 그대로다 — 보이는 창만 위아래로 움직인다.
+   *
+   * 시트 높이는 내용에 따라 달라져서(사람이 둘이면 짧다) 상수로 둘 수 없다.
+   * ResizeObserver 로 관찰하는 편이 자연스러워 보이지만 쓰지 않는다 — 시트
+   * 높이가 바뀌는 계기는 목록을 여닫는 것과 인원이 바뀌는 것, 그리고 창 크기가
+   * 바뀌는 것뿐이라 그 셋을 직접 잡는 편이 더 단순하고, 무엇보다 그렇게 해야
+   * 브라우저 밖에서도 언제 다시 재는지가 코드에 드러난다.
+   *
+   * useLayoutEffect 인 것은 DOM 이 바뀐 뒤 페인트 전에 재기 위해서다 — useEffect
+   * 로 재면 한 프레임 동안 옛 위치가 그려졌다가 튄다.
+   */
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [sheetHeight, setSheetHeight] = useState(0);
+  useLayoutEffect(() => {
+    const measure = () => setSheetHeight(sheetRef.current?.getBoundingClientRect().height ?? 0);
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [listOpen, people.length]);
 
   // 토스트는 여기가 갖는다. 공유(MapHeader)와 삭제 실패(handleDelete) 둘 다
   // 같은 자리에 떠야 하는데, 헤더 안에 두면 삭제 쪽에서 닿을 수 없다.
@@ -109,7 +135,8 @@ export function MapShell({
       <div inert={adding} className="flex min-h-0 flex-1 flex-col">
         <MapHeader shareId={shareId} loggedIn={loggedIn} onToast={showToast} />
 
-        <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+        {/* relative 는 모바일에서 목록 패널이 지도 위를 덮는 기준이다(아래 참고). */}
+        <div className="relative flex min-h-0 flex-1 flex-col md:flex-row">
           <div className="relative min-h-0 flex-1">
             {/*
               isolate 가 필수다. drei <Html> 은 카메라 거리로 z-index 를 계산해
@@ -118,65 +145,43 @@ export function MapShell({
               맥락을 끊으면 마커의 z 는 이 div 안에서만 유효해지고, div 자체는
               z-auto 라 패널·모달이 항상 위다.
             */}
-            <div className="absolute inset-0 isolate">
+            <div
+              className="absolute inset-0 isolate translate-y-[calc(var(--sheet-shift)*-1)] transition-transform duration-300 md:translate-y-0"
+              style={{ ["--sheet-shift" as string]: `${sheetHeight / 2}px` }}
+            >
               <World people={people} selectedId={selectedId} onSelect={selectPerson} />
             </div>
 
-            {/* 소유자가 아니어도 보인다 — 링크를 받은 사람이 자기를 넣는 것이 이 기능의 전부다. */}
-            <button
-              type="button"
-              onClick={() => setAdding(true)}
-              className="absolute right-4 bottom-4 z-10 rounded-full bg-blue-600 px-[18px] py-3 text-[14px] font-bold text-white shadow-elevated hover:bg-blue-700"
-            >
-              + 나도 추가하기
-            </button>
           </div>
 
           {/*
-            사이드 패널. 데스크톱은 우측 400px 고정 컬럼, 모바일은 하단 판이다.
-            모바일에서 접으면 헤더 행만 남고, 펼치면 안쪽 목록이 늘어난다(시안).
+            사이드 패널. 데스크톱은 우측 400px 고정 컬럼, 모바일은 지도 위를
+            덮는 하단 시트다.
 
-            예전엔 화면의 58% 를 그냥 목록에 줬다(max-h-[58vh]) — 지도가 나머지를
-            가져가는 셈이라, 목록에 실제 사람이 몇 명 있든 지도 영역은 항상
-            "100vh − 헤더 − 58vh" 였다. 375×812 폰에서 그 값은 284px 였는데,
-            radial.test.ts 가 재는 화면(모바일 375×420)이 지키는 겹침 없음
-            보장은 그 아래로 내려가면 깨진다 — 점끼리 붙기 시작하는 문턱이 딱
-            거기다(radial.ts 의 RING_START 주석 참고). 반대로 사람 목록은 몇 줄
-            안 보여도 화면의 42%(342px)를 그냥 내줘 버렸다.
+            **모바일에서 지도와 세로를 나눠 갖지 않는다.** 예전에는 이 패널이
+            플렉스 형제라, 목록을 펼치면 그만큼 지도가 깎였다 — 375×812 폰에서
+            지도가 702px 에서 421px 로 줄었고, 그 421px 안에서 원반은 폭에
+             맞춰진 최대 크기 그대로라 배지가 위아래 가장자리에 꽉 끼었다.
+            게다가 목록을 여닫을 때마다 캔버스가 리사이즈되어 지도가 다시
+            맞춰졌다.
 
-            그래서 규칙을 뒤집었다: 목록에게 "화면의 몇 %" 를 주는 대신, 지도가
-            먼저 자기 최소 높이(420px)를 떼어 가고, 목록은 남는 만큼(헤더까지 뺀
-            나머지)을 갖는다 — 화면이 커지면 그 여유는 전부 목록으로 간다. 420 은
-            임의가 아니라 실측이다: 375px 폭에서 지도 영역 높이를 늘려 가며
-            screenScale 을 재면 420px 부터는 더 늘려도 배율이 그대로다(폭이
-            먼저 막힌다 — 배지가 3/9시 방향에서 가로로 걸리는 것이 그 다음
-            병목이다) — 그 위로 목록에게 더 뺏기지 않되, 그 아래로는 절대
-            내려가지 않는 값이 420 이다. 57 은 MapHeader 의 실제 높이(h-14=56px
-            + border-b 1px, 세이프 에어리어는 노치 없는 기기에서 0)다.
-            100dvh 를 쓰는 것은 100vh 와 달리 모바일 브라우저의 주소창이
-            나타났다 사라졌다 해도 그만큼을 몰래 목록에 뺏기지 않기 위해서다
-            (이 레포에서 100vh 대신 100dvh 를 쓰는 선례는 ConsultFrame.tsx 의
-            h-dvh).
+            지금은 absolute 로 띄워 지도 위를 덮는다. 지도 영역은 목록의 상태와
+            무관하게 늘 본문 전체 높이이고, 목록을 여닫아도 지도는 리사이즈되지
+            않는다 — 덮이기만 한다. 접으면 넉넉한 지도가 그대로 돌아온다.
 
-            처음엔 이 "420px + 57px" 계산을 이 wrapper div 의 max-height 로
-            직접 걸었다 — 그런데 세로가 짧은 화면(가로로 눕힌 폰, 이 라우트의
-            md 분기는 폭 기준이라 그런 화면도 여전히 이 모바일 레이아웃이다)
-            에서는 100dvh 가 477px(420+57) 를 넘지 못해 이 calc 가 음수가 되고,
-            CSS 는 음수 max-height 를 0 으로 자른다. 이 div 는 펼치기 버튼과 목록을
-            같이 담고 있어서, wrapper 가 0 이 되면 버튼까지 같이 사라졌다 —
-            게다가 layout.tsx 의 fixed inset-0 overflow-hidden 이 넘치는 내용을
-            밖으로 새어 나오게 두지 않고 그대로 잘라, 펼치기 버튼을 다시 찾을
-            방법이 없어졌다(회귀).
+            대가는 펼친 동안 원반의 아래쪽이 시트 뒤에 가려지는 것이다. 지도와
+            목록이 같은 픽셀을 두고 다투는 것 자체는 없앨 수 없어서(둘 다에게
+            충분한 높이를 주기에 폰 화면이 모자란다), 남은 선택은 "지도를
+            줄인다" 와 "지도를 덮는다" 둘뿐이고 여기서는 덮는 쪽을 골랐다.
 
-            그래서 max-height 를 이 wrapper 가 아니라 PeopleList.tsx 의 스크롤
-            목록(<ul>)에만 건다. 버튼은 이 wrapper 의 첫 자식이고 자기 높이만큼만
-            차지하는 평범한 요소라, 목록 쪽 calc 가 얼마나 음수든 버튼과는
-            무관하다 — 목록만 0 으로 접히고 버튼은 항상 자기 높이(53px, 실측)
-            그대로 남는다. 자세한 계산과 회귀 이유는 PeopleList.tsx 의 <ul>
-            위 주석 참고.
+            max-h-full 은 시트가 본문보다 커지지 않게 막는다 — 목록이 아무리
+            길어도 헤더를 밀어 올리거나 화면 밖으로 넘치지 않는다.
+            md: 접두사가 붙은 것들이 데스크톱에서 이 전부를 되돌려, 예전처럼
+            흐름 안의 우측 400px 컬럼이 된다.
           */}
           <div
-            className="flex flex-col shrink-0 bg-white border-t border-slate-100 md:border-t-0 md:border-l md:w-[400px]"
+            ref={sheetRef}
+            className="absolute inset-x-0 bottom-0 z-20 flex max-h-full flex-col rounded-t-2xl bg-white shadow-[0_-8px_28px_-14px_rgba(15,23,42,0.25)] md:static md:z-auto md:max-h-none md:w-[400px] md:shrink-0 md:rounded-none md:border-l md:border-slate-100 md:shadow-none"
           >
             <PeopleList
               people={people}
@@ -187,6 +192,7 @@ export function MapShell({
               onSelect={selectPerson}
               isOwner={isOwner}
               onDelete={handleDelete}
+              onAdd={() => setAdding(true)}
             />
           </div>
         </div>
