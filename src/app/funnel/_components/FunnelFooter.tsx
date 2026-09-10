@@ -22,7 +22,11 @@ export function FunnelFooter({ canNext, isLast, showBack, onNext, onBack }: Prop
       >
         ← 이전
       </button>
-      <Button onClick={onNext} disabled={!canNext} className="w-full md:w-auto px-10 py-4 text-base">
+      <Button
+        onClick={onNext}
+        disabled={!canNext}
+        className="w-full rounded-[14px] px-10 py-4 text-base shadow-[0_6px_16px_rgba(37,99,235,.28)] md:w-auto md:shadow-[0_8px_20px_rgba(37,99,235,.28)]"
+      >
         {isLast ? "사주 분석 시작" : "다음"}
       </Button>
     </div>

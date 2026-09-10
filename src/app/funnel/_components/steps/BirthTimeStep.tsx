@@ -1,123 +1,103 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useFunnel } from "../../_context/FunnelContext";
+import { useState } from "react";
+import { PickerSheet } from "@/components/wheel-picker/PickerSheet";
+import { WheelPicker } from "@/components/wheel-picker/WheelPicker";
+import { pad2, range } from "@/components/wheel-picker/model";
+import { useFunnel, type FunnelData } from "../../_context/FunnelContext";
+import { formatTime } from "../../_lib/date";
+import { StepHeading } from "../StepHeading";
+import { PickerField } from "../PickerField";
 
-function clamp(n: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, n));
-}
+const HOURS = range(0, 23);
+/** 분은 1분 단위다 — 시안은 5분 눈금이었지만 실제 출생 시각은 그렇게 떨어지지 않는다. */
+const MINUTES = range(0, 59);
 
-function pad2(n: number): string {
-  return n < 10 ? `0${n}` : `${n}`;
-}
+type Time = NonNullable<FunnelData["time"]>;
 
-const inputCls =
-  "w-[72px] rounded-xl border border-slate-200 bg-white px-3 py-3.5 text-[17px] font-bold text-slate-900 text-center outline-none focus:border-accent placeholder:text-slate-300";
-
-function parseTime(h: string, m: string): { h: number; m: number } | null {
-  if (!h || !m) return null;
-  const hh = parseInt(h, 10);
-  const mm = parseInt(m, 10);
-  if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
-  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
-  return { h: hh, m: mm };
-}
+/** 처음 여는 휠의 시작 위치. */
+const DEFAULT_DRAFT: Time = { h: 12, m: 0 };
 
 export function BirthTimeStep() {
   const { data, update } = useFunnel();
-  const hourRef = useRef<HTMLInputElement>(null);
   const time = data.time;
-  const [h, setH] = useState(time ? pad2(time.h) : "");
-  const [m, setM] = useState(time ? pad2(time.m) : "");
+  const [draft, setDraft] = useState<Time | null>(null);
 
-  function digitsOnly(raw: string): string {
-    return raw.replace(/\D/g, "").slice(0, 2);
-  }
-
-  function sync(nh: string, nm: string) {
-    const parsed = parseTime(nh, nm);
-    if (parsed) update({ time: parsed });
-    else if (data.time) update({ time: null });
-  }
-
-  // 포커스가 벗어날 때 범위를 보정하고 컨텍스트에 반영
-  function commit() {
-    if (!h && !m) return;
-    if (!h) return;
-    const hh = clamp(parseInt(h, 10) || 0, 0, 23);
-    const mm = clamp(parseInt(m, 10) || 0, 0, 59);
-    setH(pad2(hh));
-    setM(pad2(mm));
-    update({ time: { h: hh, m: mm } });
+  function open() {
+    // "몰라요"가 켜진 채로 칸을 누르면 다시 입력하려는 것이다 — 시안의 openPicker 와 같다.
+    if (!data.timeKnown) update({ timeKnown: true });
+    setDraft(time ?? DEFAULT_DRAFT);
   }
 
   return (
     <div>
-      <h1 className="text-[32px] font-bold tracking-tight leading-tight mb-2.5">
-        태어난 시간을 알려주세요
-      </h1>
-      <p className="text-[15px] text-slate-500 mb-8">시(時) 기둥 계산에 사용돼요.</p>
+      <StepHeading
+        title={
+          <>
+            태어난 시간을
+            <br className="md:hidden" /> 알려주세요
+          </>
+        }
+        sub="시(時) 기둥 계산에 사용돼요."
+        gap="mb-7 md:mb-8"
+      />
 
-      {/* 비활성 상태에서 클릭하면 토글을 풀고 다시 입력할 수 있게 한다 */}
-      <div
-        onClick={() => {
-          if (!data.timeKnown) {
-            update({ timeKnown: true });
-            requestAnimationFrame(() => hourRef.current?.focus());
-          }
-        }}
-        className={data.timeKnown ? "" : "cursor-pointer"}
-      >
-        <div
-          className={`flex items-center gap-2 transition-opacity ${
-            data.timeKnown ? "" : "opacity-40 pointer-events-none"
-          }`}
-        >
-          <input
-            ref={hourRef}
-            value={h}
-            onChange={(e) => {
-              const v = digitsOnly(e.target.value);
-              setH(v);
-              sync(v, m);
-            }}
-            onBlur={commit}
-            inputMode="numeric"
-            placeholder="12"
-            aria-label="시"
-            className={inputCls}
-          />
-          <span className="text-slate-400">시</span>
-          <input
-            value={m}
-            onChange={(e) => {
-              const v = digitsOnly(e.target.value);
-              setM(v);
-              sync(h, v);
-            }}
-            onBlur={commit}
-            inputMode="numeric"
-            placeholder="00"
-            aria-label="분"
-            className={inputCls}
-          />
-          <span className="text-slate-400">분</span>
-        </div>
-      </div>
+      <PickerField
+        value={data.timeKnown ? (time ? formatTime(time) : null) : "시간 모름"}
+        placeholder="시간 선택"
+        icon="🕓"
+        aria-label="태어난 시간"
+        muted={!data.timeKnown}
+        onClick={open}
+      />
 
       <button
         type="button"
         onClick={() => update({ timeKnown: !data.timeKnown })}
         aria-pressed={!data.timeKnown}
-        className={`w-full flex items-center gap-2.5 mt-4 text-sm font-semibold rounded-xl px-[18px] py-4 transition-all cursor-pointer border ${
+        className={`mt-3.5 flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-4 py-3.5 text-sm font-semibold transition-all md:mt-4 md:rounded-[13px] md:px-[18px] md:py-4 ${
           data.timeKnown
-            ? "border-slate-200 bg-white text-slate-500"
+            ? "border border-slate-200 bg-white text-slate-500"
             : "border-2 border-accent bg-accent-50 text-accent"
         }`}
       >
-        <span className="text-base">{data.timeKnown ? "○" : "●"}</span>
+        <span className="text-[15px] md:text-base">{data.timeKnown ? "○" : "●"}</span>
         태어난 시간을 몰라요
       </button>
+
+      {/* 열 값은 함수형으로 갱신한다 — 두 열을 연달아 굴리면 스크롤 확정 타이머가
+          같은 틱에 몰려 오고, 닫힌 초안을 쓰면 나중 열이 앞 열의 값을 되돌린다. */}
+      {draft && (
+        <PickerSheet
+          title="태어난 시간"
+          onCancel={() => setDraft(null)}
+          onConfirm={() => {
+            update({ time: draft, timeKnown: true });
+            setDraft(null);
+          }}
+        >
+          <WheelPicker
+            columns={[
+              {
+                id: "h",
+                label: "시",
+                values: HOURS,
+                value: draft.h,
+                format: (v) => `${pad2(v)}시`,
+                onChange: (h) => setDraft((p) => p && { ...p, h }),
+              },
+              {
+                id: "min",
+                label: "분",
+                values: MINUTES,
+                value: draft.m,
+                format: (v) => `${pad2(v)}분`,
+                onChange: (m) => setDraft((p) => p && { ...p, m }),
+              },
+            ]}
+          />
+        </PickerSheet>
+      )}
     </div>
   );
 }

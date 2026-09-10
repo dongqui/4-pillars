@@ -1,6 +1,7 @@
 import { FunnelBrand } from "./FunnelBrand";
 import { Stepper } from "./Stepper";
 import { FunnelProgress } from "./FunnelProgress";
+import { ProgressBar } from "@/components/ProgressBar";
 import { type StepKey } from "../_lib/steps";
 
 interface Props {
@@ -13,9 +14,13 @@ interface Props {
   showBack: boolean;
 }
 
+/**
+ * 모바일(시안 "Saju Funnel mobile")은 뒤로가기 행 + 3px 진행선, 본문은 위에 붙고,
+ * CTA 는 바닥에 고정된다. 데스크톱은 좌측 레일 + 가운데 정렬 본문(기존 데스크톱 시안).
+ */
 export function FunnelLayout({ index, steps, total, footer, children, onBack, showBack }: Props) {
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+    <div className="flex h-dvh flex-col md:min-h-screen md:h-auto md:flex-row">
       {/* 데스크톱 좌측 레일 */}
       <aside className="hidden md:flex flex-none w-[400px] bg-slate-50 border-r border-slate-200 px-11 py-11 flex-col">
         <FunnelBrand />
@@ -37,30 +42,50 @@ export function FunnelLayout({ index, steps, total, footer, children, onBack, sh
       </aside>
 
       {/* 우측/모바일 본문 */}
-      <main className="flex-1 min-w-0 flex flex-col">
-        <div className="px-6 md:px-14 pt-8">
-          <div className="flex items-center gap-3">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {/* 모바일 머리글: 뒤로가기 + 단계 표시 한 줄, 그 아래 얇은 진행선 */}
+        <div className="flex-none px-6 pt-[max(8px,env(safe-area-inset-top))] md:hidden">
+          <div className="-mx-2 flex h-11 items-center justify-between">
             <button
               type="button"
               onClick={onBack}
               aria-label="이전"
-              className={`md:hidden border-0 bg-transparent cursor-pointer text-[26px] leading-none text-slate-700 w-[30px] h-[30px] flex items-center justify-center p-0 ${
+              className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-[11px] border-0 bg-transparent p-0 text-slate-700 hover:bg-slate-50 ${
                 showBack ? "visible" : "invisible"
               }`}
             >
-              ‹
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M15 5l-7 7 7 7"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
-            <div className="flex-1">
-              <FunnelProgress index={index} total={total} />
-            </div>
+            <span className="pr-2 text-[13px] font-semibold text-slate-400 tabular-nums">
+              {index + 1}/{total}
+            </span>
+          </div>
+          <div className="mt-0.5 flex">
+            <ProgressBar value={index + 1} max={total} size="sm" />
           </div>
         </div>
-        <div className="saju-scroll flex-1 overflow-y-auto flex items-center justify-center px-6 md:px-14 py-6">
+
+        {/* 데스크톱 머리글: 진행선 + 단계 표시 */}
+        <div className="hidden px-14 pt-8 md:block">
+          <FunnelProgress index={index} total={total} />
+        </div>
+
+        <div className="saju-scroll flex min-h-0 flex-1 items-start justify-center overflow-y-auto px-6 pb-4 pt-8 md:items-center md:px-14 md:py-6">
           <div key={index} className="saju-fade w-full max-w-[440px]">
             {children}
           </div>
         </div>
-        <div className="px-6 md:px-14 py-6 md:border-t md:border-slate-100">
+
+        {/* CTA: 모바일은 바닥 고정, 데스크톱은 구분선 위 */}
+        <div className="flex-none bg-white px-6 pb-[max(30px,env(safe-area-inset-bottom))] pt-3 md:border-t md:border-slate-100 md:px-14 md:py-6">
           {footer}
         </div>
       </main>
