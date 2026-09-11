@@ -12,5 +12,5 @@ test("법률 링크와 사업자정보를 노출한다", () => {
   expect(html).not.toContain('href="/business"');
   expect(html).toContain("프로젝트엔");
   expect(html).toContain("432-33-01882");
-  expect(html).toContain("hailmarylabs@gmail.com");
+  expect(html).toContain("projectn.contact@gmail.com");
 });

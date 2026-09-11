@@ -10,6 +10,6 @@ export const COMPANY = {
   address: "경기도 이천시 경충대로2762번길 29-107, 102-S21호 (관고동)",
   mailOrderSalesNumber: "제2026-경기이천-0577호",
   phone: "070-8095-3631",
-  contactEmail: "hailmarylabs@gmail.com",
+  contactEmail: "projectn.contact@gmail.com",
   openedOn: "2026-08-05",
 } as const;
