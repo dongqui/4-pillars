@@ -53,7 +53,7 @@ export function FooterCta({ displayName }: FooterCtaProps) {
           </p>
           <p>{COMPANY.address}</p>
           <p>
-            문의{" "}
+            전화 {COMPANY.phone} · 문의{" "}
             <a href={`mailto:${COMPANY.contactEmail}`} className="hover:text-white">
               {COMPANY.contactEmail}
             </a>
