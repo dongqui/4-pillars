@@ -14,6 +14,7 @@ const ROWS: [string, string][] = [
   ["주소", COMPANY.address],
   ["개업일", COMPANY.openedOn],
   ["통신판매업 신고번호", COMPANY.mailOrderSalesNumber],
+  ["전화번호", COMPANY.phone],
   ["고객문의", COMPANY.contactEmail],
 ];
 
