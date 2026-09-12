@@ -75,9 +75,26 @@ export function PeopleList({
         행 전체를 <button> 으로 감싸던 것을 풀었다 — 버튼 안에 버튼을 넣을 수는
         없다. 대신 토글이 인원수와 남는 폭을 함께 먹어(flex-1) 탭 영역은 그대로
         넓다.
+
+        **이 줄이 모바일 시트의 손잡이다.** data-sheet-grab 은 MapShell 이 끄는
+        손짓의 표적을 찾는 표시이고, touch-none 은 그 손짓을 브라우저에게서
+        뺏는다. 뺏지 않으면 아래로 끄는 동작이 크롬 안드로이드의
+        당겨서-새로고침으로 가서 페이지가 통째로 다시 열린다 — 시트를 내리려는
+        가장 자연스러운 동작이 지도를 날려 버렸다(신고된 증상). 목록 <ul> 은
+        overscroll-contain 이 이미 같은 일을 하고 있어서, 막히지 않은 곳이
+        여기뿐이었다. 뺏은 손짓을 실제로 쓰는 쪽은 MapShell 이다 — 뺏기만 하면
+        새로고침은 막히되 아무 일도 없는 죽은 손잡이가 된다.
+
+        md:touch-auto 는 데스크톱에서 그것을 되돌린다. 그쪽 패널은 시트가 아니라
+        우측 고정 컬럼이라 끌 것이 없다.
       */}
-      <div className="relative shrink-0 flex items-center gap-2.5 pt-[15px] pr-4 pb-[11px] pl-5 bg-white border-b border-slate-100">
-        {/* 모바일 손잡이 */}
+      <div
+        data-sheet-grab
+        className="relative shrink-0 flex items-center gap-2.5 pt-[15px] pr-4 pb-[11px] pl-5 bg-white border-b border-slate-100 touch-none md:touch-auto"
+      >
+        {/* 모바일 손잡이. 끄는 판정은 이 막대가 아니라 줄 전체가 받는다 —
+            4px 짜리 막대만 표적이면 맞추기가 너무 어렵다. 키보드·보조기기는
+            옆의 토글 버튼이 답하므로 이것은 aria-hidden 인 채로 둔다. */}
         <span
           aria-hidden
           className="md:hidden absolute left-1/2 top-1.5 -translate-x-1/2 w-9 h-1 rounded-full bg-slate-200"
