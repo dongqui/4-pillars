@@ -20,7 +20,7 @@ const MONTHS = range(1, 12);
 type Birth = NonNullable<FunnelData["birth"]>;
 
 /** 처음 여는 휠의 시작 위치. 값이 아니라 굴리기 시작할 자리일 뿐이다. */
-const DEFAULT_DRAFT: Birth = { y: 1990, m: 1, d: 1 };
+const DEFAULT_DRAFT: Birth = { y: 1995, m: 1, d: 1 };
 
 export function BirthDateStep() {
   const { data, update } = useFunnel();

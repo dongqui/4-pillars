@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useCallback, useId, useRef } from "react";
 import { Button } from "@/components/Button";
 
 interface Props {
@@ -24,13 +24,17 @@ export function PickerSheet({ title, onConfirm, onCancel, children }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
-  useEffect(() => {
-    ref.current?.showModal();
+  // showModal 은 effect 가 아니라 ref 콜백에서 부른다 — effect 는 자식이 먼저라,
+  // 아직 display:none 인 dialog 안에서 휠이 선택 칸으로 굴러가려다 0 에 머무르고
+  // (= 첫 칸으로 열린다) 만다. ref 콜백은 자식 effect 보다 앞선다.
+  const attach = useCallback((el: HTMLDialogElement | null) => {
+    ref.current = el;
+    if (el && !el.open) el.showModal();
   }, []);
 
   return (
     <dialog
-      ref={ref}
+      ref={attach}
       aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();
