@@ -13,7 +13,7 @@ const a = analyze({
   gender: "male",
   calendar: "solar",
 });
-const ctx = buildFlowContext(a, 2027, flowMonths(a, 2027));
+const ctx = buildFlowContext(a, 2027, flowMonths(a, 2027), null);
 
 /** 재시도 대기 없이 만든다 — 기본값(RETRY_DELAY_MS)이면 테스트가 그만큼 잔다. */
 const gen = (t: FlowTransport) => new PromptedFlowGenerator("m", t, 0);

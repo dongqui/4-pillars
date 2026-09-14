@@ -188,3 +188,39 @@ describe("flowYearRange — 입춘 경계", () => {
     expect(flowYearRange(afterIpchun)).toEqual({ min: 2021, max: 2031 });
   });
 });
+
+describe("handleCreateFlow · situation", () => {
+  it("보낸 상황을 그대로 findOrCreate 에 넘긴다 — 프롬프트의 유일한 입력 경로다", async () => {
+    let seen: unknown;
+    const out = await handleCreateFlow(
+      { profileId: "11", year: 2026, situation: { job: "freelancer", love: "dating" } },
+      deps({
+        findOrCreate: async (_u, input) => {
+          seen = input.situation;
+          return { id: "7", created: true };
+        },
+      }),
+    );
+    expect(out.status).toBe(201);
+    expect(seen).toEqual({ job: "freelancer", love: "dating" });
+  });
+
+  it("안 보내면 null 로 만든다 — 상황을 모르는 흐름도 만들 수 있다", async () => {
+    let seen: unknown = "unset";
+    await handleCreateFlow({ profileId: "11", year: 2026 }, deps({
+      findOrCreate: async (_u, input) => {
+        seen = input.situation;
+        return { id: "7", created: true };
+      },
+    }));
+    expect(seen).toBeNull();
+  });
+
+  it("정의역 밖 값이면 400 — 조용히 버리면 왜 안 실렸는지 아무도 못 찾는다", async () => {
+    const out = await handleCreateFlow(
+      { profileId: "11", year: 2026, situation: { job: "백수", love: "dating" } },
+      deps(),
+    );
+    expect(out.status).toBe(400);
+  });
+});

@@ -1,0 +1,19 @@
+-- 흐름을 만들 때 사용자가 직접 고른 "지금 상황"(현재 직업 · 연애 상태).
+--
+-- 계산값이 아니라 사용자가 준 사실이라 프로필이 아니라 flows 에 둔다 — 같은
+-- 사람이라도 2024년 흐름을 볼 때와 2027년 흐름을 볼 때의 상황이 다르고,
+-- 프로필에 얹으면 나중에 만든 흐름이 예전 흐름의 프롬프트 근거를 덮어쓴다.
+--
+-- months 와 같은 이유로 발행 시점에 박제한다: 이미 판 흐름의 서술이 근거로 삼은
+-- 상황은 소급해서 바뀌면 안 된다. flows_unique(profile_id, flow_year) 로 기존
+-- 행에 수렴하는 재요청도 이 값을 덮지 않는다(store.findOrCreateFlow 참고).
+--
+-- 모양:
+--   { "job": "employed", "love": "single" }
+-- 값의 정의역은 src/lib/flows/situation.ts 의 zod 스키마 하나다. 여기에 CHECK 를
+-- 걸지 않는 이유는 months 와 같다 — 정의역이 앱에서 바뀔 때 두 자리를 같이
+-- 고쳐야 하는 구조를 만들지 않는다.
+--
+-- NULL 은 "이 기능이 생기기 전에 만들어진 흐름" 이다. 사용자가 답을 거절한 것과
+-- 구분된다 — 거절은 "undisclosed" 라는 값으로 들어온다.
+ALTER TABLE flows ADD COLUMN IF NOT EXISTS situation jsonb;

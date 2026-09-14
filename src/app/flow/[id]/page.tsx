@@ -100,7 +100,7 @@ export default async function FlowResultPage({
 function buildContext(profile: ProfileRow, flow: FlowRow): FlowContext | null {
   try {
     const analysis = analyze(toBirthInput(profile));
-    return buildFlowContext(analysis, flow.flowYear, flow.months);
+    return buildFlowContext(analysis, flow.flowYear, flow.months, flow.situation);
   } catch (e) {
     console.error("[/flow/[id]] 원국 계산 실패", e);
     return null;

@@ -4,6 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { PersonOption } from "@/lib/profiles/option";
+import {
+  JOB_OPTIONS,
+  LOVE_OPTIONS,
+  type FlowJob,
+  type FlowLove,
+  type FlowSituation,
+} from "@/lib/flows/situation";
 import { PersonPicker } from "@/components/PersonPicker";
 import type { YearOption } from "../_lib/to-confirm";
 import { toStartOutcome, type StartFailure } from "../_lib/to-start-outcome";
@@ -34,6 +41,8 @@ export function FlowConfirm(props: FlowConfirmProps) {
   const [active, setActive] = useState(props.initialProfile);
   // 결제 모달이 겨눈 해. null 이면 닫혀 있다.
   const [payYear, setPayYear] = useState<YearOption | null>(null);
+  // 결제를 확인한 뒤 상황을 묻는 시트가 겨눈 해. 결제 시트와 동시에 뜨지 않는다.
+  const [ctxYear, setCtxYear] = useState<YearOption | null>(null);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<StartFailure | null>(null);
 
@@ -63,20 +72,38 @@ export function FlowConfirm(props: FlowConfirmProps) {
     setPayYear(y);
   }
 
+  // 결제 시트에서는 아직 요청이 나가지 않아 busy 를 볼 필요가 없다.
   function closePay() {
-    if (busy) return; // 결제 요청이 나간 뒤에는 결과를 보고 닫는다
     setPayYear(null);
     setFailure(null);
   }
 
-  async function start(year: number) {
+  /**
+   * 결제 시트 → 상황 시트. 여기서는 아직 아무것도 만들지 않는다 — 요청은 상황
+   * 시트의 "리포트 만들기" 에서 한 번만 나간다.
+   */
+  function openContext(y: YearOption) {
+    setPayYear(null);
+    setFailure(null);
+    setCtxYear(y);
+  }
+
+  function closeContext() {
+    if (busy) return; // 요청이 나간 뒤에는 결과를 보고 닫는다
+    setCtxYear(null);
+    setFailure(null);
+  }
+
+  async function start(year: number, situation: FlowSituation) {
     setBusy(true);
     setFailure(null);
     try {
       const res = await fetch("/api/flows", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profileId: me.id, year }),
+        // situation 은 발행 시점에 행에 박제된다 — 같은 해를 다시 제출해 기존
+        // 행으로 수렴하면 여기서 보낸 값은 쓰이지 않는다(store.findOrCreateFlow).
+        body: JSON.stringify({ profileId: me.id, year, situation }),
       });
       if (!res.ok) {
         // 402·429·401 모두 실제로 닿는 상태다 — 버튼만 다시 눌리게 두면
@@ -238,8 +265,19 @@ export function FlowConfirm(props: FlowConfirmProps) {
           tickets={props.tickets}
           busy={busy}
           failure={failure}
-          onConfirm={() => void start(payYear.year)}
+          onConfirm={() => openContext(payYear)}
           onClose={closePay}
+        />
+      )}
+
+      {ctxYear && (
+        <SituationModal
+          name={me.name}
+          option={ctxYear}
+          busy={busy}
+          failure={failure}
+          onSubmit={(situation) => void start(ctxYear.year, situation)}
+          onClose={closeContext}
         />
       )}
     </section>
@@ -248,6 +286,9 @@ export function FlowConfirm(props: FlowConfirmProps) {
 
 /**
  * 안 산 해를 눌렀을 때의 결제 시트. 모바일에선 바닥에 붙고 sm 부터 가운데 카드다.
+ *
+ * 여기서 확정해도 아직 요청은 나가지 않는다 — 다음 시트(SituationModal)가 지금
+ * 상황을 묻고, 요청은 그쪽에서 한 번만 나간다.
  *
  * "이용권으로 열기" 는 잔액 0이어도 누를 수 있다 — 잔액은 화면이 뜬 시점의
  * 스냅숏이라 낡았을 수 있고, 진짜 판정은 서버가 한다. 402 로 돌아오면 충전 링크가
@@ -349,6 +390,154 @@ function PayModal({
         >
           다음에 볼게요
         </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 리포트를 만들기 직전에 지금 상황을 묻는 시트. 시안(Saju Yearly Report)의 두 번째
+ * 시트다.
+ *
+ * 둘 다 골라야 버튼이 열린다. 답하기 싫은 사람을 위해 건너뛰기를 두는 대신
+ * "말하고 싶지 않아요" 를 선택지로 둔다 — 안 물어본 것과 답하지 않은 것은
+ * 프롬프트가 다르게 다뤄야 하는 서로 다른 사실이다(src/lib/flows/situation.ts).
+ *
+ * 요청이 여기서 나가므로 실패 문구도 이 자리에 뜬다.
+ */
+function SituationModal({
+  name,
+  option,
+  busy,
+  failure,
+  onSubmit,
+  onClose,
+}: {
+  name: string;
+  option: YearOption;
+  busy: boolean;
+  failure: StartFailure | null;
+  onSubmit: (situation: FlowSituation) => void;
+  onClose: () => void;
+}) {
+  const [job, setJob] = useState<FlowJob | null>(null);
+  const [love, setLove] = useState<FlowLove | null>(null);
+  const ready = job !== null && love !== null && !busy;
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[110] flex items-end justify-center bg-slate-900/45 backdrop-blur-[2px] sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="지금 상황 알려주기"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-none rounded-t-[22px] bg-white px-5 pb-6 pt-3.5 shadow-[0_-20px_60px_-20px_rgba(15,23,42,0.35)] sm:max-w-[440px] sm:rounded-[22px] sm:px-6"
+      >
+        <div aria-hidden className="mx-auto mb-4 h-1 w-[38px] rounded-full bg-slate-200" />
+        <div className="mb-1.5 text-[11.5px] font-bold tracking-[0.08em] text-slate-400">
+          {name} · {option.year}년 흐름
+        </div>
+        <div className="text-[21px] font-bold leading-[1.25] tracking-[-0.04em]">
+          지금 상황을 알려주세요
+        </div>
+        <div className="mt-1.5 text-[13.5px] leading-[1.5] text-gray-500 [text-wrap:pretty]">
+          현재 상황에 맞춰 그 해의 흐름을 더 구체적으로 풀어 드려요.
+        </div>
+
+        <ChipGroup label="현재 직업" options={JOB_OPTIONS} value={job} onPick={setJob} />
+        <ChipGroup label="연애 상태" options={LOVE_OPTIONS} value={love} onPick={setLove} />
+
+        <button
+          type="button"
+          disabled={!ready}
+          onClick={() => {
+            if (job !== null && love !== null) onSubmit({ job, love });
+          }}
+          className={`mt-6 w-full rounded-[14px] py-[15px] text-[15px] font-bold text-white transition-colors ${
+            ready ? "bg-accent" : "cursor-default bg-slate-300"
+          }`}
+        >
+          {busy ? "준비하는 중…" : "리포트 만들기"}
+        </button>
+
+        {failure && (
+          <p role="alert" className="mt-3 text-[13px] leading-[1.55] text-red-600">
+            {failure.text}
+            {failure.action && (
+              <>
+                {" "}
+                <Link
+                  href={failure.action.href}
+                  className="font-semibold underline underline-offset-2"
+                >
+                  {failure.action.label}
+                </Link>
+              </>
+            )}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-2 w-full pb-0.5 pt-3 text-center text-sm font-semibold text-slate-400 transition-colors hover:text-slate-500"
+        >
+          다음에 할게요
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 선택지 한 줄. 무엇을 고를 수 있는가는 여기가 아니라 src/lib/flows/situation.ts 가
+ * 정한다 — 화면이 목록을 따로 들면 스키마에 없는 선택지가 생기고, 그걸 고른
+ * 사용자만 400 을 받는다.
+ */
+function ChipGroup<T extends string>({
+  label,
+  options,
+  value,
+  onPick,
+}: {
+  label: string;
+  options: readonly { value: T; label: string }[];
+  value: T | null;
+  onPick: (v: T) => void;
+}) {
+  return (
+    <div className="mt-5">
+      <div className="mb-2.5 text-[12.5px] font-bold text-slate-700">{label}</div>
+      <div className="flex flex-wrap gap-[7px]">
+        {options.map((o) => {
+          const on = o.value === value;
+          return (
+            <button
+              key={o.value}
+              type="button"
+              aria-pressed={on}
+              onClick={() => onPick(o.value)}
+              className={`rounded-full border-[1.5px] px-3.5 py-[9px] text-[13.5px] font-semibold tracking-[-0.01em] transition-colors ${
+                on
+                  ? "border-accent bg-accent-50 text-accent"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+              }`}
+            >
+              {o.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
