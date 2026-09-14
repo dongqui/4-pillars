@@ -14,3 +14,8 @@ test("법률 링크와 사업자정보를 노출한다", () => {
   expect(html).toContain("432-33-01882");
   expect(html).toContain("projectn.contact@gmail.com");
 });
+
+test("전화번호는 우리가 직접 tel 링크로 건다 — 브라우저 자동 인식에 기대지 않는다", () => {
+  const html = renderToStaticMarkup(<FooterCta displayName={null} />);
+  expect(html).toContain('href="tel:070-8095-3631"');
+});
