@@ -133,7 +133,7 @@ export async function handleCreateFlow(
   const snapshot = normalizeFlowContext(parsed.data.context, { relation, now: deps.now });
   // ⚠️ months 는 저장된 row.months — 새로 계산한 months 는 INSERT 에만 쓴다(스펙 §5)
   const evidence = buildFlowEvidence(analysis, year, row.months);
-  const input = buildFlowGenerationInput({ flowYear: year, relation, snapshot, evidence, months: row.months });
+  const input = buildFlowGenerationInput({ flowYear: year, relation, snapshot, evidence });
   const { asOf: _asOf, ...contextForHash } = snapshot;
   void _asOf;
   const up = await deps.upsertPendingRevision(row.id, {

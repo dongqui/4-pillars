@@ -23,6 +23,11 @@ describe("flowReportV2Schema", () => {
     const c = ok(); c.sections.closing.items[0].sourceKeys = ["career", "career"];
     expect(flowReportV2Schema.safeParse(c).success).toBe(false);
   });
+  it("basisRefs 항목은 64자를 넘으면 거부 — 모델 자유 텍스트가 validation_errors 에 실리지 못하게", () => {
+    const r = ok();
+    r.sections.overview.basisRefs = ["가".repeat(65)];
+    expect(flowReportV2Schema.safeParse(r).success).toBe(false);
+  });
   it("closing 은 3개, sourceKeys 에 closing 불가, 추가 필드 거부", () => {
     const a = ok(); a.sections.closing.items.pop();
     expect(flowReportV2Schema.safeParse(a).success).toBe(false);

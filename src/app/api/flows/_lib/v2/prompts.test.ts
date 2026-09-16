@@ -6,7 +6,7 @@ import { makeEvidenceFixture } from "./__fixtures__/reports";
 const input = buildFlowGenerationInput({
   flowYear: 2027, relation: "future",
   snapshot: { career: "student", relationship: "crushing", mainConcern: "romance", reference: "current_baseline", asOf: "2026-09-16T00:00:00.000Z" },
-  evidence: makeEvidenceFixture(), months: [],
+  evidence: makeEvidenceFixture(),
 });
 
 describe("buildFlowReportUserV2", () => {

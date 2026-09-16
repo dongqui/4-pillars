@@ -73,7 +73,7 @@ export interface FlowContext {
   pivotMonths: number[];
 }
 
-export function supportLabel(v: number): string {
+function supportLabel(v: number): string {
   if (v >= 0.6) return "크게 받쳐줌";
   if (v >= 0.2) return "받쳐줌";
   if (v > -0.2) return "중립";
@@ -81,14 +81,14 @@ export function supportLabel(v: number): string {
   return "크게 눌림";
 }
 
-export function frictionLabel(v: number): string {
+function frictionLabel(v: number): string {
   if (v >= 0.3) return "크게 흔들림";
   if (v >= 0.1) return "흔들림";
   if (v > -0.1) return "잔잔함";
   return "묶임";
 }
 
-export function deltaPhrase(prev: MonthScore, cur: MonthScore): string {
+function deltaPhrase(prev: MonthScore, cur: MonthScore): string {
   const parts: string[] = [];
   const ds = cur.support - prev.support;
   const df = cur.friction - prev.friction;
@@ -124,7 +124,7 @@ export function distributionLabel(count: number, total: number): string {
  * 경계 부근 해에서 "초반/후반" 이 실제 회차와 어긋날 수 있다 — daeunSwitchIn 의
  * 주석이 이미 지적한 것과 같은 종류의 반년 오차다.
  */
-export function daeunPhaseOf(analysis: SajuAnalysis, flowYear: number): "초반" | "중반" | "후반" {
+function daeunPhaseOf(analysis: SajuAnalysis, flowYear: number): "초반" | "중반" | "후반" {
   const period = flowYearOf(flowYear);
   const daeun = currentDaeun(analysis, period);
   const idx = analysis.daeun.periods.indexOf(daeun);

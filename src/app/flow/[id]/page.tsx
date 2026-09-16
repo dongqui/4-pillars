@@ -242,9 +242,13 @@ async function FlowV2Generate({
     </FlowChrome>
   );
 
+  // JSX 는 try 안에서 만들지 않는다(react-hooks/error-boundaries) — try 는
+  // 결과값만 계산하고, 그 결과로 무엇을 그릴지는 아래에서 try/catch 밖에 정한다.
+  let out: Awaited<ReturnType<typeof runFlowReportV2>> | null = null;
+  let failed = false;
   try {
     const transport = createFlowReportTransport();
-    const out = await runFlowReportV2(userId, flow.id, pendingId, {
+    out = await runFlowReportV2(userId, flow.id, pendingId, {
       checkLimit: checkFlowLimit,
       spend: spendTicket,
       admit: admitRevision,
@@ -254,29 +258,31 @@ async function FlowV2Generate({
       getActive: getActiveRevision,
       model: MODEL,
     });
-
-    switch (out.kind) {
-      case "rate_limited":
-        return chrome(<FlowRateLimited />);
-      case "out_of_tickets":
-        return chrome(<FlowOutOfTickets flowId={flow.id} />);
-      case "failed":
-        return chrome(<FlowErrorV2 flowId={flow.id} />);
-      case "published":
-        return (
-          <FlowV2Published
-            flow={flow}
-            revision={out.revision}
-            profileName={profileName}
-            profileId={profileId}
-            currentIndex={currentIndex}
-          />
-        );
-    }
   } catch (e) {
     // message 에는 모델 응답·요청 본문이 실릴 수 있다 — 이름만 남긴다.
     console.error("[/flow/[id]] v2 생성 실패", e instanceof Error ? e.name : "unknown");
-    return chrome(<FlowError />);
+    failed = true;
+  }
+
+  if (failed || !out) return chrome(<FlowError />);
+
+  switch (out.kind) {
+    case "rate_limited":
+      return chrome(<FlowRateLimited />);
+    case "out_of_tickets":
+      return chrome(<FlowOutOfTickets flowId={flow.id} />);
+    case "failed":
+      return chrome(<FlowErrorV2 flowId={flow.id} />);
+    case "published":
+      return (
+        <FlowV2Published
+          flow={flow}
+          revision={out.revision}
+          profileName={profileName}
+          profileId={profileId}
+          currentIndex={currentIndex}
+        />
+      );
   }
 }
 

@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { analyze, flowYearOf } from "@/lib/saju-core";
+import { normalizeFlowContext, yearRelationOf } from "@/lib/flows/context";
+import { requestHashOf } from "@/lib/flows/request-hash";
 import type { FlowRevisionRow, PendingRevisionInput } from "@/lib/flows/revisions";
 import type { FlowRow } from "@/lib/flows/store";
 import { flowMonths } from "./pivots";
 import { flowYearRange, handleCreateFlow, type CreateFlowDeps } from "./handler";
+import { buildFlowEvidence, FLOW_CALC_VERSION } from "./v2/facts";
+import { PROMPT_BUNDLE_VERSION } from "./v2/prompts";
 
 /** upsertPendingRevision 이 돌려주는 revision 모양 — 이 핸들러는 kind/id 만 읽는다. */
 const revFixture = { id: "5", flowId: "7", phase: "draft" } as unknown as FlowRevisionRow;
@@ -262,6 +266,20 @@ describe("handleCreateFlow · v2", () => {
     expect((seen?.inputSnapshot as { personalContext: { careerSituation: string } }).personalContext.careerSituation).toBe(
       "student",
     );
+
+    // requestHash 도 핸들러와 같은 재료(저장된 행의 months 기준)로 다시 계산해 맞춰본다 —
+    // asOf 는 매 요청 달라지므로 재료에서 뺀다(requestHashOf 의 문서 그대로).
+    const relation = yearRelationOf(2026, now);
+    const snapshot = normalizeFlowContext(ctx, { relation, now });
+    const analysis = analyze(birth);
+    const evidence = buildFlowEvidence(analysis, 2026, storedMonths);
+    const { asOf: _asOf, ...contextForHash } = snapshot;
+    void _asOf;
+    const expectedHash = requestHashOf({
+      flowYear: 2026, context: contextForHash, evidence, months: storedMonths,
+      calcVersion: FLOW_CALC_VERSION, promptBundleVersion: PROMPT_BUNDLE_VERSION,
+    });
+    expect(seen?.requestHash).toBe(expectedHash);
   });
 
   it("v1 본문이 있는 flow 는 pending 을 만들지 않는다", async () => {

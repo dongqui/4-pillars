@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { normalizeFlowContext } from "./context";
 import { requestHashOf, stableStringify } from "./request-hash";
 
 const base = {
@@ -29,5 +30,12 @@ describe("requestHashOf", () => {
   });
   it("답 하나가 다르면 다르다", () => {
     expect(requestHashOf({ ...base, context: { ...base.context, career: "student" } })).not.toBe(requestHashOf(base));
+  });
+  it("normalizeFlowContext 의 asOf 만 다르면 해시는 같다 — 함수가 asOf 를 뺀다", () => {
+    const answer = { career: "employed", relationship: "single", mainConcern: "overall" } as const;
+    const snapshotA = normalizeFlowContext(answer, { relation: "present", now: new Date("2026-01-01T00:00:00Z") });
+    const snapshotB = normalizeFlowContext(answer, { relation: "present", now: new Date("2026-06-01T00:00:00Z") });
+    expect(snapshotA.asOf).not.toBe(snapshotB.asOf);
+    expect(requestHashOf({ ...base, context: snapshotA })).toBe(requestHashOf({ ...base, context: snapshotB }));
   });
 });

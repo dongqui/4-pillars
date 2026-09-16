@@ -13,7 +13,7 @@ const str = (min: number, max: number) => z.string().trim().min(min).max(max);
 const unique = <T>(msg: string) => (arr: T[], ctx: z.RefinementCtx) => {
   if (new Set(arr).size !== arr.length) ctx.addIssue({ code: "custom", message: msg });
 };
-const basisRefs = z.array(z.string().min(1)).min(1).max(6).superRefine(unique("basisRefs 중복"));
+const basisRefs = z.array(z.string().trim().min(1).max(64)).min(1).max(6).superRefine(unique("basisRefs 중복"));
 const monthIndex = z.union(MONTHS.map((n) => z.literal(n)) as [z.ZodLiteral<number>, z.ZodLiteral<number>, ...z.ZodLiteral<number>[]]);
 
 const claim = z.object({ conclusion: str(1, 200), qualification: z.string().trim().max(160), basisRefs }).strict();

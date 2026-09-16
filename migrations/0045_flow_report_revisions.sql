@@ -6,7 +6,7 @@
 --
 -- phase: draft → complete | failed 가 A 의 전부다. review/repair/review_repaired 는
 -- B(검토 루프)가 쓴다. review_payload IS NULL 이면 "미검토 발행"(A 시기) 이다.
--- failure_code 정의역: transport | timeout | http | schema | references | gone.
+-- failure_code 정의역: transport | timeout | http | schema | references.
 -- admitted_at: 이용권 차감이 끝난 시각. 값이 있으면 답을 갈아끼울 수 없다.
 -- lease_*: B 가 쓴다. A 는 비워 둔다.
 CREATE TABLE IF NOT EXISTS flow_report_revisions (

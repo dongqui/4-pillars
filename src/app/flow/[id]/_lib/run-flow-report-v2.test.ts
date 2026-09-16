@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { runFlowReportV2, type RunFlowReportV2Deps } from "./run-flow-report-v2";
 import { makeValidFlowReportFixture } from "@/app/api/flows/_lib/v2/__fixtures__/reports";
 
@@ -23,6 +23,25 @@ function deps(o: Partial<RunFlowReportV2Deps> = {}) {
   };
   return { d, log };
 }
+
+describe("runFlowReportV2 — 실행 로그", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("결과 하나마다 구조화 로그 한 번 — report 본문은 안 싣는다", async () => {
+    const spy = vi.spyOn(console, "info").mockImplementation(() => {});
+    const { d } = deps({ getActive: async () => rev() });
+    const out = await runFlowReportV2("3", "7", "5", d);
+    expect(out.kind).toBe("published");
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    const [tag, payload] = spy.mock.calls[0];
+    expect(tag).toBe("[flow-v2]");
+    expect(payload).toMatchObject({ revisionId: "5", kind: "published" });
+
+    const serialized = JSON.stringify(spy.mock.calls[0]);
+    expect(serialized).not.toContain("총운");
+  });
+});
 
 describe("runFlowReportV2", () => {
   it("한도→권한→admit→모델→발행, 입력은 admit 이 돌려준 행", async () => {

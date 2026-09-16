@@ -29,9 +29,22 @@ export type RunOutcome =
 export async function runFlowReportV2(
   userId: string, flowId: string, pendingId: string, deps: RunFlowReportV2Deps,
 ): Promise<RunOutcome> {
-  if (!(await deps.checkLimit(userId))) return { kind: "rate_limited" };
+  const t0 = Date.now();
+  // 입력·리포트 본문·에러 메시지는 안 싣는다 — revisionId·결과 종류·시간·usage 뿐이다.
+  const logged = (outcome: RunOutcome, usage: unknown): RunOutcome => {
+    console.info("[flow-v2]", {
+      revisionId: pendingId,
+      kind: outcome.kind,
+      ...(outcome.kind === "failed" ? { code: outcome.code } : {}),
+      ms: Date.now() - t0,
+      usage,
+    });
+    return outcome;
+  };
+
+  if (!(await deps.checkLimit(userId))) return logged({ kind: "rate_limited" }, null);
   const spent = await deps.spend({ userId, feature: "yearly_flow", subjectKey: flowId });
-  if (!spent.ok) return { kind: "out_of_tickets" };
+  if (!spent.ok) return logged({ kind: "out_of_tickets" }, null);
 
   const published = async (): Promise<RunOutcome | null> => {
     const active = await deps.getActive(flowId);
@@ -39,15 +52,15 @@ export async function runFlowReportV2(
   };
 
   const admitted = await deps.admit(pendingId);
-  if (!admitted) return (await published()) ?? { kind: "failed", code: "gone" };
+  if (!admitted) return logged((await published()) ?? { kind: "failed", code: "gone" }, null);
 
   const result = await deps.generate(admitted.inputSnapshot as FlowGenerationInput);
   if (result.ok) {
-    if (await deps.publish(admitted.id, flowId, { payload: result.report, model: deps.model, usage: result.usage })) {
-      return (await published()) ?? { kind: "failed", code: "gone" };
-    }
-    return (await published()) ?? { kind: "failed", code: "gone" };
+    await deps.publish(admitted.id, flowId, { payload: result.report, model: deps.model, usage: result.usage });
+    // publish 가 true 든 false 든 admitted 행 자체에는 published_payload 가 없다 —
+    // 실제로 발행됐는지는 getActive 로 다시 읽어야 안다.
+    return logged((await published()) ?? { kind: "failed", code: "gone" }, result.usage);
   }
   await deps.fail(admitted.id, { failureCode: result.code, validationErrors: result.errors, model: deps.model, usage: result.usage });
-  return (await published()) ?? { kind: "failed", code: result.code };
+  return logged((await published()) ?? { kind: "failed", code: result.code }, result.usage);
 }

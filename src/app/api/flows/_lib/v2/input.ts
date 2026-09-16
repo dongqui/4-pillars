@@ -1,5 +1,4 @@
 import { careerTitle, type ContextSnapshot, type YearRelation } from "@/lib/flows/context";
-import type { FlowMonth } from "../pivots";
 import type { Evidence } from "./facts";
 import { PROMPT_BUNDLE_VERSION } from "./prompts";
 
@@ -17,9 +16,8 @@ export interface FlowGenerationInput {
 }
 
 export function buildFlowGenerationInput(a: {
-  flowYear: number; relation: YearRelation; snapshot: ContextSnapshot; evidence: Evidence; months: FlowMonth[];
+  flowYear: number; relation: YearRelation; snapshot: ContextSnapshot; evidence: Evidence;
 }): FlowGenerationInput {
-  void a.months; // months 는 evidence.months 에 이미 접혀 있다. 서명은 스펙과 맞춘다.
   return {
     request: {
       flowYear: a.flowYear, selectedYearRelation: a.relation,
