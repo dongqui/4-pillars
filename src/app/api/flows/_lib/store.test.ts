@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SqlClient } from "@/lib/db";
 import { FLOW_SECTIONS } from "./sections";
-import { decodeFlowSections, getFlowSections } from "./store";
+import { decodeFlowSections, getFlowSections, hasAnyFlowSections } from "./store";
 
 const overview = {
   title: "제목",
@@ -124,5 +124,17 @@ describe("getFlowSections", () => {
       missing: [],
     });
     expect(called).toBe(false);
+  });
+});
+
+describe("hasAnyFlowSections", () => {
+  it("행이 있으면 true", async () => {
+    const client = (() => Promise.resolve([{ one: 1 }])) as unknown as SqlClient;
+    expect(await hasAnyFlowSections("7", client)).toBe(true);
+  });
+
+  it("행이 없으면 false", async () => {
+    const client = (() => Promise.resolve([])) as unknown as SqlClient;
+    expect(await hasAnyFlowSections("7", client)).toBe(false);
   });
 });

@@ -48,20 +48,24 @@ describe("findFlow", () => {
 });
 
 describe("findOrCreateFlow", () => {
-  it("새로 넣으면 created 다", async () => {
-    const { client } = fakeSql([[{ id: 7 }]]);
-    expect(await findOrCreateFlow("3", {
+  it("새로 넣으면 created 와 행", async () => {
+    const { client } = fakeSql([[row]]);
+    const out = await findOrCreateFlow("3", {
       profileId: "11", flowYear: 2026,
       periodStart: row.period_start, periodEnd: row.period_end, months,
-    }, client)).toEqual({ id: "7", created: true });
+    }, client);
+    expect(out.created).toBe(true);
+    expect(out.row.id).toBe("7");
+    expect(out.row.months).toHaveLength(2);
   });
 
   it("충돌하면 기존 행으로 수렴한다 — 이용권이 두 번 나가지 않는 근거다", async () => {
-    const { client } = fakeSql([[], [{ id: 7 }]]);
-    expect(await findOrCreateFlow("3", {
+    const { client } = fakeSql([[], [row]]);
+    const out = await findOrCreateFlow("3", {
       profileId: "11", flowYear: 2026,
       periodStart: row.period_start, periodEnd: row.period_end, months,
-    }, client)).toEqual({ id: "7", created: false });
+    }, client);
+    expect(out).toMatchObject({ created: false, row: { id: "7" } });
   });
 
   it("충돌했는데 되찾지도 못하면 던진다 — 조용히 null 을 흘리지 않는다", async () => {

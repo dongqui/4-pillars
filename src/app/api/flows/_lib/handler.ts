@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { analyze, flowYearAt, flowYearOf, type SajuAnalysis } from "@/lib/saju-core";
 import type { FlowAccess } from "@/lib/flows/access";
-import type { CreateFlowInput } from "@/lib/flows/store";
+import type { CreateFlowInput, FlowRow } from "@/lib/flows/store";
 import { sajuBirthYearOf } from "@/lib/flows/birth-year";
 import { flowMonths } from "./pivots";
 
@@ -44,7 +44,7 @@ export interface CreateFlowDeps {
   findOrCreate(
     userId: string,
     input: CreateFlowInput,
-  ): Promise<{ id: string; created: boolean }>;
+  ): Promise<{ row: FlowRow; created: boolean }>;
 }
 
 const STATUS: Record<Exclude<FlowAccess, { ok: true }>["reason"], number> = {
@@ -97,7 +97,7 @@ export async function handleCreateFlow(
   // 판 흐름의 변곡점은 소급해서 바뀌지 않는다.
   const months = flowMonths(analysis, year);
 
-  const { id, created } = await deps.findOrCreate(userId, {
+  const { row, created } = await deps.findOrCreate(userId, {
     profileId: profile.id,
     flowYear: year,
     periodStart: period.start,
@@ -105,5 +105,5 @@ export async function handleCreateFlow(
     months,
   });
 
-  return { status: created ? 201 : 200, body: { id } };
+  return { status: created ? 201 : 200, body: { id: row.id } };
 }

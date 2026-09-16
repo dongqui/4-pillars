@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { flowYearOf } from "@/lib/saju-core";
+import { analyze, flowYearOf } from "@/lib/saju-core";
+import type { FlowRow } from "@/lib/flows/store";
+import { flowMonths } from "./pivots";
 import { flowYearRange, handleCreateFlow, type CreateFlowDeps } from "./handler";
 
 const birth = {
@@ -7,12 +9,27 @@ const birth = {
 } as const;
 const now = new Date("2026-06-01T00:00:00Z");
 
+/** findOrCreate 가 돌려주는 FlowRow 모양 픽스처 — overrides 만 바꿔 끼운다. */
+function flowRowFixture(overrides: Partial<FlowRow> = {}): FlowRow {
+  return {
+    id: "7",
+    userId: "3",
+    profileId: "11",
+    flowYear: 2026,
+    periodStart: new Date("2026-02-04T00:00:00Z"),
+    periodEnd: new Date("2027-02-04T00:00:00Z"),
+    months: flowMonths(analyze(birth), 2026),
+    createdAt: new Date("2026-01-01T00:00:00Z"),
+    ...overrides,
+  };
+}
+
 const baseDeps: CreateFlowDeps = {
   userId: "3",
   now,
   checkAccess: async () => ({ ok: true }) as const,
   getProfile: async () => ({ id: "11", birth }),
-  findOrCreate: async () => ({ id: "7", created: true }),
+  findOrCreate: async () => ({ row: flowRowFixture(), created: true }),
 };
 
 /** overrides 만 바꿔 끼우는 헬퍼 — 아래 "연도" describe 블록도 이걸 그대로 쓴다. */
@@ -62,7 +79,7 @@ describe("handleCreateFlow", () => {
 
   it("이미 있으면 200 — 같은 행으로 수렴한다", async () => {
     const out = await handleCreateFlow({ profileId: "11", year: 2026 }, deps({
-      findOrCreate: async () => ({ id: "7", created: false }),
+      findOrCreate: async () => ({ row: flowRowFixture(), created: false }),
     }));
     expect(out.status).toBe(200);
   });
@@ -72,7 +89,7 @@ describe("handleCreateFlow", () => {
     await handleCreateFlow({ profileId: "11", year: 2026 }, deps({
       findOrCreate: async (_u, input) => {
         got = input as never;
-        return { id: "7", created: true };
+        return { row: flowRowFixture(), created: true };
       },
     }));
     expect(got!.flowYear).toBe(2026);
@@ -87,7 +104,7 @@ describe("handleCreateFlow — 연도", () => {
     const captured: unknown[] = [];
     const res = await handleCreateFlow(
       { profileId: "3", year: 2029 },
-      deps({ now: NOW, findOrCreate: async (_u, input) => { captured.push(input); return { id: "9", created: true }; } }),
+      deps({ now: NOW, findOrCreate: async (_u, input) => { captured.push(input); return { row: flowRowFixture({ id: "9" }), created: true }; } }),
     );
     expect(res.status).toBe(201);
     expect((captured[0] as { flowYear: number }).flowYear).toBe(2029);
@@ -97,7 +114,7 @@ describe("handleCreateFlow — 연도", () => {
     const captured: { flowYear: number }[] = [];
     const res = await handleCreateFlow(
       { profileId: "3", year: 2021 },
-      deps({ now: NOW, findOrCreate: async (_u, i) => { captured.push(i as never); return { id: "9", created: true }; } }),
+      deps({ now: NOW, findOrCreate: async (_u, i) => { captured.push(i as never); return { row: flowRowFixture({ id: "9" }), created: true }; } }),
     );
     expect(res.status).toBeLessThan(400);
     // status 만 보면 스텁이 그냥 통과시킨 것과 구분이 안 된다 — 실제로 2021년이
@@ -122,7 +139,7 @@ describe("handleCreateFlow — 연도", () => {
     const captured: { periodStart: Date; periodEnd: Date }[] = [];
     await handleCreateFlow(
       { profileId: "3", year: 2029 },
-      deps({ now: NOW, findOrCreate: async (_u, i) => { captured.push(i); return { id: "9", created: true }; } }),
+      deps({ now: NOW, findOrCreate: async (_u, i) => { captured.push(i); return { row: flowRowFixture({ id: "9" }), created: true }; } }),
     );
     expect(captured[0].periodStart.getUTCFullYear()).toBe(2029);
     expect(captured[0].periodEnd.getUTCFullYear()).toBe(2030);
@@ -132,7 +149,7 @@ describe("handleCreateFlow — 연도", () => {
     const captured: { months: unknown[] }[] = [];
     await handleCreateFlow(
       { profileId: "3", year: 2027 },
-      deps({ now: NOW, findOrCreate: async (_u, i) => { captured.push(i); return { id: "9", created: true }; } }),
+      deps({ now: NOW, findOrCreate: async (_u, i) => { captured.push(i); return { row: flowRowFixture({ id: "9" }), created: true }; } }),
     );
     expect(captured[0].months).toHaveLength(12);
   });

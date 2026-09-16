@@ -91,7 +91,7 @@ export async function findOrCreateFlow(
   userId: string,
   input: CreateFlowInput,
   client: SqlClient = sql,
-): Promise<{ id: string; created: boolean }> {
+): Promise<{ row: FlowRow; created: boolean }> {
   const inserted = await client`
     INSERT INTO flows (user_id, profile_id, flow_year, period_start, period_end, months)
     VALUES (
@@ -101,20 +101,20 @@ export async function findOrCreateFlow(
       ${JSON.stringify(input.months)}::jsonb
     )
     ON CONFLICT (profile_id, flow_year) DO NOTHING
-    RETURNING id
+    RETURNING *
   `;
-  const row = inserted[0] as { id: string | number } | undefined;
-  if (row) return { id: String(row.id), created: true };
+  const row = inserted[0];
+  if (row) return { row: toFlowRow(row), created: true };
 
   const existing = await client`
-    SELECT id FROM flows
+    SELECT * FROM flows
      WHERE profile_id = ${input.profileId}::bigint AND flow_year = ${input.flowYear}
   `;
-  const found = existing[0] as { id: string | number } | undefined;
+  const found = existing[0];
   // 충돌해서 안 넣었는데 찾지도 못하는 건 인덱스와 조회 조건이 어긋났다는 뜻이다.
   // 조용히 null 을 흘리면 화면이 "흐름을 찾을 수 없다" 로만 보여 원인이 묻힌다.
   if (!found) throw new Error("findOrCreateFlow: 충돌한 행을 되찾지 못했습니다");
-  return { id: String(found.id), created: false };
+  return { row: toFlowRow(found), created: false };
 }
 
 /**

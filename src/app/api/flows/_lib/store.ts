@@ -88,6 +88,15 @@ export async function getFlowSections(
   return decodeFlowSections(rows, keys);
 }
 
+/**
+ * flow_sections 행이 하나라도 있는가. 검증된 have 가 아니라 **행 존재**다 — 낡은
+ * schema_version 만 남은 v1 흐름도 v1 이다(resolveFlowRoute 가 v2 로 보내면 안 된다).
+ */
+export async function hasAnyFlowSections(flowId: string, client: SqlClient = sql): Promise<boolean> {
+  const rows = await client`SELECT 1 AS one FROM flow_sections WHERE flow_id = ${flowId}::bigint LIMIT 1`;
+  return rows.length > 0;
+}
+
 export async function putFlowSections(
   flowId: string,
   interpretation: Partial<FlowInterpretation>,
