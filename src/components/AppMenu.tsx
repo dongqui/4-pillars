@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import { loginHref } from "@/lib/nav/next-param";
 
 interface Props {
   /** 로그인하지 않았으면 null — 익명 캐릭터만 보고 있는 상태다 */
@@ -17,6 +19,15 @@ interface Props {
  */
 export function AppMenu({ displayName }: Props) {
   const [open, setOpen] = useState(false);
+  // 로그인하고 나면 보던 화면으로 되돌아와야 한다 — 이 메뉴는 화면 위에 얹혀 있어서
+  // 자기가 어디인지 런타임에 읽는 수밖에 없다(로그인을 요구하는 화면들은 서버에서
+  // 손으로 ?next 를 붙인다).
+  //
+  // 쿼리는 싣지 않는다. useSearchParams 를 쓰면 이 헤더를 공유하는 화면이 프리렌더될 때
+  // 가장 가까운 Suspense 경계까지 클라이언트 렌더로 내려간다. 그걸 감수할 값이 아니다 —
+  // 이 갈래(비로그인)가 실제로 보이는 화면은 드래프트 리포트뿐이고, 거기엔 ?profile 이
+  // 없다(id 가 붙은 리포트는 비로그인이면 report/page.tsx 가 먼저 로그인으로 보낸다).
+  const pathname = usePathname();
   const menuId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -69,7 +80,7 @@ export function AppMenu({ displayName }: Props) {
                 로그인하면 캐릭터와 리포트가 계정에 저장돼요.
               </p>
               <Link
-                href="/login"
+                href={loginHref(pathname)}
                 role="menuitem"
                 onClick={() => setOpen(false)}
                 className="block px-4 py-2.5 text-left text-sm font-semibold text-accent hover:bg-slate-50"

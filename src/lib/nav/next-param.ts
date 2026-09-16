@@ -24,3 +24,17 @@ export function safeNextPath(raw: string | undefined | null): string {
   if (raw.startsWith("//") || raw.startsWith("/\\")) return DEFAULT_NEXT;
   return raw;
 }
+
+/**
+ * "지금 이 화면으로 돌아오는" 로그인 링크.
+ *
+ * 로그인을 요구하는 서버 컴포넌트는 자기가 어디인지 알아서 `?next=` 를 손으로 붙일 수
+ * 있지만(`/map`, `/flow`, …), 화면 위에 얹혀 있는 조각(헤더 메뉴)은 현재 경로를
+ * 런타임에 읽어 넘긴다 — 그 계산을 각자 하면 인코딩을 빼먹는 자리가 생긴다.
+ *
+ * path 를 safeNextPath 에 통과시키는 이유는 방어가 아니라 기본값이다: usePathname 이
+ * 아직 아무것도 주지 않는 순간에도 링크가 /home 으로는 간다.
+ */
+export function loginHref(path: string | undefined | null): string {
+  return `/login?next=${encodeURIComponent(safeNextPath(path))}`;
+}

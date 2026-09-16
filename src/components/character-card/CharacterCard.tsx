@@ -92,6 +92,13 @@ export function CharacterCard({ character, w = 400, zoomW, light = false }: Char
           width: canvasWidth,
           zoom: scale,
           background: surface,
+          // iOS WebKit 은 `-webkit-text-size-adjust` 에 퍼센트가 걸려 있으면 zoom 이 걸린
+          // 서브트리의 글자 크기를 1/zoom 배로 되돌린다 — 이 카드에서는 3.6배라 화면을
+          // 통째로 덮는 크기로 그려진다. Tailwind Preflight 가 html 에 100% 를 박기
+          // 때문에 이 카드는 항상 그 조건에 걸린다. `auto` 로 되돌려야 풀리고,
+          // `none` 은 풀리지 않는다(iOS 17 실측). 다른 엔진에서는 초기값이라 무해하다.
+          WebkitTextSizeAdjust: "auto",
+          textSizeAdjust: "auto",
         }}
       >
         <div style={glow} />

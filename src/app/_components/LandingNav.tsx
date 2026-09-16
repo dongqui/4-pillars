@@ -13,7 +13,7 @@ export function LandingNav({ displayName }: LandingNavProps) {
       <div className="mx-auto flex h-[60px] max-w-[1120px] items-center justify-between gap-3.5 px-5 md:h-[68px] md:px-8">
         {/* 로그인했으면 로고도 /home 으로 — 랜딩에서는 그대로 맨 위로 돌아간다. */}
         <AppBrand href={displayName === null ? "/" : "/home"} />
-        <nav className="flex items-center gap-1.5">
+        <nav className="flex min-w-0 items-center gap-1.5">
           {displayName === null ? (
             <>
               {/* /login 의 기본 행선지가 이미 /home 이라 next 를 붙이지 않는다. */}
@@ -33,10 +33,14 @@ export function LandingNav({ displayName }: LandingNavProps) {
           ) : (
             <>
               {/* 리포트만 있는 곳이 아니다 — 홈에는 캐릭터·상담·관계 지도·궁합이
-                  같이 걸려 있다. 그 전부를 덮는 말로 "내 사주" 를 쓴다. */}
+                  같이 걸려 있다. 그 전부를 덮는 말로 "내 사주" 를 쓴다.
+
+                  모바일에서는 숨긴다 — 로고 + 이 버튼 + 이름 칩이 한 줄에 다 들어가지
+                  않아 헤더가 뷰포트를 넘기고, 랜딩 전체에 가로 스크롤이 생긴다.
+                  프로필 메뉴 안에 같은 "내 사주" 항목이 있어 길이 끊기지는 않는다. */}
               <Link
                 href="/home"
-                className="ml-2.5 whitespace-nowrap rounded-xl bg-accent px-[18px] py-2.5 text-[14.5px] font-semibold text-white hover:bg-accent-700"
+                className="ml-2.5 hidden whitespace-nowrap rounded-xl bg-accent px-[18px] py-2.5 text-[14.5px] font-semibold text-white hover:bg-accent-700 md:inline-block"
               >
                 내 사주 보기
               </Link>

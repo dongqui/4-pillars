@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DEFAULT_NEXT, safeNextPath } from "./next-param";
+import { DEFAULT_NEXT, loginHref, safeNextPath } from "./next-param";
 
 describe("safeNextPath", () => {
   it("내부 절대 경로는 그대로 통과한다", () => {
@@ -36,5 +36,17 @@ describe("safeNextPath", () => {
 
   it("상대 경로도 막는다 — 어느 화면 기준인지 알 수 없다", () => {
     expect(safeNextPath("report")).toBe(DEFAULT_NEXT);
+  });
+});
+
+describe("loginHref", () => {
+  it("현재 경로를 ?next 에 인코딩해 싣는다", () => {
+    expect(loginHref("/map")).toBe("/login?next=%2Fmap");
+    expect(loginHref("/report?profile=3")).toBe("/login?next=%2Freport%3Fprofile%3D3");
+  });
+
+  it("안전하지 않은 값은 기본값으로 접는다 — safeNextPath 와 같은 판단이다", () => {
+    expect(loginHref("https://evil.example")).toBe(`/login?next=${encodeURIComponent(DEFAULT_NEXT)}`);
+    expect(loginHref(undefined)).toBe(`/login?next=${encodeURIComponent(DEFAULT_NEXT)}`);
   });
 });

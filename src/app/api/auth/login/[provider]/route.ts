@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getProvider } from "@/lib/auth/providers";
-import { generateState, generateCodeVerifier, codeChallengeS256, buildAuthorizeUrl } from "@/lib/auth/oauth";
+import { generateState, generateCodeVerifier, codeChallengeS256, buildAuthorizeUrl, safeNext } from "@/lib/auth/oauth";
 
 const TX_MAX_AGE = 600; // 10분
 
@@ -27,7 +27,10 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ provider: s
   const state = generateState();
   const verifier = generateCodeVerifier();
   const challenge = await codeChallengeS256(verifier);
-  const next = req.nextUrl.searchParams.get("next") ?? "/";
+  // 기본값을 "/" 로 두면 랜딩에서 로그인한 사람이 랜딩으로 되돌아온다 — safeNext 가
+  // 값이 없을 때 /home 으로 접는다. 콜백도 같은 함수로 한 번 더 거르지만, 쿠키에
+  // 애초에 안전한 경로만 담는다.
+  const next = safeNext(req.nextUrl.searchParams.get("next"), origin);
 
   const authorizeUrl = buildAuthorizeUrl(provider, { clientId, redirectUri, state, codeChallenge: challenge });
   const res = NextResponse.redirect(authorizeUrl);

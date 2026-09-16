@@ -53,6 +53,17 @@ test("zoomW 를 w 보다 작게 주면 캔버스만 넓어진다", () => {
   expect(wider).toContain(`width:${Math.round(500 / (460 / 1080))}px`);
 });
 
+test("zoom 이 걸린 캔버스는 text-size-adjust 를 auto 로 되돌린다", () => {
+  const c = characterOf("갑", "자");
+  // iOS WebKit 은 -webkit-text-size-adjust 가 퍼센트면 zoom 서브트리의 글자를 1/zoom
+  // 배로 되돌린다. Tailwind Preflight 가 html 에 100% 를 박으므로 이 선언이 빠지면
+  // 카드가 3.6배로 그려진다(iOS 17 실측). none 으로는 풀리지 않아 auto 여야 한다.
+  for (const w of [300, 400, "fill"] as const) {
+    const html = renderToStaticMarkup(<CharacterCard character={c} w={w} />);
+    expect(html).toContain("-webkit-text-size-adjust:auto");
+  }
+});
+
 test('w="fill" 이면 바깥 폭을 부모에게 맡기고 캔버스가 따라 늘어난다', () => {
   const c = characterOf("갑", "자");
   const html = renderToStaticMarkup(<CharacterCard character={c} w="fill" />);

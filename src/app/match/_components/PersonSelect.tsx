@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Chevron } from "@/components/Chevron";
 import type { PersonOption } from "../_lib/to-person-option";
 
 const AVATAR = "flex h-[38px] w-[38px] flex-none items-center justify-center rounded-xl text-sm font-bold";
@@ -127,27 +128,6 @@ export function PersonSelect({
 /** 저장하지 않기로 한 줄은 그 사실이 목록에서 바로 보여야 한다 — 다음에 없을 사람이다. */
 function subLabel(person: PersonOption): string {
   return person.saved ? person.birthLabel : `${person.birthLabel} · 저장 안 함`;
-}
-
-function Chevron({ open }: { open: boolean }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden
-      className={`flex-none text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
-    >
-      <path
-        d="M4 6l4 4 4-4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
 }
 
 function Check({ on }: { on: boolean }) {

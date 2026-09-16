@@ -40,7 +40,7 @@ export function UserMenu({ displayName }: UserMenuProps) {
   }, [open]);
 
   return (
-    <div ref={wrapRef} className="relative ml-1">
+    <div ref={wrapRef} className="relative ml-1 min-w-0">
       <button
         ref={chipRef}
         type="button"
@@ -48,12 +48,14 @@ export function UserMenu({ displayName }: UserMenuProps) {
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         onClick={() => setOpen((v) => !v)}
-        className="flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-full border border-slate-200 bg-white py-[5px] pl-[5px] pr-[13px] text-sm font-semibold text-slate-900 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className="flex w-full cursor-pointer items-center gap-2 whitespace-nowrap rounded-full border border-slate-200 bg-white py-[5px] pl-[5px] pr-[13px] text-sm font-semibold text-slate-900 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
-        <span className="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-accent-soft text-[12.5px] font-bold text-accent">
+        <span className="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-full bg-accent-soft text-[12.5px] font-bold text-accent">
           {displayInitial(displayName)}
         </span>
-        {displayName}님
+        {/* 이름 길이는 소셜 계정이 정한다 — 자르지 않으면 칩이 헤더를 밀어내 랜딩에
+            가로 스크롤이 생긴다. 아바타 이니셜이 남아 누구인지는 그대로 보인다. */}
+        <span className="truncate">{displayName}님</span>
       </button>
 
       {open && (

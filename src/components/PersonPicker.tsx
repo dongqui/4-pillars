@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import type { PersonOption } from "@/lib/profiles/option";
+import { Chevron } from "./Chevron";
 
 interface Props {
   people: PersonOption[];
@@ -82,12 +83,7 @@ export function PersonPicker({ people, selectedId, onPick, trailing }: Props) {
             {selected.birthLabel}
           </span>
         </span>
-        <span
-          aria-hidden
-          className={`flex-none text-[11px] text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
-        >
-          ▾
-        </span>
+        <Chevron open={open} />
       </button>
 
       {open && (

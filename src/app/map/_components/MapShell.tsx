@@ -5,9 +5,23 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type { Element } from "@/lib/saju-core";
 import type { MapPerson } from "../_data/person";
+import { sheetOffset, settleSheet } from "../_lib/sheet-drag";
 import { PeopleList } from "./PeopleList";
 import { AddPersonModal } from "./AddPersonModal";
 import { MapHeader } from "./MapHeader";
+
+/**
+ * 지금 이 패널이 "시트" 인지. Tailwind 의 md(768px) 와 같은 경계다 — 그보다
+ * 넓으면 패널은 지도를 덮지 않는 우측 400px 고정 컬럼이고, 끌기도 빈 곳 탭에
+ * 따른 접기도 뜻이 없다.
+ *
+ * CSS 로 판단할 수 없어서 JS 로 묻는다. 끌기는 픽셀을 재서 transform 을 만드는
+ * 일이라 미디어 쿼리로 끌 수 있는 성질의 것이 아니다. 클라이언트 이벤트
+ * 핸들러 안에서만 불리므로 window 가 없을 걱정은 없다.
+ */
+function isSheetLayout(): boolean {
+  return !window.matchMedia("(min-width: 768px)").matches;
+}
 
 const World = dynamic(() => import("./World").then((m) => m.World), {
   ssr: false,
@@ -63,6 +77,93 @@ export function MapShell({
     return () => window.removeEventListener("resize", measure);
   }, [listOpen, people.length]);
 
+  /**
+   * 시트를 손가락으로 여닫는다.
+   *
+   * 없애려는 증상: 손잡이를 잡고 아래로 끌면 시트가 내려가는 대신 페이지가
+   * 새로고침됐다. 원인은 시트가 시트처럼 **보이기만** 했다는 것이다 — 손잡이는
+   * 장식 <span> 이었고 이 라우트 어디에도 포인터 핸들러가 없었다. 앱이 손짓을
+   * 가져가지 않으니 그대로 브라우저에게 갔고, 크롬 안드로이드가 그것을
+   * 당겨서-새로고침으로 받았다. 그래서 손짓을 뺏는 일(PeopleList 의 touch-none)과
+   * 뺏은 손짓으로 시트를 움직이는 일(여기)을 같이 한다.
+   *
+   * 규칙 자체는 _lib/sheet-drag.ts 에 순수 함수로 있다 — 거리·속도 판정은
+   * 브라우저 없이 재는 편이 낫고, 여기 남는 것은 이벤트를 듣고 그 답을 상태에
+   * 옮기는 일뿐이다.
+   *
+   * setPointerCapture 를 쓰지 않는다. 캡처를 걸면 click 의 표적 계산이 브라우저마다
+   * 달라져 손잡이 줄 안의 진짜 버튼("나도 추가" · 펼치기 토글)이 안 눌리는 길이
+   * 생긴다. 대신 끄는 동안만 window 에 리스너를 단다 — 손가락이 시트 밖으로
+   * 나가도 끝까지 따라온다.
+   */
+  const [dragY, setDragY] = useState(0);
+  // 되돌아갈 때만 애니메이션을 켠다. 접히면서 끝나는 경우에는 꺼야 한다 —
+  // 그 순간 시트 높이가 줄고 transform 이 0 으로 돌아가는데, 둘이 같은 프레임에
+  // 일어나야 제자리다. 애니메이션이 켜져 있으면 시트가 한 번 아래로 튀었다가
+  // 올라온다.
+  const [eased, setEased] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const dragStart = useRef<{ y: number; time: number; open: boolean; max: number } | null>(null);
+
+  function startSheetDrag(event: React.PointerEvent<HTMLDivElement>) {
+    // 데스크톱에서 이 패널은 시트가 아니라 우측 400px 고정 컬럼이다 — 끌 것이 없다.
+    if (!isSheetLayout()) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+
+    const sheet = sheetRef.current;
+    if (sheet === null) return;
+    // 손잡이 줄에서 시작한 손짓만 끌기다. 목록 행에서 시작한 것은 스크롤이다.
+    const grab =
+      event.target instanceof Element ? event.target.closest("[data-sheet-grab]") : null;
+    if (grab === null) return;
+
+    dragStart.current = {
+      y: event.clientY,
+      time: event.timeStamp,
+      open: listOpen,
+      // 접혔을 때의 자리. 여기까지만 내려가므로 끄는 내내 손잡이가 화면에 남는다.
+      max: sheet.getBoundingClientRect().height - grab.getBoundingClientRect().height,
+    };
+    setEased(false);
+    setDragging(true);
+  }
+
+  useEffect(() => {
+    if (!dragging) return;
+
+    function move(event: PointerEvent) {
+      const start = dragStart.current;
+      if (start === null) return;
+      setDragY(sheetOffset(event.clientY - start.y, start.max));
+    }
+
+    function end(event: PointerEvent) {
+      const start = dragStart.current;
+      dragStart.current = null;
+      setDragging(false);
+      setDragY(0);
+      if (start === null) return;
+
+      const settled = settleSheet({
+        open: start.open,
+        dy: event.clientY - start.y,
+        dt: event.timeStamp - start.time,
+      });
+      // "stay" 는 끌기 전 상태로 되돌아간다는 뜻이다 — 그때만 미끄러지듯 돌아간다.
+      if (settled === "stay") setEased(true);
+      else setListOpen(settled === "open");
+    }
+
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+    };
+  }, [dragging]);
+
   // 토스트는 여기가 갖는다. 공유(MapHeader)와 삭제 실패(handleDelete) 둘 다
   // 같은 자리에 떠야 하는데, 헤더 안에 두면 삭제 쪽에서 닿을 수 없다.
   const [toast, setToast] = useState<string | null>(null);
@@ -87,9 +188,21 @@ export function MapShell({
 
   // 3D 노드를 탭하면 목록의 그 행이 답이다 — 패널이 접혀 있으면 펼친다.
   // (목록 행을 탭한 경우에도 같은 경로로 오지만, 이미 열려 있으니 no-op 다.)
+  //
+  // id 가 null 로 오는 길은 하나뿐이다: 3D 의 빈 곳을 탭했을 때(World 의
+  // onPointerMissed). 모바일에서는 그때 시트도 내린다 — 사용자가 방금 탭한 그
+  // 빈 곳은 시트에 가려져 있던 지도이고, 선택만 풀고 시트를 세워 두면 정작
+  // 보려던 것을 계속 못 본다. 데스크톱에서는 내리지 않는다: 그쪽 패널은 지도를
+  // 덮지 않는 우측 컬럼이라 접을 이유가 없고, 배경을 눌렀다고 목록이 사라지면
+  // 놀랄 뿐이다.
+  //
+  // 돌다 손을 뗀 것과 헷갈릴 걱정은 없다. r3f 는 이동 거리 2px 이하인 클릭에만
+  // onPointerMissed 를 부르므로(events.js 의 delta <= 2), 지도를 회전시킨 손짓은
+  // 여기 오지 않는다.
   function selectPerson(id: string | null) {
     setSelectedId(id);
     if (id !== null) setListOpen(true);
+    else if (isSheetLayout()) setListOpen(false);
   }
 
   /**
@@ -181,7 +294,13 @@ export function MapShell({
           */}
           <div
             ref={sheetRef}
-            className="absolute inset-x-0 bottom-0 z-20 flex max-h-full flex-col rounded-t-2xl bg-white shadow-[0_-8px_28px_-14px_rgba(15,23,42,0.25)] md:static md:z-auto md:max-h-none md:w-[400px] md:shrink-0 md:rounded-none md:border-l md:border-slate-100 md:shadow-none"
+            onPointerDown={startSheetDrag}
+            /* 끌기는 모바일에서만 시작하므로(startSheetDrag) 데스크톱에서 dragY 는
+               늘 0 이고, 이 style 은 그때 transform 을 아예 만들지 않는다. */
+            style={dragY > 0 ? { transform: `translateY(${dragY}px)` } : undefined}
+            className={`absolute inset-x-0 bottom-0 z-20 flex max-h-full flex-col rounded-t-2xl bg-white shadow-[0_-8px_28px_-14px_rgba(15,23,42,0.25)] md:static md:z-auto md:max-h-none md:w-[400px] md:shrink-0 md:rounded-none md:border-l md:border-slate-100 md:shadow-none ${
+              eased ? "transition-transform duration-200" : ""
+            }`}
           >
             <PeopleList
               people={people}
