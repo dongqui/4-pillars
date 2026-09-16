@@ -15,6 +15,12 @@ describe("toStartOutcome", () => {
     expect(out?.action).toBeUndefined();
   });
 
+  it("409 — 이미 진행 중인 리포트가 있다고 안내한다", () => {
+    expect(toStartOutcome(409)?.text).toBe(
+      "이미 만들고 있는 리포트가 있어요. 잠시 뒤 결과 화면에서 확인해 주세요.",
+    );
+  });
+
   it("401 — 로그인이 끊겼다고 안내하고 로그인 경로로 보낸다", () => {
     const out = toStartOutcome(401);
     expect(out?.text).toContain("로그인");

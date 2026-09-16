@@ -45,6 +45,11 @@ export function toStartOutcome(status: number): StartFailure | null {
       return {
         text: "한 해의 흐름 생성 시간당 한도에 도달했어요. 잠시 후 다시 시도해 주세요.",
       };
+    case 409:
+      // 같은 흐름에 이미 진행 중인 pending revision 이 있다(v2). 새 요청이 admit
+      // 전 pending 으로 수렴하지 못하고 충돌한 드문 경우 — 결과 화면으로 보내면
+      // 이어지는 생성이 그 화면에서 계속된다.
+      return { text: "이미 만들고 있는 리포트가 있어요. 잠시 뒤 결과 화면에서 확인해 주세요." };
     case 401:
       // "세션이 끊긴 경우" — src/app/report/_hooks/use-unlock.ts 의 401 분기와
       // 같은 상황이다. 그쪽은 곧장 router.push 하지만, 이 화면은 실패를 조용히

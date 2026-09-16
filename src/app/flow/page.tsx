@@ -10,6 +10,7 @@ import { listFlowYears } from "@/lib/flows/store";
 import { listEntitledSubjects } from "@/lib/tickets/entitlements";
 import { getBalance } from "@/lib/tickets/wallet";
 import { FLOW_YEAR_SPAN } from "@/app/api/flows/_lib/handler";
+import { flowReportV2Enabled } from "@/lib/flows/v2-flag";
 import { AppHeader } from "@/components/AppHeader";
 import { resolveDisplayName } from "@/lib/auth/display-name";
 import { FlowConfirm } from "./_components/FlowConfirm";
@@ -60,6 +61,7 @@ export default async function FlowPage() {
           yearsByProfile={perProfile.map((p) => p.years)}
           initialProfile={primaryIndex(rows, user?.primaryProfileId ?? null)}
           tickets={tickets}
+          v2Enabled={flowReportV2Enabled()}
         />
       </main>
     </div>

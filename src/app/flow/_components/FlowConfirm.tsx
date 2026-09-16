@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { PersonOption } from "@/lib/profiles/option";
 import { PersonPicker } from "@/components/PersonPicker";
+import type { ContextAnswer } from "@/lib/flows/context";
 import type { YearOption } from "../_lib/to-confirm";
 import { toStartOutcome, type StartFailure } from "../_lib/to-start-outcome";
+import { SituationSheet } from "./SituationSheet";
 
 export interface FlowConfirmProps {
   people: PersonOption[];
@@ -19,6 +21,8 @@ export interface FlowConfirmProps {
    * 막지 않는다(다른 탭에서 충전했을 수 있고, 결제 판정은 서버가 한다).
    */
   tickets: number;
+  /** 플래그가 켜져 있으면 결제 확인 뒤 SituationSheet 을 거쳐 v2 pending 을 만든다. */
+  v2Enabled: boolean;
 }
 
 /**
@@ -34,6 +38,9 @@ export function FlowConfirm(props: FlowConfirmProps) {
   const [active, setActive] = useState(props.initialProfile);
   // 결제 모달이 겨눈 해. null 이면 닫혀 있다.
   const [payYear, setPayYear] = useState<YearOption | null>(null);
+  // 결제를 확인한 뒤 상황을 묻는 시트가 겨눈 해(v2 플래그 켜졌을 때만). 결제
+  // 시트와 동시에 뜨지 않는다.
+  const [ctxYear, setCtxYear] = useState<YearOption | null>(null);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<StartFailure | null>(null);
 
@@ -69,14 +76,32 @@ export function FlowConfirm(props: FlowConfirmProps) {
     setFailure(null);
   }
 
-  async function start(year: number) {
+  /**
+   * 결제 시트 → 상황 시트(v2). 여기서는 아직 아무것도 만들지 않는다 — 요청은
+   * 상황 시트의 "리포트 만들기" 에서 한 번만 나간다.
+   */
+  function openContext(y: YearOption) {
+    setPayYear(null);
+    setFailure(null);
+    setCtxYear(y);
+  }
+
+  function closeContext() {
+    if (busy) return; // 요청이 나간 뒤에는 결과를 보고 닫는다
+    setCtxYear(null);
+    setFailure(null);
+  }
+
+  async function start(year: number, context?: ContextAnswer) {
     setBusy(true);
     setFailure(null);
     try {
       const res = await fetch("/api/flows", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profileId: me.id, year }),
+        body: JSON.stringify(
+          context === undefined ? { profileId: me.id, year } : { profileId: me.id, year, context },
+        ),
       });
       if (!res.ok) {
         // 402·429·401 모두 실제로 닿는 상태다 — 버튼만 다시 눌리게 두면
@@ -238,8 +263,20 @@ export function FlowConfirm(props: FlowConfirmProps) {
           tickets={props.tickets}
           busy={busy}
           failure={failure}
-          onConfirm={() => void start(payYear.year)}
+          onConfirm={props.v2Enabled ? () => openContext(payYear) : () => void start(payYear.year)}
           onClose={closePay}
+        />
+      )}
+
+      {ctxYear && (
+        <SituationSheet
+          key={`${me.id}-${ctxYear.year}`}
+          name={me.name}
+          option={ctxYear}
+          busy={busy}
+          failure={failure}
+          onSubmit={(answer) => void start(ctxYear.year, answer)}
+          onClose={closeContext}
         />
       )}
     </section>
