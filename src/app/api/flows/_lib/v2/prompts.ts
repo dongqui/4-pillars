@@ -223,5 +223,7 @@ relationshipSituation 적용:
 이어지는 예시는 표현의 밀도와 문장 연결을 보여준다. 특정 사람의 실제 운세가 아니다.
 불리한 방향을 모든 사람에게 복사하지 않는다. 반드시 이번 evidence에 맞는 결론으로 새로 쓴다.
 [예시]
-${EXAMPLES}`;
+${EXAMPLES}
+[출력 형식 — 반드시 지켜라]
+도구 emit_flow_report 를 정확히 한 번 호출하고, 그 인자에 interpretation 과 sections(overview·career·money·romance·relationships·months·closing 전부)를 한꺼번에 담아라. interpretation 만 보내고 멈추면 실패다. 인자는 스키마의 required 필드를 모두 채운 완전한 JSON 이어야 한다.`;
 }

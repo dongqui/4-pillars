@@ -271,9 +271,13 @@ relationshipSituation 적용:
 불리한 방향을 모든 사람에게 복사하지 않는다. 반드시 이번 evidence에 맞는 결론으로 새로 쓴다.
 [예시]
 선택된 예시 JSON
+[출력 형식 — 반드시 지켜라]
+도구 emit_flow_report 를 정확히 한 번 호출하고, 그 인자에 interpretation 과 sections(overview·career·money·romance·relationships·months·closing 전부)를 한꺼번에 담아라. interpretation 만 보내고 멈추면 실패다. 인자는 스키마의 required 필드를 모두 채운 완전한 JSON 이어야 한다.
 ~~~
 
 “서버에서 직렬화한 …”와 “선택된 예시 JSON”은 구현 시 실제 JSON으로 치환하는 조립 위치다. 이 설명 문구 자체를 모델에 전송하지 않는다.
+
+마지막 [출력 형식] 블록은 2026-09-16 실측에서 추가했다 — 이 블록이 없으면 deepseek-v4-pro 가 `interpretation` 만 보내고 tool 호출을 끝낸다(3회 중 3회, 완료 토큰 ~650). 블록을 붙이면 한 호출에 전체 7섹션이 나온다.
 
 ## 6. 출력 계약
 
