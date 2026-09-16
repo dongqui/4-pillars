@@ -1,6 +1,5 @@
 import { sql as neonSql, type SqlClient } from "@/lib/db";
 import type { FlowMonth } from "@/app/api/flows/_lib/pivots";
-import { toSituation, type FlowSituation } from "./situation";
 
 const sql = neonSql as unknown as SqlClient;
 
@@ -15,12 +14,6 @@ export interface FlowRow {
   periodEnd: Date;
   /** 발행 시점에 박제한 12개월 + 변곡점 플래그. 읽을 때 다시 계산하지 않는다 */
   months: FlowMonth[];
-  /**
-   * 발행 시점에 사용자가 고른 "지금 상황". 프롬프트의 재료다.
-   * null 은 이 기능이 생기기 전에 만들어진 흐름 — 답을 거절한 것과 다르다
-   * (거절은 "undisclosed" 값으로 들어온다).
-   */
-  situation: FlowSituation | null;
   createdAt: Date;
 }
 
@@ -30,7 +23,6 @@ export interface CreateFlowInput {
   periodStart: Date;
   periodEnd: Date;
   months: FlowMonth[];
-  situation: FlowSituation | null;
 }
 
 /**
@@ -69,7 +61,6 @@ function toFlowRow(raw: Record<string, unknown>): FlowRow {
     periodStart: new Date(raw.period_start as string),
     periodEnd: new Date(raw.period_end as string),
     months: toMonths(raw.months, raw.id),
-    situation: toSituation(raw.situation),
     createdAt: new Date(raw.created_at as string),
   };
 }
@@ -102,17 +93,13 @@ export async function findOrCreateFlow(
   client: SqlClient = sql,
 ): Promise<{ id: string; created: boolean }> {
   const inserted = await client`
-    INSERT INTO flows (user_id, profile_id, flow_year, period_start, period_end, months, situation)
+    INSERT INTO flows (user_id, profile_id, flow_year, period_start, period_end, months)
     VALUES (
       ${userId}::bigint, ${input.profileId}::bigint, ${input.flowYear},
       ${input.periodStart.toISOString()}::timestamptz,
       ${input.periodEnd.toISOString()}::timestamptz,
-      ${JSON.stringify(input.months)}::jsonb,
-      ${input.situation === null ? null : JSON.stringify(input.situation)}::jsonb
+      ${JSON.stringify(input.months)}::jsonb
     )
-    -- ⚠️ 수렴하는 재요청은 situation 을 덮지 않는다(DO NOTHING). months 와 같은
-    -- 이유다: 이미 판 흐름의 서술이 근거로 삼은 상황이 나중 요청으로 바뀌면,
-    -- 저장된 서술과 그 서술의 근거가 어긋난 채 남는다.
     ON CONFLICT (profile_id, flow_year) DO NOTHING
     RETURNING id
   `;

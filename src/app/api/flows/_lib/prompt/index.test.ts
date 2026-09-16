@@ -11,7 +11,7 @@ const BIRTH = {
 
 function ctxOf(year = 2027) {
   const a = analyze(BIRTH);
-  return buildFlowContext(a, year, flowMonths(a, year), null);
+  return buildFlowContext(a, year, flowMonths(a, year));
 }
 
 describe("FLOW_SYSTEM_PROMPT", () => {

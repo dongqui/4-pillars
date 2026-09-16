@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { analyze, type SajuAnalysis } from "@/lib/saju-core";
 import { flowMonths } from "../pivots";
-import type { FlowSituation } from "@/lib/flows/situation";
 import { buildFlowContext, flowFacts } from "./facts";
 
 const BIRTH = {
@@ -11,9 +10,9 @@ const BIRTH = {
 
 const YEARS = [2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031];
 
-function ctxOf(year = 2027, situation: FlowSituation | null = null) {
+function ctxOf(year = 2027) {
   const a = analyze(BIRTH);
-  return buildFlowContext(a, year, flowMonths(a, year), situation);
+  return buildFlowContext(a, year, flowMonths(a, year));
 }
 
 /** flowFacts 출력을 달 블록 단위로 쪼갠다. blocks[i] 는 (i+1)번째 달이다. */
@@ -45,7 +44,7 @@ describe("buildFlowContext · pivotMonths 배선", () => {
     for (const y of YEARS) {
       const fm = flowMonths(a, y);
       const expected = fm.filter((m) => m.pivot).map((m) => m.index);
-      const ctx = buildFlowContext(a, y, fm, null);
+      const ctx = buildFlowContext(a, y, fm);
       expect(ctx.pivotMonths).toEqual(expected);
       expect(ctx.months.filter((m) => m.pivot).map((m) => m.index)).toEqual(expected);
     }
@@ -83,7 +82,7 @@ describe("flowFacts", () => {
     for (const y of YEARS) {
       const fm = flowMonths(a, y);
       const pivotIdx = new Set(fm.filter((m) => m.pivot).map((m) => m.index));
-      const ctx = buildFlowContext(a, y, fm, null);
+      const ctx = buildFlowContext(a, y, fm);
       const blocks = monthBlocks(flowFacts(ctx));
       expect(blocks).toHaveLength(12);
       blocks.forEach((block, i) => {
@@ -97,33 +96,9 @@ describe("flowFacts", () => {
   it("대운이 바뀌는 해면 전환을 별도 사실로 남긴다", () => {
     // 초·중·말 하나로 뭉개면 그 해의 가장 큰 배경 변화가 사실에서 사라진다
     const a = analyze(BIRTH);
-    const withSwitch = YEARS.map((y) => buildFlowContext(a, y, flowMonths(a, y), null)).find(
+    const withSwitch = YEARS.map((y) => buildFlowContext(a, y, flowMonths(a, y))).find(
       (c) => c.year.daeunSwitch !== null,
     );
     if (withSwitch) expect(flowFacts(withSwitch)).toContain("배경 전환:");
-  });
-});
-
-describe("flowFacts · 상황 블록", () => {
-  it("상황이 없으면 블록이 아예 없다 — \"모른다\" 는 문장을 대신 넣지 않는다", () => {
-    expect(flowFacts(ctxOf())).not.toContain("[상황");
-  });
-
-  it("고른 값은 코드가 아니라 사람이 읽는 라벨로 실린다", () => {
-    const text = flowFacts(ctxOf(2027, { job: "freelancer", love: "dating" }));
-    expect(text).toContain("현재 직업: 프리랜서");
-    expect(text).toContain("연애 상태: 연애 중");
-    expect(text).not.toContain("freelancer");
-  });
-
-  it("거절은 블록 안에 남는다 — 안 물어본 것과 다른 사실이다", () => {
-    const text = flowFacts(ctxOf(2027, { job: "undisclosed", love: "undisclosed" }));
-    expect(text).toContain("현재 직업: 밝히지 않음");
-    expect(text).toContain("연애 상태: 밝히지 않음");
-  });
-
-  it("상황 블록이 [연간]보다 앞에 온다", () => {
-    const text = flowFacts(ctxOf(2027, { job: "student", love: "single" }));
-    expect(text.indexOf("[상황")).toBeLessThan(text.indexOf("[연간]"));
   });
 });

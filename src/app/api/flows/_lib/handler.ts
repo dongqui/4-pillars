@@ -2,7 +2,6 @@ import { z } from "zod";
 import { analyze, flowYearAt, flowYearOf, type SajuAnalysis } from "@/lib/saju-core";
 import type { FlowAccess } from "@/lib/flows/access";
 import type { CreateFlowInput } from "@/lib/flows/store";
-import { flowSituationSchema } from "@/lib/flows/situation";
 import { sajuBirthYearOf } from "@/lib/flows/birth-year";
 import { flowMonths } from "./pivots";
 
@@ -26,15 +25,6 @@ const Input = z
     // 기본값을 두지 않는다 — 지금으로 조용히 물러서면 사용자가 고른 해와 사는
     // 해가 갈린다. 이용권이 걸린 요청에서 가장 나쁜 실패다.
     year: z.number().int(),
-    /**
-     * 화면이 결제 직후 물어보는 "지금 상황". 선택 사항으로 둔다 — 값의 유무가
-     * 흐름을 만들 수 있는지를 가르지 않고(프롬프트에 색을 더하는 보조 사실이다),
-     * 필수로 두면 이 필드를 모르는 옛 화면·외부 요청이 400 으로 막힌다.
-     *
-     * 다만 **보내는 경우엔 정의역을 지켜야 한다** — 모양이 틀린 값을 조용히
-     * 버리면 화면이 보낸 상황이 리포트에 안 실린 이유를 아무도 못 찾는다.
-     */
-    situation: flowSituationSchema.optional(),
   })
   .strict();
 
@@ -113,7 +103,6 @@ export async function handleCreateFlow(
     periodStart: period.start,
     periodEnd: period.end,
     months,
-    situation: parsed.data.situation ?? null,
   });
 
   return { status: created ? 201 : 200, body: { id } };

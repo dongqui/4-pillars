@@ -52,7 +52,7 @@ describe("findOrCreateFlow", () => {
     const { client } = fakeSql([[{ id: 7 }]]);
     expect(await findOrCreateFlow("3", {
       profileId: "11", flowYear: 2026,
-      periodStart: row.period_start, periodEnd: row.period_end, months, situation: null,
+      periodStart: row.period_start, periodEnd: row.period_end, months,
     }, client)).toEqual({ id: "7", created: true });
   });
 
@@ -60,7 +60,7 @@ describe("findOrCreateFlow", () => {
     const { client } = fakeSql([[], [{ id: 7 }]]);
     expect(await findOrCreateFlow("3", {
       profileId: "11", flowYear: 2026,
-      periodStart: row.period_start, periodEnd: row.period_end, months, situation: null,
+      periodStart: row.period_start, periodEnd: row.period_end, months,
     }, client)).toEqual({ id: "7", created: false });
   });
 
@@ -69,7 +69,7 @@ describe("findOrCreateFlow", () => {
     await expect(
       findOrCreateFlow("3", {
         profileId: "11", flowYear: 2026,
-        periodStart: row.period_start, periodEnd: row.period_end, months, situation: null,
+        periodStart: row.period_start, periodEnd: row.period_end, months,
       }, client),
     ).rejects.toThrow(/되찾지 못했습니다/);
   });

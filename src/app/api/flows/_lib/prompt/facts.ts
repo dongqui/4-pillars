@@ -33,7 +33,6 @@ import {
 // 배럴은 daeunSwitchIn 만 내보낸다 — birthInstant/YEAR_MS 는 currentDaeun 과
 // 정확히 같은 정밀도로 나이를 재야 해서 소스 파일에서 직접 가져온다.
 import { birthInstant, YEAR_MS } from "@/lib/saju-core/flow/switch";
-import { jobLabel, loveLabel, type FlowSituation } from "@/lib/flows/situation";
 import { currentDaeun, monthScores, type MonthScore } from "../month-scores";
 import type { FlowMonth } from "../pivots";
 
@@ -68,17 +67,6 @@ export interface MonthFacts {
 export interface FlowContext {
   analysis: SajuAnalysis;
   flowYear: number;
-  /**
-   * 발행 시점에 사용자가 직접 고른 지금 상황. 계산값이 아니라 **사용자가 준
-   * 사실**이라 year/months 와 나란히 두지 않고 따로 둔다.
-   *
-   * null 은 두 경우다: 이 기능이 생기기 전에 만들어진 흐름, 그리고 상황을 묻지
-   * 않는 경로로 만들어진 흐름. 둘 다 [사실]에서 상황 블록이 통째로 빠진다 —
-   * "모른다" 는 문장을 대신 넣지 않는다(모델이 그 문장을 근거로 삼는다).
-   * 사용자가 답을 거절한 경우는 null 이 아니라 "undisclosed" 값으로 들어와
-   * 블록 안에 "밝히지 않음" 으로 실린다.
-   */
-  situation: FlowSituation | null;
   year: YearFacts;
   months: MonthFacts[];
   /** 변곡점인 달의 순번. [연간] 의 변곡점 줄이 이 값으로 조립된다 */
@@ -158,12 +146,6 @@ export function buildFlowContext(
   analysis: SajuAnalysis,
   flowYear: number,
   months: FlowMonth[],
-  /**
-   * 기본값을 두지 않는다 — 상황을 안 넘긴 호출과 상황이 없는 흐름은 다른
-   * 사건인데, 기본값 null 로 접으면 배선이 빠진 자리가 "옛 행" 처럼 보인다.
-   * 호출자는 flows.situation 을 그대로 넘긴다.
-   */
-  situation: FlowSituation | null,
 ): FlowContext {
   const scores = monthScores(analysis, flowYear);
   const period = flowYearOf(flowYear);
@@ -201,7 +183,6 @@ export function buildFlowContext(
   return {
     analysis,
     flowYear,
-    situation,
     year: {
       sewunKorean: sewunPillars(flowYear, 1)[0].korean,
       daeunKorean: daeun.pillar,
@@ -216,19 +197,6 @@ export function buildFlowContext(
   };
 }
 
-/** 상황 값 → [사실]에 실을 말. 거절은 값으로 남긴다(§situation.ts). */
-function situationLines(s: FlowSituation): string[] {
-  const undisclosed = "밝히지 않음";
-  return [
-    // ⚠️ 이 블록만 계산이 아니라 **사용자가 직접 고른 사실**이다. 라벨에 그걸
-    // 못박아 둔다 — 모델이 원국·세운 계산값과 같은 무게로 다루면 안 된다.
-    "[상황 · 사용자가 직접 고른 사실]",
-    `현재 직업: ${s.job === "undisclosed" ? undisclosed : jobLabel(s.job)}`,
-    `연애 상태: ${s.love === "undisclosed" ? undisclosed : loveLabel(s.love)}`,
-    "",
-  ];
-}
-
 export function flowFacts(ctx: FlowContext): string {
   const { analysis, year } = ctx;
   const dm = STEMS[analysis.chart.dayMaster];
@@ -236,8 +204,6 @@ export function flowFacts(ctx: FlowContext): string {
   const elTotal = Object.values(el.counts).reduce((a, b) => a + b, 0) || 1;
 
   const lines: string[] = [
-    // 상황이 없으면 블록 자체가 없다 — "모른다" 는 줄을 대신 넣지 않는다.
-    ...(ctx.situation ? situationLines(ctx.situation) : []),
     "[연간]",
     `일간: ${analysis.chart.dayMaster} (${dm.element}·${dm.yinYang})`,
     `성별: ${analysis.chart.gender === "male" ? "남성" : "여성"}`,
