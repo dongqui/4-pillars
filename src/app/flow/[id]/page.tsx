@@ -17,14 +17,36 @@ import {
   isFlowRateLimited,
 } from "@/app/api/flows/_lib/gated-generator";
 import { FlowGenerationError, produceFlowSections } from "@/app/api/flows/_lib/produce";
-import { putFlowSections } from "@/app/api/flows/_lib/store";
+import { hasAnyFlowSections, putFlowSections } from "@/app/api/flows/_lib/store";
+import { createFlowReportTransport, generateFlowReportV2 } from "@/app/api/flows/_lib/v2/generator";
+import { toPublicFlowReportV2 } from "@/app/api/flows/_lib/v2/presentation";
+import { flowReportV2Schema } from "@/app/api/flows/_lib/v2/schema";
+import type { FlowGenerationInput } from "@/app/api/flows/_lib/v2/input";
+import { MODEL } from "@/app/api/saju/_lib/generator";
+import { careerTitle } from "@/lib/flows/context";
+import { checkFlowLimit } from "@/lib/flows/rate-limit";
+import {
+  admitRevision,
+  failRevision,
+  findLatestRevision,
+  findPendingRevision,
+  getActiveRevision,
+  publishRevision,
+  type FlowRevisionRow,
+} from "@/lib/flows/revisions";
+import { spendTicket } from "@/lib/tickets/spend";
 import { currentMonthIndex } from "./_lib/current-month";
 import { toFlowView } from "./_lib/to-flow-view";
+import { resolveFlowRoute } from "./_lib/resolve-flow-route";
+import { runFlowReportV2 } from "./_lib/run-flow-report-v2";
 import { FlowChrome, FlowShell } from "./_components/FlowShell";
 import { FlowHero } from "./_components/FlowHero";
+import { FlowHeroV2 } from "./_components/FlowHeroV2";
 import { FlowBody, type FlowMissingReason } from "./_components/FlowBody";
+import { FlowBodyV2 } from "./_components/FlowBodyV2";
 import { AnalyzingFlow } from "./_components/AnalyzingFlow";
 import { FlowError } from "./_components/FlowError";
+import { FlowErrorV2 } from "./_components/FlowErrorV2";
 import { FlowRateLimited } from "./_components/FlowRateLimited";
 import { FlowOutOfTickets } from "./_components/FlowOutOfTickets";
 
@@ -58,6 +80,60 @@ export default async function FlowResultPage({
   // 선택한 해가 지금의 명리 연도가 아니면 null 이다 — 강조할 "지금" 이 없다.
   const currentIndex = currentMonthIndex(flow.months, now);
 
+  // 플래그는 입력이 아니다 — 발행본 읽기·pending 완료·failed 재시도는 플래그를
+  // 안 본다(resolveFlowRoute 의 문서 그대로). 한 번만 읽어 분기를 정한다.
+  const [active, pending, latest, hasV1] = await Promise.all([
+    getActiveRevision(flow.id),
+    findPendingRevision(flow.id),
+    findLatestRevision(flow.id),
+    hasAnyFlowSections(flow.id),
+  ]);
+  const route = resolveFlowRoute({ active, hasV1Sections: hasV1, pending, latest });
+
+  if (route === "v2:published") {
+    return (
+      <FlowShell displayName={displayName}>
+        <FlowV2Published
+          flow={flow}
+          revision={active!}
+          profileName={profile.name}
+          profileId={flow.profileId}
+          currentIndex={currentIndex}
+        />
+      </FlowShell>
+    );
+  }
+
+  if (route === "v2:failed") {
+    return (
+      <FlowShell displayName={displayName}>
+        <FlowChrome flow={flow} profileName={profile.name}>
+          <FlowErrorV2 flowId={flow.id} />
+        </FlowChrome>
+      </FlowShell>
+    );
+  }
+
+  if (route === "v2:generate") {
+    return (
+      <FlowShell displayName={displayName}>
+        {/* pending!.id — resolveFlowRoute 가 "v2:generate" 를 돌려줬다는 것은
+            pending 이 존재한다는 뜻이다(그 판정 자체가 s.pending 을 본다). */}
+        <Suspense fallback={<AnalyzingFlow message="선택한 해의 운세를 정리하고 있어요." />}>
+          <FlowV2Generate
+            flow={flow}
+            userId={session.userId}
+            profileName={profile.name}
+            profileId={flow.profileId}
+            currentIndex={currentIndex}
+            pendingId={pending!.id}
+          />
+        </Suspense>
+      </FlowShell>
+    );
+  }
+
+  // route === "v1" — 기존 코드 그대로.
   const ctx = buildContext(profile, flow);
   // 계산이 깨지면 서술을 만들 재료가 없다 — 껍데기만 남기고 안내로 끝낸다
   // (match/[id]/page.tsx 의 analyzePair 와 같은 처리).
@@ -86,6 +162,122 @@ export default async function FlowResultPage({
       </Suspense>
     </FlowShell>
   );
+}
+
+/**
+ * 발행된 v2 리포트. 페이지가 직접(route==="v2:published") 부르기도 하고,
+ * FlowV2Generate 가 방금 발행한 결과를 같은 모양으로 보여주려고 다시 부르기도
+ * 한다 — 그래서 여기서 FlowChrome 까지 감싼다(page.tsx 쪽에서 chrome()을 또
+ * 씌우지 않는다).
+ *
+ * publishedPayload 는 DB 에 저장된 뒤의 값이라 이론상 깨질 수 있다(스키마 변경,
+ * 수동 편집 등) — safeParse 가 실패하면 저장본이 깨진 것으로 보고 FlowError.
+ */
+function FlowV2Published({
+  flow,
+  revision,
+  profileName,
+  profileId,
+  currentIndex,
+}: {
+  flow: FlowRow;
+  revision: FlowRevisionRow;
+  profileName: string;
+  profileId: string;
+  currentIndex: number | null;
+}) {
+  const parsed = flowReportV2Schema.safeParse(revision.publishedPayload);
+  if (!parsed.success) {
+    console.error("[/flow/[id]] v2 저장본 파싱 실패", revision.id);
+    return (
+      <FlowChrome flow={flow} profileName={profileName}>
+        <FlowError />
+      </FlowChrome>
+    );
+  }
+
+  const contextSnapshot = revision.contextSnapshot;
+  const report = toPublicFlowReportV2(parsed.data, {
+    careerTitle: careerTitle(contextSnapshot.career),
+    reference: contextSnapshot.reference,
+  });
+
+  return (
+    <FlowChrome flow={flow} profileName={profileName}>
+      <FlowHeroV2 headline={report.sections.overview.headline} flowYear={flow.flowYear} />
+      <FlowBodyV2
+        report={report}
+        months={revision.monthsSnapshot}
+        currentIndex={currentIndex}
+        profileId={profileId}
+      />
+    </FlowChrome>
+  );
+}
+
+/**
+ * v2 pending revision 을 실제로 만든다(runFlowReportV2). MatchSections·
+ * FlowSections 와 같은 이유로 <Suspense> 안, try 안에서 transport 를 만든다 —
+ * DEEP_SEEK_API_KEY 미설정 같은 구성 실패가 여기서 나면 catch 가 잡아
+ * <FlowError /> 를 보여준다.
+ */
+async function FlowV2Generate({
+  flow,
+  userId,
+  profileName,
+  profileId,
+  currentIndex,
+  pendingId,
+}: {
+  flow: FlowRow;
+  userId: string;
+  profileName: string;
+  profileId: string;
+  currentIndex: number | null;
+  pendingId: string;
+}) {
+  const chrome = (inner: React.ReactNode) => (
+    <FlowChrome flow={flow} profileName={profileName}>
+      {inner}
+    </FlowChrome>
+  );
+
+  try {
+    const transport = createFlowReportTransport();
+    const out = await runFlowReportV2(userId, flow.id, pendingId, {
+      checkLimit: checkFlowLimit,
+      spend: spendTicket,
+      admit: admitRevision,
+      generate: (i: FlowGenerationInput) => generateFlowReportV2(i, transport),
+      publish: publishRevision,
+      fail: failRevision,
+      getActive: getActiveRevision,
+      model: MODEL,
+    });
+
+    switch (out.kind) {
+      case "rate_limited":
+        return chrome(<FlowRateLimited />);
+      case "out_of_tickets":
+        return chrome(<FlowOutOfTickets flowId={flow.id} />);
+      case "failed":
+        return chrome(<FlowErrorV2 flowId={flow.id} />);
+      case "published":
+        return (
+          <FlowV2Published
+            flow={flow}
+            revision={out.revision}
+            profileName={profileName}
+            profileId={profileId}
+            currentIndex={currentIndex}
+          />
+        );
+    }
+  } catch (e) {
+    // message 에는 모델 응답·요청 본문이 실릴 수 있다 — 이름만 남긴다.
+    console.error("[/flow/[id]] v2 생성 실패", e instanceof Error ? e.name : "unknown");
+    return chrome(<FlowError />);
+  }
 }
 
 /**

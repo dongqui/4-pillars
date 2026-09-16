@@ -1,7 +1,10 @@
 /**
  * 흐름 본문(FlowHero + FlowBody) Suspense fallback. AnalyzingMatch 와 같은 구조다.
+ *
+ * message 는 v2 pending 생성 중(FlowV2Generate)처럼 문구를 바꿔야 하는 자리를
+ * 위한 것이다 — 기본값은 v1 이 늘 쓰던 문구다.
  */
-export function AnalyzingFlow() {
+export function AnalyzingFlow({ message = "사주의 궤적과 선택한 해를 겹쳐 보는 중이에요" }: { message?: string }) {
   return (
     <div
       role="status"
@@ -10,7 +13,7 @@ export function AnalyzingFlow() {
     >
       <div className="w-[60px] h-[60px] rounded-full border-[3px] border-slate-200 border-t-accent animate-spin" />
       <div className="text-[22px] font-bold mt-[30px] tracking-tight">흐름을 풀어보고 있어요</div>
-      <div className="text-[15px] text-slate-500 mt-2">사주의 궤적과 선택한 해를 겹쳐 보는 중이에요</div>
+      <div className="text-[15px] text-slate-500 mt-2">{message}</div>
       <div className="text-[13px] text-slate-400 mt-5">
         처음 한 번만 조금 걸려요. 다음부터는 바로 열려요.
       </div>

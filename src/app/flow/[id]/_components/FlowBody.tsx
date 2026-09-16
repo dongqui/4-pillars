@@ -13,6 +13,7 @@ import { InfoCard } from "@/app/report/_components/InfoCard";
 import { NoteCard } from "@/app/report/_components/NoteCard";
 import { SectionHeadingRaw } from "@/app/report/_components/SectionHeading";
 import type { FlowSectionView } from "../_lib/to-flow-view";
+import { NO_PIVOT_COPY } from "../_lib/v2-sections";
 import { MonthTimeline } from "./MonthTimeline";
 
 const SECTION = "mt-[72px]";
@@ -141,9 +142,7 @@ export function FlowBody({
                   "흐름이 바뀌는 달" 배지로 그리고, 없으면 여기서 없다고 말한다 —
                   배지가 하나도 없는 타임라인은 그 자체로는 아무 말도 하지 않는다. */}
               {!hasPivots && (
-                <p className="mt-3 text-[13.5px] text-slate-500">
-                  {flowYear}년은 흐름이 크게 꺾이는 달 없이 한 방향이 길게 이어져요.
-                </p>
+                <p className="mt-3 text-[13.5px] text-slate-500">{NO_PIVOT_COPY}</p>
               )}
               <MonthTimeline content={c} months={months} currentIndex={currentIndex} />
             </section>
