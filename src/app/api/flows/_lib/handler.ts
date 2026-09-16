@@ -1,9 +1,15 @@
 import { z } from "zod";
 import { analyze, flowYearAt, flowYearOf, type SajuAnalysis } from "@/lib/saju-core";
 import type { FlowAccess } from "@/lib/flows/access";
+import { contextAnswerSchema, normalizeFlowContext, yearRelationOf } from "@/lib/flows/context";
+import { requestHashOf } from "@/lib/flows/request-hash";
+import type { PendingRevisionInput, UpsertResult } from "@/lib/flows/revisions";
 import type { CreateFlowInput, FlowRow } from "@/lib/flows/store";
 import { sajuBirthYearOf } from "@/lib/flows/birth-year";
 import { flowMonths } from "./pivots";
+import { buildFlowEvidence, FLOW_CALC_VERSION } from "./v2/facts";
+import { buildFlowGenerationInput } from "./v2/input";
+import { PROMPT_BUNDLE_VERSION } from "./v2/prompts";
 
 /** 현재 명리 연도에서 앞뒤로 몇 년까지 고를 수 있는가. 화면의 연도 칸 수와 같은 출처다. */
 export const FLOW_YEAR_SPAN = 5;
@@ -25,6 +31,7 @@ const Input = z
     // 기본값을 두지 않는다 — 지금으로 조용히 물러서면 사용자가 고른 해와 사는
     // 해가 갈린다. 이용권이 걸린 요청에서 가장 나쁜 실패다.
     year: z.number().int(),
+    context: contextAnswerSchema.optional(),
   })
   .strict();
 
@@ -38,6 +45,8 @@ export interface CreateFlowDeps {
   userId: string | null;
   /** 현재 시각을 주입한다 — 서버 시계를 읽으면 연도 범위를 테스트로 못 박을 수 없다 */
   now: Date;
+  /** 새 진입만 가린다 — v2-flag.ts 참고. 발행본 읽기·pending 완료·재시도는 이 값을 안 본다 */
+  v2Enabled: boolean;
   checkAccess(userId: string | null): Promise<FlowAccess>;
   /** ⚠️ userId 를 함께 넘긴다. 남의 프로필로 흐름을 만들지 못하게 하는 유일한 방어선이다 */
   getProfile(userId: string, id: string): Promise<FlowProfile | null>;
@@ -45,6 +54,10 @@ export interface CreateFlowDeps {
     userId: string,
     input: CreateFlowInput,
   ): Promise<{ row: FlowRow; created: boolean }>;
+  /** v1 본문(구매본)이 이미 있는 flow 인가 — 있으면 v2 pending 을 만들지 않는다 */
+  hasAnyFlowSections(flowId: string): Promise<boolean>;
+  upsertPendingRevision(flowId: string, input: PendingRevisionInput): Promise<UpsertResult>;
+  randomUUID(): string;
 }
 
 const STATUS: Record<Exclude<FlowAccess, { ok: true }>["reason"], number> = {
@@ -77,6 +90,11 @@ export async function handleCreateFlow(
   const profile = await deps.getProfile(userId, parsed.data.profileId);
   if (!profile) return { status: 404, body: { error: "프로필을 찾을 수 없습니다" } };
 
+  // v2 로의 새 진입만 플래그 뒤에 둔다 — context 를 보냈다는 것이 새 진입의 신호다.
+  if (!deps.v2Enabled && parsed.data.context) {
+    return { status: 400, body: { error: "flow_v2_disabled" } };
+  }
+
   const analysis: SajuAnalysis = analyze(profile.birth);
 
   // 태어나기 전 해에는 대운이 없다. 화면도 그 칸을 빼지만 화면을 안 거치는
@@ -105,5 +123,28 @@ export async function handleCreateFlow(
     months,
   });
 
-  return { status: created ? 201 : 200, body: { id: row.id } };
+  const status = created ? 201 : 200;
+  if (!deps.v2Enabled) return { status, body: { id: row.id } };
+
+  // v1 구매본이 있는 flow — 업그레이드는 B
+  if (!created && (await deps.hasAnyFlowSections(row.id))) return { status, body: { id: row.id } };
+
+  const relation = yearRelationOf(year, deps.now);
+  const snapshot = normalizeFlowContext(parsed.data.context, { relation, now: deps.now });
+  // ⚠️ months 는 저장된 row.months — 새로 계산한 months 는 INSERT 에만 쓴다(스펙 §5)
+  const evidence = buildFlowEvidence(analysis, year, row.months);
+  const input = buildFlowGenerationInput({ flowYear: year, relation, snapshot, evidence, months: row.months });
+  const { asOf: _asOf, ...contextForHash } = snapshot;
+  void _asOf;
+  const up = await deps.upsertPendingRevision(row.id, {
+    promptBundleVersion: PROMPT_BUNDLE_VERSION,
+    idempotencyKey: deps.randomUUID(),
+    requestHash: requestHashOf({
+      flowYear: year, context: contextForHash, evidence, months: row.months,
+      calcVersion: FLOW_CALC_VERSION, promptBundleVersion: PROMPT_BUNDLE_VERSION,
+    }),
+    contextSnapshot: snapshot, inputSnapshot: input, monthsSnapshot: row.months,
+  });
+  if (up.kind === "busy") return { status: 409, body: { error: "flow_v2_pending_busy" } };
+  return { status, body: { id: row.id } };
 }

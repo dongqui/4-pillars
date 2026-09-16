@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { analyze, flowYearOf } from "@/lib/saju-core";
+import type { FlowRevisionRow, PendingRevisionInput } from "@/lib/flows/revisions";
 import type { FlowRow } from "@/lib/flows/store";
 import { flowMonths } from "./pivots";
 import { flowYearRange, handleCreateFlow, type CreateFlowDeps } from "./handler";
+
+/** upsertPendingRevision 이 돌려주는 revision 모양 — 이 핸들러는 kind/id 만 읽는다. */
+const revFixture = { id: "5", flowId: "7", phase: "draft" } as unknown as FlowRevisionRow;
 
 const birth = {
   year: 1990, month: 6, day: 15, hour: 10, minute: 30, gender: "male", calendar: "solar",
@@ -30,6 +34,10 @@ const baseDeps: CreateFlowDeps = {
   checkAccess: async () => ({ ok: true }) as const,
   getProfile: async () => ({ id: "11", birth }),
   findOrCreate: async () => ({ row: flowRowFixture(), created: true }),
+  v2Enabled: false,
+  hasAnyFlowSections: async () => false,
+  upsertPendingRevision: async () => ({ kind: "created", revision: revFixture }),
+  randomUUID: () => "uuid-1",
 };
 
 /** overrides 만 바꿔 끼우는 헬퍼 — 아래 "연도" describe 블록도 이걸 그대로 쓴다. */
@@ -203,5 +211,82 @@ describe("flowYearRange — 입춘 경계", () => {
 
     expect(flowYearRange(beforeIpchun)).toEqual({ min: 2020, max: 2030 });
     expect(flowYearRange(afterIpchun)).toEqual({ min: 2021, max: 2031 });
+  });
+});
+
+describe("handleCreateFlow · v2", () => {
+  const ctx = { career: "student", relationship: "single", mainConcern: "career" } as const;
+
+  it("플래그 꺼짐 + context → 400 flow_v2_disabled", async () => {
+    const out = await handleCreateFlow(
+      { profileId: "11", year: 2026, context: ctx },
+      deps({ v2Enabled: false }),
+    );
+    expect(out).toMatchObject({ status: 400, body: { error: "flow_v2_disabled" } });
+  });
+
+  it("플래그 켜짐 + context 없음 → unspecified 스냅샷으로 pending", async () => {
+    let seen: PendingRevisionInput | undefined;
+    await handleCreateFlow(
+      { profileId: "11", year: 2026 },
+      deps({
+        v2Enabled: true,
+        upsertPendingRevision: async (_id, input) => {
+          seen = input;
+          return { kind: "created", revision: revFixture };
+        },
+      }),
+    );
+    expect(seen?.contextSnapshot).toMatchObject({
+      career: "unspecified", relationship: "unspecified", mainConcern: "overall", reference: "unspecified",
+    });
+    expect(seen?.idempotencyKey).toBe("uuid-1");
+  });
+
+  it("플래그 켜짐 + context → 스냅샷·근거·months 가 저장된 행 기준", async () => {
+    let seen: PendingRevisionInput | undefined;
+    const storedMonths = flowRowFixture().months.map((m) => ({ ...m, pivot: false }));
+    await handleCreateFlow(
+      { profileId: "11", year: 2026, context: ctx },
+      deps({
+        v2Enabled: true,
+        findOrCreate: async () => ({ row: flowRowFixture({ months: storedMonths }), created: false }),
+        upsertPendingRevision: async (_id, input) => {
+          seen = input;
+          return { kind: "same", revision: revFixture };
+        },
+      }),
+    );
+    expect(seen?.contextSnapshot).toMatchObject({ career: "student", reference: "current_baseline" });
+    expect(seen?.monthsSnapshot).toEqual(storedMonths);
+    expect((seen?.inputSnapshot as { personalContext: { careerSituation: string } }).personalContext.careerSituation).toBe(
+      "student",
+    );
+  });
+
+  it("v1 본문이 있는 flow 는 pending 을 만들지 않는다", async () => {
+    let called = false;
+    const out = await handleCreateFlow(
+      { profileId: "11", year: 2026, context: ctx },
+      deps({
+        v2Enabled: true,
+        findOrCreate: async () => ({ row: flowRowFixture(), created: false }),
+        hasAnyFlowSections: async () => true,
+        upsertPendingRevision: async () => {
+          called = true;
+          return { kind: "none" };
+        },
+      }),
+    );
+    expect(called).toBe(false);
+    expect(out.status).toBe(200);
+  });
+
+  it("busy → 409", async () => {
+    const out = await handleCreateFlow(
+      { profileId: "11", year: 2026, context: ctx },
+      deps({ v2Enabled: true, upsertPendingRevision: async () => ({ kind: "busy" }) }),
+    );
+    expect(out).toMatchObject({ status: 409, body: { error: "flow_v2_pending_busy" } });
   });
 });

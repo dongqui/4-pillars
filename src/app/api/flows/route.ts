@@ -1,10 +1,14 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { canCreateFlow } from "@/lib/flows/access";
+import { upsertPendingRevision } from "@/lib/flows/revisions";
 import { findOrCreateFlow } from "@/lib/flows/store";
+import { flowReportV2Enabled } from "@/lib/flows/v2-flag";
 import { getProfile } from "@/lib/profiles/store";
 import { toBirthInput } from "@/lib/profiles/to-birth-input";
 import { handleCreateFlow } from "./_lib/handler";
+import { hasAnyFlowSections } from "./_lib/store";
 
 export async function POST(request: Request) {
   let raw: unknown;
@@ -31,6 +35,10 @@ export async function POST(request: Request) {
         return row ? { id: row.id, birth: toBirthInput(row) } : null;
       },
       findOrCreate: findOrCreateFlow,
+      v2Enabled: flowReportV2Enabled(),
+      hasAnyFlowSections,
+      upsertPendingRevision,
+      randomUUID: () => randomUUID(),
     });
     return NextResponse.json(result.body, { status: result.status });
   } catch (e) {
