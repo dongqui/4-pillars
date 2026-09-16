@@ -52,8 +52,8 @@
   },
   "personalContext": {
     "reference": "selected_year_start | current_baseline | unspecified",
-    "careerSituation": "employed | freelance | business | student | preparing | taking_break | home_care | other | unspecified",
-    "relationshipSituation": "single | dating | partnered | unspecified",
+    "careerSituation": "employed | freelance | business | student | preparing | taking_break | home_care | unspecified",
+    "relationshipSituation": "single | crushing | dating | partnered | complicated | unspecified",
     "mainConcern": "career | money | romance | relationships | overall",
     "asOf": 서버가 확인한 정보 기준 시각
   },
@@ -198,7 +198,7 @@ careerSituation 적용:
 - preparing: 취업·진로 준비, 지원·포트폴리오·탐색·준비 방식. 현재 직장이 있다고 가정하지 않는다.
 - taking_break: 쉬는 동안의 준비·재개·작은 활동. 쉬는 이유나 질병·실직을 추측하지 않는다.
 - home_care: 가사·돌봄·개인 목표의 시간과 역할 배분. 돌봄 대상·가족 구성을 추측하지 않는다.
-- other 또는 unspecified: 무언가를 배우고 준비하고 완성하는 보편적인 활동으로 쓴다.
+- unspecified: 무언가를 배우고 준비하고 완성하는 보편적인 활동으로 쓴다.
 재물운과 분담:
 - 여기서는 성과를 만드는 과정과 역할을 설명한다.
 - 실제 돈의 유입·유출·관리 이야기는 money에 둔다.
@@ -221,6 +221,8 @@ relationshipSituation 적용:
 - single: 새로운 만남에 열리는 정도, 접근·표현·관계 속도·기준. 연애를 원한다고 단정하지 않고 실제 상대가 나타난다고 예측하지 않는다.
 - dating: 친밀감, 기대와 표현, 만나는 시간·거리·속도. 이별·결혼으로 결론을 몰지 않는다.
 - partnered: 생활 속 친밀감, 대화, 공동 일정·역할. 혼인 여부, 동거, 자녀, 상대 성별을 추측하지 않는다.
+- crushing: 진행 중인 새 만남으로 다룬다. 서로의 마음을 확인하는 속도·표현·거리. 사귀게 된다고도, 흐지부지된다고도 결론을 몰지 않는다.
+- complicated: 관계 상태를 단정하지 않는다. 새 만남·현재 관계 어느 쪽도 전제하지 말고 unspecified 처럼 조건부로 쓰되, "지금 정리가 필요한 관계가 있을 수 있다" 는 사실은 예시 선택에 쓸 수 있다.
 - unspecified: 어느 상태도 전제하지 않는다. opportunity는 “새로운 만남에서는 …”, caution은 “이미 관계가 있다면 …”처럼 적용 조건을 드러내되 같은 말만 반복하지 않는다. 두 경우의 유불리가 갈리면 각각 조건을 밝힌다.
 - 입력된 상태가 해당 연도 전체에 유지된다고 가정하지 않는다.
 - 상대의 성격, 마음, 행동을 확정하지 않는다. 특정 상대와의 궁합은 여기서 판단하지 않는다.
@@ -345,7 +347,7 @@ interface FlowReportV2 {
 - interpretation.annual/domains의 conclusion 1~200자, qualification 0~160자.
 - overview.headline 및 DomainSection.headline 15~55자. overview.body 1~600자.
 - DomainSection.opportunity/caution 각각 1~280자, action 1~160자.
-- monthLinks 길이 0~2, 동일 달 중복 금지. note 1~120자.
+- monthLinks 길이 0~2, 동일 달 중복 금지(한 섹션 안 기준). note 1~120자.
 - months.lead 1~240자. items 길이 12, monthIndex 1..12, 유일성 및 오름차순 검증.
 - 월 headline 8~45자, body 1~360자, action 1~140자.
 - 모든 basisRefs는 1~6개, 중복 금지, 실제 availableFactIds에 포함돼야 함.
@@ -411,7 +413,7 @@ unknown 연애 상황의 표현 예:
 
 다음 문제를 찾는다.
 1. unsupported_claim: 계산되지 않은 명리 근거, 주어지지 않은 개인 이력·관계·재산·사건.
-2. context_mismatch: 학생에게 상사·월급을 전제, single에게 배우자를 전제, unknown을 임의로 채움.
+2. context_mismatch: 학생에게 상사·월급을 전제, single에게 배우자를 전제, unknown을 임의로 채움, crushing 에게 배우자를 전제, complicated 에게 특정 상대를 전제.
 3. temporal_mismatch: 현재 상태를 과거·미래 월의 실제 상태로 단정하거나, 달 순번을 달력 월로 바꿈.
 4. contradiction: 같은 대상·시점·조건에서 상반된 지시나 결론.
 5. scope_missing: 서로 다른 과정·조건을 설명해야 양립하는데 그 구분이 없는 문장.
