@@ -97,7 +97,7 @@ export function frictionTargets(analysis: SajuAnalysis, year: number): FrictionT
 }
 
 /** 일간 오행 기준으로 다른 오행이 무슨 세력인가. yongsin.ts 의 groupElements 와 같은 정의다. */
-function groupOf(dayEl: Element, other: Element): TenGodGroup {
+export function groupOf(dayEl: Element, other: Element): TenGodGroup {
   if (other === dayEl) return "비겁";
   if (other === generatedBy(dayEl)) return "인성";
   if (other === elementGenerates(dayEl)) return "식상";

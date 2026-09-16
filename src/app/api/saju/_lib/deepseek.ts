@@ -60,7 +60,7 @@ export interface DeepSeekOptions {
 }
 
 /** 상태코드를 들고 다니는 실패. 재시도할 값이 있는지를 이걸로 가른다. */
-class DeepSeekHttpError extends Error {
+export class DeepSeekHttpError extends Error {
   constructor(readonly status: number, body: string) {
     super(`DeepSeek ${status}: ${body}`);
     this.name = "DeepSeekHttpError";
@@ -68,7 +68,7 @@ class DeepSeekHttpError extends Error {
 }
 
 /** 제한 시간을 넘긴 시도. 유일하게 재시도하지 않는 실패다. */
-class DeepSeekTimeoutError extends Error {
+export class DeepSeekTimeoutError extends Error {
   constructor(key: string, ms: number) {
     super(`DeepSeek 응답이 제한 시간을 넘겼다 (${key})`);
     this.name = "DeepSeekTimeoutError";
