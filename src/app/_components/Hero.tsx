@@ -27,7 +27,7 @@ export function Hero({ displayName }: HeroProps) {
         한 번에 다 알 필요는 없어요. 알고 싶은 것부터 하나씩.
       </p>
       <p className="mx-auto mb-[30px] max-w-[460px] text-[16.5px] leading-[1.6] text-slate-400 [text-wrap:pretty]">
-        내 캐릭터와 관계 지도는{" "}
+        내 캐릭터는{" "}
         <strong className="whitespace-nowrap font-semibold text-slate-600">
           무료
         </strong>

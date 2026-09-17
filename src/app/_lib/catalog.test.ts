@@ -21,7 +21,8 @@ test("유료 항목은 실제 판매 기능과 개수·순서가 같다", () => 
 
 test("모든 항목이 갈 곳을 갖는다 — 랜딩에서 눌리면 열려야 한다", () => {
   expect(MENU_ITEMS.every((m) => m.href.startsWith("/"))).toBe(true);
-  expect(MENU_ITEMS.find((m) => m.title === "관계 지도")?.href).toBe("/map");
+  // 관계 지도는 랜딩에서 걷었다 — 카탈로그에 되돌아오면 알 수 있게 적어 둔다.
+  expect(MENU_ITEMS.find((m) => m.title === "관계 지도")).toBeUndefined();
 });
 
 test("천 단위 구분자 — 서버·브라우저가 같은 문자열을 낸다", () => {

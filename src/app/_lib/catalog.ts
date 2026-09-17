@@ -59,7 +59,7 @@ const PAID: Record<Feature, { title: string; desc: string; href: string }> = {
   },
 };
 
-/** 무료 항목. 이용권을 쓰지 않는 것만 여기 있다. */
+/** 무료 항목. 이용권을 쓰지 않는 것만 여기 있다. (관계 지도는 /home 에서만 연다 — 랜딩에서는 걷었다.) */
 const FREE: MenuItem[] = [
   {
     title: "내 캐릭터",
@@ -67,13 +67,6 @@ const FREE: MenuItem[] = [
     price: "무료",
     paid: false,
     href: "/funnel?step=name",
-  },
-  {
-    title: "관계 지도",
-    desc: "주변 사람이 나에게 어떤 역할인지. 몇 명이든.",
-    price: "무료",
-    paid: false,
-    href: "/map",
   },
 ];
 

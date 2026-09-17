@@ -4,7 +4,6 @@ import { resolveDisplayName } from "@/lib/auth/display-name";
 import { LandingNav } from "./_components/LandingNav";
 import { Hero } from "./_components/Hero";
 import { CharacterSection } from "./_components/CharacterSection";
-import { RelationMapSection } from "./_components/RelationMapSection";
 import { MenuSection } from "./_components/MenuSection";
 import { TrustSection } from "./_components/TrustSection";
 import { FooterCta } from "./_components/FooterCta";
@@ -34,7 +33,6 @@ export default async function Home() {
       <LandingNav displayName={displayName} />
       <Hero displayName={displayName} />
       <CharacterSection />
-      <RelationMapSection />
       <MenuSection />
       <TrustSection />
       <FooterCta displayName={displayName} />

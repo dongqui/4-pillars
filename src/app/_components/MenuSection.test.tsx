@@ -15,9 +15,9 @@ test("파는 것 전부와 가격이 한 화면에 있다", () => {
   expect(html).toContain("1,000원");
 });
 
-test("무료 항목도 링크다 — 캐릭터는 퍼널로, 관계 지도는 /map 으로", () => {
+test("무료 항목도 링크다 — 캐릭터는 퍼널로. 관계 지도는 랜딩에 없다", () => {
   const html = renderToStaticMarkup(<MenuSection />);
   expect(html).toContain('href="/funnel?step=name"');
-  expect(html).toContain('href="/map"');
   expect(html).toContain("무료");
+  expect(html).not.toContain('href="/map"');
 });
