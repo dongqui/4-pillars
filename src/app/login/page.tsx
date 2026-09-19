@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { BrandLogo } from "@/components/BrandLogo";
+import { reviewLoginConfig } from "@/lib/auth/review-login";
 
 type ProviderId = "kakao" | "google";
 
@@ -38,6 +39,8 @@ export default async function LoginPage({
   const { next, error } = await searchParams;
   const lastProvider = (await cookies()).get("last_provider")?.value;
   const nextQuery = next ? `?next=${encodeURIComponent(next)}` : "";
+  // 카드사 심사 기간에만 켜진다(REVIEW_LOGIN_*). 꺼져 있으면 아래 폼이 통째로 없다.
+  const reviewLoginOn = reviewLoginConfig() !== null;
 
   return (
     <main className="flex flex-1 flex-col">
@@ -73,6 +76,18 @@ export default async function LoginPage({
             </p>
           )}
 
+          {error === "review" && (
+            <p className="mb-4 rounded-lg bg-red-50 px-4 py-2 text-[13px] text-red-600">
+              아이디 또는 비밀번호가 맞지 않아요.
+            </p>
+          )}
+
+          {error === "throttled" && (
+            <p className="mb-4 rounded-lg bg-red-50 px-4 py-2 text-[13px] text-red-600">
+              시도가 너무 많아요. 10분 뒤에 다시 해 주세요.
+            </p>
+          )}
+
           <div className="flex flex-col gap-2.5">
             {PROVIDERS.map((p) => (
               <a
@@ -90,6 +105,45 @@ export default async function LoginPage({
               </a>
             ))}
           </div>
+
+          {/* ⚠️ 임시 — PG 카드사 심사용. 심사가 끝나면 lib/auth/review-login.ts 의 목록대로 걷는다. */}
+          {reviewLoginOn && (
+            <form method="post" action="/api/auth/review-login" className="mt-7 text-left">
+              <div className="mb-5 flex items-center gap-3 text-[12px] text-slate-300">
+                <span className="h-px flex-1 bg-slate-200" />
+                또는
+                <span className="h-px flex-1 bg-slate-200" />
+              </div>
+              {next && <input type="hidden" name="next" value={next} />}
+              <div className="flex flex-col gap-2.5">
+                <input
+                  name="id"
+                  type="text"
+                  required
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  placeholder="아이디"
+                  aria-label="아이디"
+                  className="h-[52px] rounded-[14px] border border-slate-200 bg-white px-4 text-[15px] text-slate-700 outline-none placeholder:text-slate-300 focus:border-slate-400"
+                />
+                <input
+                  name="password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  placeholder="비밀번호"
+                  aria-label="비밀번호"
+                  className="h-[52px] rounded-[14px] border border-slate-200 bg-white px-4 text-[15px] text-slate-700 outline-none placeholder:text-slate-300 focus:border-slate-400"
+                />
+                <button
+                  type="submit"
+                  className="h-[52px] rounded-[14px] bg-slate-900 text-[15px] font-semibold text-white transition hover:bg-slate-800"
+                >
+                  로그인
+                </button>
+              </div>
+            </form>
+          )}
 
           <p className="mt-7 text-[12.5px] leading-[1.7] text-slate-400 [word-break:keep-all]">
             계속하면 사주의{" "}
