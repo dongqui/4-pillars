@@ -3,12 +3,13 @@ import {
   REVIEW_DISPLAY_NAME,
   REVIEW_PROVIDER,
   reviewLoginConfig,
+  seedSampleProfile,
   verifyReviewLogin,
 } from "@/lib/auth/review-login";
 import { safeNext } from "@/lib/auth/oauth";
 import { setPrimaryProfileIfUnset, upsertUser } from "@/lib/auth/users";
 import { SESSION_COOKIE, encodeSession, sessionCookieOptions } from "@/lib/auth/session";
-import { createProfile } from "@/lib/profiles/store";
+import { countProfiles, createProfile } from "@/lib/profiles/store";
 import { DRAFT_COOKIE, deleteDraft, getDraft } from "@/lib/drafts/store";
 import { promoteDraft } from "@/lib/drafts/promote";
 import { redis } from "@/lib/redis";
@@ -88,6 +89,16 @@ export async function POST(req: NextRequest) {
     deleteDraft,
     setPrimaryIfUnset: setPrimaryProfileIfUnset,
   });
+
+  // 담당자가 직접 넣은 생년월일이 방금 프로필이 됐으면 그것으로 충분하다. 아니면 빈 홈 대신
+  // 샘플 하나를 세워 둔다 — 프로필이 이미 있는지는 seedSampleProfile 이 센다.
+  if (promoted.kind !== "promoted") {
+    await seedSampleProfile(user.id, {
+      countProfiles,
+      createProfile,
+      setPrimaryIfUnset: setPrimaryProfileIfUnset,
+    });
+  }
 
   const redirectTo =
     promoted.kind === "promoted"

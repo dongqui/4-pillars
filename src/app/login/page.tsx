@@ -78,7 +78,7 @@ export default async function LoginPage({
 
           {error === "review" && (
             <p className="mb-4 rounded-lg bg-red-50 px-4 py-2 text-[13px] text-red-600">
-              아이디 또는 비밀번호가 맞지 않아요.
+              아이디(이메일) 또는 비밀번호가 맞지 않아요.
             </p>
           )}
 
@@ -122,8 +122,8 @@ export default async function LoginPage({
                   required
                   autoComplete="username"
                   autoCapitalize="none"
-                  placeholder="아이디"
-                  aria-label="아이디"
+                  placeholder="아이디 또는 이메일"
+                  aria-label="아이디 또는 이메일"
                   className="h-[52px] rounded-[14px] border border-slate-200 bg-white px-4 text-[15px] text-slate-700 outline-none placeholder:text-slate-300 focus:border-slate-400"
                 />
                 <input
