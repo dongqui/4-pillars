@@ -70,6 +70,14 @@ const FREE: MenuItem[] = [
   },
 ];
 
+/**
+ * 유료 항목 하나의 가격표 문구. 홈의 카드 배지가 쓴다 — 랜딩의 MENU_ITEMS 와
+ * 같은 식(단가 × 장당 가격)이라 결제 표를 고치면 두 화면이 같이 따라온다.
+ */
+export function featurePriceLabel(id: Feature): string {
+  return formatWon(FEATURE_COST[id] * TICKET_PRICE);
+}
+
 /** 무료 먼저, 그다음 FEATURE_IDS 순서대로. */
 export const MENU_ITEMS: MenuItem[] = [
   ...FREE,
