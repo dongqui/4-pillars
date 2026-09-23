@@ -42,7 +42,7 @@ export function OrderSummary({
             </div>
           )}
           <div className="flex justify-between text-sm">
-            <span className="text-slate-500">충전 후 잔액</span>
+            <span className="text-slate-500">구매 후 보유</span>
             <span className="font-semibold">{balance + credited}장</span>
           </div>
         </div>

@@ -25,7 +25,7 @@ export function PackagePicker({
   return (
     <section className="rounded-[20px] border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(17,24,39,.04)] sm:p-6">
       <h2 className="m-0 mb-4 text-[15px] font-bold tracking-[-0.01em]">
-        충전할 이용권
+        구매할 이용권
       </h2>
       <div className="flex flex-col gap-2.5">
         {packages.map((p) => {

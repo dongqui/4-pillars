@@ -80,7 +80,7 @@ export function PaymentComplete({ added, after, next }: Props) {
           className="pc-rise mb-[30px] mt-[9px] text-[14.5px] leading-[1.6] text-slate-500 [text-wrap:pretty] [word-break:keep-all]"
           style={{ animationDelay: "180ms" }}
         >
-          이용권이 충전되었어요.
+          이용권 구매가 완료되었어요.
         </p>
 
         <div

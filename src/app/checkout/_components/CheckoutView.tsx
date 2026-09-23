@@ -52,7 +52,7 @@ export function CheckoutView({
             ← 돌아가기
           </Link>
           <h1 className="m-0 text-[clamp(24px,5vw,34px)] font-bold tracking-[-0.035em]">
-            이용권 충전
+            이용권 구매
           </h1>
           <p className="mt-2 mb-0 text-[14px] text-slate-400">지금 {balance}장 있어요</p>
         </div>

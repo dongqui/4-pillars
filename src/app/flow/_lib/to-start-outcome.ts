@@ -31,9 +31,9 @@ export function toStartOutcome(status: number): StartFailure | null {
       // src/app/match/[id]/_components/MatchOutOfTickets.tsx 의 문구를 그대로 따른다
       // — 충전 경로도 그쪽과 같은 /checkout?next=... 다, 새로 지어내지 않는다.
       return {
-        text: "이용권이 부족해요. 충전하면 이 화면으로 돌아와 바로 이어서 볼 수 있어요.",
+        text: "이용권이 부족해요. 구매하면 이 화면으로 돌아와 바로 이어서 볼 수 있어요.",
         action: {
-          label: "충전하고 이어서 보기",
+          label: "구매하고 이어서 보기",
           href: `/checkout?next=${encodeURIComponent(safeNextPath("/flow"))}`,
         },
       };

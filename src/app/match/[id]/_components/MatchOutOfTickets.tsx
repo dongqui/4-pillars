@@ -18,13 +18,13 @@ export function MatchOutOfTickets({ matchId }: { matchId: string }) {
     >
       <div className="text-[22px] font-bold tracking-tight">이용권이 부족해요</div>
       <p className="mt-3 max-w-[400px] text-[15px] leading-[1.6] text-slate-500 [text-wrap:pretty]">
-        궁합을 볼 이용권이 없어요. 충전하면 이 화면으로 돌아와 바로 이어서 볼 수 있어요.
+        궁합을 볼 이용권이 없어요. 구매하면 이 화면으로 돌아와 바로 이어서 볼 수 있어요.
       </p>
       <Link
         href={`/checkout?next=${encodeURIComponent(`/match/${matchId}`)}`}
         className="mt-7 rounded-xl bg-accent px-5 py-[11px] text-[14.5px] font-semibold text-white hover:bg-accent-700"
       >
-        충전하고 이어서 보기
+        구매하고 이어서 보기
       </Link>
     </div>
   );
