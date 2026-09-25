@@ -3,6 +3,7 @@
 
 import { DEFAULT_TURN_LIMIT, countCrisis, decideTurn, nextState } from "./budget";
 import { runTurn } from "./turn";
+import { countTerms } from "./terms";
 import type { ChatTransport } from "./chat-transport";
 import type { TicketPort } from "./ticket-port";
 import type {
@@ -203,11 +204,19 @@ async function persistTurn(
     turnNo,
   });
 
+  // 측정만 한다 — 용어 수도 근거도 답을 막지 않는다(terms.ts 의 주석 참고).
+  // DB 컬럼을 늘리는 대신 로그로 둔 이유는, 이 둘이 아직 실험 중인 값이라서다.
+  const usage = countTerms(result.reply.bubbles);
+  console.info(
+    `[consult] ${consultation.id} 용어 ${usage.count}종(${usage.terms.join("·") || "없음"}) · 근거 ${
+      result.reply.basis.map((b) => b.criterionId).join("·") || "없음"
+    }`,
+  );
+
   await deps.store.appendMessage({
     consultationId: consultation.id,
     role: "counselor",
     bubbles: result.reply.bubbles,
-    suggestions: result.reply.suggestions,
     crisis: result.reply.crisis,
     // 다음 턴의 되묻기 억제가 이 값을 읽는다. 여기서 안 남기면 그 판단이 다시
     // 물음표 짐작으로 떨어진다(대화 설계 §4).

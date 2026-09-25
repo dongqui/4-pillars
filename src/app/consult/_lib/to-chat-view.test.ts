@@ -35,19 +35,12 @@ describe("toChatView", () => {
     expect(view.every((t) => t.isNew === false)).toBe(true);
   });
 
-  it("마지막 상담사 답의 추천질문만 살린다 — 지난 턴의 칩이 되살아나면 안 된다", () => {
+  // 추천 답변 칩은 없앴다(2026-09-16). 옛 행에 저장된 suggestions 가 화면으로 새면 안 된다.
+  it("옛 행에 남은 추천질문을 화면으로 올리지 않는다", () => {
     const view = toChatView([
-      msg({ id: "1", role: "counselor", bubbles: ["옛날 답"], suggestions: ["옛 질문"] }),
-      msg({ id: "2", role: "user", bubbles: ["네"] }),
-      msg({ id: "3", role: "counselor", bubbles: ["최근 답"], suggestions: ["새 질문"] }),
+      msg({ id: "1", role: "counselor", bubbles: ["최근 답"], suggestions: ["새 질문"] }),
     ]);
-    expect(view[0].suggestions).toBeUndefined();
-    expect(view[2].suggestions).toEqual(["새 질문"]);
-  });
-
-  it("마지막 답에 추천질문이 없으면(마지막 턴) 비운다", () => {
-    const view = toChatView([msg({ id: "1", role: "counselor", bubbles: ["끝"], suggestions: [] })]);
-    expect(view[0].suggestions).toBeUndefined();
+    expect(view[0]).toEqual({ key: "1", role: "counselor", bubbles: ["최근 답"], isNew: false });
   });
 
   it("빈 이력은 빈 배열이다", () => {

@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   COUNSEL_TOOL_NAME,
-  MAX_BUBBLES,
+  BUBBLE_MAX_CHARS,
+  MAX_BASIS,
   MIN_BUBBLES,
-  MAX_SUGGESTIONS,
   TITLE_MAX_CHARS,
   replyToolSchema,
   parseReply,
@@ -14,8 +14,7 @@ const middle = { first: false, last: false };
 
 /** 테스트가 실제로 들여다보는 tool 파라미터 속성만. 나머지는 알 바 아니다. */
 interface ReplyToolProperties {
-  bubbles: { minItems: number; maxItems: number };
-  user_replies: { minItems: number; maxItems: number };
+  bubbles: { minItems: number; maxItems?: number };
   title?: unknown;
   crisis?: unknown;
 }
@@ -25,23 +24,30 @@ function props(opts: { first: boolean; last: boolean }): ReplyToolProperties {
 }
 
 describe("replyToolSchema", () => {
-  it("말풍선 개수를 스키마에 박는다", () => {
+  // 상한을 박았더니 DeepSeek 가 지키지 않아 말풍선 4개짜리 답이 통째로 버려졌다.
+  it("말풍선 하한만 박고 상한은 두지 않는다", () => {
     const p = props(middle);
     expect(p.bubbles.minItems).toBe(MIN_BUBBLES);
-    expect(p.bubbles.maxItems).toBe(MAX_BUBBLES);
+    expect(p.bubbles.maxItems).toBeUndefined();
   });
 
-  // 예전에는 minItems 도 2 였다. 그러면 낼 갈래가 없는 턴에도 모델이 두 개를
-  // 지어내야 해서, 대부분이 방금 한 제안에 서명하게 만드는 문장이 됐다(대화 설계 §18).
-  it("추천 답변에 하한을 걸지 않는다 — 갈래가 없으면 안 내는 것이 맞다", () => {
-    const p = props(middle);
-    expect(p.user_replies.minItems).toBe(0);
-    expect(p.user_replies.maxItems).toBe(MAX_SUGGESTIONS);
+  // 추천 답변 칩은 없앴다(2026-09-16). 스키마에 남아 있으면 모델이 계속 채운다.
+  it("추천 답변을 요구하지 않는다", () => {
+    for (const opts of [middle, { first: true, last: false }, { first: false, last: true }]) {
+      expect(replyToolSchema(opts).properties).not.toHaveProperty("user_replies");
+      expect(replyToolSchema(opts).required).not.toContain("user_replies");
+    }
   });
 
-  it("마지막 턴은 추천질문을 요구하지 않는다 — 더 물어볼 수 없는데 물으라고 하면 안 된다", () => {
-    const p = props({ first: false, last: true });
-    expect(p.user_replies.maxItems).toBe(0);
+  it("말풍선 글자 상한이 새 분량 목표(두 말풍선에 1,000자)를 담는다", () => {
+    expect(BUBBLE_MAX_CHARS * 2).toBeGreaterThanOrEqual(1000);
+  });
+
+  it("근거를 필수로 걸되 하한은 0 이다", () => {
+    const p = replyToolSchema(middle).properties as Record<string, { minItems?: number; maxItems?: number }>;
+    expect(p.basis.minItems).toBe(0);
+    expect(p.basis.maxItems).toBe(MAX_BASIS);
+    expect(replyToolSchema(middle).required).toContain("basis");
   });
 
   it("첫 턴에만 제목을 요구한다", () => {
@@ -81,7 +87,7 @@ describe("replyToolSchema", () => {
 describe("parseReply", () => {
   const good = {
     bubbles: ["첫 마디예요", "두 번째 마디예요"],
-    user_replies: ["그럼 지금 옮겨도 될까요?", "아직 준비가 안 된 것 같아요"],
+    basis: [{ criterion_id: "bigyeop-dominant", claim: "판단 기준을 자기 안에 두는 편이다" }],
     crisis: false,
     asks_user: true,
   };
@@ -89,9 +95,8 @@ describe("parseReply", () => {
   it("계약대로 온 응답을 통과시킨다", () => {
     expect(parseReply(good, middle)).toEqual({
       bubbles: good.bubbles,
-      // 모델이 채우는 이름(user_replies)과 저장·API 이름(suggestions)이 다르다.
-      // 그 되돌림이 여기서 깨지면 화면에 칩이 아예 뜨지 않는다.
-      suggestions: good.user_replies,
+      basis: [{ criterionId: "bigyeop-dominant", claim: "판단 기준을 자기 안에 두는 편이다" }],
+      basisOverflow: false,
       crisis: false,
       asksUser: true,
     });
@@ -99,7 +104,7 @@ describe("parseReply", () => {
 
   // ─── asks_user (대화 설계 §4) ───
   it("표시가 빠지면 null 이다 — false 로 접으면 짐작이 물러설 자리를 잃는다", () => {
-    const noFlag = { bubbles: good.bubbles, user_replies: good.user_replies, crisis: false };
+    const noFlag = { bubbles: good.bubbles, crisis: false };
     expect(parseReply(noFlag, middle).asksUser).toBeNull();
   });
 
@@ -125,18 +130,34 @@ describe("parseReply", () => {
     expect(() => parseReply({ ...good, bubbles: [] }, middle)).toThrow();
   });
 
-  it("말풍선이 상한을 넘으면 거부한다", () => {
-    const many = Array.from({ length: MAX_BUBBLES + 1 }, (_, i) => `말 ${i}`);
-    expect(() => parseReply({ ...good, bubbles: many }, middle)).toThrow();
+  it("말풍선이 많아도 버리지 않는다 — 개수 때문에 턴을 날리지 않는다", () => {
+    const many = Array.from({ length: 5 }, (_, i) => `말 ${i}`);
+    expect(parseReply({ ...good, bubbles: many }, middle).bubbles).toHaveLength(5);
   });
 
-  it("마지막 턴에 추천질문이 오면 버리고 빈 배열로 만든다", () => {
-    const r = parseReply(good, { first: false, last: true });
-    expect(r.suggestions).toEqual([]);
+  // ─── basis (2026-09-25 실험) ───
+  it("근거가 빠지면 빈 배열이다 — 근거 없이 답하는 턴도 정상이다", () => {
+    const r = parseReply({ bubbles: good.bubbles, crisis: false }, middle);
+    expect(r.basis).toEqual([]);
+  });
+
+  // 조용히 자르면 평가할 때 누락이 모델 쪽인지 우리 쪽인지 구분할 수 없다.
+  it("근거가 상한을 넘어도 원본을 그대로 두고 넘쳤다고 표시한다", () => {
+    const many = Array.from({ length: MAX_BASIS + 2 }, (_, i) => ({
+      criterion_id: `c-${i}`,
+      claim: "주장",
+    }));
+    const r = parseReply({ ...good, basis: many }, middle);
+    expect(r.basis).toHaveLength(MAX_BASIS + 2);
+    expect(r.basisOverflow).toBe(true);
+  });
+
+  it("상한 안이면 넘침 표시가 꺼져 있다", () => {
+    expect(parseReply(good, middle).basisOverflow).toBe(false);
   });
 
   it("crisis 가 빠지면 false 로 본다 — 없다고 무료 턴을 주면 안 된다", () => {
-    const noCrisis = { bubbles: good.bubbles, user_replies: good.user_replies };
+    const noCrisis = { bubbles: good.bubbles };
     expect(parseReply(noCrisis, middle).crisis).toBe(false);
   });
 
@@ -148,9 +169,10 @@ describe("parseReply", () => {
     expect(COUNSEL_TOOL_NAME).toBe("emit_reply");
   });
 
-  it("추천질문이 하나만 와도 통과시킨다 — 칩 하나 때문에 턴을 버리지 않는다", () => {
-    const r = parseReply({ ...good, user_replies: ["하나만"] }, middle);
-    expect(r.suggestions).toEqual(["하나만"]);
+  it("모델이 옛 버릇으로 user_replies 를 넘겨도 버린다", () => {
+    const r = parseReply({ ...good, user_replies: ["그럼 지금 옮겨도 될까요?"] }, middle);
+    expect(r).not.toHaveProperty("suggestions");
+    expect(r).not.toHaveProperty("user_replies");
   });
 
   it("첫 턴에 제목이 없어도 통과시킨다 — 메우는 것은 turn.ts 의 몫이다", () => {

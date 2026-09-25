@@ -8,37 +8,63 @@ import { z } from "zod";
 export const COUNSEL_TOOL_NAME = "emit_reply";
 
 /**
- * 말풍선 개수의 하한·상한.
+ * 말풍선 개수의 하한. 상한은 두지 않는다.
  *
- * 상한이 5 였을 때 상담사가 리포트 한 단락을 다섯 조각으로 잘라 붙였다 — 채팅
- * 모양을 한 리포트지 대화가 아니었다(대화 설계 §20.1). 공감과 해석은 한 말풍선에
- * 묶이고, 제안이나 되묻기가 있을 때만 하나가 더 붙는다. 그래서 보통 1~2, 많아야 3이다.
+ * 상한 3 을 두었을 때(2026-09-16 개편 직후) 답이 길어지자 모델이 말풍선을 4개로
+ * 나눠 보냈고, DeepSeek 는 tool 스키마의 maxItems 를 강제하지 않아 그 턴이 파싱에서
+ * 통째로 버려졌다 — 첫 턴이면 이용권이 되돌려지고 상담이 안 열린다. 말풍선 몇 개
+ * 때문에 치를 대가가 아니다. 쪼개기는 프롬프트(보통 두세 개)로 이끌고, 전체 길이는
+ * MAX_REPLY_TOKENS 가 묶는다.
  */
 export const MIN_BUBBLES = 1;
-export const MAX_BUBBLES = 3;
-export const BUBBLE_MAX_CHARS = 120;
 
 /**
- * 추천 답변의 **상한**이다. 하한은 0 이다 — 대화 설계 §18.
+ * 말풍선 하나의 글자 상한.
  *
- * 예전에는 minItems 도 이 값이라 중간 턴마다 정확히 두 개가 강제됐다. 그러면 낼
- * 갈래가 없는 턴에도 모델이 억지로 두 개를 지어내고, 그 대부분이 방금 한 제안에
- * 서명하게 만드는 문장("작은 것부터 다시 해볼게요")이 된다 — 상대의 상태를 묻는
- * 대신 내 결론을 받아들이게 하는 칩이다. 실제로 대화가 갈리는 자리에서만 낸다.
+ * 120 이었을 때는 새 고민 답의 목표(전체 650~1,000자, 2026-09-16 개편)를 담을 수
+ * 없었다. 두 말풍선으로 1,000자를 담고도 남도록 잡는다.
  */
-export const MAX_SUGGESTIONS = 2;
-export const SUGGESTION_MAX_CHARS = 30;
+export const BUBBLE_MAX_CHARS = 600;
 export const TITLE_MAX_CHARS = 20;
 
 /**
- * 한 턴 응답의 출력 토큰 상한. 비용 상한의 두 번째 자물쇠다
- * (말풍선 3개 × 120자 + 추천 답변 2개 + 제목 ≈ 460자 ≈ 400토큰. 여유를 둔다).
+ * 한 답이 댈 수 있는 해석 기준의 수와, 그 주장 한 문장의 길이.
+ *
+ * 3 인 이유: 한 답이 네 갈래 근거를 동시에 쓰면 그건 근거가 아니라 나열이다.
+ * 0 도 정상이다 — 관련 기준이 없는데 억지로 고르게 하면 끼워 맞추기가 돌아온다.
  */
-export const MAX_REPLY_TOKENS = 900;
+export const MAX_BASIS = 3;
+export const BASIS_CLAIM_MAX_CHARS = 120;
+
+/**
+ * 한 턴 응답의 출력 토큰 상한. 비용 상한의 두 번째 자물쇠다
+ * 말풍선 개수에 상한이 없으므로 답 전체 길이를 묶는 것은 이 값뿐이다.
+ * 실측(2026-09-16, deepseek-v4-pro)으로 600자 안팎의 답이 500토큰 안팎이었다 —
+ * 2400 이면 약 3,000자로, 목표 분량(보통 1,000자 이하)이 잘리지 않고 남는다.
+ */
+export const MAX_REPLY_TOKENS = 2400;
+
+/** 이 답이 어떤 해석 기준에 기대 무엇을 주장했는지. 내부 확인용이다 */
+export interface BasisRef {
+  criterionId: string;
+  claim: string;
+}
 
 export interface CounselorReply {
   bubbles: string[];
-  suggestions: string[];
+  /**
+   * 사용한 해석 기준. 기준 블록이 없거나 사주로 설명하지 않은 턴에는 빈 배열이다.
+   *
+   * 모델이 돌려준 것을 **그대로** 담는다. MAX_BASIS 를 넘겨도 자르지 않는다 —
+   * 조용히 잘라 두면 평가할 때 그 누락이 모델에서 생긴 것인지 우리 후처리에서
+   * 생긴 것인지 구분할 수 없다. 넘쳤다는 사실은 basisOverflow 가 말한다.
+   *
+   * ⚠️ 이 값이 채워졌다고 본문이 그 기준을 지켰다는 뜻은 아니다. id 가 실재하는지는
+   * 셀 수 있어도, 본문이 그 기준의 방향·조건·범위 안에 있는지는 사람이 본다.
+   */
+  basis: BasisRef[];
+  /** 모델이 MAX_BASIS 보다 많이 댔는가. 기록용이다 — 그 턴을 버리지 않는다 */
+  basisOverflow: boolean;
   title?: string;
   crisis: boolean;
   /**
@@ -54,42 +80,51 @@ export interface CounselorReply {
 export interface ReplyOptions {
   /** 첫 턴이면 제목을 함께 받는다 */
   first: boolean;
-  /** 마지막 턴이면 추천질문을 받지 않는다 */
+  /** 마지막 턴이면 되묻지 않는다 */
   last: boolean;
 }
 
 /**
  * 모델에게 줄 tool 파라미터 스키마. 개수를 여기 박는 것이 유일한 방어선이다 —
- * 프롬프트로 "두 개만 주세요"라고 부탁하면 지켜지지 않는 날이 온다.
+ * 프롬프트로 "하나는 꼭 주세요"라고 부탁하면 지켜지지 않는 날이 온다.
  */
 export function replyToolSchema(opts: ReplyOptions): Record<string, unknown> {
   const properties: Record<string, unknown> = {
     bubbles: {
       type: "array",
       minItems: MIN_BUBBLES,
-      maxItems: MAX_BUBBLES,
       items: { type: "string", maxLength: BUBBLE_MAX_CHARS },
       description:
-        "말풍선 하나는 한 호흡이다. 보통 한두 개 — 공감과 해석은 한 말풍선에 묶고, 제안이나 되묻기가 있을 때만 하나를 더 쓴다. 이어지는 말풍선이 같은 말을 되풀이하지 않는다.",
+        "의미가 이어지는 설명은 한 말풍선에 묶고, 적용이나 제안으로 넘어갈 때 나눈다. 보통 두세 개. 문장마다 끊지 않으며, 한 말풍선 안에서도 문단을 나눌 수 있다. 이어지는 말풍선이 같은 말을 되풀이하지 않는다.",
     },
-    // 이름이 suggestions 가 아니라 user_replies 인 것이 이 필드의 방어선이다.
-    // "제안"은 누구의 말인지 말해 주지 않아서, 모델이 상담사가 되묻는 질문을
-    // 채워 넣었다("어떤 분야로 시작했어요?"). 그걸 누르면 사용자가 상담사에게
-    // 그 질문을 하는 꼴이 된다. 저장·API 이름은 suggestions 그대로고, 여기서만
-    // 갈린다 — parseReply 가 되돌려 준다.
-    user_replies: {
+    // 근거를 답과 같은 호흡에 적게 하는 것이 이 필드의 목적이다. 나중에 붙이는
+    // 설명이 아니라, 무엇에 기대 말하는지를 먼저 고르게 한다.
+    basis: {
       type: "array",
       minItems: 0,
-      maxItems: opts.last ? 0 : MAX_SUGGESTIONS,
-      items: { type: "string", maxLength: SUGGESTION_MAX_CHARS },
-      description: opts.last
-        ? "마지막 턴이므로 빈 배열로 둔다."
-        : "사용자가 눌러서 자기 말로 보낼 다음 한마디. 대화가 실제로 갈리는 자리에서만 두 개를 내고, 갈래가 없으면 빈 배열로 둔다. 상담사가 상대에게 묻는 말이 아니다. 예: \"그럼 지금 옮겨도 될까요?\", \"아직 준비가 안 된 것 같아요\".",
+      maxItems: MAX_BASIS,
+      items: {
+        type: "object",
+        properties: {
+          criterion_id: {
+            type: "string",
+            description: "[해석 기준] 블록에 있는 id 를 그대로 적는다. 없는 id 를 만들지 않는다.",
+          },
+          claim: {
+            type: "string",
+            maxLength: BASIS_CLAIM_MAX_CHARS,
+            description: "그 기준으로 뒷받침하려는 이번 답의 핵심 주장 한 문장.",
+          },
+        },
+        required: ["criterion_id", "claim"],
+      },
+      description:
+        "이 답이 실제로 기댄 해석 기준. 사주로 설명하지 않았거나 맞는 기준이 없으면 빈 배열로 둔다. 답을 만들려고 무관한 기준을 고르지 않는다.",
     },
     crisis: {
       type: "boolean",
       description:
-        "자해·자살·학대 신호를 읽고 사주 해석 대신 안내로 답했으면 true. 아니면 false.",
+        "자해·자살·학대 등 안전 위기 신호를 읽고 운세 풀이 대신 안전 안내로 답했으면 true. 아니면 false.",
     },
     // 다음 턴이 연속 문진을 막는 근거다(대화 설계 §4). 말풍선 끝의 물음표로
     // 짐작하면 양쪽으로 틀리므로 — 물음표 없이 답을 요구하는 문장도, 물음표가
@@ -99,17 +134,17 @@ export function replyToolSchema(opts: ReplyOptions): Record<string, unknown> {
       ...(opts.last ? { enum: [false] } : {}),
       description: opts.last
         ? "마지막 턴이므로 되묻지 않는다. 반드시 false 다."
-        : "이 답이 상대의 대답을 기다리는가. 물음표가 있느냐가 아니라 상대가 답해야 대화가 이어지느냐로 판단한다. \"어느 쪽이 더 가까운지 말해줘요\" 는 물음표가 없어도 true, \"'내가 왜 이러지?' 하는 생각이 들 수 있어요\" 는 물음표가 있어도 false.",
+        : "사용자에게 확인이나 대답을 요청하면 true. 물음표 유무만으로 판단하지 않는다. \"어느 쪽이 더 가까운지 말해줘요\" 는 물음표가 없어도 true, \"'내가 왜 이러지?' 하는 생각이 들 수 있어요\" 는 물음표가 있어도 false.",
     },
   };
 
-  const required = ["bubbles", "user_replies", "crisis", "asks_user"];
+  const required = ["bubbles", "basis", "crisis", "asks_user"];
 
   if (opts.first) {
     properties.title = {
       type: "string",
       maxLength: TITLE_MAX_CHARS,
-      description: "이 상담을 목록에서 알아볼 짧은 제목. 사용자의 고민을 명사구로 줄인다.",
+      description: "이 상담을 목록에서 알아볼 짧은 제목. 사용자가 실제로 말한 고민을 명사구로 줄인다. 해석에서 추측한 문제는 넣지 않는다.",
     };
     required.push("title");
   }
@@ -118,8 +153,12 @@ export function replyToolSchema(opts: ReplyOptions): Record<string, unknown> {
 }
 
 const replyShape = z.object({
-  bubbles: z.array(z.string().trim().min(1)).min(MIN_BUBBLES).max(MAX_BUBBLES),
-  user_replies: z.array(z.string().trim().min(1)).max(MAX_SUGGESTIONS).default([]),
+  bubbles: z.array(z.string().trim().min(1)).min(MIN_BUBBLES),
+  // 상한을 넘겨도 버리지 않는다 — 말풍선과 같은 이유로, 근거 한 줄 때문에 턴을
+  // 날리지 않는다. 넘친 것은 잘라서 기록한다.
+  basis: z
+    .array(z.object({ criterion_id: z.string().trim().min(1), claim: z.string().trim().min(1) }))
+    .default([]),
   title: z.string().trim().min(1).max(TITLE_MAX_CHARS).optional(),
   // 빠지면 false. 없다고 무료 턴을 주면 미차감 한도를 우회하는 길이 된다.
   crisis: z.boolean().default(false),
@@ -153,9 +192,8 @@ export function parseReply(raw: unknown, opts: ReplyOptions): CounselorReply {
   const parsed = replyShape.parse(raw);
   return {
     bubbles: parsed.bubbles,
-    // 마지막 턴에 추천질문이 와도 버린다. 스키마로 막았지만 모델이 넘겨도
-    // 화면에 "더 물어보세요"가 뜨는 일은 없어야 한다.
-    suggestions: opts.last ? [] : parsed.user_replies.slice(0, MAX_SUGGESTIONS),
+    basis: parsed.basis.map((b) => ({ criterionId: b.criterion_id, claim: b.claim })),
+    basisOverflow: parsed.basis.length > MAX_BASIS,
     ...(opts.first && parsed.title ? { title: parsed.title } : {}),
     crisis: parsed.crisis,
     // 마지막 턴은 되묻지 않는 턴이라 모델이 뭐라 하든 false 다. 그 뒤에 다음 턴이

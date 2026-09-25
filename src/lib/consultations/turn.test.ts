@@ -5,7 +5,6 @@ import type { ChatRequest, ChatTransport } from "./chat-transport";
 
 const reply = {
   bubbles: ["첫 마디예요", "둘째 마디예요"],
-  user_replies: ["그럼 지금 옮겨도 될까요?", "아직 준비가 안 된 것 같아요"],
   crisis: false,
 };
 
@@ -20,7 +19,7 @@ function fakeTransport(args: unknown = reply) {
 
 /** 테스트가 실제로 들여다보는 tool 파라미터 속성만. 나머지는 알 바 아니다. */
 interface ReplyToolProperties {
-  user_replies: { maxItems: number };
+  asks_user: { enum?: unknown[] };
   title?: unknown;
 }
 
@@ -49,11 +48,11 @@ describe("runTurn", () => {
     expect(seen[0].model).toBe("m");
   });
 
-  it("마지막 턴이면 추천질문 없는 스키마를 보낸다", async () => {
-    const { transport, seen } = fakeTransport({ ...reply, user_replies: [] });
+  it("마지막 턴이면 되묻지 않는 스키마를 보낸다", async () => {
+    const { transport, seen } = fakeTransport(reply);
     await runTurn({ ...base, isLast: true, remaining: 1 }, { transport, model: "m" });
     const props = seen[0].inputSchema.properties as ReplyToolProperties;
-    expect(props.user_replies.maxItems).toBe(0);
+    expect(props.asks_user.enum).toEqual([false]);
   });
 
   it("첫 턴이면 제목을 요구하고 받아온다", async () => {

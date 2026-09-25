@@ -13,7 +13,7 @@ export function Bubble({ role, text, animate = false, delay = 0 }: Props) {
   return (
     <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
       <p
-        className={`max-w-[min(86%,470px)] px-4 py-[13px] text-[15px] leading-[1.62] tracking-[-0.01em] [text-wrap:pretty] ${
+        className={`max-w-[min(86%,470px)] px-4 py-[13px] whitespace-pre-line text-[15px] leading-[1.62] tracking-[-0.01em] [text-wrap:pretty] ${
           mine
             ? "rounded-[18px_18px_6px_18px] bg-accent text-white"
             : "rounded-[18px_18px_18px_6px] bg-slate-100 text-slate-900"

@@ -40,9 +40,6 @@ export function ChatRoom({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [turns, pending]);
 
-  const last = turns[turns.length - 1];
-  const suggestions = !pending && !closed ? (last?.suggestions ?? []) : [];
-
   async function send(text: string) {
     setError(null);
     setPending(true);
@@ -54,7 +51,7 @@ export function ChatRoom({
       bubbles: [text],
       isNew: false,
     };
-    setTurns((prev) => [...stripSuggestions(prev), optimistic]);
+    setTurns((prev) => [...prev, optimistic]);
 
     try {
       const res = await fetch(`/api/consultations/${consultationId}/messages`, {
@@ -79,7 +76,6 @@ export function ChatRoom({
           bubbles: json.reply.bubbles,
           // 방금 API 에서 온 답만 진입 애니메이션을 태운다.
           isNew: true,
-          ...(json.reply.suggestions?.length ? { suggestions: json.reply.suggestions } : {}),
         },
       ]);
       setRemaining(json.consultation.turnLimit - json.consultation.turnsUsed);
@@ -153,26 +149,6 @@ export function ChatRoom({
         </div>
       </div>
 
-      {suggestions.length > 0 && (
-        <div className="flex-none px-[clamp(16px,4vw,28px)] pb-2">
-          {/* 개수가 고정이 아니다 — 갈래가 없는 턴에는 아예 안 오고, 한 개만 오기도
-              한다(대화 설계 §18). flex-1 로 두면 한 개일 때 통짜 버튼이 되어 "이걸 누르라"는
-              말처럼 보이므로, 폭은 글자만큼만 준다. */}
-          <div className="mx-auto flex max-w-[640px] flex-wrap gap-2">
-            {suggestions.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => send(s)}
-                className="max-w-full rounded-[14px] border border-slate-200 px-3 py-2.5 text-left text-[13px] leading-[1.4] text-slate-500 hover:bg-slate-50"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {closed ? (
         <div className="flex-none border-t border-slate-100 px-[clamp(16px,4vw,28px)] py-5 text-center">
           <p className="mb-3 text-[13.5px] text-slate-500">상담이 마무리됐어요.</p>
@@ -197,13 +173,4 @@ export function ChatRoom({
       )}
     </div>
   );
-}
-
-/**
- * 새 발화를 보내는 순간 지난 추천질문은 사라져야 한다.
- * `{ suggestions, ...rest } => rest` 로 쓰면 구조분해된 suggestions 가 안 쓰여
- * no-unused-vars 에 걸린다 — 그래서 남길 필드만 직접 골라 새 객체를 만든다.
- */
-function stripSuggestions(turns: ChatTurn[]): ChatTurn[] {
-  return turns.map((t) => ({ key: t.key, role: t.role, bubbles: t.bubbles, isNew: t.isNew }));
 }

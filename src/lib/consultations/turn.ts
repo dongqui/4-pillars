@@ -15,6 +15,8 @@ import type { MessageRow } from "./store";
 
 export interface RunTurnInput {
   facts: string;
+  /** renderCriteria 가 만든 [해석 기준] 블록. 없으면 붙지 않는다 */
+  criteria?: string;
   history: MessageRow[];
   utterance: string;
   remaining: number;

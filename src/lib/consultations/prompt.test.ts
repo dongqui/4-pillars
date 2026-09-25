@@ -6,6 +6,7 @@ import {
   buildTurnMessages,
   endsWithQuestion,
 } from "./prompt";
+import { COUNSEL_TOOL_NAME } from "./schema";
 import type { MessageRow } from "./store";
 
 const facts = "일간: 갑목 · 신강약: 중화";
@@ -48,6 +49,17 @@ describe("buildTurnMessages", () => {
     expect(assistant[0].content).toBe("첫 마디\n둘째 마디");
   });
 
+  it("[해석 기준] 블록을 [사실] 과 같은 메시지에 싣는다 — 앞쪽이라야 캐시가 산다", () => {
+    const m = buildTurnMessages({ ...base, criteria: "[해석 기준]\n### some-id" });
+    expect(m[1].content).toContain("[사실]");
+    expect(m[1].content).toContain("[해석 기준]");
+    expect(m).toHaveLength(3);
+  });
+
+  it("기준이 없으면 블록을 붙이지 않는다", () => {
+    expect(buildTurnMessages(base)[1].content).not.toContain("[해석 기준]");
+  });
+
   it("남은 턴을 마지막 메시지 꼬리에 붙인다", () => {
     const m = buildTurnMessages({ ...base, remaining: 3 });
     expect(m[m.length - 1].content).toContain("남은 턴: 3");
@@ -81,6 +93,15 @@ describe("buildTurnMessages", () => {
     expect(m[m.length - 1].content).not.toContain("마지막");
   });
 
+  // 마지막이라고 이번 질문을 버리고 요약만 하면 마지막 턴이 답 없이 끝난다.
+  it("마지막 턴에도 이번 질문에 먼저 답하라고 시킨다", () => {
+    const m = buildTurnMessages({ ...base, isLast: true, remaining: 1 });
+    const tail = m[m.length - 1].content;
+    expect(tail).toContain("새 질문을 무시하고 이전 대화만 요약하지 마라");
+    expect(tail).toContain("asks_user는 false");
+    expect(tail).not.toContain("user_replies");
+  });
+
   // ─── 되묻기 억제 (대화 설계 §4) ───
   it("직전 답이 되묻기로 끝났으면 이번엔 되묻지 말라고 시킨다", () => {
     const m = buildTurnMessages({
@@ -93,9 +114,11 @@ describe("buildTurnMessages", () => {
         }),
       ],
     });
-    expect(m[m.length - 1].content).toContain("되묻지 말고");
+    expect(m[m.length - 1].content).toContain("직전 답변에서 사용자에게 확인을 요청했다");
     // 기본값이지 금지가 아니다 — 꼭 필요한 질문의 문은 열어 둔다.
-    expect(m[m.length - 1].content).toContain("물어도 된다");
+    expect(m[m.length - 1].content).toContain("연속 질문이어도 가능하다");
+    // 모호한 긍정("ㅇㅇㅇㅇ")을 한쪽 선택지로 접지 않게 한다.
+    expect(m[m.length - 1].content).toContain("특정 선택지에 동의했다고 처리하지 마라");
   });
 
   it("직전 답이 되묻기가 아니었으면 억제하지 않는다", () => {
@@ -109,7 +132,7 @@ describe("buildTurnMessages", () => {
         }),
       ],
     });
-    expect(m[m.length - 1].content).not.toContain("되묻지 말고");
+    expect(m[m.length - 1].content).not.toContain("확인을 요청했다");
   });
 
   // 억제는 턴마다 켜졌다 꺼졌다 하는 값이다. 시스템 프롬프트에 새면 매 턴 캐시가 깨진다.
@@ -124,7 +147,7 @@ describe("buildTurnMessages", () => {
         }),
       ],
     });
-    expect(m[0].content).not.toContain("직전 답변이");
+    expect(m[0].content).not.toContain("직전 답변에서");
   });
 });
 
@@ -211,64 +234,81 @@ describe("askedLastTurn", () => {
 });
 
 describe("COUNSELOR_SYSTEM_PROMPT", () => {
-  it("사주 용어를 쓰지 말라고 못박는다", () => {
-    expect(COUNSELOR_SYSTEM_PROMPT).toContain("용어");
-  });
-
   it("위기 상황 안내 번호를 담는다", () => {
     expect(COUNSELOR_SYSTEM_PROMPT).toContain(CRISIS_HOTLINE);
     expect(CRISIS_HOTLINE).toBe("109");
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("119");
   });
 
-  it("사실 블록 밖 정보를 지어내지 말라고 못박는다", () => {
-    expect(COUNSELOR_SYSTEM_PROMPT).toContain("[사실]");
+  it("사실 블록을 계산된 명리 정보로 읽게 한다", () => {
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("[사실] 블록은 서버가 계산한 명리 정보다");
   });
 
-  // 문체 규칙(해요체 · 되묻기)이 추천 답변까지 덮으면 상담사가 되묻는 질문이
-  // 칩으로 나오고, 그걸 누른 사용자가 상담사에게 그 질문을 하는 꼴이 된다.
-  it("추천 답변이 사용자의 말이라고 못박는다", () => {
-    expect(COUNSELOR_SYSTEM_PROMPT).toContain("user_replies");
+  it("도구 이름을 상수에서 가져온다", () => {
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain(`주어진 ${COUNSEL_TOOL_NAME} 도구`);
   });
 
-  // ─── 설계 가이드가 못박은 것들 ───
-  it("핵심 해석에 사실 근거를 하나 이상 쓰라고 못박는다", () => {
-    expect(COUNSELOR_SYSTEM_PROMPT).toContain("하나 이상");
+  // ─── 2026-09-16 개편 ───
+  it("질문에 대한 답을 먼저 두라고 못박는다", () => {
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("첫 한두 문장 안에 질문에 대한 답을 둔다");
   });
 
-  it("원국과 요즘 흐름을 섞지 말라고 못박는다", () => {
+  it("원국과 요즘 흐름을 나눠 읽게 한다", () => {
     expect(COUNSELOR_SYSTEM_PROMPT).toContain("[사실 · 원국]");
     expect(COUNSELOR_SYSTEM_PROMPT).toContain("[사실 · 요즘 흐름]");
-    expect(COUNSELOR_SYSTEM_PROMPT).toContain("섞지 마라");
   });
 
-  it("사주를 현재 상태의 원인으로 단정하지 말라고 못박는다", () => {
-    expect(COUNSELOR_SYSTEM_PROMPT).toContain("원인");
+  it("근거 없는 회복 시점을 만들지 말라고 못박는다", () => {
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("날짜나 회복 약속을 만들지 않는다");
+    // 한계 고지가 매 답의 정형화된 첫 문장이 되면 안 된다.
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("고정된 첫 문장으로 사용하지 않는다");
   });
 
-  // 예전 프롬프트는 "답의 끝에서는 되묻는다" 였다. 그 한 줄이 모든 턴을 질문으로
-  // 끝나게 만들어 상담을 문진표로 바꿨다(대화 설계 §4).
-  it("습관적으로 되묻지 말라고 뒤집어 못박는다", () => {
+  // ─── 2026-09-16 보정: 실측에서 나온 문제들 ───
+  it("모호한 짧은 답을 한쪽으로 확정하지 않고 짧게 확인만 하라고 못박는다", () => {
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("어느 쪽에 동의했는지 확정하지 않는다");
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("두 경우의 차이를 다시 장문으로 설명하지 않는다");
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("60~180자");
+  });
+
+  // "싫은 소리를 못 해요" 에 비견·겁재를 "관계가 깨질까 두려워한다" 의 근거로 붙였다.
+  // 금지 문장을 쌓는 대신 [해석 기준] 블록으로 뜻을 먼저 고정하는 쪽으로 바꿨다.
+  it("해석은 [해석 기준] 에서 출발하고 질문에 맞춰 뜻을 바꾸지 말라고 한다", () => {
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("[해석 기준]에서 출발한다");
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("질문에 맞춰 바꾸지 않는다");
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("같은 기준의 뜻을 뒤집지 않는다");
+  });
+
+  it("맞는 기준이 없으면 사주로 설명하지 말라고 한다", () => {
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("맞는 기준이 없으면 사주로 설명하지 않는다");
+  });
+
+  it("기준 id 와 블록 이름을 말풍선에 쓰지 말라고 한다", () => {
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("말풍선에 쓰지 않는다");
+  });
+
+  // 한 답에 비견·겁재·인성·상관·관성·신강·설기가 한꺼번에 나왔다.
+  it("전문용어를 답 전체에서 두 개로 묶는다 — 새 용어만 세지 않는다", () => {
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("최대 두 개까지만");
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("이전 턴에 나온 용어를 다시 사용하는 경우도");
+  });
+
+  // 개편이 뒤집은 옛 규칙이 같이 남으면 모델이 두 지시 사이에서 흔들린다.
+  it("옛 규칙(용어 전면 금지 · 한 턴 한 역할 · 짧은 말풍선)을 남기지 않는다", () => {
+    expect(COUNSELOR_SYSTEM_PROMPT).not.toContain("사주 용어를 쓰지 마라");
+    expect(COUNSELOR_SYSTEM_PROMPT).not.toContain("지금 상대에게 필요한 것 하나를 골라라");
+    expect(COUNSELOR_SYSTEM_PROMPT).not.toContain("보통 한두 개면 된다");
+  });
+
+  // 추천 답변 칩은 없앴다. 프롬프트에 남아 있으면 스키마에 없는 필드를 채우려 든다.
+  it("추천 답변을 언급하지 않는다", () => {
+    expect(COUNSELOR_SYSTEM_PROMPT).not.toContain("user_replies");
+    expect(COUNSELOR_SYSTEM_PROMPT).not.toContain("추천 답변");
+  });
+
+  it("습관적 되묻기를 기본으로 두지 않는다", () => {
     expect(COUNSELOR_SYSTEM_PROMPT).not.toContain("답의 끝에서는 되묻는다");
-    expect(COUNSELOR_SYSTEM_PROMPT).toContain(
-      "습관적으로 답 끝에 질문을 붙이지 마라",
-    );
-  });
-
-  it("추천 답변을 갈래가 없으면 비우라고 못박는다", () => {
-    expect(COUNSELOR_SYSTEM_PROMPT).toContain("빈 배열로 둔다");
-  });
-
-  // 사실이 주어졌다는 이유만으로 흐름을 매번 언급하면, 시점과 무관한 고민
-  // ("사람한테 싫은 소리를 못 하겠다")에도 "요즘 흐름을 보면…" 이 붙는다.
-  it("사실을 체크리스트처럼 소비하지 말라고 못박는다", () => {
-    expect(COUNSELOR_SYSTEM_PROMPT).toContain("체크리스트가 아니다");
-    expect(COUNSELOR_SYSTEM_PROMPT).toContain("주어져 있다는 이유만으로");
-  });
-
-  // 연속 질문 억제는 기본값이지 금지가 아니다 — 새로 나온 정보를 확인해야 하는
-  // 자리까지 막으면 문진표를 피하려다 해석이 틀어진다.
-  it("되묻기 억제가 금지가 아니라 기본값이라고 적는다", () => {
-    expect(COUNSELOR_SYSTEM_PROMPT).toContain("금지는 아니다");
+    expect(COUNSELOR_SYSTEM_PROMPT).toContain("매 턴 질문으로 끝낼 필요는 없다");
   });
 
   it("asks_user 를 무엇으로 판단할지 알려준다", () => {
