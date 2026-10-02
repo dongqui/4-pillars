@@ -2049,8 +2049,6 @@ export function SupportDialog({ kind, onClose }: { kind: SupportKind; onClose: (
 }
 ```
 
-`accent-700` 이 `globals.css` 테마에 없으면(Button 의 `hover:bg-accent-700` 이 쓰고 있으니 있을 것이다) `text-blue-700` 으로 바꾼다. `maxLength={BODY_MAX}` 은 `BODY_MAX` 와 같은 값이다 — import 해서 `maxLength={BODY_MAX}` 로 쓴다.
-
 - [ ] **Step 2: `AppMenu` 에 세 항목을 추가한다** — `src/components/AppMenu.tsx`
 
 import 에 추가:
