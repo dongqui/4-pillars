@@ -83,7 +83,15 @@ export function refundAmount(p: { amount: number; tickets: number; remaining: nu
 }
 
 /** 목록·실행이 같은 답을 보게 조건을 한 곳에 둔다. */
-export function isRefundable(p: { status: string; paidAt: Date | null; remaining: number | null; ... }, now: Date): boolean
+export interface RefundablePurchase {
+  status: string;
+  amount: number;
+  tickets: number | null;
+  remaining: number | null;
+  paidAt: Date | null;
+}
+
+export function isRefundable(p: RefundablePurchase, now: Date): boolean
 ```
 
 조건: `status='paid'` · `paid_at` 이 `now − 7일` 이후 · `remaining > 0` · `refundAmount > 0`.
