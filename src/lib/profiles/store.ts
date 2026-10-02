@@ -245,13 +245,19 @@ export async function createProfile(
 }
 
 /**
- * 프로필 하나를 지운다. 없는 프로필과 남의 프로필을 구분하지 않고 둘 다 false 다 —
- * getProfile 과 같은 이유로 user_id 조건이 이 함수의 존재 이유다. profiles.id 는
- * URL 에 노출되는 순번 bigint 라, id 만으로 지우면 파라미터를 증가시켜 남의
- * 프로필을 지울 수 있다.
+ * 프로필 하나를 지운다 — 행을 지우지 않고 deleted_at 을 찍는다. 없는 프로필과 남의
+ * 프로필을 구분하지 않고 둘 다 false 다 — getProfile 과 같은 이유로 user_id 조건이
+ * 이 함수의 존재 이유다. profiles.id 는 URL 에 노출되는 순번 bigint 라, id 만으로
+ * 지우면 파라미터를 증가시켜 남의 프로필을 지울 수 있다.
  *
- * 딸린 행은 스키마가 처리한다: matches·purchases 는 ON DELETE CASCADE,
- * consultations 는 SET NULL(이미 나눈 대화는 프로필이 사라져도 남는다).
+ * 진짜 DELETE 를 쓰지 않는 이유는 0050_profiles_deleted_at.sql 에 적혀 있다:
+ * maps 가 profiles 를 참조하므로 삭제가 공유 링크를 깨고, flows·matches 의
+ * CASCADE 가 산 리포트까지 지운다. 스키마의 CASCADE·SET NULL 은 그대로 남아 있지만
+ * 이제 평소에는 안 돈다 — 유예 기간이 지난 행을 진짜 지울 때만 돈다.
+ *
+ * `deleted_at IS NULL` 조건이 핵심이다. 이미 지운 것을 또 지우면 RETURNING 이
+ * 비고 false 가 나가, 핸들러가 지금처럼 404 를 돌려준다 — "이미 지워진 프로필에
+ * 한 번 더 오는 경우도 404" 라는 handleDeleteProfile 의 약속이 그대로 산다.
  *
  * entitlements 는 함께 지우지 않는다. subject_key 가 text 라 FK 가 없고, id 는
  * IDENTITY 라 재사용되지 않으니 남은 행이 다른 프로필을 여는 일은 없다. 반대로
@@ -264,8 +270,9 @@ export async function deleteProfile(
   client: SqlClient = sql,
 ): Promise<boolean> {
   const rows = await client`
-    DELETE FROM profiles
+    UPDATE profiles SET deleted_at = now()
      WHERE id = ${id}::bigint AND user_id = ${userId}::bigint
+       AND deleted_at IS NULL
     RETURNING id
   `;
   return rows.length > 0;

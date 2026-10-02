@@ -256,9 +256,17 @@ describe("kind", () => {
     expect(toProfileRow({ ...dbRow, kind: "other" }).kind).toBe("temp");
   });
 
-  it("deleteProfile 은 지운 행이 없으면 false 를 낸다", async () => {
-    const client = (() => Promise.resolve([])) as unknown as SqlClient;
-    expect(await deleteProfile("1", "2", client)).toBe(false);
+  // DELETE 를 보내지 않는 것이 이 테스트의 요점이다. 진짜 CASCADE 동작은 fakeClient
+  // 로는 못 잡지만, DELETE 가 안 나가면 flows·matches 의 CASCADE 가 돌 수 없다 —
+  // 프로필을 지워도 산 흐름 리포트와 본 궁합이 남는다는 설계 §7 의 요구가 이 한
+  // 줄로 기계적으로 보장된다.
+  it("deleteProfile 은 행을 지우지 않고 deleted_at 을 찍는다", async () => {
+    const { client, calls } = fakeClient([{ id: 2 }]);
+    expect(await deleteProfile("1", "2", client)).toBe(true);
+
+    expect(calls[0].sql).toContain("UPDATE profiles");
+    expect(calls[0].sql).toContain("deleted_at = now()");
+    expect(calls[0].sql).not.toContain("DELETE FROM");
   });
 
   // user_id 조건이 없으면 URL 의 순번 id 를 하나씩 올려가며 남의 프로필을 지울 수 있다.
@@ -266,9 +274,17 @@ describe("kind", () => {
     const { client, calls } = fakeClient([{ id: 2 }]);
     expect(await deleteProfile("1", "2", client)).toBe(true);
 
-    expect(calls[0].sql).toContain("DELETE FROM profiles");
     expect(calls[0].sql).toContain("user_id =");
     // 바인딩 순서는 템플릿에 나타난 순서다 — id → user_id.
     expect(calls[0].values).toEqual(["2", "1"]);
+  });
+
+  // 핸들러가 "이미 지워진 프로필에 한 번 더 오면 404" 를 약속한다. 그 404 는 이
+  // 조건이 RETURNING 을 비우는 데서 나온다.
+  it("deleteProfile 은 이미 지워진 행을 다시 지우지 않는다", async () => {
+    const { client, calls } = fakeClient([]);
+    expect(await deleteProfile("1", "2", client)).toBe(false);
+
+    expect(calls[0].sql).toContain("deleted_at IS NULL");
   });
 });
