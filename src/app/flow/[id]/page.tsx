@@ -5,7 +5,7 @@ import { getSession } from "@/lib/auth/session";
 import { getUser } from "@/lib/auth/users";
 import { resolveDisplayName } from "@/lib/auth/display-name";
 import { getFlow, type FlowRow } from "@/lib/flows/store";
-import { getProfile, type ProfileRow } from "@/lib/profiles/store";
+import { getProfileById, type ProfileRow } from "@/lib/profiles/store";
 import { toBirthInput } from "@/lib/profiles/to-birth-input";
 import { FLOW_SECTION_KEYS, type FlowInterpretation } from "@/app/api/flows/_lib/sections";
 import { buildFlowContext, type FlowContext } from "@/app/api/flows/_lib/prompt";
@@ -70,7 +70,8 @@ export default async function FlowResultPage({
   if (!flow) notFound();
 
   const [profile, user] = await Promise.all([
-    getProfile(session.userId, flow.profileId),
+    // 지워진 프로필도 읽는다 — 이미 산 리포트가 삭제로 404 가 되면 안 된다.
+    getProfileById(session.userId, flow.profileId),
     getUser(session.userId),
   ]);
   if (!profile) notFound();

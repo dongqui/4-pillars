@@ -8,6 +8,7 @@ import {
   createProfile,
   deleteProfile,
   getProfile,
+  getProfileById,
   listProfiles,
   toProfileRow,
   type CreateProfileInput,
@@ -252,6 +253,26 @@ describe("getProfile", () => {
     const { client, calls } = fakeClient([]);
     await getProfile("7", "3", client);
     expect(calls[0].sql).toContain("deleted_at IS NULL");
+  });
+});
+
+describe("getProfileById", () => {
+  // 이미 산 리포트의 주인을 읽는 자리다. 여기까지 지워진 행을 가리면 프로필을
+  // 지운 순간 /flow/[id] 와 /match/[id] 가 notFound 로 떨어져, 돈 주고 산 물건이
+  // 사라진다.
+  it("지워진 프로필도 돌려준다", async () => {
+    const { client, calls } = fakeClient([{ ...dbRow, is_unlocked: false }]);
+    expect(await getProfileById("7", "3", client)).not.toBeNull();
+    expect(calls[0].sql).not.toContain("deleted_at");
+  });
+
+  // getProfile 과 같은 이유로 user_id 를 함께 건다 — id 만으로 찾으면 파라미터를
+  // 올려가며 남의 생년월일을 읽을 수 있다.
+  it("user_id 를 함께 필터한다", async () => {
+    const { client, calls } = fakeClient([]);
+    expect(await getProfileById("7", "3", client)).toBeNull();
+    expect(calls[0].sql).toContain("p.user_id");
+    expect(calls[0].values).toEqual(["3", "7"]);
   });
 });
 

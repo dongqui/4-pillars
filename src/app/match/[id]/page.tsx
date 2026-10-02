@@ -5,7 +5,7 @@ import { getSession } from "@/lib/auth/session";
 import { getUser } from "@/lib/auth/users";
 import { resolveDisplayName } from "@/lib/auth/display-name";
 import { getMatch } from "@/lib/matches/store";
-import { getProfile, type ProfileRow } from "@/lib/profiles/store";
+import { getProfileById, type ProfileRow } from "@/lib/profiles/store";
 import { toBirthInput } from "@/lib/profiles/to-birth-input";
 import { MATCH_SECTION_KEYS, type MatchInterpretation } from "@/app/api/matches/_lib/sections";
 import { createMatchGenerator } from "@/app/api/matches/_lib/generator";
@@ -75,8 +75,9 @@ export default async function MatchResultPage({
   if (!match) notFound();
 
   const [subject, counterpart, user] = await Promise.all([
-    getProfile(session.userId, match.subjectProfileId),
-    getProfile(session.userId, match.counterpartProfileId),
+    // 지워진 프로필도 읽는다 — 이미 본 궁합이 삭제로 404 가 되면 안 된다.
+    getProfileById(session.userId, match.subjectProfileId),
+    getProfileById(session.userId, match.counterpartProfileId),
     getUser(session.userId),
   ]);
   if (!subject || !counterpart) notFound();

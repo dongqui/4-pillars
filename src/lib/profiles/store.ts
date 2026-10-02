@@ -195,6 +195,38 @@ export async function getProfile(
   return row ? toProfileRow(row) : null;
 }
 
+/**
+ * id 로 프로필 하나 — **지워진 것도 포함한다.**
+ *
+ * getProfile 과 갈리는 유일한 축이 그것이다. 이 함수를 쓰는 곳은 셋뿐이고 전부
+ * **이미 만들어진 산출물의 주인**을 읽는다: /flow/[id], /match/[id], 상담 메시지.
+ * 그 셋은 `if (!profile) notFound()` 라, getProfile 을 쓰면 프로필을 지운 순간
+ * 돈 주고 산 리포트가 404 가 된다.
+ *
+ * 새로 무언가를 여는 자리에서는 절대 쓰지 않는다 — 지워진 사람으로 이용권이
+ * 나가면 안 된다. 그 자리는 getProfile 이다.
+ *
+ * user_id 조건은 getProfile 과 같은 이유로 남는다: profiles.id 는 순번 bigint 라
+ * URL 에 노출되고, id 만으로 찾으면 남의 생년월일을 읽을 수 있다.
+ */
+export async function getProfileById(
+  userId: string,
+  id: string,
+  client: SqlClient = sql,
+): Promise<ProfileRow | null> {
+  const rows = await client`
+    SELECT p.*, (e.id IS NOT NULL) AS is_unlocked
+    FROM profiles p
+    LEFT JOIN entitlements e
+      ON e.user_id = p.user_id
+     AND e.feature = 'full_report'
+     AND e.subject_key = p.id::text
+    WHERE p.id = ${id}::bigint AND p.user_id = ${userId}::bigint
+  `;
+  const row = rows[0];
+  return row ? toProfileRow(row) : null;
+}
+
 export async function countProfiles(
   userId: string,
   kind: ProfileKind,
