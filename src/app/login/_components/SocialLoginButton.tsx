@@ -14,7 +14,7 @@ export function SocialLoginButton({
   return (
     <button
       type="button"
-      className={`relative font-inherit h-[52px] rounded-[14px] text-[15px] font-semibold cursor-default flex items-center justify-center transition-[filter,background-color] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${config.buttonClassName}`}
+      className={`relative font-inherit h-[52px] rounded-[14px] text-[15px] font-semibold flex items-center justify-center transition-[filter,background-color] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${config.buttonClassName}`}
     >
       <span className="absolute left-[18px] flex">{config.icon}</span>
       {config.label}

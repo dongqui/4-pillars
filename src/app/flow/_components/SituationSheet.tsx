@@ -96,7 +96,7 @@ export function SituationSheet({
             if (isContextComplete(answer)) onSubmit(answer);
           }}
           className={`mt-6 w-full rounded-[14px] py-[15px] text-[15px] font-bold text-white transition-colors ${
-            ready ? "bg-accent" : "cursor-default bg-slate-300"
+            ready ? "bg-accent" : "bg-slate-300"
           }`}
         >
           {busy ? "준비하는 중…" : "리포트 만들기"}

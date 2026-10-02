@@ -345,3 +345,18 @@ body {
     animation: none;
   }
 }
+
+/* Tailwind v4 는 버튼 커서를 기본값으로 둔다. 버튼마다 cursor-pointer 를 붙이면
+   다음 버튼에서 또 빠진다 — 여기서 한 번에 막는다. base 레이어라 컴포넌트가
+   cursor-* 유틸리티로 덮어쓸 수 있다. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
