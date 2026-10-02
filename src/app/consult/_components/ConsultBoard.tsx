@@ -8,6 +8,7 @@ import { MAX_UTTERANCE_CHARS } from "@/lib/consultations/input";
 import { LoadingScreen } from "@/components/loading/LoadingScreen";
 import { TicketModal } from "./TicketModal";
 import { SubjectSelect } from "./SubjectSelect";
+import { consultCheckoutHref } from "../_lib/consult-href";
 
 interface Props {
   /** 상담이 근거로 삼는 사람. 서버가 ?profile 또는 계정의 "나" 로 확정해서 넘긴다 */
@@ -106,7 +107,7 @@ export function ConsultBoard({ profileId, people, balance, isEmpty, children }: 
             없다는 사실이 곧 충전 유인이다. 시안은 문장이지만 링크로 둔다:
             모달은 새 상담을 눌러야 뜨므로 여기까지 죽어 있으면 충전할 길이 멀어진다. */}
         <Link
-          href="/checkout?next=/consult"
+          href={consultCheckoutHref(profileId)}
           className="mt-3.5 flex w-fit items-center gap-[7px] text-[13px] font-medium"
         >
           <span className="text-slate-500">이용권</span>
@@ -166,7 +167,7 @@ export function ConsultBoard({ profileId, people, balance, isEmpty, children }: 
         {!isEmpty && children}
       </div>
 
-      {modal && <TicketModal balance={balance} onClose={() => setModal(false)} />}
+      {modal && <TicketModal balance={balance} profileId={profileId} onClose={() => setModal(false)} />}
       {/* 첫 답변(LLM 한 턴)까지 만들어야 응답이 온다 — 버튼 문구로 버티기엔 길다. */}
       {pending && <LoadingScreen preset="consult" variant="overlay" />}
     </div>

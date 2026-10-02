@@ -42,6 +42,7 @@ export default async function ConsultRoomPage({
     <ConsultFrame displayName={resolveDisplayName(user)}>
       <ChatRoom
         consultationId={consultation.id}
+        profileId={consultation.profileId}
         // 첫 턴이 실패한 상담은 아직 제목이 없다. 목록의 "아직 시작하지 않은 상담"
         // 을 그대로 쓰면 이미 그 안에 들어와 있는 화면에서 말이 어긋난다.
         title={consultation.title ?? "새 상담"}

@@ -6,12 +6,19 @@ import { Bubble } from "./Bubble";
 import { TypingDots } from "./TypingDots";
 import { Composer } from "./Composer";
 import type { ChatTurn } from "../_lib/to-chat-view";
+import { consultListHref } from "../_lib/consult-href";
 
 /** 상담사 말풍선을 하나씩 띄우는 간격. 사람이 연달아 말하는 리듬을 만든다 */
 const BUBBLE_STAGGER_MS = 400;
 
 interface Props {
   consultationId: string;
+  /**
+   * 이 상담의 프로필. 목록으로 돌아가는 링크가 그 사람의 목록을 열어야 한다 —
+   * 목록이 프로필로 걸러지므로, 빠지면 계정의 "나" 목록으로 떨어진다.
+   * profile_id 가 NULL 인 옛 상담이면 null.
+   */
+  profileId: string | null;
   /** 머리글에 서는 상담 제목. 첫 턴이 실패해 아직 제목이 없으면 "새 상담" 이다 */
   title: string;
   /** 대화 위에 한 번 서는 날짜 칩 — "오늘" · "어제" · "8월 12일" */
@@ -23,6 +30,7 @@ interface Props {
 
 export function ChatRoom({
   consultationId,
+  profileId,
   title,
   dayLabel,
   initialTurns,
@@ -94,7 +102,7 @@ export function ChatRoom({
           대화 영역뿐이라, 머리글과 입력창은 가만히 있어도 제자리에 남는다. */}
       <header className="flex flex-none items-center gap-2.5 border-b border-slate-100 bg-white/[0.92] px-[clamp(16px,4vw,22px)] py-3.5 backdrop-blur-[12px] min-[900px]:px-6 min-[900px]:py-4">
         <Link
-          href="/consult"
+          href={consultListHref(profileId)}
           aria-label="상담 목록으로"
           className="-ml-1.5 flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[10px] text-[18px] text-slate-700 hover:bg-slate-100"
         >
@@ -153,7 +161,7 @@ export function ChatRoom({
         <div className="flex-none border-t border-slate-100 px-[clamp(16px,4vw,28px)] py-5 text-center">
           <p className="mb-3 text-[13.5px] text-slate-500">상담이 마무리됐어요.</p>
           <Link
-            href="/consult"
+            href={consultListHref(profileId)}
             className="inline-flex h-12 items-center rounded-[14px] bg-accent px-6 text-[15px] font-bold tracking-[-0.02em] text-white hover:bg-accent-700"
           >
             새 상담 시작하기
