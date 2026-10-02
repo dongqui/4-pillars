@@ -116,3 +116,19 @@ export function canSubmit(
   if (kind === "refund") return s.pick !== null && s.reason !== null;
   return hasText;
 }
+
+/** 환불 탭 상단 정책. 결제 화면(CheckoutView)의 안내와 같은 규칙을 말한다. */
+export const REFUND_POLICY = [
+  "결제일로부터 7일 이내, 사용하지 않은 이용권만 환불돼요.",
+  "쓴 장수는 장당 1,000원으로 계산하고, 보너스 장수는 환불되지 않아요.",
+] as const;
+
+export function refundButtonLabel(amount: number | null): string {
+  return amount === null ? "환불받기" : `${amount.toLocaleString("ko-KR")}원 환불받기`;
+}
+
+/** pending 은 포트원 취소가 실패해 운영자가 마저 처리하는 경우 — 유저에게는 "접수" 로 보인다. */
+export function refundSentDesc(amount: number, pending: boolean): string {
+  if (pending) return "환불을 접수했어요. 처리에 시간이 걸릴 수 있어요.";
+  return `${amount.toLocaleString("ko-KR")}원이 결제하신 수단으로 돌아가요. 카드사에 따라 3~7일 걸려요.`;
+}
