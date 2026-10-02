@@ -44,8 +44,10 @@ export default async function ConsultPage({
   const people = profiles.map(toPersonOption);
   const profileId = people.some((p) => p.id === asked) ? asked : people[0].id;
 
+  // 목록도 위의 profileId 로 거른다 — 셀렉터가 보여주는 사람과 목록의 사람이 같아야
+  // 한다는 이 파일의 원칙 그대로다. 예전에는 계정의 모든 상담이 한 줄에 섰다.
   const [rows, balance, user] = await Promise.all([
-    listConsultations(session.userId),
+    listConsultations(session.userId, profileId),
     getBalance(session.userId),
     getUser(session.userId),
   ]);

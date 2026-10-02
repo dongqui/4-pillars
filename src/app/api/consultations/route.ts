@@ -12,11 +12,26 @@ import { InsufficientTicketsError } from "@/lib/consultations/ticket-port";
 /** 첫 턴이 LLM 한 번이라 리포트만큼 오래 걸리지는 않지만, pro 모델이라 여유를 둔다 */
 export const maxDuration = 60;
 
-export async function GET(): Promise<Response> {
+/**
+ * 한 프로필의 상담 목록. 어느 프로필인지는 POST 와 같은 규칙으로 정한다 — ?profile 이
+ * 저장한 사람이면 그 사람, 아니면 계정의 "나". 두 핸들러가 다른 사람을 고르면 방금
+ * 연 상담이 목록에 안 보인다.
+ */
+export async function GET(request: Request): Promise<Response> {
   const session = await getSession();
   if (!session) return Response.json({ error: "로그인이 필요합니다" }, { status: 401 });
 
-  const rows = await listConsultations(session.userId);
+  const param = parseProfileParam(
+    Object.fromEntries(new URL(request.url).searchParams),
+  );
+  const picked = param.kind === "id" ? await getProfile(session.userId, param.id) : null;
+  const profile =
+    picked?.kind === "saved" ? picked : await defaultConsultationSubject(session.userId);
+
+  // 프로필이 하나도 없는 계정은 상담을 가질 수 없다 — 빈 목록이지 오류가 아니다.
+  if (!profile) return Response.json({ consultations: [] });
+
+  const rows = await listConsultations(session.userId, profile.id);
   return Response.json({ consultations: rows });
 }
 

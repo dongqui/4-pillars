@@ -139,8 +139,20 @@ export async function setTicketSpent(
   `;
 }
 
+/**
+ * 한 프로필의 상담 목록.
+ *
+ * profileId 를 받는 이유: 예전에는 user_id 로만 걸러, 홈에서 사람을 바꿔도 계정의
+ * 모든 상담이 한 줄에 섰다. 상담은 그 사람의 원국을 근거로 하는 대화라 사람이
+ * 바뀌면 목록도 바뀌어야 한다.
+ *
+ * user_id 조건을 빼지 않는다 — profile_id 는 NULL 일 수 있고(옛 행, 그리고 0012 의
+ * ON DELETE SET NULL 이 돈 행) 조건이 하나면 그 틈으로 남의 행이 섞인다. 두 조건을
+ * 다 걸면 NULL 인 행은 어느 목록에도 서지 않는다.
+ */
 export async function listConsultations(
   userId: string,
+  profileId: string,
   client: SqlClient = sql,
 ): Promise<ConsultationListItem[]> {
   const rows = await client`
@@ -151,6 +163,7 @@ export async function listConsultations(
     ) AS last_bubbles
     FROM consultations c
     WHERE c.user_id = ${userId}::bigint
+      AND c.profile_id = ${profileId}::bigint
       -- 이용권이 안 쓰였고 한 턴도 안 나눈 행은 아무도 값을 치르지 않았고 아무도
       -- 쓰지 않은 죽은 행이다. "아직 시작하지 않은 상담"으로 보여주면 클릭해도
       -- ConsultationClosedError 만 돌아오는 막다른 길로 사용자를 보내는 셈이다.
