@@ -50,7 +50,7 @@
 
 **환불 — 결제 내역**: `purchases` 중 `status='paid'`, 최근 순.
 
-- 제목 "이용권 N장" (보너스가 있으면 "이용권 5장 + 1장"), 부제 "5,000원", 메타 결제일.
+- 제목 "이용권 N장" — N 은 보너스를 포함한 적립 장수(`purchases.tickets`)로, 카드 명세서의 주문명(`packageOrderName`)과 같은 문구다. 부제 "5,000원", 메타 결제일.
 - 목록 위에 "지금 남은 이용권 N장" 한 줄 (`getBalance`). 지갑이 계정 하나로 합쳐져 있어 결제 건별 잔여는 계산할 근거가 없다.
 - 결제 건이 없으면 "환불할 결제 내역이 없어요" 를 보여 주고 보내기를 막는다.
 - 이미 열린(`status='open'`) 환불 요청이 있는 결제 건은 메타에 "요청됨" 을 붙이고 고를 수 없게 한다.
@@ -77,6 +77,7 @@ created_at    timestamptz NOT NULL DEFAULT now()
 - kind 별 필수값을 CHECK 로 묶는다: `kind <> 'error' OR target_kind IS NOT NULL`, `kind <> 'refund' OR (purchase_id IS NOT NULL AND refund_reason IS NOT NULL)`.
 - 그래서 `purchase_id` 는 `ON DELETE CASCADE` 다. 결제 행이 지워지는 건 사용자째 지워질 때뿐이고, 결제 없는 환불 요청은 뜻이 없다. SET NULL 이면 위 CHECK 와 부딪힌다.
 - 인덱스: `(status, created_at DESC)` — 어드민 받은편지함용. `(user_id)`.
+- 같은 결제 건에 열린 환불 요청은 하나뿐이다 — 부분 유니크 인덱스 `(purchase_id) WHERE kind='refund' AND status='open'`. 동시 요청 두 개가 앱 검사를 함께 통과해도 DB 가 하나를 막는다.
 - 한 파일 한 문장 규칙에 따라 테이블·인덱스·role 을 별개 마이그레이션 파일로 나눈다.
 
 ### 5. API
@@ -129,8 +130,8 @@ SUPPORT_MAIL_TO=projectn.contact@gmail.com
 
 - `options.test.ts`: 가짜 SqlClient 로 행 → 표시 문구 매핑(날짜 메타, 삭제된 항목, 보너스 표기, "기타" 꼬리, 요청됨 표시).
 - `handler.test.ts`: 401 / kind 별 400 / 남의 target·purchase 404 / 중복 환불 409 / 429 / 정상 201 + INSERT 인자 + 메일 호출 / 메일 실패해도 201 / 키 없을 때 메일 건너뜀.
-- `SupportDialog` 컴포넌트 테스트: kind 별 보내기 버튼 활성 조건.
-- `AppMenu`: 로그인 시 세 항목 노출, 비로그인 시 숨김.
+- 보내기 활성 조건은 순수 함수 `canSubmit` 로 떼어 단위 테스트한다(이 저장소의 컴포넌트 테스트는 node 환경 `renderToStaticMarkup` 뿐이라 상호작용을 못 돌린다).
+- `AppMenu`·`SupportDialog` 의 열고 닫기·전송은 브라우저에서 확인한다.
 
 ## 범위 밖
 
