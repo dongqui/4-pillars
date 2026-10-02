@@ -13,6 +13,7 @@ import {
 import { NewPersonForm } from "./NewPersonForm";
 import { PersonSelect } from "./PersonSelect";
 import { RelationPicker } from "./RelationPicker";
+import { LoadingScreen } from "@/components/loading/LoadingScreen";
 
 /** 지금 열려 있는 것 — 목록이든 폼이든 한 번에 하나다. 두 칸이 동시에 펼쳐지면
  *  화면이 길어져 아래의 관계·제출 버튼이 스크롤 밖으로 밀린다. */
@@ -68,6 +69,7 @@ export function MatchForm({
   const [formError, setFormError] = useState<string | null>(null);
 
   const [pending, setPending] = useState(false);
+  const [navigating, setNavigating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const subject = people.find((p) => p.id === subjectId) ?? null;
@@ -192,32 +194,41 @@ export function MatchForm({
     if (!canSubmit || !counterpart) return;
     setPending(true);
     setError(null);
-    const res = await fetch("/api/matches", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        subjectProfileId: subjectId,
-        ...(counterpart.kind === "saved"
-          ? { counterpartProfileId: counterpart.profileId }
-          : { counterpart: counterpart.input, saveCounterpart: counterpart.save }),
-        relation,
-      }),
-    });
-    // 402 는 잔액 부족이다. 이 폼이 실제로 잔액이 모자란 흔한 경로다(canCreateMatch 가
-    // 여기서 먼저 걸러 낸다 — /match/[id] 의 MatchOutOfTickets 는 그 사이 다른 탭에서
-    // 다 썼거나 링크를 직접 연 드문 경우에만 닿는다). report 의 use-unlock.ts 와 같은
-    // 모양으로, 메시지를 보여주는 대신 충전 뒤 돌아올 자리를 실어 보낸다.
-    if (res.status === 402) {
-      router.push(`/checkout?next=${encodeURIComponent("/match")}`);
-      return;
-    }
-    const body = (await res.json()) as { matchId?: string; error?: string };
-    if (!res.ok || !body.matchId) {
+    try {
+      const res = await fetch("/api/matches", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          subjectProfileId: subjectId,
+          ...(counterpart.kind === "saved"
+            ? { counterpartProfileId: counterpart.profileId }
+            : { counterpart: counterpart.input, saveCounterpart: counterpart.save }),
+          relation,
+        }),
+      });
+      // 402 는 잔액 부족이다. 이 폼이 실제로 잔액이 모자란 흔한 경로다(canCreateMatch 가
+      // 여기서 먼저 걸러 낸다 — /match/[id] 의 MatchOutOfTickets 는 그 사이 다른 탭에서
+      // 다 썼거나 링크를 직접 연 드문 경우에만 닿는다). report 의 use-unlock.ts 와 같은
+      // 모양으로, 메시지를 보여주는 대신 충전 뒤 돌아올 자리를 실어 보낸다.
+      if (res.status === 402) {
+        router.push(`/checkout?next=${encodeURIComponent("/match")}`);
+        return;
+      }
+      const body = (await res.json()) as { matchId?: string; error?: string };
+      if (!res.ok || !body.matchId) {
+        setPending(false);
+        setError(body.error ?? "궁합을 만들지 못했어요");
+        return;
+      }
+      // 생성 요청은 금방 끝난다 — 느린 건 도착 페이지의 LLM 이다. 그 fallback 과 같은
+      // 화면을 지금 띄워 두면 이동이 끊김 없이 이어진다.
+      setNavigating(true);
+      router.push(`/match/${body.matchId}`);
+    } catch {
+      // fetch 가 던지면(오프라인 등) 예전엔 버튼이 눌린 채 남았다.
       setPending(false);
-      setError(body.error ?? "궁합을 만들지 못했어요");
-      return;
+      setError("연결이 끊겼어요. 다시 시도해 주세요");
     }
-    router.push(`/match/${body.matchId}`);
   }
 
   return (
@@ -346,6 +357,7 @@ export function MatchForm({
       )}
 
       {children}
+      {navigating && <LoadingScreen preset="match" variant="overlay" />}
     </div>
   );
 }

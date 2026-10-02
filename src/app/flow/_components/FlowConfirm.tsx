@@ -9,6 +9,7 @@ import type { ContextAnswer } from "@/lib/flows/context";
 import type { YearOption } from "../_lib/to-confirm";
 import { toStartOutcome, type StartFailure } from "../_lib/to-start-outcome";
 import { SituationSheet } from "./SituationSheet";
+import { LoadingScreen } from "@/components/loading/LoadingScreen";
 
 export interface FlowConfirmProps {
   people: PersonOption[];
@@ -42,6 +43,8 @@ export function FlowConfirm(props: FlowConfirmProps) {
   // 시트와 동시에 뜨지 않는다.
   const [ctxYear, setCtxYear] = useState<YearOption | null>(null);
   const [busy, setBusy] = useState(false);
+  // 요청이 받아들여져 /flow/[id] 로 넘어가는 중. 그 페이지 fallback 과 같은 화면을 먼저 띄운다.
+  const [navigating, setNavigating] = useState(false);
   const [failure, setFailure] = useState<StartFailure | null>(null);
 
   if (props.people.length === 0) {
@@ -111,6 +114,7 @@ export function FlowConfirm(props: FlowConfirmProps) {
         return;
       }
       const { id } = (await res.json()) as { id: string };
+      setNavigating(true);
       router.push(`/flow/${id}`);
     } catch {
       setFailure(toStartOutcome(0));
@@ -279,6 +283,7 @@ export function FlowConfirm(props: FlowConfirmProps) {
           onClose={closeContext}
         />
       )}
+      {navigating && <LoadingScreen preset="flow" variant="overlay" />}
     </section>
   );
 }
@@ -345,7 +350,7 @@ function PayModal({
           type="button"
           disabled={busy}
           onClick={onConfirm}
-          className={`mt-5 flex w-full items-center justify-between gap-3 rounded-[15px] border-[1.5px] px-4 py-[15px] text-left transition-colors disabled:opacity-60 ${
+          className={`mt-5 flex w-full items-center justify-between gap-3 rounded-[15px] border-[1.5px] px-4 py-[15px] text-left transition-colors disabled:opacity-50 ${
             tickets > 0
               ? "border-slate-900 bg-slate-50 hover:border-slate-700"
               : "border-slate-200 bg-white opacity-45"
