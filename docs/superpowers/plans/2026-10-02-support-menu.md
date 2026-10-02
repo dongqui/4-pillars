@@ -341,7 +341,7 @@ export function canSubmit(
 - [ ] **Step 5: 통과를 확인한다**
 
 Run: `npx vitest run src/lib/support/types.test.ts`
-Expected: PASS (11 tests)
+Expected: PASS (10 tests)
 
 - [ ] **Step 6: 커밋**
 
