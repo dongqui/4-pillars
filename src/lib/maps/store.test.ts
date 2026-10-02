@@ -5,6 +5,7 @@ import {
   addMapPerson,
   createMap,
   deleteMapPerson,
+  getMapByProfile,
   getMapByShareId,
   listMapPeople,
   toMapPersonRow,
@@ -26,6 +27,7 @@ const mapDbRow = {
   id: 7,
   share_id: "0f4b0a5e-1111-4222-8333-444455556666",
   owner_user_id: 3,
+  profile_id: 5,
   center_name: "김동진",
   center_calendar: "solar",
   center_is_leap_month: false,
@@ -51,6 +53,7 @@ describe("toMapRow", () => {
       id: "7",
       shareId: "0f4b0a5e-1111-4222-8333-444455556666",
       ownerUserId: "3",
+      profileId: "5",
       center: {
         name: "김동진",
         year: 1990, month: 10, day: 25,
@@ -58,6 +61,12 @@ describe("toMapRow", () => {
       },
       createdAt: "2026-08-18T00:00:00.000Z",
     });
+  });
+
+  // 백필(0053)이 primary 가 없는 계정의 지도를 못 채운다. 그 행을 "null" 문자열로
+  // 접으면 getMapByProfile("null") 같은 엉뚱한 조회가 생긴다.
+  it("profile_id 가 NULL 인 옛 행은 profileId 가 null 이다", () => {
+    expect(toMapRow({ ...mapDbRow, profile_id: null }).profileId).toBeNull();
   });
 });
 
@@ -78,24 +87,44 @@ describe("getMapByShareId", () => {
   });
 });
 
+describe("getMapByProfile", () => {
+  it("프로필로 찾는다", async () => {
+    const { client, calls } = fakeClient([mapDbRow]);
+    const row = await getMapByProfile("5", client);
+
+    expect(row?.id).toBe("7");
+    expect(calls[0].sql).toContain("profile_id =");
+    expect(calls[0].values).toEqual(["5"]);
+  });
+
+  it("없으면 null", async () => {
+    const { client } = fakeClient([]);
+    expect(await getMapByProfile("5", client)).toBeNull();
+  });
+});
+
 describe("createMap", () => {
+  const center = {
+    name: "김동진", year: 1990, month: 10, day: 25,
+    calendar: "solar" as const, isLeapMonth: false,
+  };
+
+  // /map 진입이 GET 이라 멱등해야 한다. 흔한 경로는 "이미 있는 지도" 이므로
+  // 먼저 읽고, 있으면 INSERT 를 아예 안 보낸다.
   it("이미 있으면 INSERT 하지 않고 그대로 돌려준다", async () => {
     const { client, calls } = fakeClient([mapDbRow]);
-    const row = await createMap("3", {
-      name: "김동진", year: 1990, month: 10, day: 25,
-      calendar: "solar", isLeapMonth: false,
-    }, client);
+    const row = await createMap("3", "5", center, client);
     expect(row.id).toBe("7");
     expect(calls).toHaveLength(1);
     expect(calls[0].sql).toContain("SELECT");
+    // 계정이 아니라 프로필로 찾는다 — 한 계정의 두 프로필이 같은 지도를 받으면
+    // 이 변경 전체가 무효다.
+    expect(calls[0].sql).toContain("profile_id =");
   });
 
   it("없으면 INSERT 하고 다시 읽어 돌려준다", async () => {
     const { client, calls } = fakeClient([], [], [mapDbRow]);
-    const row = await createMap("3", {
-      name: "김동진", year: 1990, month: 10, day: 25,
-      calendar: "solar", isLeapMonth: false,
-    }, client);
+    const row = await createMap("3", "5", center, client);
     expect(row.id).toBe("7");
     expect(calls).toHaveLength(3);
     expect(calls[1].sql).toContain("INSERT INTO maps");
@@ -103,6 +132,16 @@ describe("createMap", () => {
     expect(calls[1].values[0]).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
     );
+  });
+
+  // 유니크가 profile_id 로 옮겨졌다(0055). owner_user_id 를 겨냥하면 없는
+  // 인덱스를 가리켜 런타임에 터진다.
+  it("ON CONFLICT 가 profile_id 를 겨냥하고 프로필을 함께 넣는다", async () => {
+    const { client, calls } = fakeClient([], [], [mapDbRow]);
+    await createMap("3", "5", center, client);
+
+    expect(calls[1].sql).toContain("ON CONFLICT (profile_id)");
+    expect(calls[1].values).toContain("5");
   });
 });
 
