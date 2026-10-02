@@ -79,7 +79,9 @@ export function LoadingScreen({
 
       <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-slate-100">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-accent to-accent-400 transition-[width] duration-200 ease-linear"
+          // width transition 은 두지 않는다 — 200ms 마다 목표가 바뀌어 전환이 계속 새로
+          // 시작되면 바가 숫자보다 한참 뒤처진다. 틱 간격만으로 충분히 매끄럽다.
+          className="h-full rounded-full bg-gradient-to-r from-accent to-accent-400"
           style={{ width: `${pct}%` }}
         />
       </div>
