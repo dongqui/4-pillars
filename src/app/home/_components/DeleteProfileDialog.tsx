@@ -82,9 +82,12 @@ export function DeleteProfileDialog({ profileId, name, onClose, onDeleted }: Pro
         <p id="delete-profile-title" className={TITLE}>
           {name} 프로필을 지울까요?
         </p>
+        {/* 소프트 삭제(0050) 뒤로 이미 본 궁합 결과는 남는다 — 돈 주고 산 것이 삭제로
+            사라지면 안 되어서다. "함께 사라져요" 는 그 전의 사실이었다. 전체 리포트는
+            프로필 id 에 묶인 권한이라, 같은 사람을 다시 넣어도 새 id 라 다시 열어야 한다. */}
         <p className={NOTE}>
-          이 사주로 본 리포트와 궁합 결과가 함께 사라져요. 이용권을 써서 연 전체
-          리포트도 다시 열어야 해요. 되돌릴 수 없어요.
+          목록에서 사라져요. 이 사주로 이미 본 궁합 결과는 남아요. 이용권을 써서 연
+          전체 리포트는 다시 열어야 해요. 되돌릴 수 없어요.
         </p>
         {error && (
           <p role="alert" className="mt-3 text-[13px] font-semibold text-red-600">
