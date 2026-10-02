@@ -17,6 +17,8 @@ export interface SupportMailInput {
   targetLabel: string | null;
   paymentId: string | null;
   refundReason: RefundReason | null;
+  refundAmount?: number | null;
+  refundFailed?: boolean;
   body: string;
 }
 
@@ -41,7 +43,7 @@ const KST = new Intl.DateTimeFormat("ko-KR", {
  * 이스케이프해야 하는 부담만 늘린다.
  */
 export function composeSupportMail(i: SupportMailInput): SupportMail {
-  const head = `[${KIND_LABEL[i.kind]}]`;
+  const head = i.kind === "refund" && i.refundFailed ? "[환불 실패]" : `[${KIND_LABEL[i.kind]}]`;
   const subject = i.targetLabel ? `${head} ${i.targetLabel} — ${i.userName}` : `${head} ${i.userName}`;
 
   const lines = [
@@ -53,6 +55,8 @@ export function composeSupportMail(i: SupportMailInput): SupportMail {
   if (i.targetLabel) lines.push(`대상: ${i.targetLabel}`);
   if (i.paymentId) lines.push(`결제 ID: ${i.paymentId}`);
   if (i.refundReason) lines.push(`환불 사유: ${i.refundReason}`);
+  if (i.refundAmount != null) lines.push(`환불액: ${i.refundAmount.toLocaleString("ko-KR")}원`);
+  if (i.refundFailed) lines.push("⚠️ 포트원 취소 실패 — DB 는 refunded 다. 콘솔에서 수동 취소할 것.");
   lines.push("", "─ 내용 ─", i.body.trim() === "" ? "(내용 없음)" : i.body);
 
   return { subject, text: lines.join("\n"), replyTo: i.email };

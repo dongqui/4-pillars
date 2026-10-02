@@ -53,4 +53,17 @@ describe("composeSupportMail", () => {
   it("이메일이 있으면 replyTo 로 — 받은 메일에서 바로 답장한다", () => {
     expect(composeSupportMail(base).replyTo).toBe("dj@example.com");
   });
+
+  it("환불액을 적는다", () => {
+    const { text } = composeSupportMail({ ...base, kind: "refund", refundReason: "기타", refundAmount: 3000, body: "" });
+    expect(text).toContain("환불액: 3,000원");
+  });
+
+  it("포트원 실패는 제목이 [환불 실패] 고 수동 취소 안내가 있다", () => {
+    const { subject, text } = composeSupportMail({
+      ...base, kind: "refund", refundReason: "기타", refundAmount: 3000, refundFailed: true, body: "",
+    });
+    expect(subject).toContain("[환불 실패]");
+    expect(text).toContain("수동 취소");
+  });
 });

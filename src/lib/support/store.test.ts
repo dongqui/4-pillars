@@ -183,4 +183,12 @@ describe("insertSupportTicket", () => {
     const { client } = recorder([[]]);
     expect(await insertSupportTicket(base, client)).toBeNull();
   });
+
+  it("status 를 안 주면 open, resolved 면 resolved_at 도 같이 찍는다", async () => {
+    const { client, queries, params } = recorder([[{ id: 1, created_at: T }]]);
+    await insertSupportTicket({ ...base, status: "resolved", adminNote: "자동 환불 3,000원" }, client);
+    expect(queries[0]).toContain("resolved_at");
+    expect(params[0]).toContain("resolved");
+    expect(params[0]).toContain("자동 환불 3,000원");
+  });
 });

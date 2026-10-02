@@ -198,6 +198,9 @@ export interface NewSupportTicket {
   refundReason: RefundReason | null;
   body: string;
   replyEmail: string | null;
+  /** 자동 환불은 넣는 즉시 처리 끝이다 — 'resolved' 로 넣고 admin_note 에 금액을 남긴다. 기본 'open'. */
+  status?: "open" | "resolved";
+  adminNote?: string | null;
 }
 
 /**
@@ -208,12 +211,16 @@ export async function insertSupportTicket(
   t: NewSupportTicket,
   client: SqlClient = sql,
 ): Promise<{ id: string; createdAt: string } | null> {
+  const status = t.status ?? "open";
   const rows = await client`
     INSERT INTO support_tickets
-      (user_id, kind, target_kind, target_ref, target_label, purchase_id, refund_reason, body, reply_email)
+      (user_id, kind, target_kind, target_ref, target_label, purchase_id, refund_reason, body, reply_email,
+       status, admin_note, resolved_at)
     VALUES (
       ${t.userId}::bigint, ${t.kind}, ${t.targetKind}, ${t.targetRef}, ${t.targetLabel},
-      ${t.purchaseId}::bigint, ${t.refundReason}, ${t.body}, ${t.replyEmail}
+      ${t.purchaseId}::bigint, ${t.refundReason}, ${t.body}, ${t.replyEmail},
+      ${status}, ${t.adminNote ?? null},
+      CASE WHEN ${status} = 'resolved' THEN now() ELSE NULL END
     )
     ON CONFLICT DO NOTHING
     RETURNING id, created_at
