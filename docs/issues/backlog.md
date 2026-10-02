@@ -30,7 +30,7 @@
 - `AddProfileButton`의 비활성 상태가 `role` 없는 `div`라 보조기술에 전달되지 않는다.
 - `ProfileRow.createdAt`이 `String(Date)`라 로케일 문자열이 된다. 지금은 아무도 읽지 않지만 첫 소비자가 걸린다.
 - 랜딩에서 `/login`으로 가는 링크가 없다. `/home`이 로그인 후 행선이 된 지금, 로그인은 URL을 직접 쳐야만 들어갈 수 있다.
-- 로그인 상태 퍼널에서 로딩 화면이 두 번 나온다. 퍼널의 `AnalyzingScreen`(최소 2.2초, "만세력 환산 · 오행 분석 중", `src/app/funnel/page.tsx`) → `/report?profile=<id>` → `AnalyzingReport`("리포트를 쓰고 있어요", LLM 생성이 끝날 때까지, `src/app/report/_components/AnalyzingReport.tsx`). 문구는 각각 정확하지만 사용자에겐 스피너가 두 번이다. 퍼널의 최소 노출 시간을 이 갈래에서만 걷어내는 것을 검토.
+- 로그인 상태 퍼널에서 로딩 화면이 두 번 나온다. 퍼널의 `AnalyzingScreen`(최소 2.2초, "만세력 환산 · 오행 분석 중", `src/app/funnel/page.tsx`) → `/report?profile=<id>` → `LoadingScreen preset="report"`("리포트를 쓰고 있어요", LLM 생성이 끝날 때까지, `src/components/loading/LoadingScreen.tsx`). 문구는 각각 정확하지만 사용자에겐 스피너가 두 번이다. 퍼널의 최소 노출 시간을 이 갈래에서만 걷어내는 것을 검토.
 
 ## 리포트 발행 흐름에 남은 고리
 

@@ -26,7 +26,8 @@ import { matchLoadingMode } from "./_lib/to-loading-mode";
 import { MatchShell } from "./_components/MatchShell";
 import { MatchHero } from "./_components/MatchHero";
 import { MatchBody } from "./_components/MatchBody";
-import { AnalyzingMatch, AnalyzingRestOfMatch } from "./_components/AnalyzingMatch";
+import { AnalyzingRestOfMatch } from "./_components/AnalyzingMatch";
+import { LoadingScreen } from "@/components/loading/LoadingScreen";
 import { MatchError } from "./_components/MatchError";
 import { MatchRateLimited } from "./_components/MatchRateLimited";
 import { MatchOutOfTickets } from "./_components/MatchOutOfTickets";
@@ -103,7 +104,7 @@ export default async function MatchResultPage({
   const stored = await getMatchSections(match.id, MATCH_SECTION_KEYS);
   const mode = matchLoadingMode(stored);
 
-  // 다 있으면 <Suspense> 자체를 세우지 않는다. 스피너가 한 프레임도 스치지 않는다.
+  // 다 있으면 <Suspense> 자체를 세우지 않는다. 로딩 화면이 한 프레임도 스치지 않는다.
   if (mode === "complete") {
     return (
       <MatchShell displayName={displayName}>
@@ -114,14 +115,14 @@ export default async function MatchResultPage({
   }
 
   /*
-    fallback 에 스피너 대신 **이미 저장된 섹션**을 넣는다.
+    fallback 에 로딩 화면 대신 **이미 저장된 섹션**을 넣는다.
 
     이게 이 파일에서 가장 중요한 결정이다. 예전에는 섹션 하나가 없으면 나머지 여섯이
-    DB 에 멀쩡히 있는데도 화면 전체가 스피너였다 — 한 섹션의 LLM 왕복을 기다리느라
+    DB 에 멀쩡히 있는데도 화면 전체가 로딩이었다 — 한 섹션의 LLM 왕복을 기다리느라
     이미 확보한 것을 볼모로 잡은 셈이다. fallback 을 부분 본문으로 두면 번호 순서가
     그대로 유지된 채 있는 것부터 읽히고, 생성이 끝나면 완성본으로 갈린다.
 
-    저장된 것이 하나도 없을 때만 순수 스피너다. 그때는 히어로도 함께 감춘다 — 보여줄
+    저장된 것이 하나도 없을 때만 전체 로딩 화면이다. 그때는 히어로도 함께 감춘다 — 보여줄
     본문이 없는 화면에 이름과 아바타만 떠 있으면 기다림이 더 길게 느껴진다.
   */
   const fallback =
@@ -132,7 +133,7 @@ export default async function MatchResultPage({
         <AnalyzingRestOfMatch />
       </>
     ) : (
-      <AnalyzingMatch />
+      <LoadingScreen preset="match" />
     );
 
   return (
