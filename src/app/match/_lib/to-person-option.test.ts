@@ -5,7 +5,7 @@ import { personOptionFromInput, toPersonOption } from "./to-person-option";
 const base: ProfileRow = {
   id: "1", name: "김동진", gender: "male", calendar: "solar", isLeapMonth: false,
   birth: { year: 1990, month: 4, day: 5 }, timeKnown: true, time: { hour: 9, minute: 0 },
-  birthPlace: null, trueSolar: true, createdAt: "2026-01-01", isUnlocked: false, kind: "saved",
+  birthPlace: null, trueSolar: true, createdAt: "2026-01-01", isUnlocked: false, kind: "saved", deletedAt: null,
 };
 
 describe("toPersonOption", () => {

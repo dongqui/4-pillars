@@ -18,6 +18,7 @@ function row(overrides: Partial<ProfileRow> = {}): ProfileRow {
     createdAt: "2026-08-16T00:00:00.000Z",
     isUnlocked: false,
     kind: "saved",
+    deletedAt: null,
     ...overrides,
   };
 }

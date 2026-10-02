@@ -70,9 +70,18 @@ export interface ProfileRow {
   isUnlocked: boolean;
   /** 홈·프로필 목록은 'self' 만 본다. 'temp' 는 어디에도 뜨지 않는다. */
   kind: ProfileKind;
+  /**
+   * 소프트 삭제된 시각. 살아 있으면 null.
+   *
+   * listProfiles·getProfile 은 지워진 행을 아예 안 돌려주므로 거기서 온 값은 늘
+   * null 이다. 이 필드가 뜻을 갖는 곳은 getProfileById 뿐이다 — 이미 산 리포트를
+   * 열 때 그 주인이 지워졌는지 알아야, 지워진 사람으로 **새로 생성(=과금)** 하는
+   * 길을 막을 수 있다.
+   */
+  deletedAt: string | null;
 }
 
-export type CreateProfileInput = Omit<ProfileRow, "id" | "createdAt" | "isUnlocked">;
+export type CreateProfileInput = Omit<ProfileRow, "id" | "createdAt" | "isUnlocked" | "deletedAt">;
 
 /**
  * kind 컬럼 → ProfileKind.
@@ -121,6 +130,7 @@ export function toProfileRow(r: Record<string, unknown>): ProfileRow {
     createdAt: String(r.created_at),
     isUnlocked: r.is_unlocked === true,
     kind: toKind(r.kind),
+    deletedAt: r.deleted_at == null ? null : String(r.deleted_at),
   };
 }
 

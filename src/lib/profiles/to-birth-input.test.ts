@@ -16,6 +16,7 @@ const base: ProfileRow = {
   createdAt: "2026-07-31T00:00:00.000Z",
   isUnlocked: false,
   kind: "saved",
+  deletedAt: null,
 };
 
 describe("toBirthInput", () => {

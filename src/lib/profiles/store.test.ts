@@ -77,7 +77,15 @@ describe("toProfileRow", () => {
       createdAt: "2026-07-31T00:00:00.000Z",
       isUnlocked: false,
       kind: "saved",
+      deletedAt: null,
     });
+  });
+
+  // getProfileById 는 지워진 행도 돌려준다. 그 행으로 이용권을 쓰는 생성을 막으려면
+  // 호출부가 "지워졌는가" 를 알아야 한다 — 이 필드가 그 유일한 통로다.
+  it("deleted_at 이 있으면 deletedAt 으로 옮긴다", () => {
+    const row = toProfileRow({ ...dbRow, deleted_at: "2026-10-02T08:00:00.000Z" });
+    expect(row.deletedAt).toBe("2026-10-02T08:00:00.000Z");
   });
 
   it("time_known 이 false 면 시각 컬럼이 남아 있어도 time 은 null", () => {

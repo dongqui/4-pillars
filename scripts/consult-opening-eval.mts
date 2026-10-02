@@ -17,7 +17,7 @@ const facts = factsForProfile({
   birth: { year: 1993, month: 4, day: 17 }, timeKnown: true,
   time: { hour: 14, minute: 30 },
   birthPlace: { country: "KR", regionId: "seoul" }, trueSolar: true,
-  createdAt: "2026-09-25T00:00:00.000Z", isUnlocked: false,
+  createdAt: "2026-09-25T00:00:00.000Z", isUnlocked: false, deletedAt: null,
 }, new Date("2026-09-25T03:00:00.000Z"));
 if (!facts) throw new Error("Could not calculate the fixed test chart.");
 

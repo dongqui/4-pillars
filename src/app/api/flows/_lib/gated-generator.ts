@@ -1,7 +1,33 @@
 import { FlowRateLimitError, checkFlowLimit } from "@/lib/flows/rate-limit";
 import { FlowTicketsError } from "@/lib/flows/tickets";
+import { ProfileDeletedError } from "@/lib/profiles/deleted";
 import { spendTicket, type SpendResult } from "@/lib/tickets/spend";
 import type { FlowGenerator } from "./generator";
+
+/**
+ * 프로필이 지워졌으면 생성기 대신 거절하는 것을 준다.
+ *
+ * build 를 **부르지 않는다**는 것이 요점이다. 페이지가 넘기는 build 는
+ * gateFlowGeneration(chargeFlowGeneration(...)) 사슬이고, 그 안쪽이 이용권을 쓴다.
+ * 거절을 그 사슬 바깥에 씌우는 것으로도 막히지만, 그러면 과금 생성기가 만들어진 채로
+ * 놓여 있다 — 사슬을 아예 안 만들면 지워진 사람으로 돈이 나갈 길이 구조로 없어진다.
+ *
+ * produceFlowSections 는 저장소에 없는 섹션이 있을 때만 생성기를 부르므로, 다 저장된
+ * 흐름은 지워진 프로필이어도 그대로 열린다 — 이미 산 것은 보여 주고, 새로 만들지만 않는다.
+ */
+export function flowGenerationFor(
+  profileDeleted: boolean,
+  build: () => FlowGenerator,
+): FlowGenerator {
+  if (!profileDeleted) return build();
+  return {
+    // 거절만 하므로 저장될 일이 없다 — putStored 에 닿기 전에 던진다.
+    model: "none",
+    async generateSections() {
+      throw new ProfileDeletedError();
+    },
+  };
+}
 
 /**
  * 시간당 한도를 씌운 흐름 생성기.

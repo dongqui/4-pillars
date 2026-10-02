@@ -1,7 +1,30 @@
 import { MatchRateLimitError, checkMatchLimit } from "@/lib/matches/rate-limit";
 import { MatchTicketsError } from "@/lib/matches/tickets";
+import { ProfileDeletedError } from "@/lib/profiles/deleted";
 import { spendTicket, type SpendResult } from "@/lib/tickets/spend";
 import type { MatchGenerator } from "./generator";
+
+/**
+ * 나·상대 중 한 사람이라도 지워졌으면 생성기 대신 거절하는 것을 준다.
+ *
+ * build 를 **부르지 않는다** — 그 안이 spendOnMatchGeneration 이라, 사슬을 아예 안
+ * 만들어야 지워진 사람으로 돈이 나갈 길이 구조로 없어진다(flows 의
+ * flowGenerationFor 와 같은 판단). produceMatchSections 는 저장소에 없는 섹션이 있을
+ * 때만 생성기를 부르므로, 이미 다 저장된 궁합은 그대로 열린다.
+ */
+export function matchGenerationFor(
+  anyDeleted: boolean,
+  build: () => MatchGenerator,
+): MatchGenerator {
+  if (!anyDeleted) return build();
+  return {
+    // 거절만 하므로 저장될 일이 없다 — putStored 에 닿기 전에 던진다.
+    model: "none",
+    async generateSections() {
+      throw new ProfileDeletedError();
+    },
+  };
+}
 
 /**
  * 시간당 한도를 씌운 궁합 생성기.

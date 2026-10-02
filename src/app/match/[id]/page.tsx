@@ -13,8 +13,10 @@ import {
   gateMatchGeneration,
   isMatchOutOfTickets,
   isMatchRateLimited,
+  matchGenerationFor,
   spendOnMatchGeneration,
 } from "@/app/api/matches/_lib/gated-generator";
+import { isProfileDeletedError } from "@/lib/profiles/deleted";
 import {
   getMatchSections,
   putMatchSections,
@@ -115,6 +117,22 @@ export default async function MatchResultPage({
     );
   }
 
+  // 나·상대 중 한 사람이라도 지워졌으면 **이미 만들어진 것만** 보여 준다. 아래
+  // MatchSections 는 저장 안 된 섹션을 만들며 그 자리에서 이용권을 쓴다 — 지워진
+  // 사람으로 돈이 나가면 안 된다. 저장된 것이 하나도 없으면 보여 줄 것도 없다
+  // (프로필이 진짜 지워지던 시절에도 여기는 404 였다). "나머지를 분석 중" 이라는
+  // 안내도 띄우지 않는다 — 분석하지 않을 것이므로.
+  const anyDeleted = subject.deletedAt !== null || counterpart.deletedAt !== null;
+  if (anyDeleted) {
+    if (mode === "empty") notFound();
+    return (
+      <MatchShell displayName={displayName}>
+        <MatchHero view={hero} />
+        <MatchBody interpretation={stored.have} relation={match.relation} />
+      </MatchShell>
+    );
+  }
+
   /*
     fallback 에 로딩 화면 대신 **이미 저장된 섹션**을 넣는다.
 
@@ -147,6 +165,7 @@ export default async function MatchResultPage({
           hero={hero}
           stored={stored}
           ctx={{ ...pair, relation: match.relation }}
+          anyDeleted={anyDeleted}
         />
       </Suspense>
     </MatchShell>
@@ -166,6 +185,7 @@ async function MatchSections({
   hero,
   stored,
   ctx,
+  anyDeleted,
 }: {
   matchId: string;
   userId: string;
@@ -174,6 +194,12 @@ async function MatchSections({
   /** 페이지가 이미 읽어 둔 것. 같은 쿼리를 두 번 던지지 않는다. */
   stored: StoredMatchSections;
   ctx: Parameters<typeof produceMatchSections>[1];
+  /**
+   * 나·상대 중 지워진 사람이 있는가. 페이지가 그 경우 여기까지 오지 않고 저장된 것만
+   * 그리므로 지금은 늘 false 다 — 그래도 받는 것은 이중 안전장치다. 누가 위의 분기를
+   * 고쳐도 지워진 사람으로 이용권이 나가는 길은 생성기 자리에서 구조로 막힌다.
+   */
+  anyDeleted: boolean;
 }) {
   let interpretation: Partial<MatchInterpretation>;
   let rateLimited = false;
@@ -191,9 +217,11 @@ async function MatchSections({
     // 이용권도 같은 자리다 — 한도가 바깥, 이용권이 안쪽이다. 한도 확인은 Redis 한 번이고
     // 차감은 DB 쓰기라, 싼 쪽이 먼저 막아야 한다.
     ({ interpretation } = await produceMatchSections(matchId, ctx, {
-      generator: gateMatchGeneration(
-        spendOnMatchGeneration(createMatchGenerator(), { userId, matchId }),
-        userId,
+      generator: matchGenerationFor(anyDeleted, () =>
+        gateMatchGeneration(
+          spendOnMatchGeneration(createMatchGenerator(), { userId, matchId }),
+          userId,
+        ),
       ),
       // 페이지가 방금 읽은 것을 그대로 쓴다. 같은 쿼리를 두 번 던질 이유가 없다.
       getStored: async () => stored,
@@ -207,7 +235,8 @@ async function MatchSections({
       // (report/page.tsx 와 같은 처리).
       if (isMatchRateLimited(e)) rateLimited = true;
       else if (isMatchOutOfTickets(e)) outOfTickets = true;
-      else console.error("[/match/[id]] 해석 생성 실패", e);
+      // 지워진 사람이라 일부러 안 만든 것은 실패가 아니다 — 로그를 남기지 않는다.
+      else if (!isProfileDeletedError(e)) console.error("[/match/[id]] 해석 생성 실패", e);
       // 일부라도 확보했으면 그것까지는 보여준다 — 이용권을 쓴 결과다.
       interpretation = e.partial;
     } else {
