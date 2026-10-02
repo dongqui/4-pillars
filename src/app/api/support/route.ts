@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getUser } from "@/lib/auth/users";
 import { createSupportMailer } from "@/lib/support/mailer";
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
       listPurchaseOptions,
       insertTicket: insertSupportTicket,
       mailer: createSupportMailer(),
+      defer: after,
     });
     return NextResponse.json(result.body, { status: result.status });
   } catch (e) {

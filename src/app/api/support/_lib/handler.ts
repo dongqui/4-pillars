@@ -42,6 +42,12 @@ export interface CreateSupportDeps {
   insertTicket(t: NewSupportTicket): Promise<{ id: string; createdAt: string } | null>;
   /** null 이면 메일 설정이 비어 있다 — 저장만 한다. */
   mailer: Mailer | null;
+  /**
+   * 응답을 보낸 뒤에 돌릴 일(라우트에서는 next/server 의 after). 메일을 여기로 미루는 이유:
+   * Resend 가 느리거나 멈추면 사용자는 닫을 수 없는 "보내는 중" 모달에 갇히고, 끝내 타임아웃을
+   * 받아 이미 저장된 문의를 다시 보낸다 — 중복 문의, 환불은 엉뚱한 409 가 된다.
+   */
+  defer(task: () => Promise<void>): void;
 }
 
 type Result = { status: number; body: { id: string } | { error: string } };
@@ -106,28 +112,30 @@ export async function handleCreateSupportTicket(raw: unknown, d: CreateSupportDe
   // 앱 검사(requested)를 동시 요청 두 개가 함께 통과한 경우 — 0053 의 인덱스가 하나를 막았다.
   if (!saved) return DUPLICATE;
 
-  if (!d.mailer) {
+  const mailer = d.mailer;
+  if (!mailer) {
     console.warn("[support] 메일 설정이 비어 있어 알림을 건너뜁니다", saved.id);
   } else {
-    try {
-      await d.mailer.send(
-        composeSupportMail({
-          ticketId: saved.id,
-          createdAt: saved.createdAt,
-          kind: ticket.kind,
-          userId,
-          userName: user.displayName ?? "이름 없음",
-          email: user.email,
-          targetLabel: ticket.targetLabel,
-          paymentId,
-          refundReason: ticket.refundReason,
-          body: ticket.body,
-        }),
-      );
-    } catch (e) {
-      // 문의는 이미 저장됐다. 메일 실패로 사용자에게 오류를 보이면 다시 보내 중복만 생긴다.
-      console.error("[support] 알림 메일 실패", saved.id, e);
-    }
+    const mail = composeSupportMail({
+      ticketId: saved.id,
+      createdAt: saved.createdAt,
+      kind: ticket.kind,
+      userId,
+      userName: user.displayName ?? "이름 없음",
+      email: user.email,
+      targetLabel: ticket.targetLabel,
+      paymentId,
+      refundReason: ticket.refundReason,
+      body: ticket.body,
+    });
+    d.defer(async () => {
+      try {
+        await mailer.send(mail);
+      } catch (e) {
+        // 문의는 이미 저장됐고 응답도 나갔다. 놓친 메일은 어드민 받은편지함에서 보인다.
+        console.error("[support] 알림 메일 실패", saved.id, e);
+      }
+    });
   }
 
   return { status: 201, body: { id: saved.id } };

@@ -20,8 +20,16 @@ const purchases: PurchaseOption[] = [
   { purchaseId: "10", paymentId: "saju-def", title: "이용권 1장", sub: "1,000원", createdAt: T, requested: true },
 ];
 
+/** after() 대역 — 미룬 일을 모아 두었다가 테스트가 원할 때 돌린다. */
+let deferred: (() => Promise<void>)[] = [];
+const runDeferred = () => Promise.all(deferred.splice(0).map((t) => t()));
+
 function deps(over: Partial<CreateSupportDeps> = {}) {
+  deferred = [];
   const d: CreateSupportDeps = {
+    defer: (task) => {
+      deferred.push(task);
+    },
     userId: "7",
     checkLimit: vi.fn(async () => true),
     getUser: vi.fn(async () => ({ displayName: "동진", email: "dj@example.com" })),
@@ -68,7 +76,16 @@ describe("handleCreateSupportTicket", () => {
       userId: "7", kind: "feedback", targetKind: null, targetRef: null, targetLabel: null,
       purchaseId: null, refundReason: null, body: "좋아요", replyEmail: "dj@example.com",
     });
+    expect(d.mailer!.send).not.toHaveBeenCalled();
+    await runDeferred();
     expect(d.mailer!.send).toHaveBeenCalledOnce();
+  });
+
+  it("메일이 끝나지 않아도 응답은 바로 나간다 — 발송은 응답 뒤로 미룬다", async () => {
+    const d = deps({ mailer: { send: vi.fn(() => new Promise<void>(() => {})) } });
+    const r = await handleCreateSupportTicket({ kind: "feedback", body: "hi" }, d);
+    expect(r.status).toBe(201);
+    expect(deferred).toHaveLength(1);
   });
 
   it("오류 문의 — 라벨은 서버가 목록에서 다시 만든다", async () => {
@@ -134,6 +151,7 @@ describe("handleCreateSupportTicket", () => {
     const err = vi.spyOn(console, "error").mockImplementation(() => {});
     const d = deps({ mailer: { send: vi.fn(async () => { throw new Error("resend down"); }) } });
     expect((await handleCreateSupportTicket({ kind: "feedback", body: "hi" }, d)).status).toBe(201);
+    await runDeferred();
     expect(err).toHaveBeenCalled();
     err.mockRestore();
   });

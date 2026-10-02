@@ -12,6 +12,7 @@ import {
   type SupportKind,
   type SupportOptions,
 } from "@/lib/support/types";
+import { isOutsideRect } from "./backdrop";
 
 interface Copy {
   title: string;
@@ -193,7 +194,8 @@ export function SupportDialog({ kind, onClose }: { kind: SupportKind; onClose: (
         close();
       }}
       onClick={(e) => {
-        if (e.target === ref.current) close();
+        const el = ref.current;
+        if (e.target === el && el && isOutsideRect(el.getBoundingClientRect(), e.clientX, e.clientY)) close();
       }}
       // 기본: 하단 시트. 760px 이상: 가운데 카드. preflight 가 지운 margin:auto 를 되돌린다.
       className="mx-0 mb-0 mt-auto max-h-[92vh] w-full max-w-none overflow-y-auto rounded-t-[22px] bg-white px-5 pb-6 pt-[22px] text-slate-900 shadow-[0_-20px_60px_-20px_rgba(15,23,42,.35)] backdrop:bg-slate-900/45 backdrop:backdrop-blur-[2px] min-[760px]:m-auto min-[760px]:max-h-[88vh] min-[760px]:max-w-[460px] min-[760px]:rounded-[22px] min-[760px]:p-6"
