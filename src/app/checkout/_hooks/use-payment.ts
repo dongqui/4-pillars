@@ -5,6 +5,7 @@ import * as PortOne from "@portone/browser-sdk/v2";
 import type { PaymentMethodId } from "../_lib/methods";
 import type { TicketPackageId } from "../_lib/pricing";
 import type { OrderResponse } from "@/lib/payments/order";
+import { isUserCancel } from "@/lib/payments/cancel";
 
 export type PaymentStatus = "idle" | "pending";
 
@@ -77,8 +78,13 @@ export function usePayment(next: string) {
 
         // 모바일은 여기까지 오지 않는다 — 결제창이 페이지를 떠났고,
         // 돌아올 때는 /checkout/complete 가 받는다.
-        // code 가 있으면 실패다. 사용자가 결제창을 닫아도 이 갈래로 온다.
-        if (res?.code != null) throw new Error(res.message ?? "결제가 취소되었습니다");
+        // code 가 있으면 실패다. 사용자가 결제창을 닫아도 이 갈래로 오는데, 그건
+        // 오류가 아니다 — 문구 없이 버튼만 다시 눌리게 둔다.
+        if (res && isUserCancel(res)) {
+          setStatus("idle");
+          return;
+        }
+        if (res?.code != null) throw new Error(res.message ?? "결제를 진행하지 못했습니다");
 
         await postJson("/api/payments/complete", { paymentId: order.paymentId });
         // 모바일 착지와 같은 완료 화면으로 모은다. replace 인 이유: 뒤로 가기로 충전

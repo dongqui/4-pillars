@@ -5,6 +5,7 @@ import { confirmDeps } from "@/lib/payments/deps";
 import { CHECKOUT_NEXT_COOKIE } from "@/lib/payments/order";
 import { findOrderByPaymentId } from "@/lib/payments/store";
 import { safeNextPath } from "@/lib/nav/next-param";
+import { isUserCancel } from "@/lib/payments/cancel";
 
 /** backTo 에 이미 쿼리가 있으면 &, 없으면 ? 로 이어 붙인다 — 실패 리다이렉트가 공유한다. */
 function withErrorMarker(backTo: string): string {
@@ -42,7 +43,15 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   };
 
   // 포트원이 실패를 code 로 알려준다. 확정을 시도할 이유가 없다.
-  if (q.get("code")) return go(withErrorMarker(backTo));
+  // 사용자가 결제창을 닫은 것은 오류가 아니다 — 표시 없이 되돌린다.
+  if (q.get("code")) {
+    const cancelled = isUserCancel({
+      code: q.get("code"),
+      pgCode: q.get("pgCode"),
+      message: q.get("message"),
+    });
+    return go(cancelled ? backTo : withErrorMarker(backTo));
+  }
 
   const paymentId = q.get("paymentId");
   // 포트원은 정상적으로 돌아올 때 code(실패) 아니면 paymentId(진행) 를 반드시

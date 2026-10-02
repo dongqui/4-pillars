@@ -31,7 +31,6 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
     desc: "네이버 앱에서 간편 결제",
     logo: "N",
     logoClass: "bg-[#03C75A] text-white",
-    badge: "포인트 적립",
   },
   {
     id: "kakao",
