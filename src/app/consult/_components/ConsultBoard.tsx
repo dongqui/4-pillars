@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { PersonOption } from "@/lib/profiles/option";
 import { MAX_UTTERANCE_CHARS } from "@/lib/consultations/input";
+import { LoadingScreen } from "@/components/loading/LoadingScreen";
 import { TicketModal } from "./TicketModal";
 import { SubjectSelect } from "./SubjectSelect";
 
@@ -63,6 +64,7 @@ export function ConsultBoard({ profileId, people, balance, isEmpty, children }: 
 
       if (!res.ok) {
         // 402 는 이용권이 없다는 뜻이라 문구가 아니라 살 곳을 줘야 한다.
+        setPending(false);
         if (res.status === 402) {
           setModal(true);
           return;
@@ -70,11 +72,12 @@ export function ConsultBoard({ profileId, people, balance, isEmpty, children }: 
         setError(typeof json.error === "string" ? json.error : "상담을 시작하지 못했어요");
         return;
       }
+      // 성공하면 pending 을 풀지 않는다 — 대화방으로 넘어가며 이 화면째 사라지고,
+      // 그 사이 로딩 화면이 걷히면 끝난 줄 알고 다시 누른다.
       router.push(`/consult/${json.consultation.id}`);
     } catch {
-      setError("연결이 끊겼어요. 다시 시도해 주세요");
-    } finally {
       setPending(false);
+      setError("연결이 끊겼어요. 다시 시도해 주세요");
     }
   }
 
@@ -143,7 +146,7 @@ export function ConsultBoard({ profileId, people, balance, isEmpty, children }: 
                 type="button"
                 onClick={() => setOpen(false)}
                 disabled={pending}
-                className="h-12 flex-none rounded-[14px] px-4 text-[14.5px] font-semibold text-slate-500 hover:bg-slate-50 disabled:opacity-40"
+                className="h-12 flex-none rounded-[14px] px-4 text-[14.5px] font-semibold text-slate-500 hover:bg-slate-50 disabled:opacity-50"
               >
                 취소
               </button>
@@ -151,7 +154,7 @@ export function ConsultBoard({ profileId, people, balance, isEmpty, children }: 
                 type="button"
                 onClick={submit}
                 disabled={pending || text.trim().length === 0}
-                className="h-12 flex-1 rounded-[14px] bg-accent text-[15.5px] font-bold tracking-[-0.02em] text-white hover:bg-accent-700 disabled:opacity-40"
+                className="h-12 flex-1 rounded-[14px] bg-accent text-[15.5px] font-bold tracking-[-0.02em] text-white hover:bg-accent-700 disabled:opacity-50"
               >
                 {pending ? "상담사를 부르고 있어요…" : "이용권 1장으로 시작하기"}
               </button>
@@ -164,6 +167,8 @@ export function ConsultBoard({ profileId, people, balance, isEmpty, children }: 
       </div>
 
       {modal && <TicketModal balance={balance} onClose={() => setModal(false)} />}
+      {/* 첫 답변(LLM 한 턴)까지 만들어야 응답이 온다 — 버튼 문구로 버티기엔 길다. */}
+      {pending && <LoadingScreen preset="consult" variant="overlay" />}
     </div>
   );
 }

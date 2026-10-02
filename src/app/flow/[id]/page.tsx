@@ -44,7 +44,7 @@ import { FlowHero } from "./_components/FlowHero";
 import { FlowHeroV2 } from "./_components/FlowHeroV2";
 import { FlowBody, type FlowMissingReason } from "./_components/FlowBody";
 import { FlowBodyV2 } from "./_components/FlowBodyV2";
-import { AnalyzingFlow } from "./_components/AnalyzingFlow";
+import { LoadingScreen } from "@/components/loading/LoadingScreen";
 import { FlowError } from "./_components/FlowError";
 import { FlowErrorV2 } from "./_components/FlowErrorV2";
 import { FlowRateLimited } from "./_components/FlowRateLimited";
@@ -119,7 +119,7 @@ export default async function FlowResultPage({
       <FlowShell displayName={displayName}>
         {/* pending!.id — resolveFlowRoute 가 "v2:generate" 를 돌려줬다는 것은
             pending 이 존재한다는 뜻이다(그 판정 자체가 s.pending 을 본다). */}
-        <Suspense fallback={<AnalyzingFlow message="선택한 해의 운세를 정리하고 있어요." />}>
+        <Suspense fallback={<LoadingScreen preset="flow" title="선택한 해의 운세를 정리하고 있어요" />}>
           <FlowV2Generate
             flow={flow}
             userId={session.userId}
@@ -149,9 +149,9 @@ export default async function FlowResultPage({
 
   return (
     <FlowShell displayName={displayName}>
-      {/* 로딩 중에는 스피너만 보인다 — 위치 요약과 하단 링크는 FlowChrome 에 있어
+      {/* 로딩 중에는 로딩 화면만 보인다 — 위치 요약과 하단 링크는 FlowChrome 에 있어
           FlowSections 가 도착해야 함께 그려진다(FlowShell 의 주석 참고). */}
-      <Suspense fallback={<AnalyzingFlow />}>
+      <Suspense fallback={<LoadingScreen preset="flow" />}>
         <FlowSections
           flow={flow}
           userId={session.userId}

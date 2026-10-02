@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { SectionHeadingMeta } from "@/app/api/saju/_lib/sections";
+import { LoadingScreen } from "@/components/loading/LoadingScreen";
 import { useUnlock } from "../_hooks/use-unlock";
 
 export function LockedSections({
@@ -30,7 +31,7 @@ export function LockedSections({
   }, []);
 
   const { unlock, status, error } = useUnlock(profileId);
-  const pending = status === "pending";
+  const pending = status !== "idle";
 
   // 이용권을 쓰려면 계정이 있어야 한다. 비로그인에게는 이 버튼의 첫 단계가 로그인이고,
   // 로그인하는 순간 퍼널에서 맡겨둔 드래프트가 프로필로 승격된다.
@@ -38,7 +39,7 @@ export function LockedSections({
   const label = pending ? "여는 중이에요…" : "이용권 1장으로 전체 보기";
 
   const CTA_CLASS =
-    "block w-full max-w-[360px] text-base font-semibold text-white bg-accent py-4 rounded-[14px] shadow-[0_8px_20px_rgba(37,99,235,.28)] text-center hover:bg-accent-700 disabled:opacity-60";
+    "block w-full max-w-[360px] text-base font-semibold text-white bg-accent py-4 rounded-[14px] shadow-[0_8px_20px_rgba(37,99,235,.28)] text-center hover:bg-accent-700 disabled:opacity-50";
 
   // 비로그인은 링크, 로그인은 버튼이다 — 링크로 두면 차감이 GET 이 되고,
   // 버튼으로 두면 비로그인이 로그인 화면으로 못 간다.
@@ -85,6 +86,8 @@ export function LockedSections({
           </div>
         </div>
       )}
+      {/* refresh 가 반영돼 잠금이 풀리면 이 컴포넌트째 사라지고 로딩 화면도 함께 걷힌다. */}
+      {status === "opening" && <LoadingScreen preset="report" variant="overlay" />}
     </>
   );
 }

@@ -285,8 +285,49 @@ body {
   animation: pc-plus 1.1s ease 0.05s both;
 }
 
-/* 연출이 정보를 나르지는 않는다 — 끄고 봐도 잃는 것이 없어야 한다 */
+/* 공용 로딩 화면(src/components/loading). 시안의 om-* 를 앱 색으로 옮긴 것이다. */
+@keyframes ld-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ld-breathe {
+  0%,
+  100% {
+    transform: scale(0.94);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+@keyframes ld-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.ld-spin {
+  animation: ld-spin 1.1s linear infinite;
+}
+.ld-breathe {
+  animation: ld-breathe 3.4s ease-in-out infinite;
+}
+.ld-rise {
+  animation: ld-rise 0.35s ease-out both;
+}
+
+/* 연출이 정보를 나르지는 않는다 — 끄고 봐도 잃는 것이 없어야 한다.
+   ld-spin 이 멈춰도 진행 바와 % 숫자가 진행을 나른다. */
 @media (prefers-reduced-motion: reduce) {
+  .ld-spin,
+  .ld-breathe,
+  .ld-rise,
   .pv-fade,
   .pv-rise,
   .pv-breathe,
@@ -302,5 +343,20 @@ body {
   .pc-num,
   .pc-plus {
     animation: none;
+  }
+}
+
+/* Tailwind v4 는 버튼 커서를 기본값으로 둔다. 버튼마다 cursor-pointer 를 붙이면
+   다음 버튼에서 또 빠진다 — 여기서 한 번에 막는다. base 레이어라 컴포넌트가
+   cursor-* 유틸리티로 덮어쓸 수 있다. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
   }
 }

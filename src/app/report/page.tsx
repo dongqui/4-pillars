@@ -22,7 +22,7 @@ import { toReportContent } from "./_lib/to-report-content";
 import { sampleReport } from "./_lib/report-content.fixture";
 import { ReportShell } from "./_components/ReportShell";
 import { ReportBody } from "./_components/ReportBody";
-import { AnalyzingReport } from "./_components/AnalyzingReport";
+import { LoadingScreen } from "@/components/loading/LoadingScreen";
 import { ReportError } from "./_components/ReportError";
 import { ReportRateLimited } from "./_components/ReportRateLimited";
 
@@ -144,7 +144,7 @@ export default async function ReportPage({
     }
     return (
       <ReportShell displayName={displayName}>
-        <Suspense fallback={<AnalyzingReport name={draft.name} />}>
+        <Suspense fallback={<LoadingScreen preset="report" />}>
           <ProfileReport
             subject={draftToSubject(draft)}
             access={access}
@@ -179,7 +179,7 @@ export default async function ReportPage({
 
   return (
     <ReportShell displayName={displayName}>
-      <Suspense fallback={<AnalyzingReport name={profile.name} />}>
+      <Suspense fallback={<LoadingScreen preset="report" />}>
         <ProfileReport
           subject={profile}
           profileId={profile.id}

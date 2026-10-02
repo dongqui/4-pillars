@@ -8,7 +8,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  "inline-flex items-center justify-center font-semibold rounded-xl transition-all disabled:cursor-default cursor-pointer";
+  "inline-flex items-center justify-center font-semibold rounded-xl transition-all";
 
 const variants: Record<Variant, string> = {
   primary:
