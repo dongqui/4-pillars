@@ -43,7 +43,11 @@ const KST = new Intl.DateTimeFormat("ko-KR", {
  * 이스케이프해야 하는 부담만 늘린다.
  */
 export function composeSupportMail(i: SupportMailInput): SupportMail {
-  const head = i.kind === "refund" && i.refundFailed ? "[환불 실패]" : `[${KIND_LABEL[i.kind]}]`;
+  // 자동 환불이 끝난 메일(환불액이 있고 실패가 아님)은 옛 "[환불 요청] 취소해 주세요" 메일과 제목이
+  // 달라야 한다 — 같으면 운영자가 이미 끝난 건을 또 취소하려 든다. [환불 요청] 은 환불액이 없는 옛 경로에만 남는다.
+  const refundDone = i.kind === "refund" && !i.refundFailed && i.refundAmount != null;
+  const head =
+    i.kind === "refund" && i.refundFailed ? "[환불 실패]" : refundDone ? "[환불 완료]" : `[${KIND_LABEL[i.kind]}]`;
   const subject = i.targetLabel ? `${head} ${i.targetLabel} — ${i.userName}` : `${head} ${i.userName}`;
 
   const lines = [
@@ -56,6 +60,7 @@ export function composeSupportMail(i: SupportMailInput): SupportMail {
   if (i.paymentId) lines.push(`결제 ID: ${i.paymentId}`);
   if (i.refundReason) lines.push(`환불 사유: ${i.refundReason}`);
   if (i.refundAmount != null) lines.push(`환불액: ${i.refundAmount.toLocaleString("ko-KR")}원`);
+  if (refundDone) lines.push("포트원 취소 완료 — 조치 불필요");
   if (i.refundFailed) lines.push("⚠️ 포트원 취소 실패 — DB 는 refunded 다. 콘솔에서 수동 취소할 것.");
   lines.push("", "─ 내용 ─", i.body.trim() === "" ? "(내용 없음)" : i.body);
 

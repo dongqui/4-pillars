@@ -117,6 +117,7 @@ export async function handleRefund(raw: unknown, d: RefundDeps): Promise<Result>
   let saved: { id: string; createdAt: string } | null = null;
   try {
     saved = await d.insertTicket(ticket);
+    if (!saved) console.warn("[refund] 티켓이 저장되지 않았다(열린 환불 요청과 충돌)", c.purchaseId);
   } catch (e) {
     console.error("[refund] 티켓 저장 실패", c.purchaseId, done.paymentId, amount, failure, e);
   }

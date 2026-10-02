@@ -60,6 +60,7 @@ function isBalanceCheckViolation(e: unknown): boolean {
  * `- 1` 을 cost 로 쓰지 않는 이유: 모든 기능이 1장이라(FEATURE_COST) 소비 1건은 결제 1건에
  * 붙는다. 단가가 2 이상인 기능이 생기면 한 소비가 두 결제에 걸칠 수 있어 이 단계를 다시 짜야
  * 한다 — 그때 이 주석이 서 있다.
+ * FOR UPDATE — 잠금 뒤 remaining > 0 을 다시 보게 한다. 없으면 동시 소비 둘이 같은 행을 골라 −1 까지 내려간다.
  * 귀속할 결제가 없어도(백필 때 결제에 안 붙은 수기 지급분) attributed 가 비는 것은 오류가
  * 아니다 — 소비는 claim·pay 가 정한다.
  */
@@ -92,6 +93,7 @@ export async function spendTicket(
             WHERE user_id = ${a.userId}::bigint AND status = 'paid' AND remaining > 0
               AND EXISTS (SELECT 1 FROM claim)
             ORDER BY paid_at, id LIMIT 1
+            FOR UPDATE
          )
         RETURNING id
       )

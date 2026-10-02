@@ -96,7 +96,7 @@ function toRows(o: SupportOptions, now: Date): { rows: Row[]; balance: number | 
   return {
     rows: o.items.map((it) => ({
       key: it.purchaseId,
-      title: it.title,
+      title: `${it.title} · ${it.sub}`,
       sub: `남은 ${it.remaining}장 → ${it.refundAmount.toLocaleString("ko-KR")}원 환불`,
       meta: formatOptionDate(it.createdAt, now),
       disabled: false,

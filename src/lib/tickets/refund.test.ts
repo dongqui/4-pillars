@@ -62,7 +62,22 @@ describe("refundTicket", () => {
     // + 가 아니라 - 로 바뀌면 환불이 두 번째 차감이 된다 — 연산자까지 못박는다.
     expect(calls[0].sql).toContain("balance = balance + (SELECT cost FROM revoked)");
     // 바인딩되는 값은 사용자·feature·대상 셋뿐이다. 장수가 인자로 들어오면 안 된다.
-    expect(calls[0].values).toEqual(["7", "consultation", "42", "7", "7"]);
+    expect(calls[0].values).toEqual(["7", "consultation", "42", "7", "7", "7"]);
+  });
+
+  // spend 의 attributed 는 가장 오래된 remaining > 0 행을 깎는다. 그러니 마지막으로 깎인 행은
+  // remaining < tickets 인 행 중 가장 오래된 것이다 — 되돌릴 때 그 행에 1 을 돌려준다.
+  it("되돌리면서 가장 오래된 '덜 찬' paid 결제의 remaining 을 1 올린다", async () => {
+    const { client, calls } = fakeClient([{ revoked_id: 11, balance: 3 }]);
+    await refundTicket(input, client);
+    const { sql } = calls[0];
+    expect(sql).toContain("UPDATE purchases SET remaining = remaining + 1");
+    expect(sql).toContain("remaining < COALESCE(tickets, 0)");
+    expect(sql).toContain("ORDER BY paid_at, id LIMIT 1");
+    expect(sql).toContain("FOR UPDATE");
+    // 권한이 실제로 지워졌을 때만 올린다.
+    expect(sql.slice(sql.indexOf("restored AS"))).toContain("EXISTS (SELECT 1 FROM revoked)");
+    expect(calls).toHaveLength(1);
   });
 
   it("원장에 양수 delta 와 reason='refund' 를 남긴다", async () => {

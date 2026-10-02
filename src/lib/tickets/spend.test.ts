@@ -123,7 +123,11 @@ describe("spendTicket", () => {
     expect(sql).toContain("UPDATE purchases SET remaining = remaining - 1");
     expect(sql).toContain("status = 'paid' AND remaining > 0");
     expect(sql).toContain("ORDER BY paid_at, id LIMIT 1");
-    expect(sql).toContain("AND EXISTS (SELECT 1 FROM claim)");
+    // pay CTE 에도 같은 EXISTS 가 있어 전체 문자열로는 헛돈다 — attributed 조각만 본다.
+    const attributed = sql.slice(sql.indexOf("attributed AS ("));
+    expect(attributed).toContain("AND EXISTS (SELECT 1 FROM claim)");
+    // 행 잠금 뒤 remaining > 0 을 다시 보게 한다 — 없으면 동시 소비 둘이 같은 행을 골라 −1 이 된다.
+    expect(attributed).toContain("FOR UPDATE");
     expect(calls).toHaveLength(1);
   });
 });

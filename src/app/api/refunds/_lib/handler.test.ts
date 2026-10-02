@@ -150,7 +150,7 @@ describe("handleRefund", () => {
     await runDeferred();
     expect(d.mailer!.send).toHaveBeenCalledTimes(1);
     const mail = (d.mailer!.send as ReturnType<typeof vi.fn>).mock.calls[0][0] as { subject: string; text: string };
-    expect(mail.subject).toContain("[환불 요청]");
+    expect(mail.subject).toContain("[환불 완료]");
     expect(mail.text).toContain("환불액: 3,000원");
     expect(d.markFailed).not.toHaveBeenCalled();
   });
@@ -214,8 +214,14 @@ describe("handleRefund", () => {
     expect(errorSpy).toHaveBeenCalled();
     await runDeferred();
     const mail = (d.mailer!.send as ReturnType<typeof vi.fn>).mock.calls[0][0] as { subject: string; text: string };
-    expect(mail.subject).toContain("[환불 요청]");
+    expect(mail.subject).toContain("[환불 완료]");
     expect(mail.text).toContain("문의 #-");
+  });
+
+  it("insertTicket 이 null 이면(열린 환불 요청과 충돌) 200 이고 경고를 남긴다", async () => {
+    const d = deps({ insertTicket: vi.fn(async () => null) });
+    expect(await handleRefund(body, d)).toEqual({ status: 200, body: { amount: 3000, pending: false } });
+    expect(warnSpy).toHaveBeenCalledWith("[refund] 티켓이 저장되지 않았다(열린 환불 요청과 충돌)", "9");
   });
 
   it("메일러가 없으면 건너뛰고 200", async () => {

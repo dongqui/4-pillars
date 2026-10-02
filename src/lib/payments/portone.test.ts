@@ -114,13 +114,20 @@ describe("getPayment", () => {
 
 /** cancelPayment 용 — 요청 본문까지 기록한다. */
 function fakePost(body: unknown, init: { ok?: boolean; status?: number } = {}) {
-  const calls: { url: string; method: string | undefined; headers: Record<string, string>; body: unknown }[] = [];
+  const calls: {
+    url: string;
+    method: string | undefined;
+    headers: Record<string, string>;
+    body: unknown;
+    signal: AbortSignal | null | undefined;
+  }[] = [];
   const fetchImpl = (async (url: string | URL | Request, opts?: RequestInit) => {
     calls.push({
       url: String(url),
       method: opts?.method,
       headers: (opts?.headers ?? {}) as Record<string, string>,
       body: typeof opts?.body === "string" ? JSON.parse(opts.body) : null,
+      signal: opts?.signal,
     });
     return { ok: init.ok ?? true, status: init.status ?? 200, json: async () => body } as Response;
   }) as typeof fetch;
@@ -143,6 +150,13 @@ describe("cancelPayment", () => {
     const { fetchImpl, calls } = fakePost({ cancellation: { status: "SUCCEEDED" } });
     await cancelPayment("p", { reason: "기타" }, { fetchImpl, env });
     expect(calls[0].body).toEqual({ reason: "기타" });
+  });
+
+  // 타임아웃이 없으면 응답이 안 오는 동안 DB 는 refunded 인데 실패 기록도 메일도 없는 무음 경로가 된다.
+  it("취소 fetch 에 AbortSignal 을 싣는다 — 응답이 안 오면 끊긴다", async () => {
+    const { fetchImpl, calls } = fakePost({ cancellation: { status: "SUCCEEDED" } });
+    await cancelPayment("p", { reason: "기타" }, { fetchImpl, env });
+    expect(calls[0].signal).toBeInstanceOf(AbortSignal);
   });
 
   it("이미 취소된 결제는 성공으로 본다 — 재시도 안전", async () => {

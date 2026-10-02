@@ -39,6 +39,12 @@ interface RefundInput {
  * 물려받는 쪽이 더 팽팽하다 — 원장 행이 "방금 삭제된 그 권한 행"에 증명 가능하게
  * 묶이고, 우연히 같은 값을 두 번 바인딩한 것이 아니게 된다.
  *
+ * spend 가 FIFO 로 깎은 purchases.remaining 도 되돌린다(restored). spend 는 가장 오래된
+ * remaining > 0 행을 깎으므로 마지막으로 깎인 행은 remaining < tickets 인 행 중 가장 오래된
+ * 것이다 — 그보다 오래된 행은 0 까지 비워졌고 새 행은 아직 안 건드렸다. 그 행에 1 을 돌려준다.
+ * 안 그러면 되돌려 받은 1장이 지갑에는 있는데 어느 결제에도 안 붙어 영영 환불 불가로 남는다.
+ * 복구할 행이 없어도(수기 지급분) 되돌림은 성공한다 — spend 의 attributed 와 대칭이다.
+ *
  * ok: false 갈래가 없다. 없는 권한을 되돌리는 것은 실패가 아니라 이미 되돌아간
  * 상태이고, 호출자가 원하던 결과다. 실제 장애는 예외로 나간다.
  */
@@ -65,6 +71,17 @@ export async function refundTicket(
     ), ledger AS (
       INSERT INTO ticket_entries (user_id, delta, reason)
       SELECT user_id, cost, 'refund' FROM revoked
+      RETURNING id
+    ), restored AS (
+      UPDATE purchases SET remaining = remaining + 1
+       WHERE id = (
+         SELECT id FROM purchases
+          WHERE user_id = ${a.userId}::bigint AND status = 'paid'
+            AND remaining IS NOT NULL AND remaining < COALESCE(tickets, 0)
+            AND EXISTS (SELECT 1 FROM revoked)
+          ORDER BY paid_at, id LIMIT 1
+          FOR UPDATE
+       )
       RETURNING id
     )
     SELECT (SELECT id FROM revoked) AS revoked_id,

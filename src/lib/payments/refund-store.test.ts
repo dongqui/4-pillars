@@ -83,6 +83,15 @@ describe("executeRefund", () => {
     expect(calls[0].sql).toContain("SELECT user_id, -remaining, 'refund', id FROM target");
   });
 
+  it("대상 결제를 id 와 user_id 로 함께 고른다 — 남의 결제를 순번으로 찍어 환불할 수 없다", async () => {
+    const { client, calls } = fakeClient([{ payment_id: "p", remaining: 1 }]);
+    await executeRefund(input, client);
+    expect(calls[0].sql).toContain("WHERE id = ?::bigint AND user_id = ?::bigint");
+    const { values } = calls[0];
+    expect(values.indexOf("9")).toBeGreaterThanOrEqual(0);
+    expect(values.indexOf("7")).toBeGreaterThan(values.indexOf("9"));
+  });
+
   it("0행이면 null — 남의 것·7일 경과·이미 환불·전부 사용을 가르지 않는다", async () => {
     const { client } = fakeClient([]);
     expect(await executeRefund(input, client)).toBeNull();

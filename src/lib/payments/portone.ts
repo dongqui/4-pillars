@@ -117,6 +117,10 @@ export async function cancelPayment(
     method: "POST",
     headers: { Authorization: `PortOne ${secret}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    // 응답이 안 오면 15초에 끊는다 — 여기서 영영 걸리면 DB 는 refunded 인데 실패 기록도 메일도 없는
+    // 유일한 무음 경로가 된다. 끊기면 호출자가 pending 으로 처리하고, 실제로는 취소됐다면
+    // 운영자가 콘솔에서 보고 아무것도 안 하면 된다.
+    signal: AbortSignal.timeout(15_000),
   });
 
   const data: unknown = await res.json().catch(() => null);
