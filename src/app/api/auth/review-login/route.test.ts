@@ -3,19 +3,9 @@ import { NextRequest } from "next/server";
 
 // 이 테스트는 자격 검증 → upsert → 세션 쿠키 → 행선지의 배선만 본다. DB 와 드래프트 저장소는 감춘다.
 const upsertUser = vi.fn();
-const setPrimaryProfileIfUnset = vi.fn();
 vi.mock("@/lib/auth/users", () => ({
   upsertUser: (...a: unknown[]) => upsertUser(...a),
-  setPrimaryProfileIfUnset: (...a: unknown[]) => setPrimaryProfileIfUnset(...a),
-}));
-
-// 샘플 프로필 시드가 실제 DB 에 붙지 않게 한다. 나머지 export(에러 클래스 등)는 그대로 둔다.
-const countProfiles = vi.fn();
-const createProfile = vi.fn();
-vi.mock("@/lib/profiles/store", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/profiles/store")>()),
-  countProfiles: (...a: unknown[]) => countProfiles(...a),
-  createProfile: (...a: unknown[]) => createProfile(...a),
+  setPrimaryProfileIfUnset: vi.fn(),
 }));
 
 const promoteDraft = vi.fn();
@@ -66,9 +56,6 @@ describe("POST /api/auth/review-login", () => {
     promoteDraft.mockReset().mockResolvedValue({ kind: "none" });
     redisIncr.mockReset().mockResolvedValue(1);
     redisExpire.mockReset().mockResolvedValue(1);
-    setPrimaryProfileIfUnset.mockReset().mockResolvedValue(undefined);
-    countProfiles.mockReset().mockResolvedValue(0);
-    createProfile.mockReset().mockResolvedValue({ id: "77" });
   });
 
   afterEach(() => {
@@ -223,47 +210,5 @@ describe("POST /api/auth/review-login", () => {
     expect(upsertUser).toHaveBeenCalledWith(
       expect.objectContaining({ provider: "admin", providerUserId: "pgreview" }),
     );
-  });
-
-  it("프로필이 없는 계정에는 샘플 프로필을 넣고 '나' 로 정한다", async () => {
-    const res = await POST(loginRequest(GOOD));
-
-    expect(countProfiles).toHaveBeenCalledWith("9", "saved");
-    expect(createProfile).toHaveBeenCalledWith(
-      "9",
-      expect.objectContaining({ name: "홍길동", kind: "saved" }),
-    );
-    expect(setPrimaryProfileIfUnset).toHaveBeenCalledWith("9", "77");
-    // 행선지는 그대로다 — 샘플은 홈에 서 있으면 된다.
-    expect(res.headers.get("location")).toBe(`${ORIGIN}/home`);
-  });
-
-  it("이미 프로필이 있으면 샘플을 더 넣지 않는다", async () => {
-    countProfiles.mockResolvedValue(2);
-    await POST(loginRequest(GOOD));
-    expect(createProfile).not.toHaveBeenCalled();
-  });
-
-  // 담당자가 직접 넣은 생년월일이 방금 프로필이 됐다 — 그 옆에 홍길동을 세우지 않는다.
-  it("드래프트가 승격됐으면 샘플을 넣지 않는다", async () => {
-    promoteDraft.mockResolvedValue({ kind: "promoted", id: "42" });
-    await POST(loginRequest(GOOD, { cookie: "draft=tok-1" }));
-    expect(countProfiles).not.toHaveBeenCalled();
-    expect(createProfile).not.toHaveBeenCalled();
-  });
-
-  it("샘플을 넣다 실패해도 로그인은 된다", async () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-    createProfile.mockRejectedValue(new Error("db down"));
-    const res = await POST(loginRequest(GOOD));
-
-    expect(res.status).toBe(303);
-    expect(res.cookies.get("session")?.value).toBeTruthy();
-    consoleError.mockRestore();
-  });
-
-  it("자격이 틀리면 샘플도 없다", async () => {
-    await POST(loginRequest({ ...GOOD, password: "nope" }));
-    expect(countProfiles).not.toHaveBeenCalled();
   });
 });

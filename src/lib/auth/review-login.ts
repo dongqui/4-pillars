@@ -1,6 +1,4 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-// 타입만 가져온다 — login/page.tsx 가 이 파일을 import 하므로 DB 클라이언트를 끌어오면 안 된다.
-import type { CreateProfileInput, ProfileKind } from "@/lib/profiles/store";
 
 /**
  * PG 카드사 심사용 임시 로그인.
@@ -66,43 +64,3 @@ export function verifyReviewLogin(
   return (idOk || emailOk) && passwordOk;
 }
 
-/**
- * 첫 로그인에 넣어 두는 샘플 프로필. 담당자가 생년월일을 넣지 않아도 홈·리포트·결제까지
- * 바로 볼 수 있게 한다. 여느 저장 프로필과 똑같은 행이다 — 표시도, 특별 취급도 없다.
- */
-export const REVIEW_SAMPLE_PROFILE: CreateProfileInput = {
-  name: "홍길동",
-  gender: "male",
-  calendar: "solar",
-  isLeapMonth: false,
-  birth: { year: 1990, month: 5, day: 15 },
-  timeKnown: true,
-  time: { hour: 9, minute: 30 },
-  birthPlace: null,
-  trueSolar: true,
-  kind: "saved",
-};
-
-export interface SeedSampleDeps {
-  countProfiles: (userId: string, kind: ProfileKind) => Promise<number>;
-  createProfile: (userId: string, input: CreateProfileInput) => Promise<{ id: string }>;
-  /** "나" 가 아직 없으면 이 프로필로 정한다. 이미 있으면 아무 일도 하지 않는다. */
-  setPrimaryIfUnset: (userId: string, profileId: string) => Promise<void>;
-}
-
-/**
- * 저장된 프로필이 하나도 없을 때만 샘플을 만든다 — 로그인할 때마다 쌓이지 않고,
- * 담당자가 지우면 다음 로그인에 다시 선다.
- *
- * 절대 throw 하지 않는다(promoteDraft 와 같은 계약) — 호출 시점에 세션 쿠키는 아직
- * 응답에 실리지 않았고, 여기서 새면 샘플 실패가 로그인 실패로 번진다.
- */
-export async function seedSampleProfile(userId: string, deps: SeedSampleDeps): Promise<void> {
-  try {
-    if ((await deps.countProfiles(userId, "saved")) > 0) return;
-    const { id } = await deps.createProfile(userId, REVIEW_SAMPLE_PROFILE);
-    await deps.setPrimaryIfUnset(userId, id);
-  } catch (e) {
-    console.error("[review-login] sample profile", e instanceof Error ? e.message : e);
-  }
-}

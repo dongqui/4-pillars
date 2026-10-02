@@ -1,11 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import {
-  REVIEW_SAMPLE_PROFILE,
-  reviewLoginConfig,
-  seedSampleProfile,
-  verifyReviewLogin,
-  type SeedSampleDeps,
-} from "./review-login";
+import { reviewLoginConfig, verifyReviewLogin } from "./review-login";
 
 const CONFIG = { id: "pgreview", password: "dummy-Pass#1", email: "guest@example.com" };
 
@@ -85,48 +79,5 @@ describe("verifyReviewLogin", () => {
 
   it("남의 이메일은 false", () => {
     expect(verifyReviewLogin(CONFIG, "someone@example.com", "dummy-Pass#1")).toBe(false);
-  });
-});
-
-describe("seedSampleProfile", () => {
-  function deps(over: Partial<SeedSampleDeps> = {}): SeedSampleDeps {
-    return {
-      countProfiles: vi.fn().mockResolvedValue(0),
-      createProfile: vi.fn().mockResolvedValue({ id: "77" }),
-      setPrimaryIfUnset: vi.fn().mockResolvedValue(undefined),
-      ...over,
-    };
-  }
-
-  it("저장된 프로필이 없으면 샘플을 만들고 '나' 로 정한다", async () => {
-    const d = deps();
-    await seedSampleProfile("9", d);
-
-    expect(d.countProfiles).toHaveBeenCalledWith("9", "saved");
-    expect(d.createProfile).toHaveBeenCalledWith("9", REVIEW_SAMPLE_PROFILE);
-    expect(d.setPrimaryIfUnset).toHaveBeenCalledWith("9", "77");
-  });
-
-  // 'temp' 는 어느 목록에도 서지 않는다 — 담당자 눈에 안 보이는 샘플은 없는 것과 같다.
-  it("샘플은 홈에 뜨는 'saved' 프로필이다", () => {
-    expect(REVIEW_SAMPLE_PROFILE.kind).toBe("saved");
-  });
-
-  it("프로필이 이미 있으면 아무것도 만들지 않는다 — 로그인할 때마다 쌓이면 안 된다", async () => {
-    const d = deps({ countProfiles: vi.fn().mockResolvedValue(1) });
-    await seedSampleProfile("9", d);
-
-    expect(d.createProfile).not.toHaveBeenCalled();
-    expect(d.setPrimaryIfUnset).not.toHaveBeenCalled();
-  });
-
-  // 호출 시점에 세션 쿠키는 아직 응답에 실리지 않았다 — 여기서 새면 샘플 실패가 로그인 실패로 번진다.
-  it("만들다 실패해도 throw 하지 않는다", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const d = deps({ createProfile: vi.fn().mockRejectedValue(new Error("db down")) });
-
-    await expect(seedSampleProfile("9", d)).resolves.toBeUndefined();
-    expect(errorSpy).toHaveBeenCalled();
-    errorSpy.mockRestore();
   });
 });
