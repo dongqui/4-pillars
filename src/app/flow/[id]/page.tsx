@@ -5,17 +5,19 @@ import { getSession } from "@/lib/auth/session";
 import { getUser } from "@/lib/auth/users";
 import { resolveDisplayName } from "@/lib/auth/display-name";
 import { getFlow, type FlowRow } from "@/lib/flows/store";
-import { getProfile, type ProfileRow } from "@/lib/profiles/store";
+import { getProfileById, type ProfileRow } from "@/lib/profiles/store";
 import { toBirthInput } from "@/lib/profiles/to-birth-input";
 import { FLOW_SECTION_KEYS, type FlowInterpretation } from "@/app/api/flows/_lib/sections";
 import { buildFlowContext, type FlowContext } from "@/app/api/flows/_lib/prompt";
 import { createFlowGenerator } from "@/app/api/flows/_lib/generator";
 import {
   chargeFlowGeneration,
+  flowGenerationFor,
   gateFlowGeneration,
   isFlowOutOfTickets,
   isFlowRateLimited,
 } from "@/app/api/flows/_lib/gated-generator";
+import { isProfileDeletedError } from "@/lib/profiles/deleted";
 import { FlowGenerationError, produceFlowSections } from "@/app/api/flows/_lib/produce";
 import { hasAnyFlowSections, putFlowSections } from "@/app/api/flows/_lib/store";
 import { createFlowReportTransport, generateFlowReportV2 } from "@/app/api/flows/_lib/v2/generator";
@@ -70,7 +72,8 @@ export default async function FlowResultPage({
   if (!flow) notFound();
 
   const [profile, user] = await Promise.all([
-    getProfile(session.userId, flow.profileId),
+    // 지워진 프로필도 읽는다 — 이미 산 리포트가 삭제로 404 가 되면 안 된다.
+    getProfileById(session.userId, flow.profileId),
     getUser(session.userId),
   ]);
   if (!profile) notFound();
@@ -89,6 +92,13 @@ export default async function FlowResultPage({
     hasAnyFlowSections(flow.id),
   ]);
   const route = resolveFlowRoute({ active, hasV1Sections: hasV1, pending, latest });
+
+  // 지워진 프로필의 흐름은 **이미 만들어진 것만** 보여 준다. v2 의 생성 경로는
+  // runFlowReportV2 가 그 자리에서 이용권을 쓰고(spend), 실패 화면의 재시도도 결국
+  // 생성 경로로 돌아온다 — 둘 다 지워진 사람으로 돈이 나가는 길이라 닫는다. 발행본이
+  // 없으니 보여 줄 것도 없다. 프로필이 진짜 지워지던 시절에도 여기는 404 였다.
+  const profileDeleted = profile.deletedAt !== null;
+  if (profileDeleted && (route === "v2:generate" || route === "v2:failed")) notFound();
 
   if (route === "v2:published") {
     return (
@@ -158,6 +168,7 @@ export default async function FlowResultPage({
           ctx={ctx}
           currentIndex={currentIndex}
           profileName={profile.name}
+          profileDeleted={profileDeleted}
         />
       </Suspense>
     </FlowShell>
@@ -320,12 +331,15 @@ async function FlowSections({
   ctx,
   currentIndex,
   profileName,
+  profileDeleted,
 }: {
   flow: FlowRow;
   userId: string;
   ctx: FlowContext;
   currentIndex: number | null;
   profileName: string;
+  /** 주인 프로필이 소프트 삭제됐는가 — 그러면 저장된 섹션만 보여 주고 새로 만들지 않는다 */
+  profileDeleted: boolean;
 }) {
   const chrome = (inner: React.ReactNode) => (
     <FlowChrome flow={flow} profileName={profileName}>
@@ -348,10 +362,12 @@ async function FlowSections({
     // 요청에서 먼저 돈을 받는 꼴이 된다.
     //
     // client 를 생략하면 store.ts 의 실제 sql 이 쓰인다 — 테스트만 가짜를 준다.
+    //
+    // 지워진 프로필이면 이 사슬을 아예 만들지 않는다(flowGenerationFor) — 저장 안 된
+    // 섹션이 남아 있어도 지워진 사람으로 이용권이 나가지 않는다.
     ({ interpretation } = await produceFlowSections(flow.id, ctx, {
-      generator: gateFlowGeneration(
-        chargeFlowGeneration(createFlowGenerator(), userId, flow.id),
-        userId,
+      generator: flowGenerationFor(profileDeleted, () =>
+        gateFlowGeneration(chargeFlowGeneration(createFlowGenerator(), userId, flow.id), userId),
       ),
       putStored: putFlowSections,
       sectionKeys: FLOW_SECTION_KEYS,
@@ -362,7 +378,8 @@ async function FlowSections({
       // 이어가되, 보여줄 것이 하나도 없으면 아래에서 다른 문구로 안내한다.
       if (isFlowRateLimited(e)) rateLimited = true;
       else if (isFlowOutOfTickets(e)) outOfTickets = true;
-      else console.error("[/flow/[id]] 해석 생성 실패", e);
+      // 지워진 프로필이라 일부러 안 만든 것은 실패가 아니다 — 로그를 남기지 않는다.
+      else if (!isProfileDeletedError(e)) console.error("[/flow/[id]] 해석 생성 실패", e);
       // 일부라도 확보했으면 그것까지는 보여준다 — 이용권을 쓴 결과다.
       interpretation = e.partial;
     } else {

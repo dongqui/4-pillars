@@ -1,0 +1,14 @@
+-- 관계 지도를 계정당 하나에서 프로필당 하나로 옮긴다.
+--
+-- owner_user_id 는 남긴다. 지도에 올라온 사람을 지울 권한이 소유자에게만 있고
+-- (api/maps/[share]/people/[id]), 그 검사는 프로필이 아니라 계정으로 한다 —
+-- 프로필을 거쳐 계정을 찾는 조인을 매 요청에 더할 이유가 없다.
+--
+-- ON DELETE CASCADE 가 평소에 도는 일은 없다. 프로필 삭제가 소프트 삭제로
+-- 바뀌었으므로(0050), 이 CASCADE 는 유예 기간이 지난 행을 치울 때만 돈다 —
+-- 그때는 그 프로필의 지도도 같이 사라지는 것이 맞다.
+--
+-- NULL 을 허용하는 이유는 백필(0053)이 primary_profile_id 가 없는 계정의
+-- 지도를 채울 수 없기 때문이다. 그 행은 공유 링크로는 계속 열리고(/map/[share]
+-- 는 share_id 로만 찾는다) /map 진입에서만 안 잡힌다.
+ALTER TABLE maps ADD COLUMN IF NOT EXISTS profile_id bigint REFERENCES profiles(id) ON DELETE CASCADE

@@ -8,7 +8,7 @@ import {
 import { handleAddPerson, handleDeletePerson } from "./handler";
 
 const map = {
-  id: "7", shareId: "s", ownerUserId: "3",
+  id: "7", shareId: "s", ownerUserId: "3", profileId: "5",
   center: { name: "나", year: 1990, month: 10, day: 25, calendar: "solar" as const, isLeapMonth: false },
   createdAt: "2026-08-18T00:00:00.000Z",
 };

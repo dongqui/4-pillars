@@ -1,9 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import type { FlowContext } from "./prompt";
 import type { FlowGenerator } from "./generator";
-import { chargeFlowGeneration, gateFlowGeneration, isFlowRateLimited } from "./gated-generator";
+import {
+  chargeFlowGeneration,
+  flowGenerationFor,
+  gateFlowGeneration,
+  isFlowRateLimited,
+} from "./gated-generator";
 import { FlowRateLimitError } from "@/lib/flows/rate-limit";
 import { FlowTicketsError } from "@/lib/flows/tickets";
+import { ProfileDeletedError } from "@/lib/profiles/deleted";
 
 const ctx = { pivotMonths: [] } as unknown as FlowContext;
 
@@ -70,5 +76,26 @@ describe("isFlowRateLimited", () => {
   it("cause 에 싸인 것도 알아본다 — produce 가 감싸서 던진다", () => {
     expect(isFlowRateLimited(new Error("x", { cause: new FlowRateLimitError() }))).toBe(true);
     expect(isFlowRateLimited(new Error("x"))).toBe(false);
+  });
+});
+
+describe("flowGenerationFor", () => {
+  // 지워진 프로필의 흐름을 URL 로 다시 열었을 때, 저장 안 된 섹션이 남아 있으면
+  // produceFlowSections 가 생성기를 부른다. 그 생성기가 과금 사슬이면 지워진 사람으로
+  // 이용권이 나간다. 그래서 과금 사슬을 **만들지조차 않는다** — build 가 안 불려야 한다.
+  it("지워진 프로필이면 과금 사슬을 만들지 않고 거절한다", async () => {
+    const build = vi.fn(() => stub());
+    const g = flowGenerationFor(true, build);
+
+    await expect(g.generateSections(ctx, ["overview"])).rejects.toBeInstanceOf(ProfileDeletedError);
+    expect(build).not.toHaveBeenCalled();
+  });
+
+  it("살아 있는 프로필이면 만든 것을 그대로 쓴다", async () => {
+    const inner = stub();
+    const g = flowGenerationFor(false, () => inner);
+
+    await g.generateSections(ctx, ["overview"]);
+    expect(inner.calls).toBe(1);
   });
 });

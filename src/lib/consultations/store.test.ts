@@ -125,21 +125,39 @@ describe("listConsultations", () => {
     const { client, calls } = fakeClient([
       { ...dbConsultation, last_bubbles: ["지금 자리에서 답답한 게…"] },
     ]);
-    const rows = await listConsultations("3", client);
+    const rows = await listConsultations("3", "12", client);
     expect(rows[0].lastBubble).toBe("지금 자리에서 답답한 게…");
     expect(calls[0].sql).toContain("status = 'open'");
   });
 
   it("상담사 답이 아직 없으면 lastBubble 은 null 이다", async () => {
     const { client } = fakeClient([{ ...dbConsultation, last_bubbles: null }]);
-    const rows = await listConsultations("3", client);
+    const rows = await listConsultations("3", "12", client);
     expect(rows[0].lastBubble).toBeNull();
   });
 
   it("이용권이 안 쓰였고 한 턴도 없는 죽은 행은 거른다", async () => {
     const { client, calls } = fakeClient([{ ...dbConsultation, last_bubbles: null }]);
-    await listConsultations("3", client);
+    await listConsultations("3", "12", client);
     expect(calls[0].sql).toContain("ticket_spent = false AND c.turns_used = 0");
+  });
+
+  // 프로필을 바꿔도 같은 목록이 서던 것이 이 변경의 이유다.
+  it("프로필로 거른다", async () => {
+    const { client, calls } = fakeClient([]);
+    await listConsultations("3", "12", client);
+
+    expect(calls[0].sql).toContain("c.profile_id =");
+    expect(calls[0].values).toEqual(["3", "12"]);
+  });
+
+  // profile_id 는 NULL 일 수 있다(옛 행, 그리고 0012 의 ON DELETE SET NULL 이
+  // 돈 행). 조건을 profile_id 하나로만 걸면 그 틈으로 남의 행이 섞인다.
+  it("user_id 조건을 함께 남긴다", async () => {
+    const { client, calls } = fakeClient([]);
+    await listConsultations("3", "12", client);
+
+    expect(calls[0].sql).toContain("c.user_id =");
   });
 });
 

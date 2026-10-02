@@ -3,9 +3,12 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { DEFAULT_TURN_LIMIT } from "@/lib/consultations/budget";
+import { consultCheckoutHref } from "../_lib/consult-href";
 
 interface Props {
   balance: number;
+  /** 결제 뒤 돌아올 목록의 프로필 — 지금 셀렉터가 고른 사람이다 */
+  profileId: string;
   onClose: () => void;
 }
 
@@ -17,7 +20,7 @@ interface Props {
  * 조건과 다르면 그건 시안이 아니라 오해다. 숫자도 상수에서 읽어 예산이 바뀌면
  * 문구가 같이 따라간다.
  */
-export function TicketModal({ balance, onClose }: Props) {
+export function TicketModal({ balance, profileId, onClose }: Props) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -50,7 +53,7 @@ export function TicketModal({ balance, onClose }: Props) {
         </div>
         <div className="flex flex-col gap-2">
           <Link
-            href="/checkout?next=/consult"
+            href={consultCheckoutHref(profileId)}
             className="flex h-[50px] items-center justify-center rounded-[14px] bg-accent text-[15.5px] font-bold tracking-[-0.02em] text-white hover:bg-accent-700"
           >
             이용권 구매하기

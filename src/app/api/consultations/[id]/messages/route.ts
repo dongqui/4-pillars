@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/auth/session";
 import { defaultConsultationSubject } from "@/lib/consultations/subject";
-import { getProfile } from "@/lib/profiles/store";
+import { getProfileById } from "@/lib/profiles/store";
 import { isSequentialId } from "@/lib/profiles/param";
 import { utteranceSchema } from "@/lib/consultations/input";
 import { factsForProfile } from "@/lib/consultations/facts";
@@ -44,11 +44,12 @@ export async function POST(
   const consultation = await getConsultation(session.userId, id);
   if (!consultation) return Response.json({ error: "상담을 찾을 수 없어요" }, { status: 404 });
 
-  // 프로필이 지워졌으면 그 계정의 "나" 로 이어간다. 남은 이력은 살아 있고,
-  // 근거만 현재 프로필에서 다시 세운다.
+  // 지워진 프로필이어도 그 사람의 원국으로 이어간다 — 나눈 이력의 근거가
+  // 중간에 다른 사람으로 바뀌면 안 된다. profile_id 가 NULL 인 옛 행(프로필이
+  // 소프트 삭제 이전에 진짜 지워진 경우)만 계정의 "나" 로 물러선다.
   const profile =
     (consultation.profileId
-      ? await getProfile(session.userId, consultation.profileId)
+      ? await getProfileById(session.userId, consultation.profileId)
       : null) ?? (await defaultConsultationSubject(session.userId));
 
   if (!profile) {

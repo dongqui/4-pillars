@@ -8,6 +8,7 @@ import {
   createProfile,
   deleteProfile,
   getProfile,
+  getProfileById,
   listProfiles,
   toProfileRow,
   type CreateProfileInput,
@@ -76,7 +77,15 @@ describe("toProfileRow", () => {
       createdAt: "2026-07-31T00:00:00.000Z",
       isUnlocked: false,
       kind: "saved",
+      deletedAt: null,
     });
+  });
+
+  // getProfileById 는 지워진 행도 돌려준다. 그 행으로 이용권을 쓰는 생성을 막으려면
+  // 호출부가 "지워졌는가" 를 알아야 한다 — 이 필드가 그 유일한 통로다.
+  it("deleted_at 이 있으면 deletedAt 으로 옮긴다", () => {
+    const row = toProfileRow({ ...dbRow, deleted_at: "2026-10-02T08:00:00.000Z" });
+    expect(row.deletedAt).toBe("2026-10-02T08:00:00.000Z");
   });
 
   it("time_known 이 false 면 시각 컬럼이 남아 있어도 time 은 null", () => {
@@ -119,6 +128,14 @@ describe("listProfiles", () => {
     const { client } = fakeClient([]);
     expect(await listProfiles("7", client)).toEqual([]);
   });
+
+  // 지워진 프로필이 셀렉터에 다시 서면 안 된다. 조건을 호출부마다 적지 않고
+  // store 안에 두는 이유가 이것이다 — 서른 곳 중 한 곳이 빠지면 그 한 곳이 샌다.
+  it("지워진 프로필을 뺀다", async () => {
+    const { client, calls } = fakeClient([]);
+    await listProfiles("7", client);
+    expect(calls[0].sql).toContain("deleted_at IS NULL");
+  });
 });
 
 describe("countProfiles", () => {
@@ -130,6 +147,13 @@ describe("countProfiles", () => {
     // 계정별이 아니라 전역이 되어버린다 — 그 회귀를 여기서 잡는다.
     expect(calls[0].sql).toContain("WHERE user_id");
     expect(calls[0].values).toEqual(["7", "saved"]);
+  });
+
+  // MAX_PROFILES 20 이 지운 사람까지 세면, 스무 명을 지운 계정이 한 명도 더 못 만든다.
+  it("지워진 프로필을 안 센다", async () => {
+    const { client, calls } = fakeClient([{ n: 2 }]);
+    await countProfiles("7", "saved", client);
+    expect(calls[0].sql).toContain("deleted_at IS NULL");
   });
 });
 
@@ -231,6 +255,33 @@ describe("getProfile", () => {
     const { client } = fakeClient([]);
     expect(await getProfile("7", "3", client)).toBeNull();
   });
+
+  // 새 상담·새 흐름·새 궁합을 여는 길이다. 지워진 사람으로 이용권이 나가면 안 된다.
+  it("지워진 프로필을 뺀다", async () => {
+    const { client, calls } = fakeClient([]);
+    await getProfile("7", "3", client);
+    expect(calls[0].sql).toContain("deleted_at IS NULL");
+  });
+});
+
+describe("getProfileById", () => {
+  // 이미 산 리포트의 주인을 읽는 자리다. 여기까지 지워진 행을 가리면 프로필을
+  // 지운 순간 /flow/[id] 와 /match/[id] 가 notFound 로 떨어져, 돈 주고 산 물건이
+  // 사라진다.
+  it("지워진 프로필도 돌려준다", async () => {
+    const { client, calls } = fakeClient([{ ...dbRow, is_unlocked: false }]);
+    expect(await getProfileById("7", "3", client)).not.toBeNull();
+    expect(calls[0].sql).not.toContain("deleted_at");
+  });
+
+  // getProfile 과 같은 이유로 user_id 를 함께 건다 — id 만으로 찾으면 파라미터를
+  // 올려가며 남의 생년월일을 읽을 수 있다.
+  it("user_id 를 함께 필터한다", async () => {
+    const { client, calls } = fakeClient([]);
+    expect(await getProfileById("7", "3", client)).toBeNull();
+    expect(calls[0].sql).toContain("p.user_id");
+    expect(calls[0].values).toEqual(["3", "7"]);
+  });
 });
 
 describe("kind", () => {
@@ -256,9 +307,17 @@ describe("kind", () => {
     expect(toProfileRow({ ...dbRow, kind: "other" }).kind).toBe("temp");
   });
 
-  it("deleteProfile 은 지운 행이 없으면 false 를 낸다", async () => {
-    const client = (() => Promise.resolve([])) as unknown as SqlClient;
-    expect(await deleteProfile("1", "2", client)).toBe(false);
+  // DELETE 를 보내지 않는 것이 이 테스트의 요점이다. 진짜 CASCADE 동작은 fakeClient
+  // 로는 못 잡지만, DELETE 가 안 나가면 flows·matches 의 CASCADE 가 돌 수 없다 —
+  // 프로필을 지워도 산 흐름 리포트와 본 궁합이 남는다는 설계 §7 의 요구가 이 한
+  // 줄로 기계적으로 보장된다.
+  it("deleteProfile 은 행을 지우지 않고 deleted_at 을 찍는다", async () => {
+    const { client, calls } = fakeClient([{ id: 2 }]);
+    expect(await deleteProfile("1", "2", client)).toBe(true);
+
+    expect(calls[0].sql).toContain("UPDATE profiles");
+    expect(calls[0].sql).toContain("deleted_at = now()");
+    expect(calls[0].sql).not.toContain("DELETE FROM");
   });
 
   // user_id 조건이 없으면 URL 의 순번 id 를 하나씩 올려가며 남의 프로필을 지울 수 있다.
@@ -266,9 +325,17 @@ describe("kind", () => {
     const { client, calls } = fakeClient([{ id: 2 }]);
     expect(await deleteProfile("1", "2", client)).toBe(true);
 
-    expect(calls[0].sql).toContain("DELETE FROM profiles");
     expect(calls[0].sql).toContain("user_id =");
     // 바인딩 순서는 템플릿에 나타난 순서다 — id → user_id.
     expect(calls[0].values).toEqual(["2", "1"]);
+  });
+
+  // 핸들러가 "이미 지워진 프로필에 한 번 더 오면 404" 를 약속한다. 그 404 는 이
+  // 조건이 RETURNING 을 비우는 데서 나온다.
+  it("deleteProfile 은 이미 지워진 행을 다시 지우지 않는다", async () => {
+    const { client, calls } = fakeClient([]);
+    expect(await deleteProfile("1", "2", client)).toBe(false);
+
+    expect(calls[0].sql).toContain("deleted_at IS NULL");
   });
 });

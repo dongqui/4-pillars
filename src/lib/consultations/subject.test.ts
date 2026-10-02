@@ -11,7 +11,7 @@ const { defaultConsultationSubject } = await import("./subject");
 const row = (id: string): ProfileRow => ({
   id, name: `사람${id}`, gender: "male", calendar: "solar", isLeapMonth: false,
   birth: { year: 1990, month: 1, day: 1 }, timeKnown: false, time: null,
-  birthPlace: null, trueSolar: true, createdAt: "2026-01-01", isUnlocked: false, kind: "saved",
+  birthPlace: null, trueSolar: true, createdAt: "2026-01-01", isUnlocked: false, kind: "saved", deletedAt: null,
 });
 
 // listProfiles 는 최신순(created_at DESC)이다 — 앞이 최신, 뒤가 가장 오래된 것.

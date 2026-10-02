@@ -5,8 +5,10 @@ import {
   gateMatchGeneration,
   isMatchOutOfTickets,
   isMatchRateLimited,
+  matchGenerationFor,
   spendOnMatchGeneration,
 } from "./gated-generator";
+import { ProfileDeletedError } from "@/lib/profiles/deleted";
 import { MatchGenerationError } from "./produce";
 import type { MatchGenerator } from "./generator";
 import type { MatchContext } from "./prompt";
@@ -139,5 +141,25 @@ describe("isMatchOutOfTickets", () => {
   it("한도 초과와 섞이지 않는다", () => {
     expect(isMatchOutOfTickets(new MatchRateLimitError())).toBe(false);
     expect(isMatchRateLimited(new MatchTicketsError())).toBe(false);
+  });
+});
+
+describe("matchGenerationFor", () => {
+  // 나·상대 중 한 사람이라도 지워졌으면, 저장 안 된 섹션을 채우려 생성기를 부르는 순간
+  // 지워진 사람으로 이용권이 나간다. 과금 사슬을 **만들지조차 않는다**.
+  it("지워진 사람이 끼어 있으면 과금 사슬을 만들지 않고 거절한다", async () => {
+    const build = vi.fn(() => innerGenerator());
+    const g = matchGenerationFor(true, build);
+
+    await expect(g.generateSections(ctx, ["verdict"])).rejects.toBeInstanceOf(ProfileDeletedError);
+    expect(build).not.toHaveBeenCalled();
+  });
+
+  it("둘 다 살아 있으면 만든 것을 그대로 쓴다", async () => {
+    const inner = innerGenerator();
+    const g = matchGenerationFor(false, () => inner);
+
+    await g.generateSections(ctx, ["verdict"]);
+    expect(inner.generateSections).toHaveBeenCalledTimes(1);
   });
 });

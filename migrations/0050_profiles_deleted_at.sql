@@ -1,0 +1,15 @@
+-- 프로필 삭제를 소프트 삭제로 바꾼다.
+--
+-- 진짜 DELETE 를 쓸 수 없는 이유가 둘이다. maps 가 profiles 를 참조하게 되면서
+-- (0052) 삭제가 이미 뿌린 공유 링크를 깨고, 지금도 flows·matches 의 CASCADE 가
+-- 돌아 **돈 주고 산 흐름 리포트와 본 궁합이 같이 사라진다**. store.ts 의
+-- deleteProfile 이 entitlements 를 "환불·CS 가 봐야 하는 기록" 이라며 일부러
+-- 남기는 것과 같은 판단이 그 둘에는 걸려 있지 않았다.
+--
+-- boolean 이 아니라 timestamptz 인 이유: 나중에 고아를 치울 때 "언제 지워진
+-- 것부터" 를 봐야 한다. 불리언이면 그 질문에 답할 수 없어 청소가 전부 아니면
+-- 아무것도가 된다.
+--
+-- CASCADE 는 그대로 둔다. 소프트 삭제가 걸린 뒤로 평소에는 안 돌고, 유예 기간이
+-- 지난 행을 진짜 지울 때만 돈다 — 그때는 흐름·궁합·지도가 같이 사라지는 것이 맞다.
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS deleted_at timestamptz

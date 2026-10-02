@@ -35,6 +35,7 @@ export function toMapRow(r: Record<string, unknown>): MapRow {
     id: String(r.id),
     shareId: String(r.share_id),
     ownerUserId: String(r.owner_user_id),
+    profileId: r.profile_id == null ? null : String(r.profile_id),
     center: {
       name: String(r.center_name),
       year: Number(r.center_birth_year),
@@ -72,11 +73,19 @@ export async function getMapByShareId(
   return row ? toMapRow(row) : null;
 }
 
-export async function getMapByOwner(
-  userId: string,
+/**
+ * 프로필의 지도. 계정이 아니라 프로필이 소유 단위다(설계 §2) — 홈에서 사람을
+ * 바꾸면 지도도 바뀌어야 한다.
+ *
+ * owner_user_id 로 찾지 않는 이유가 그것이고, 조건에 함께 걸지도 않는다:
+ * maps_profile 유니크가 프로필당 한 행을 보장하고 프로필은 이미 한 사용자에
+ * 속하므로, 계정 조건은 같은 사실을 두 번 묻는 것이다.
+ */
+export async function getMapByProfile(
+  profileId: string,
   client: SqlClient = sql,
 ): Promise<MapRow | null> {
-  const rows = await client`SELECT * FROM maps WHERE owner_user_id = ${userId}::bigint`;
+  const rows = await client`SELECT * FROM maps WHERE profile_id = ${profileId}::bigint`;
   const row = rows[0];
   return row ? toMapRow(row) : null;
 }
@@ -91,29 +100,30 @@ export async function getMapByOwner(
  */
 export async function createMap(
   userId: string,
+  profileId: string,
   center: BirthLite & { name: string },
   client: SqlClient = sql,
 ): Promise<MapRow> {
-  const existing = await getMapByOwner(userId, client);
+  const existing = await getMapByProfile(profileId, client);
   if (existing) return existing;
 
   const shareId = crypto.randomUUID();
   await client`
     INSERT INTO maps (
-      share_id, owner_user_id, center_name,
+      share_id, owner_user_id, profile_id, center_name,
       center_calendar, center_is_leap_month,
       center_birth_year, center_birth_month, center_birth_day
     ) VALUES (
-      ${shareId}, ${userId}::bigint, ${center.name},
+      ${shareId}, ${userId}::bigint, ${profileId}::bigint, ${center.name},
       ${center.calendar}, ${center.isLeapMonth},
       ${center.year}, ${center.month}, ${center.day}
     )
-    ON CONFLICT (owner_user_id) DO NOTHING
+    ON CONFLICT (profile_id) DO NOTHING
   `;
 
   // 동시 요청이 먼저 넣었으면 위 INSERT 가 아무 일도 하지 않는다 — 그때도 여기서
   // 그 행을 읽어 온다. 이것이 이 함수가 멱등한 방식이다.
-  const row = await getMapByOwner(userId, client);
+  const row = await getMapByProfile(profileId, client);
   if (!row) throw new Error("createMap: 삽입 후에도 지도를 찾지 못했다");
   return row;
 }

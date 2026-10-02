@@ -70,9 +70,18 @@ export interface ProfileRow {
   isUnlocked: boolean;
   /** 홈·프로필 목록은 'self' 만 본다. 'temp' 는 어디에도 뜨지 않는다. */
   kind: ProfileKind;
+  /**
+   * 소프트 삭제된 시각. 살아 있으면 null.
+   *
+   * listProfiles·getProfile 은 지워진 행을 아예 안 돌려주므로 거기서 온 값은 늘
+   * null 이다. 이 필드가 뜻을 갖는 곳은 getProfileById 뿐이다 — 이미 산 리포트를
+   * 열 때 그 주인이 지워졌는지 알아야, 지워진 사람으로 **새로 생성(=과금)** 하는
+   * 길을 막을 수 있다.
+   */
+  deletedAt: string | null;
 }
 
-export type CreateProfileInput = Omit<ProfileRow, "id" | "createdAt" | "isUnlocked">;
+export type CreateProfileInput = Omit<ProfileRow, "id" | "createdAt" | "isUnlocked" | "deletedAt">;
 
 /**
  * kind 컬럼 → ProfileKind.
@@ -121,6 +130,7 @@ export function toProfileRow(r: Record<string, unknown>): ProfileRow {
     createdAt: String(r.created_at),
     isUnlocked: r.is_unlocked === true,
     kind: toKind(r.kind),
+    deletedAt: r.deleted_at == null ? null : String(r.deleted_at),
   };
 }
 
@@ -156,6 +166,7 @@ export async function listProfiles(
      AND e.feature = 'full_report'
      AND e.subject_key = p.id::text
     WHERE p.user_id = ${userId}::bigint AND p.kind = 'saved'
+      AND p.deleted_at IS NULL
     ORDER BY p.created_at DESC
   `;
   return rows.map(toProfileRow);
@@ -170,8 +181,45 @@ export async function listProfiles(
  *
  * id 는 호출자가 형식을 검증해 넘긴다(parseProfileParam). 검증 없이 오면
  * ::bigint 캐스팅에서 DB 에러가 난다.
+ *
+ * 지워진 프로필은 안 돌려준다 — 이 함수는 **새로 무언가를 여는** 자리(새 상담,
+ * 새 흐름, 새 궁합)가 쓰는 길이고, 지워진 사람으로 이용권이 나가면 안 된다.
+ * 이미 만들어진 산출물의 주인을 읽는 세 곳은 getProfileById 를 쓴다.
  */
 export async function getProfile(
+  userId: string,
+  id: string,
+  client: SqlClient = sql,
+): Promise<ProfileRow | null> {
+  const rows = await client`
+    SELECT p.*, (e.id IS NOT NULL) AS is_unlocked
+    FROM profiles p
+    LEFT JOIN entitlements e
+      ON e.user_id = p.user_id
+     AND e.feature = 'full_report'
+     AND e.subject_key = p.id::text
+    WHERE p.id = ${id}::bigint AND p.user_id = ${userId}::bigint
+      AND p.deleted_at IS NULL
+  `;
+  const row = rows[0];
+  return row ? toProfileRow(row) : null;
+}
+
+/**
+ * id 로 프로필 하나 — **지워진 것도 포함한다.**
+ *
+ * getProfile 과 갈리는 유일한 축이 그것이다. 이 함수를 쓰는 곳은 셋뿐이고 전부
+ * **이미 만들어진 산출물의 주인**을 읽는다: /flow/[id], /match/[id], 상담 메시지.
+ * 그 셋은 `if (!profile) notFound()` 라, getProfile 을 쓰면 프로필을 지운 순간
+ * 돈 주고 산 리포트가 404 가 된다.
+ *
+ * 새로 무언가를 여는 자리에서는 절대 쓰지 않는다 — 지워진 사람으로 이용권이
+ * 나가면 안 된다. 그 자리는 getProfile 이다.
+ *
+ * user_id 조건은 getProfile 과 같은 이유로 남는다: profiles.id 는 순번 bigint 라
+ * URL 에 노출되고, id 만으로 찾으면 남의 생년월일을 읽을 수 있다.
+ */
+export async function getProfileById(
   userId: string,
   id: string,
   client: SqlClient = sql,
@@ -197,6 +245,7 @@ export async function countProfiles(
   const rows = await client`
     SELECT count(*)::int AS n FROM profiles
     WHERE user_id = ${userId}::bigint AND kind = ${kind}
+      AND deleted_at IS NULL
   `;
   return Number(rows[0]?.n ?? 0);
 }
@@ -245,13 +294,19 @@ export async function createProfile(
 }
 
 /**
- * 프로필 하나를 지운다. 없는 프로필과 남의 프로필을 구분하지 않고 둘 다 false 다 —
- * getProfile 과 같은 이유로 user_id 조건이 이 함수의 존재 이유다. profiles.id 는
- * URL 에 노출되는 순번 bigint 라, id 만으로 지우면 파라미터를 증가시켜 남의
- * 프로필을 지울 수 있다.
+ * 프로필 하나를 지운다 — 행을 지우지 않고 deleted_at 을 찍는다. 없는 프로필과 남의
+ * 프로필을 구분하지 않고 둘 다 false 다 — getProfile 과 같은 이유로 user_id 조건이
+ * 이 함수의 존재 이유다. profiles.id 는 URL 에 노출되는 순번 bigint 라, id 만으로
+ * 지우면 파라미터를 증가시켜 남의 프로필을 지울 수 있다.
  *
- * 딸린 행은 스키마가 처리한다: matches·purchases 는 ON DELETE CASCADE,
- * consultations 는 SET NULL(이미 나눈 대화는 프로필이 사라져도 남는다).
+ * 진짜 DELETE 를 쓰지 않는 이유는 0050_profiles_deleted_at.sql 에 적혀 있다:
+ * maps 가 profiles 를 참조하므로 삭제가 공유 링크를 깨고, flows·matches 의
+ * CASCADE 가 산 리포트까지 지운다. 스키마의 CASCADE·SET NULL 은 그대로 남아 있지만
+ * 이제 평소에는 안 돈다 — 유예 기간이 지난 행을 진짜 지울 때만 돈다.
+ *
+ * `deleted_at IS NULL` 조건이 핵심이다. 이미 지운 것을 또 지우면 RETURNING 이
+ * 비고 false 가 나가, 핸들러가 지금처럼 404 를 돌려준다 — "이미 지워진 프로필에
+ * 한 번 더 오는 경우도 404" 라는 handleDeleteProfile 의 약속이 그대로 산다.
  *
  * entitlements 는 함께 지우지 않는다. subject_key 가 text 라 FK 가 없고, id 는
  * IDENTITY 라 재사용되지 않으니 남은 행이 다른 프로필을 여는 일은 없다. 반대로
@@ -264,8 +319,9 @@ export async function deleteProfile(
   client: SqlClient = sql,
 ): Promise<boolean> {
   const rows = await client`
-    DELETE FROM profiles
+    UPDATE profiles SET deleted_at = now()
      WHERE id = ${id}::bigint AND user_id = ${userId}::bigint
+       AND deleted_at IS NULL
     RETURNING id
   `;
   return rows.length > 0;
