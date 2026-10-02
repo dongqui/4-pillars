@@ -4,11 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { loginHref } from "@/lib/nav/next-param";
+import { SupportDialog } from "@/components/support/SupportDialog";
+import type { SupportKind } from "@/lib/support/types";
 
 interface Props {
   /** 로그인하지 않았으면 null — 익명 캐릭터만 보고 있는 상태다 */
   displayName: string | null;
 }
+
+/** 시안의 메뉴 순서 그대로. 로그인 상태에서만 보인다 — 문의는 계정에 묶여야 답장할 곳이 생긴다. */
+const SUPPORT_ITEMS: { kind: SupportKind; label: string }[] = [
+  { kind: "error", label: "오류 문의" },
+  { kind: "feedback", label: "피드백 보내기" },
+  { kind: "refund", label: "환불 요청" },
+];
 
 /**
  * 헤더 오른쪽 오버플로 메뉴. 시안은 점 세 개만 있고 내용이 없어서,
@@ -19,6 +28,7 @@ interface Props {
  */
 export function AppMenu({ displayName }: Props) {
   const [open, setOpen] = useState(false);
+  const [support, setSupport] = useState<SupportKind | null>(null);
   // 로그인하고 나면 보던 화면으로 되돌아와야 한다 — 이 메뉴는 화면 위에 얹혀 있어서
   // 자기가 어디인지 런타임에 읽는 수밖에 없다(로그인을 요구하는 화면들은 서버에서
   // 손으로 ?next 를 붙인다).
@@ -90,6 +100,21 @@ export function AppMenu({ displayName }: Props) {
             </>
           ) : (
             <>
+              {SUPPORT_ITEMS.map((it) => (
+                <button
+                  key={it.kind}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setOpen(false);
+                    setSupport(it.kind);
+                  }}
+                  className="block w-full cursor-pointer px-4 py-2.5 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                >
+                  {it.label}
+                </button>
+              ))}
+              <div className="my-1.5 border-t border-slate-100" role="separator" />
               <p className="truncate px-4 pb-1.5 pt-1 text-[12.5px] text-slate-400">
                 {displayName}님
               </p>
@@ -107,6 +132,8 @@ export function AppMenu({ displayName }: Props) {
           )}
         </div>
       )}
+
+      {support !== null && <SupportDialog kind={support} onClose={() => setSupport(null)} />}
     </div>
   );
 }
