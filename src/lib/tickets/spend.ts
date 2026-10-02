@@ -55,6 +55,13 @@ function isBalanceCheckViolation(e: unknown): boolean {
  * 차감 API 인데 적립이 되는 것이다. 지금은 FEATURE_COST 만이 유일한 출처라
  * 도달 불가능하지만, 런타임 가드로 막는 대신 그 클래스의 버그 자체를 타입에서
  * 지운다 — 이 브랜치가 FEATURE_COST/Feature 전반에서 쓰는 방식과 같다.
+ *
+ * attributed 가 결제별 잔여(purchases.remaining)를 FIFO 로 깎는다 — 환불 가능 장수의 출처다.
+ * `- 1` 을 cost 로 쓰지 않는 이유: 모든 기능이 1장이라(FEATURE_COST) 소비 1건은 결제 1건에
+ * 붙는다. 단가가 2 이상인 기능이 생기면 한 소비가 두 결제에 걸칠 수 있어 이 단계를 다시 짜야
+ * 한다 — 그때 이 주석이 서 있다.
+ * 귀속할 결제가 없어도(백필 때 결제에 안 붙은 수기 지급분) attributed 가 비는 것은 오류가
+ * 아니다 — 소비는 claim·pay 가 정한다.
  */
 export async function spendTicket(
   a: SpendInput,
@@ -77,6 +84,15 @@ export async function spendTicket(
       ), ledger AS (
         INSERT INTO ticket_entries (user_id, delta, reason, entitlement_id)
         SELECT ${a.userId}::bigint, ${-cost}, 'spend', id FROM claim
+        RETURNING id
+      ), attributed AS (
+        UPDATE purchases SET remaining = remaining - 1
+         WHERE id = (
+           SELECT id FROM purchases
+            WHERE user_id = ${a.userId}::bigint AND status = 'paid' AND remaining > 0
+              AND EXISTS (SELECT 1 FROM claim)
+            ORDER BY paid_at, id LIMIT 1
+         )
         RETURNING id
       )
       SELECT (SELECT id FROM claim) AS entitlement_id,

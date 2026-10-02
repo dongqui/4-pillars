@@ -113,4 +113,17 @@ describe("spendTicket", () => {
     // cost 는 이제 FEATURE_COST[feature] 에서 읽는다 — full_report 단가 1의 음수.
     expect(calls[0].values).toContain(-1);
   });
+
+  // 지갑은 합산이라 어느 결제가 쓰였는지 모른다 — 가장 오래된 paid 결제의 remaining 을 깎아
+  // 환불 가능 장수를 결제별로 남긴다. 귀속할 결제가 없어도(수기 지급분) 소비는 성공한다.
+  it("가장 오래된 paid 결제의 remaining 을 1 깎는다 — claim 이 생겼을 때만", async () => {
+    const { client, calls } = fakeClient([{ entitlement_id: 11, balance: 5 }]);
+    await spendTicket(input, client);
+    const { sql } = calls[0];
+    expect(sql).toContain("UPDATE purchases SET remaining = remaining - 1");
+    expect(sql).toContain("status = 'paid' AND remaining > 0");
+    expect(sql).toContain("ORDER BY paid_at, id LIMIT 1");
+    expect(sql).toContain("AND EXISTS (SELECT 1 FROM claim)");
+    expect(calls).toHaveLength(1);
+  });
 });

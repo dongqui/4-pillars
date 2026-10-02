@@ -32,6 +32,9 @@ export async function getBalance(userId: string, client: SqlClient = sql): Promi
  *
  * tickets 가 NULL 인 행(수기 지급 등)을 만나면 balance NOT NULL 위반으로 던진다.
  * 조용히 0장 적립되어 "결제는 됐는데 이용권이 없다"로 나타나는 것보다 낫다.
+ *
+ * remaining = tickets 도 같은 문장에서 쓴다 — 적립 장수와 "아직 안 쓴 장수" 가 어긋난 채
+ * 시작하면 환불 가능 장수가 처음부터 틀린다.
  */
 export async function confirmPurchaseAndCredit(
   a: { paymentId: string; transactionId: string | null },
@@ -40,7 +43,8 @@ export async function confirmPurchaseAndCredit(
   const rows = await client`
     WITH paid AS (
       UPDATE purchases
-         SET status = 'paid', paid_at = now(), provider_txn_id = ${a.transactionId}
+         SET status = 'paid', paid_at = now(), provider_txn_id = ${a.transactionId},
+             remaining = tickets
        WHERE payment_id = ${a.paymentId} AND status = 'pending'
       RETURNING id, user_id, tickets
     ), wallet AS (
