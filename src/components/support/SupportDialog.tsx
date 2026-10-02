@@ -93,8 +93,8 @@ function toRows(o: SupportOptions, now: Date): { rows: Row[]; balance: number | 
       key: it.purchaseId,
       title: it.title,
       sub: it.sub,
-      meta: it.requested ? "요청됨" : formatOptionDate(it.createdAt, now),
-      disabled: it.requested,
+      meta: formatOptionDate(it.createdAt, now),
+      disabled: false,
     })),
     balance: o.balance,
   };

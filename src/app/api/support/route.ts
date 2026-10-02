@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { getUser } from "@/lib/auth/users";
 import { createSupportMailer } from "@/lib/support/mailer";
 import { checkSupportLimit } from "@/lib/support/rate-limit";
-import { insertSupportTicket, listPurchaseOptions, listServiceOptions } from "@/lib/support/store";
+import { insertSupportTicket, listServiceOptions } from "@/lib/support/store";
 import { handleCreateSupportTicket } from "./_lib/handler";
 
 export async function POST(request: Request) {
@@ -22,7 +22,6 @@ export async function POST(request: Request) {
       checkLimit: checkSupportLimit,
       getUser,
       listServiceOptions,
-      listPurchaseOptions,
       insertTicket: insertSupportTicket,
       mailer: createSupportMailer(),
       defer: after,

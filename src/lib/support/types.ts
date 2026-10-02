@@ -47,15 +47,17 @@ export interface ServiceOption {
   createdAt: string | null;
 }
 
-/** 환불 요청의 "결제 내역" 한 줄. */
+/** 환불 요청의 "환불 가능한 결제" 한 줄. 서버가 isRefundable 로 거른 것만 내려온다. */
 export interface PurchaseOption {
   purchaseId: string;
   paymentId: string;
   title: string;
   sub: string;
+  /** 아직 안 쓴 장수 — 전부 회수된다. */
+  remaining: number;
+  /** 지금 환불받을 금액(원). 서버가 계산한 표시용이다 — 실행 때 다시 계산한다. */
+  refundAmount: number;
   createdAt: string;
-  /** 이미 열린 환불 요청이 있다 — 고를 수 없다. */
-  requested: boolean;
 }
 
 export type SupportOptions =

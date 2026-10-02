@@ -5,6 +5,7 @@ import {
   getPackage,
   type TicketPackageId,
 } from "@/lib/payments/pricing";
+import { isRefundable, refundAmount, refundWindowStart } from "@/lib/payments/refund";
 import {
   OTHER_OPTION,
   type PurchaseOption,
@@ -135,31 +136,55 @@ export function toPurchaseOption(r: Record<string, unknown>): PurchaseOption {
   const product = String(r.product);
   const tickets =
     r.tickets != null ? Number(r.tickets) : isPackageId(product) ? creditedTickets(getPackage(product)) : null;
+  const remaining = r.remaining == null ? 0 : Number(r.remaining);
   return {
     purchaseId: String(r.id),
     paymentId: String(r.payment_id ?? ""),
     title: tickets === null ? "이용권" : `이용권 ${tickets}장`,
     sub: `${Number(r.amount).toLocaleString("ko-KR")}원`,
+    remaining,
+    refundAmount: refundAmount({ amount: Number(r.amount), tickets, remaining }),
     createdAt: toIso(r.paid_at ?? r.created_at),
-    requested: r.requested === true,
   };
 }
 
-/** 환불 요청의 "결제 내역": 이 사용자의 paid 결제, 최신순. 열린 환불 요청이 있으면 requested. */
-export async function listPurchaseOptions(userId: string, client: SqlClient = sql): Promise<PurchaseOption[]> {
+/**
+ * 환불 요청의 "환불 가능한 결제": paid · 남은 장수 있음 · 7일 이내를 SQL 로 거르고,
+ * 환불액 0 원(쓴 장수를 정가로 치면 결제액을 넘는 묶음)은 앱에서 뺀다 — 가격 규칙은 refund.ts 가
+ * 유일한 출처라 SQL 에 다시 적지 않는다. 실행(POST /api/refunds)도 같은 isRefundable 을 본다.
+ *
+ * tickets 가 NULL 인 옛 행은 isRefundable 이 뺀다(환불액 0) — 장수를 확신할 수 없는 결제는
+ * 환불하지 않는다. toPurchaseOption 의 패키지 표 폴백은 표시용일 뿐이다.
+ */
+export async function listPurchaseOptions(
+  userId: string,
+  client: SqlClient = sql,
+  now: Date = new Date(),
+): Promise<PurchaseOption[]> {
   const rows = await client`
-    SELECT p.id, p.payment_id, p.product, p.amount, p.tickets, p.paid_at, p.created_at,
-           EXISTS (
-             SELECT 1 FROM support_tickets t
-              WHERE t.purchase_id = p.id AND t.kind = 'refund' AND t.status = 'open'
-           ) AS requested
+    SELECT p.id, p.payment_id, p.product, p.amount, p.tickets, p.remaining, p.status, p.paid_at, p.created_at
       FROM purchases p
      WHERE p.user_id = ${userId}::bigint
        AND p.status = 'paid'
-     ORDER BY COALESCE(p.paid_at, p.created_at) DESC
+       AND p.remaining > 0
+       AND p.paid_at >= ${refundWindowStart(now)}
+     ORDER BY p.paid_at DESC
      LIMIT ${OPTION_LIMIT}
   `;
-  return rows.map(toPurchaseOption);
+  return rows
+    .filter((r) =>
+      isRefundable(
+        {
+          status: String(r.status),
+          amount: Number(r.amount),
+          tickets: r.tickets == null ? null : Number(r.tickets),
+          remaining: r.remaining == null ? null : Number(r.remaining),
+          paidAt: r.paid_at == null ? null : new Date(r.paid_at as string | Date),
+        },
+        now,
+      ),
+    )
+    .map(toPurchaseOption);
 }
 
 export interface NewSupportTicket {
