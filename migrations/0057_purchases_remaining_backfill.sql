@@ -10,6 +10,7 @@ UPDATE purchases p
        )
   FROM (
          SELECT id,
+                user_id,
                 COALESCE(SUM(COALESCE(tickets, 0)) OVER (
                   PARTITION BY user_id
                   ORDER BY COALESCE(paid_at, created_at) DESC, id DESC
@@ -18,7 +19,7 @@ UPDATE purchases p
            FROM purchases
           WHERE status = 'paid'
        ) q
-  LEFT JOIN ticket_wallets w ON w.user_id = p.user_id
+  LEFT JOIN ticket_wallets w ON w.user_id = q.user_id
  WHERE p.id = q.id
    AND p.status = 'paid'
    AND p.remaining IS NULL;
