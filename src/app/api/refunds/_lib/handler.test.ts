@@ -19,10 +19,11 @@ function deps(over: Partial<RefundDeps> = {}): RefundDeps {
   return {
     userId: "7",
     now: NOW,
+    configured: () => true,
     checkLimit: vi.fn(async () => true),
     getUser: vi.fn(async () => ({ displayName: "동진", email: "dj@example.com" })),
     findCandidate: vi.fn(async () => candidate),
-    execute: vi.fn(async () => ({ paymentId: "saju-abc", remaining: 4 })),
+    execute: vi.fn(async () => ({ paymentId: "saju-exec", remaining: 4 })),
     cancel: vi.fn(async () => {}),
     markFailed: vi.fn(async () => {}),
     insertTicket: vi.fn(async () => ({ id: "42", createdAt: NOW.toISOString() })),
@@ -69,6 +70,19 @@ describe("handleRefund", () => {
     expect(d.execute).not.toHaveBeenCalled();
   });
 
+  it("시크릿이 없으면 503 — DB 를 건드리지 않는다", async () => {
+    const d = deps({ configured: () => false });
+    expect(await handleRefund(body, d)).toEqual({ status: 503, body: { error: "지금은 환불을 처리할 수 없어요" } });
+    expect(d.findCandidate).not.toHaveBeenCalled();
+    expect(d.execute).not.toHaveBeenCalled();
+  });
+
+  it("remaining 을 모르는 행은 409 — execute 에 넘길 값이 없다", async () => {
+    const d = deps({ findCandidate: vi.fn(async () => ({ ...candidate, remaining: null })) });
+    expect((await handleRefund(body, d)).status).toBe(409);
+    expect(d.execute).not.toHaveBeenCalled();
+  });
+
   it("한도를 넘으면 429", async () => {
     const d = deps({ checkLimit: vi.fn(async () => false) });
     expect((await handleRefund(body, d)).status).toBe(429);
@@ -91,17 +105,17 @@ describe("handleRefund", () => {
     const d = deps();
     const r = await handleRefund({ ...body, amount: 999999 }, d);
     expect(r).toEqual({ status: 200, body: { amount: 3000, pending: false } });
-    expect(d.execute).toHaveBeenCalledWith({ purchaseId: "9", userId: "7", amount: 3000, now: NOW });
+    expect(d.execute).toHaveBeenCalledWith({ purchaseId: "9", userId: "7", amount: 3000, remaining: 4, now: NOW });
   });
 
   it("부분 환불이면 포트원에 amount 를 보내고, 전액이면 보내지 않는다", async () => {
     const partial = deps();
     await handleRefund(body, partial);
-    expect(partial.cancel).toHaveBeenCalledWith("saju-abc", { reason: "실수로 결제했어요", amount: 3000 });
+    expect(partial.cancel).toHaveBeenCalledWith("saju-exec", { reason: "실수로 결제했어요", amount: 3000 });
 
     const full = deps({ findCandidate: vi.fn(async () => ({ ...candidate, remaining: 6 })) });
     await handleRefund(body, full);
-    expect(full.cancel).toHaveBeenCalledWith("saju-abc", { reason: "실수로 결제했어요" });
+    expect(full.cancel).toHaveBeenCalledWith("saju-exec", { reason: "실수로 결제했어요" });
   });
 
   it("execute 가 0행이면 409 — 더블 클릭의 두 번째 요청. 포트원을 부르지 않는다", async () => {
@@ -159,15 +173,49 @@ describe("handleRefund", () => {
     expect(errorSpy).toHaveBeenCalled();
   });
 
-  it("시크릿 미설정은 실패 기록 뒤 그대로 던진다 — 라우트가 503 으로 옮긴다", async () => {
+  it("실행 도중 시크릿이 사라져도 다른 포트원 실패와 같다 — pending, open 티켓, [환불 실패] 메일", async () => {
     const d = deps({
       cancel: vi.fn(async () => {
         throw new PortOneNotConfiguredError();
       }),
     });
-    await expect(handleRefund(body, d)).rejects.toBeInstanceOf(PortOneNotConfiguredError);
+    expect(await handleRefund(body, d)).toEqual({ status: 200, body: { amount: 3000, pending: true } });
     expect(d.markFailed).toHaveBeenCalledWith("9");
-    expect(d.insertTicket).not.toHaveBeenCalled();
+    expect(d.insertTicket).toHaveBeenCalledWith(expect.objectContaining({ status: "open" }));
+    await runDeferred();
+    const mail = (d.mailer!.send as ReturnType<typeof vi.fn>).mock.calls[0][0] as { subject: string };
+    expect(mail.subject).toContain("[환불 실패]");
+  });
+
+  it("markFailed 가 던져도 200 pending — 티켓도 메일도 간다(DB 는 이미 refunded)", async () => {
+    const d = deps({
+      cancel: vi.fn(async () => {
+        throw new PortOneError("pg down", "PG_PROVIDER");
+      }),
+      markFailed: vi.fn(async () => {
+        throw new Error("db down");
+      }),
+    });
+    expect(await handleRefund(body, d)).toEqual({ status: 200, body: { amount: 3000, pending: true } });
+    expect(d.insertTicket).toHaveBeenCalledWith(expect.objectContaining({ status: "open" }));
+    expect(errorSpy).toHaveBeenCalled();
+    await runDeferred();
+    const mail = (d.mailer!.send as ReturnType<typeof vi.fn>).mock.calls[0][0] as { subject: string };
+    expect(mail.subject).toContain("[환불 실패]");
+  });
+
+  it("insertTicket 이 던져도 200 — 돈은 돌아갔다. 메일은 티켓 번호 없이 간다", async () => {
+    const d = deps({
+      insertTicket: vi.fn(async () => {
+        throw new Error("db down");
+      }),
+    });
+    expect(await handleRefund(body, d)).toEqual({ status: 200, body: { amount: 3000, pending: false } });
+    expect(errorSpy).toHaveBeenCalled();
+    await runDeferred();
+    const mail = (d.mailer!.send as ReturnType<typeof vi.fn>).mock.calls[0][0] as { subject: string; text: string };
+    expect(mail.subject).toContain("[환불 요청]");
+    expect(mail.text).toContain("문의 #-");
   });
 
   it("메일러가 없으면 건너뛰고 200", async () => {

@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { PortOneNotConfiguredError } from "@/lib/payments/portone";
 import { isRefundable, refundAmount } from "@/lib/payments/refund";
 import type { RefundCandidate } from "@/lib/payments/refund-store";
 import { composeSupportMail } from "@/lib/support/mail";
@@ -16,10 +15,12 @@ const bodySchema = z.object({
 export interface RefundDeps {
   userId: string | null;
   now: Date;
+  /** 포트원 시크릿이 있는지. 없으면 DB 를 건드리기 전에 막는다 — 차감한 뒤엔 취소할 수 없다. */
+  configured(): boolean;
   checkLimit(userId: string): Promise<boolean>;
   getUser(userId: string): Promise<{ displayName: string | null; email: string | null } | null>;
   findCandidate(purchaseId: string, userId: string): Promise<RefundCandidate | null>;
-  execute(a: { purchaseId: string; userId: string; amount: number; now: Date }): Promise<{ paymentId: string; remaining: number } | null>;
+  execute(a: { purchaseId: string; userId: string; amount: number; remaining: number; now: Date }): Promise<{ paymentId: string; remaining: number } | null>;
   cancel(paymentId: string, o: { reason: string; amount?: number }): Promise<void>;
   markFailed(purchaseId: string): Promise<void>;
   insertTicket(t: NewSupportTicket): Promise<{ id: string; createdAt: string } | null>;
@@ -49,8 +50,11 @@ function candidateLabel(c: RefundCandidate): string {
  * 더 써 버릴 수 있어 되돌리기 어렵다. 유저에게는 pending 으로 "접수" 를 알린다.
  *
  * execute 가 던지는 경우(잔액 CHECK 롤백)는 잡지 않는다 — DB 가 바뀌지 않았으니 포트원도 티켓도
- * 없어야 하고, 라우트가 500 으로 옮긴다. 시크릿 미설정(PortOneNotConfiguredError)은 실패 기록만
- * 남기고 다시 던진다 — 라우트가 503 으로 옮긴다.
+ * 없어야 하고, 라우트가 500 으로 옮긴다. 시크릿 미설정은 execute 전에 503 으로 막는다(configured).
+ *
+ * execute 가 행을 돌려준 뒤에는 2xx 만 돌려준다 — DB 는 이미 refunded 라 500 을 받은 사용자가
+ * 다시 눌러도 409 일 뿐이고, 운영자에게 갈 메일이 사라진다. markFailed·insertTicket 이 던져도
+ * 로그만 남기고 메일까지 간다.
  */
 export async function handleRefund(raw: unknown, d: RefundDeps): Promise<Result> {
   if (!d.userId) return { status: 401, body: { error: "로그인이 필요합니다" } };
@@ -65,13 +69,15 @@ export async function handleRefund(raw: unknown, d: RefundDeps): Promise<Result>
   const user = await d.getUser(userId);
   if (!user) return { status: 401, body: { error: "로그인이 필요합니다" } };
 
+  if (!d.configured()) return { status: 503, body: { error: "지금은 환불을 처리할 수 없어요" } };
+
   // 목록이 걸렀어도 실행 직전에 다시 본다 — 그 사이 7일이 지났거나 이용권을 썼을 수 있다.
   // 클라이언트가 보낸 금액은 받지 않는다(스키마에 없다). 여기서 읽은 행으로 계산한다.
   const c = await d.findCandidate(input.purchaseId, userId);
-  if (!c || !isRefundable(c, d.now)) return NOT_REFUNDABLE;
+  if (!c || c.remaining === null || !isRefundable(c, d.now)) return NOT_REFUNDABLE;
   const amount = refundAmount(c);
 
-  const done = await d.execute({ purchaseId: c.purchaseId, userId, amount, now: d.now });
+  const done = await d.execute({ purchaseId: c.purchaseId, userId, amount, remaining: c.remaining, now: d.now });
   if (!done) return NOT_REFUNDABLE;
 
   // 전액이면 amount 를 생략한다 — 포트원은 amount 없는 요청을 전액 취소로 본다.
@@ -82,8 +88,11 @@ export async function handleRefund(raw: unknown, d: RefundDeps): Promise<Result>
   try {
     await d.cancel(done.paymentId, cancelArgs);
   } catch (e) {
-    await d.markFailed(c.purchaseId);
-    if (e instanceof PortOneNotConfiguredError) throw e;
+    try {
+      await d.markFailed(c.purchaseId);
+    } catch (markError) {
+      console.error("[refund] 실패 시각 기록 실패", c.purchaseId, done.paymentId, amount, markError);
+    }
     const type = e instanceof Error && "type" in e && typeof e.type === "string" ? e.type : "unknown";
     const message = e instanceof Error ? e.message : String(e);
     failure = `${type}: ${message}`;
@@ -105,7 +114,12 @@ export async function handleRefund(raw: unknown, d: RefundDeps): Promise<Result>
       ? `포트원 취소 실패(${failure}) — 콘솔에서 수동 취소`
       : `자동 환불 ${amount.toLocaleString("ko-KR")}원`,
   };
-  const saved = await d.insertTicket(ticket);
+  let saved: { id: string; createdAt: string } | null = null;
+  try {
+    saved = await d.insertTicket(ticket);
+  } catch (e) {
+    console.error("[refund] 티켓 저장 실패", c.purchaseId, done.paymentId, amount, failure, e);
+  }
 
   const mailer = d.mailer;
   if (!mailer) {

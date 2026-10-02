@@ -45,7 +45,7 @@ describe("findRefundCandidate", () => {
 });
 
 describe("executeRefund", () => {
-  const input = { purchaseId: "9", userId: "7", amount: 3000, now: NOW };
+  const input = { purchaseId: "9", userId: "7", amount: 3000, remaining: 4, now: NOW };
 
   it("한 문장이다 — 결제·지갑·원장이 나뉘면 돈은 돌려주고 이용권은 남는 틈이 생긴다", async () => {
     const { client, calls } = fakeClient([{ payment_id: "saju-abc", remaining: 4 }]);
@@ -60,6 +60,13 @@ describe("executeRefund", () => {
     expect(sql).toContain("status = 'paid' AND remaining > 0");
     expect(sql).toContain("paid_at >= ?");
     expect(values).toContainEqual(new Date(NOW.getTime() - 7 * 24 * 60 * 60 * 1000));
+  });
+
+  it("읽을 때의 remaining 을 WHERE 에 건다 — 그 사이 이용권을 썼으면 0행(환불액이 틀어진다)", async () => {
+    const { client, calls } = fakeClient([{ payment_id: "p", remaining: 4 }]);
+    await executeRefund(input, client);
+    expect(calls[0].sql).toContain("AND remaining = ?");
+    expect(calls[0].values).toContain(4);
   });
 
   it("환불액을 refund_amount 에 쓰고 status 를 refunded 로 바꾼다", async () => {

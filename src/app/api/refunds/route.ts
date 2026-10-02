@@ -1,7 +1,8 @@
 import { NextResponse, after } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getUser } from "@/lib/auth/users";
-import { PortOneNotConfiguredError, cancelPayment } from "@/lib/payments/portone";
+import { getApiSecret } from "@/lib/payments/config";
+import { cancelPayment } from "@/lib/payments/portone";
 import { executeRefund, findRefundCandidate, markRefundFailed } from "@/lib/payments/refund-store";
 import { createSupportMailer } from "@/lib/support/mailer";
 import { checkSupportLimit } from "@/lib/support/rate-limit";
@@ -10,7 +11,7 @@ import { handleRefund } from "./_lib/handler";
 
 /**
  * 이용권 부분 환불. 지원 모달의 "환불 요청" 이 여기로 온다 — 접수가 아니라 실행이다.
- * 포트원 시크릿이 없으면 503 — 결제창을 열 수 없는 환경과 같은 판단(availableMethods).
+ * 포트원 시크릿이 없으면 핸들러가 DB 를 건드리기 전에 503 으로 막는다 — 결제창을 열 수 없는 환경과 같은 판단.
  */
 export async function POST(request: Request) {
   let raw: unknown;
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
     const result = await handleRefund(raw, {
       userId: session?.userId ?? null,
       now: new Date(),
+      configured: () => getApiSecret() !== null,
       checkLimit: checkSupportLimit,
       getUser,
       findCandidate: findRefundCandidate,
@@ -38,9 +40,6 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(result.body, { status: result.status });
   } catch (e) {
-    if (e instanceof PortOneNotConfiguredError) {
-      return NextResponse.json({ error: "지금은 환불을 처리할 수 없어요" }, { status: 503 });
-    }
     console.error("[POST /api/refunds]", e);
     return NextResponse.json({ error: "서버 오류가 발생했습니다" }, { status: 500 });
   }

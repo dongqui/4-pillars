@@ -54,11 +54,15 @@ export async function findRefundCandidate(
  * 지갑 잔액이 remaining 보다 작은 비정상 행(백필 뒤 잔액이 바뀐 경우)은 0012 의 balance CHECK 가
  * 문장 전체를 롤백한다 — 호출자에게 예외로 나간다.
  *
+ * remaining 을 함께 걸어 읽은 뒤 바뀐 행은 0행으로 접는다 — 그 사이 이용권을 썼으면 환불액이 틀리므로
+ * 409 로 돌려보내 다시 읽게 한다. (안 걸면 지갑은 지금 remaining 만큼 깎이는데 refund_amount 는
+ * 읽을 때의 값으로 남아, 쓴 장수만큼 1,000원이 더 돌아간다.)
+ *
  * 환불액(amount)은 호출자가 findRefundCandidate 로 읽은 행에서 refundAmount 로 계산한 값이다.
  * 여기서 다시 계산하지 않는 이유: SQL 안에서 가격 규칙을 또 적으면 규칙을 아는 곳이 둘이 된다.
  */
 export async function executeRefund(
-  a: { purchaseId: string; userId: string; amount: number; now: Date },
+  a: { purchaseId: string; userId: string; amount: number; remaining: number; now: Date },
   client: SqlClient = sql,
 ): Promise<{ paymentId: string; remaining: number } | null> {
   const rows = await client`
@@ -66,7 +70,7 @@ export async function executeRefund(
       UPDATE purchases
          SET status = 'refunded', refunded_at = now(), refund_amount = ${a.amount}
        WHERE id = ${a.purchaseId}::bigint AND user_id = ${a.userId}::bigint
-         AND status = 'paid' AND remaining > 0
+         AND status = 'paid' AND remaining > 0 AND remaining = ${a.remaining}
          AND paid_at >= ${refundWindowStart(a.now)}
       RETURNING id, user_id, remaining, payment_id
     ), wallet AS (
