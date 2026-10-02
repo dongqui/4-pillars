@@ -156,6 +156,7 @@ export async function listProfiles(
      AND e.feature = 'full_report'
      AND e.subject_key = p.id::text
     WHERE p.user_id = ${userId}::bigint AND p.kind = 'saved'
+      AND p.deleted_at IS NULL
     ORDER BY p.created_at DESC
   `;
   return rows.map(toProfileRow);
@@ -170,6 +171,10 @@ export async function listProfiles(
  *
  * id 는 호출자가 형식을 검증해 넘긴다(parseProfileParam). 검증 없이 오면
  * ::bigint 캐스팅에서 DB 에러가 난다.
+ *
+ * 지워진 프로필은 안 돌려준다 — 이 함수는 **새로 무언가를 여는** 자리(새 상담,
+ * 새 흐름, 새 궁합)가 쓰는 길이고, 지워진 사람으로 이용권이 나가면 안 된다.
+ * 이미 만들어진 산출물의 주인을 읽는 세 곳은 getProfileById 를 쓴다.
  */
 export async function getProfile(
   userId: string,
@@ -184,6 +189,7 @@ export async function getProfile(
      AND e.feature = 'full_report'
      AND e.subject_key = p.id::text
     WHERE p.id = ${id}::bigint AND p.user_id = ${userId}::bigint
+      AND p.deleted_at IS NULL
   `;
   const row = rows[0];
   return row ? toProfileRow(row) : null;
@@ -197,6 +203,7 @@ export async function countProfiles(
   const rows = await client`
     SELECT count(*)::int AS n FROM profiles
     WHERE user_id = ${userId}::bigint AND kind = ${kind}
+      AND deleted_at IS NULL
   `;
   return Number(rows[0]?.n ?? 0);
 }

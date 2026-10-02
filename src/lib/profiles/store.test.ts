@@ -119,6 +119,14 @@ describe("listProfiles", () => {
     const { client } = fakeClient([]);
     expect(await listProfiles("7", client)).toEqual([]);
   });
+
+  // 지워진 프로필이 셀렉터에 다시 서면 안 된다. 조건을 호출부마다 적지 않고
+  // store 안에 두는 이유가 이것이다 — 서른 곳 중 한 곳이 빠지면 그 한 곳이 샌다.
+  it("지워진 프로필을 뺀다", async () => {
+    const { client, calls } = fakeClient([]);
+    await listProfiles("7", client);
+    expect(calls[0].sql).toContain("deleted_at IS NULL");
+  });
 });
 
 describe("countProfiles", () => {
@@ -130,6 +138,13 @@ describe("countProfiles", () => {
     // 계정별이 아니라 전역이 되어버린다 — 그 회귀를 여기서 잡는다.
     expect(calls[0].sql).toContain("WHERE user_id");
     expect(calls[0].values).toEqual(["7", "saved"]);
+  });
+
+  // MAX_PROFILES 20 이 지운 사람까지 세면, 스무 명을 지운 계정이 한 명도 더 못 만든다.
+  it("지워진 프로필을 안 센다", async () => {
+    const { client, calls } = fakeClient([{ n: 2 }]);
+    await countProfiles("7", "saved", client);
+    expect(calls[0].sql).toContain("deleted_at IS NULL");
   });
 });
 
@@ -230,6 +245,13 @@ describe("getProfile", () => {
   it("행이 없으면 null — 없는 프로필과 남의 프로필을 구분하지 않는다", async () => {
     const { client } = fakeClient([]);
     expect(await getProfile("7", "3", client)).toBeNull();
+  });
+
+  // 새 상담·새 흐름·새 궁합을 여는 길이다. 지워진 사람으로 이용권이 나가면 안 된다.
+  it("지워진 프로필을 뺀다", async () => {
+    const { client, calls } = fakeClient([]);
+    await getProfile("7", "3", client);
+    expect(calls[0].sql).toContain("deleted_at IS NULL");
   });
 });
 
