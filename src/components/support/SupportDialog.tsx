@@ -3,9 +3,12 @@
 import { useEffect, useId, useRef, useState } from "react";
 import {
   BODY_MAX,
+  REFUND_POLICY,
   REFUND_REASONS,
   canSubmit,
   formatOptionDate,
+  refundButtonLabel,
+  refundSentDesc,
   serviceKey,
   type RefundReason,
   type ServiceTarget,
@@ -48,14 +51,14 @@ const COPY: Record<SupportKind, Copy> = {
     sentDesc: "보내주신 의견은 서비스 개선에 참고할게요.",
   },
   refund: {
-    title: "환불 요청",
-    desc: "환불받을 결제 내역을 선택해 주세요.",
-    picker: "결제 내역",
+    title: "이용권 환불",
+    desc: "환불받을 결제를 골라 주세요.",
+    picker: "환불 가능한 이용권",
     textLabel: "추가 설명 (선택)",
     placeholder: "필요하면 상황을 덧붙여 주세요.",
-    submit: "환불 요청하기",
-    sentTitle: "환불 요청이 접수되었어요",
-    sentDesc: "영업일 기준 3일 안에 처리 결과를 알려드릴게요.",
+    submit: "환불받기",
+    sentTitle: "환불이 완료됐어요",
+    sentDesc: "",
   },
 };
 
@@ -66,6 +69,8 @@ interface Row {
   meta: string;
   disabled: boolean;
   target?: ServiceTarget;
+  /** 환불 줄만 — 버튼에 찍을 환불액(원). 서버가 계산한 표시용이다. */
+  amount?: number;
 }
 
 type Loaded =
@@ -91,10 +96,11 @@ function toRows(o: SupportOptions, now: Date): { rows: Row[]; balance: number | 
   return {
     rows: o.items.map((it) => ({
       key: it.purchaseId,
-      title: it.title,
-      sub: it.sub,
-      meta: it.requested ? "요청됨" : formatOptionDate(it.createdAt, now),
-      disabled: it.requested,
+      title: `${it.title} · ${it.sub}`,
+      sub: `남은 ${it.remaining}장 → ${it.refundAmount.toLocaleString("ko-KR")}원 환불`,
+      meta: formatOptionDate(it.createdAt, now),
+      disabled: false,
+      amount: it.refundAmount,
     })),
     balance: o.balance,
   };
@@ -123,6 +129,7 @@ export function SupportDialog({ kind, onClose }: { kind: SupportKind; onClose: (
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [result, setResult] = useState<{ amount: number; pending: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -155,22 +162,25 @@ export function SupportDialog({ kind, onClose }: { kind: SupportKind; onClose: (
   async function submit() {
     if (!ready) return;
     const row = rows.find((r) => r.key === pick);
-    const payload =
-      kind === "error"
+    const isRefund = kind === "refund";
+    // 환불은 문의 접수가 아니라 즉시 실행이라 다른 주소로 간다. 금액은 보내지 않는다 — 서버가 다시 계산한다.
+    const url = isRefund ? "/api/refunds" : "/api/support";
+    const payload = isRefund
+      ? { purchaseId: pick, reason, body: text }
+      : kind === "error"
         ? { kind, target: row?.target, body: text }
-        : kind === "refund"
-          ? { kind, purchaseId: pick, reason, body: text }
-          : { kind, body: text };
+        : { kind, body: text };
 
     setSending(true);
     setError(null);
     try {
-      const res = await fetch("/api/support", {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
       });
       if (res.ok) {
+        if (isRefund) setResult((await res.json()) as { amount: number; pending: boolean });
         setSent(true);
         return;
       }
@@ -224,8 +234,12 @@ export function SupportDialog({ kind, onClose }: { kind: SupportKind; onClose: (
           <div className="mx-auto mb-3.5 flex h-12 w-12 items-center justify-center rounded-full bg-accent-50 text-[20px] font-bold text-accent">
             ✓
           </div>
-          <div className="text-[17px] font-bold tracking-[-0.03em]">{copy.sentTitle}</div>
-          <div className="mt-1.5 text-[13.5px] text-slate-500">{copy.sentDesc}</div>
+          <div className="text-[17px] font-bold tracking-[-0.03em]">
+            {kind === "refund" && result?.pending ? "환불을 접수했어요" : copy.sentTitle}
+          </div>
+          <div className="mt-1.5 text-[13.5px] text-slate-500">
+            {kind === "refund" && result ? refundSentDesc(result.amount, result.pending) : copy.sentDesc}
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -236,6 +250,14 @@ export function SupportDialog({ kind, onClose }: { kind: SupportKind; onClose: (
         </div>
       ) : (
         <>
+          {kind === "refund" && (
+            <ul className="mt-[18px] rounded-[14px] bg-slate-50 px-4 py-3 text-[12.5px] leading-[1.6] text-slate-600 [word-break:keep-all]">
+              {REFUND_POLICY.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          )}
+
           {copy.picker && (
             <div className="mt-[22px]">
               <div className="mb-[9px] flex items-baseline justify-between gap-2">
@@ -271,7 +293,7 @@ export function SupportDialog({ kind, onClose }: { kind: SupportKind; onClose: (
 
               {loaded.status === "ready" && rows.length === 0 && (
                 <div className="rounded-[14px] border border-slate-200 px-4 py-5 text-center text-[13.5px] text-slate-500">
-                  환불할 결제 내역이 없어요
+                  지금 환불 가능한 이용권이 없어요
                 </div>
               )}
 
@@ -360,7 +382,11 @@ export function SupportDialog({ kind, onClose }: { kind: SupportKind; onClose: (
             disabled={!ready}
             className="mt-[22px] w-full cursor-pointer rounded-[14px] bg-accent py-[15px] text-[15px] font-bold text-white transition-colors disabled:cursor-default disabled:bg-slate-300"
           >
-            {sending ? "보내는 중…" : copy.submit}
+            {sending
+              ? "보내는 중…"
+              : kind === "refund"
+                ? refundButtonLabel(rows.find((r) => r.key === pick)?.amount ?? null)
+                : copy.submit}
           </button>
         </>
       )}

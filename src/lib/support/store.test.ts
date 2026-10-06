@@ -105,42 +105,64 @@ describe("listServiceOptions", () => {
 });
 
 describe("toPurchaseOption", () => {
-  it("적립 장수(보너스 포함)와 금액을 적는다 — 카드 명세서의 주문명과 같다", () => {
+  it("적립 장수·금액에 남은 장수와 환불액을 더한다 — 6장 5,000원에서 2장 쓰면 3,000원", () => {
     expect(
       toPurchaseOption({
-        id: 9, payment_id: "saju-abc", product: "t5", amount: 5000, tickets: 6,
-        paid_at: T, created_at: "2026-09-30T00:00:00.000Z", requested: false,
+        id: 9, payment_id: "saju-abc", product: "t5", amount: 5000, tickets: 6, remaining: 4,
+        paid_at: T, created_at: "2026-09-30T00:00:00.000Z",
       }),
     ).toEqual({
-      purchaseId: "9", paymentId: "saju-abc", title: "이용권 6장", sub: "5,000원", createdAt: T, requested: false,
+      purchaseId: "9", paymentId: "saju-abc", title: "이용권 6장", sub: "5,000원",
+      remaining: 4, refundAmount: 3000, createdAt: T,
     });
   });
 
-  it("tickets 가 비어 있는 옛 행은 패키지 표에서 장수를 얻는다", () => {
+  it("tickets 가 비어 있는 옛 행은 패키지 표에서 장수를 얻는다 — 표시용이다", () => {
     const o = toPurchaseOption({
-      id: 9, payment_id: "p", product: "t10", amount: 10000, tickets: null,
-      paid_at: null, created_at: T, requested: true,
+      id: 9, payment_id: "p", product: "t10", amount: 10000, tickets: null, remaining: 13,
+      paid_at: null, created_at: T,
     });
     expect(o.title).toBe("이용권 13장");
     expect(o.createdAt).toBe(T);
-    expect(o.requested).toBe(true);
   });
 
   it("모르는 상품이면 장수 없이 '이용권'", () => {
     const o = toPurchaseOption({
-      id: 9, payment_id: "p", product: "legacy", amount: 1000, tickets: null,
-      paid_at: T, created_at: T, requested: false,
+      id: 9, payment_id: "p", product: "legacy", amount: 1000, tickets: null, remaining: 1,
+      paid_at: T, created_at: T,
     });
     expect(o.title).toBe("이용권");
   });
 });
 
 describe("listPurchaseOptions", () => {
-  it("이 사용자의 paid 건만 묻는다", async () => {
+  const NOW = new Date("2026-10-02T09:00:00.000Z");
+  const DAY = 24 * 60 * 60 * 1000;
+  const row = (over: Record<string, unknown>) => ({
+    id: 9, payment_id: "p", product: "t5", amount: 5000, tickets: 6, remaining: 4, status: "paid",
+    paid_at: new Date(NOW.getTime() - DAY).toISOString(), created_at: T, ...over,
+  });
+
+  it("paid · remaining > 0 · 7일 이내를 SQL 에서 거른다", async () => {
     const { client, queries, params } = recorder([[]]);
-    await listPurchaseOptions("7", client);
+    await listPurchaseOptions("7", client, NOW);
     expect(queries[0]).toContain("status = 'paid'");
+    expect(queries[0]).toContain("remaining > 0");
+    expect(queries[0]).toContain("paid_at >= ?");
     expect(params[0]).toContain("7");
+    expect(params[0]).toContainEqual(new Date(NOW.getTime() - 7 * DAY));
+  });
+
+  // 남은 장수는 있어도 쓴 장수를 정가로 치면 0 원인 결제가 있다 — SQL 이 모르는 규칙이라 앱에서 거른다.
+  it("환불액이 0 인 건은 빼고 돌려준다", async () => {
+    const { client } = recorder([[row({ id: 1, amount: 10000, tickets: 13, remaining: 3 }), row({ id: 2 })]]);
+    const items = await listPurchaseOptions("7", client, NOW);
+    expect(items.map((i) => i.purchaseId)).toEqual(["2"]);
+  });
+
+  it("tickets 가 NULL 인 옛 행은 뺀다 — 장수를 확신할 수 없는 결제는 환불하지 않는다", async () => {
+    const { client } = recorder([[row({ id: 1, tickets: null, remaining: 1 })]]);
+    expect(await listPurchaseOptions("7", client, NOW)).toEqual([]);
   });
 });
 
@@ -160,5 +182,13 @@ describe("insertSupportTicket", () => {
   it("열린 환불 요청과 부딪혀 아무것도 안 돌아오면 null", async () => {
     const { client } = recorder([[]]);
     expect(await insertSupportTicket(base, client)).toBeNull();
+  });
+
+  it("status 를 안 주면 open, resolved 면 resolved_at 도 같이 찍는다", async () => {
+    const { client, queries, params } = recorder([[{ id: 1, created_at: T }]]);
+    await insertSupportTicket({ ...base, status: "resolved", adminNote: "자동 환불 3,000원" }, client);
+    expect(queries[0]).toContain("resolved_at");
+    expect(params[0]).toContain("resolved");
+    expect(params[0]).toContain("자동 환불 3,000원");
   });
 });

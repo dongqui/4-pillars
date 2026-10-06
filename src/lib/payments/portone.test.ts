@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { PortOneError, PortOneNotConfiguredError, getPayment } from "./portone";
+import { PortOneError, PortOneNotConfiguredError, getPayment, cancelPayment } from "./portone";
 
 const env = { PORTONE_API_SECRET: "secret-1" } as unknown as NodeJS.ProcessEnv;
 
@@ -109,5 +109,73 @@ describe("getPayment", () => {
       expect(e).toBeInstanceOf(PortOneError);
       expect((e as PortOneError).type).toBe("PaymentNotFoundError");
     }
+  });
+});
+
+/** cancelPayment 용 — 요청 본문까지 기록한다. */
+function fakePost(body: unknown, init: { ok?: boolean; status?: number } = {}) {
+  const calls: {
+    url: string;
+    method: string | undefined;
+    headers: Record<string, string>;
+    body: unknown;
+    signal: AbortSignal | null | undefined;
+  }[] = [];
+  const fetchImpl = (async (url: string | URL | Request, opts?: RequestInit) => {
+    calls.push({
+      url: String(url),
+      method: opts?.method,
+      headers: (opts?.headers ?? {}) as Record<string, string>,
+      body: typeof opts?.body === "string" ? JSON.parse(opts.body) : null,
+      signal: opts?.signal,
+    });
+    return { ok: init.ok ?? true, status: init.status ?? 200, json: async () => body } as Response;
+  }) as typeof fetch;
+  return { fetchImpl, calls };
+}
+
+describe("cancelPayment", () => {
+  it("POST /payments/{id}/cancel 에 PortOne 인증과 JSON 본문", async () => {
+    const { fetchImpl, calls } = fakePost({ cancellation: { status: "SUCCEEDED" } });
+    await cancelPayment("saju/abc", { reason: "실수로 결제했어요", amount: 3000 }, { fetchImpl, env });
+    expect(calls[0].url).toBe("https://api.portone.io/payments/saju%2Fabc/cancel");
+    expect(calls[0].method).toBe("POST");
+    expect(calls[0].headers.Authorization).toBe("PortOne secret-1");
+    expect(calls[0].headers["Content-Type"]).toBe("application/json");
+    expect(calls[0].body).toEqual({ reason: "실수로 결제했어요", amount: 3000 });
+  });
+
+  // 전액이면 amount 를 보내지 않는다 — 포트원은 amount 없는 요청을 전액 취소로 본다.
+  it("amount 가 없으면 본문에도 없다 — 전액 취소", async () => {
+    const { fetchImpl, calls } = fakePost({ cancellation: { status: "SUCCEEDED" } });
+    await cancelPayment("p", { reason: "기타" }, { fetchImpl, env });
+    expect(calls[0].body).toEqual({ reason: "기타" });
+  });
+
+  // 타임아웃이 없으면 응답이 안 오는 동안 DB 는 refunded 인데 실패 기록도 메일도 없는 무음 경로가 된다.
+  it("취소 fetch 에 AbortSignal 을 싣는다 — 응답이 안 오면 끊긴다", async () => {
+    const { fetchImpl, calls } = fakePost({ cancellation: { status: "SUCCEEDED" } });
+    await cancelPayment("p", { reason: "기타" }, { fetchImpl, env });
+    expect(calls[0].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("이미 취소된 결제는 성공으로 본다 — 재시도 안전", async () => {
+    const { fetchImpl } = fakePost({ type: "PAYMENT_ALREADY_CANCELLED", message: "already" }, { ok: false, status: 409 });
+    await expect(cancelPayment("p", { reason: "기타" }, { fetchImpl, env })).resolves.toBeUndefined();
+  });
+
+  it("그 외 실패는 PortOneError 에 type 을 싣는다", async () => {
+    const { fetchImpl } = fakePost({ type: "PAYMENT_NOT_FOUND", message: "없음" }, { ok: false, status: 404 });
+    await expect(cancelPayment("p", { reason: "기타" }, { fetchImpl, env })).rejects.toMatchObject({
+      name: "PortOneError", type: "PAYMENT_NOT_FOUND",
+    });
+  });
+
+  it("시크릿이 없으면 PortOneNotConfiguredError — fetch 를 부르지 않는다", async () => {
+    const { fetchImpl, calls } = fakePost({});
+    await expect(
+      cancelPayment("p", { reason: "기타" }, { fetchImpl, env: {} as NodeJS.ProcessEnv }),
+    ).rejects.toBeInstanceOf(PortOneNotConfiguredError);
+    expect(calls).toHaveLength(0);
   });
 });

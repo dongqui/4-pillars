@@ -16,8 +16,7 @@ const services: ServiceOption[] = [
 ];
 
 const purchases: PurchaseOption[] = [
-  { purchaseId: "9", paymentId: "saju-abc", title: "이용권 6장", sub: "5,000원", createdAt: T, requested: false },
-  { purchaseId: "10", paymentId: "saju-def", title: "이용권 1장", sub: "1,000원", createdAt: T, requested: true },
+  { purchaseId: "9", paymentId: "saju-abc", title: "이용권 6장", sub: "5,000원", remaining: 4, refundAmount: 3000, createdAt: T },
 ];
 
 /** after() 대역 — 미룬 일을 모아 두었다가 테스트가 원할 때 돌린다. */
@@ -34,7 +33,6 @@ function deps(over: Partial<CreateSupportDeps> = {}) {
     checkLimit: vi.fn(async () => true),
     getUser: vi.fn(async () => ({ displayName: "동진", email: "dj@example.com" })),
     listServiceOptions: vi.fn(async () => services),
-    listPurchaseOptions: vi.fn(async () => purchases),
     insertTicket: vi.fn(async () => ({ id: "42", createdAt: T })),
     mailer: { send: vi.fn(async () => {}) },
     ...over,
@@ -117,33 +115,17 @@ describe("handleCreateSupportTicket", () => {
     expect(d.insertTicket).not.toHaveBeenCalled();
   });
 
-  it("환불 — 결제 건 라벨과 사유를 저장한다", async () => {
+  // 환불은 POST /api/refunds 가 그 자리에서 실행한다 — 여기로 오면 옛 클라이언트다.
+  it("refund 는 더 받지 않는다 — 400", async () => {
     const d = deps();
-    const r = await handleCreateSupportTicket({ kind: "refund", purchaseId: "9", reason: "실수로 결제했어요" }, d);
-    expect(r.status).toBe(201);
-    expect(d.insertTicket).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: "refund", purchaseId: "9", refundReason: "실수로 결제했어요",
-        targetLabel: "이용권 6장 · 5,000원", body: "",
-      }),
-    );
-  });
-
-  it("내 결제가 아니면 404", async () => {
-    const d = deps();
-    expect((await handleCreateSupportTicket({ kind: "refund", purchaseId: "77", reason: "기타" }, d)).status).toBe(404);
+    const r = await handleCreateSupportTicket({ kind: "refund", purchaseId: "9", reason: "기타" }, d);
+    expect(r.status).toBe(400);
     expect(d.insertTicket).not.toHaveBeenCalled();
   });
 
-  it("이미 열린 환불 요청이 있으면 409", async () => {
-    const d = deps();
-    expect((await handleCreateSupportTicket({ kind: "refund", purchaseId: "10", reason: "기타" }, d)).status).toBe(409);
-    expect(d.insertTicket).not.toHaveBeenCalled();
-  });
-
-  it("동시 요청이 앱 검사를 통과해도 INSERT 충돌이면 409, 메일은 안 보낸다", async () => {
+  it("INSERT 가 아무것도 돌려주지 않으면 409, 메일은 안 보낸다", async () => {
     const d = deps({ insertTicket: vi.fn(async () => null) });
-    expect((await handleCreateSupportTicket({ kind: "refund", purchaseId: "9", reason: "기타" }, d)).status).toBe(409);
+    expect((await handleCreateSupportTicket({ kind: "feedback", body: "좋아요" }, d)).status).toBe(409);
     expect(d.mailer!.send).not.toHaveBeenCalled();
   });
 

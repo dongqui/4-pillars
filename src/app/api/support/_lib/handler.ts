@@ -4,7 +4,6 @@ import type { Mailer } from "@/lib/support/mailer";
 import type { NewSupportTicket } from "@/lib/support/store";
 import {
   BODY_MAX,
-  REFUND_REASONS,
   TARGET_KINDS,
   optionLabel,
   type PurchaseOption,
@@ -25,12 +24,6 @@ const bodySchema = z.discriminatedUnion("kind", [
     body: bodyText.min(1),
   }),
   z.object({ kind: z.literal("feedback"), body: bodyText.min(1) }),
-  z.object({
-    kind: z.literal("refund"),
-    purchaseId: z.string().regex(/^\d+$/),
-    reason: z.enum(REFUND_REASONS),
-    body: bodyText.default(""),
-  }),
 ]);
 
 export interface CreateSupportDeps {
@@ -38,7 +31,6 @@ export interface CreateSupportDeps {
   checkLimit(userId: string): Promise<boolean>;
   getUser(userId: string): Promise<{ displayName: string | null; email: string | null } | null>;
   listServiceOptions(userId: string): Promise<ServiceOption[]>;
-  listPurchaseOptions(userId: string): Promise<PurchaseOption[]>;
   insertTicket(t: NewSupportTicket): Promise<{ id: string; createdAt: string } | null>;
   /** null 이면 메일 설정이 비어 있다 — 저장만 한다. */
   mailer: Mailer | null;
@@ -81,7 +73,7 @@ export async function handleCreateSupportTicket(raw: unknown, d: CreateSupportDe
     body: input.body,
     replyEmail: user.email,
   };
-  let paymentId: string | null = null;
+  const paymentId: string | null = null;
 
   if (input.kind === "error") {
     const { kind, ref } = input.target;
@@ -98,18 +90,10 @@ export async function handleCreateSupportTicket(raw: unknown, d: CreateSupportDe
       ticket.targetRef = ref;
       ticket.targetLabel = optionLabel(found);
     }
-  } else if (input.kind === "refund") {
-    const found = (await d.listPurchaseOptions(userId)).find((p) => p.purchaseId === input.purchaseId);
-    if (!found) return { status: 404, body: { error: "결제 내역을 찾을 수 없습니다" } };
-    if (found.requested) return DUPLICATE;
-    ticket.purchaseId = found.purchaseId;
-    ticket.refundReason = input.reason;
-    ticket.targetLabel = optionLabel(found);
-    paymentId = found.paymentId;
   }
 
   const saved = await d.insertTicket(ticket);
-  // 앱 검사(requested)를 동시 요청 두 개가 함께 통과한 경우 — 0053 의 인덱스가 하나를 막았다.
+  // INSERT 가 아무것도 돌려주지 않은 경우. 환불 티켓은 /api/refunds 가 넣는다.
   if (!saved) return DUPLICATE;
 
   const mailer = d.mailer;

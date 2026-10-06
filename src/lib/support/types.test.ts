@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { canSubmit, formatOptionDate, optionLabel, serviceKey } from "./types";
+import {
+  REFUND_POLICY,
+  canSubmit,
+  formatOptionDate,
+  optionLabel,
+  refundButtonLabel,
+  refundSentDesc,
+  serviceKey,
+} from "./types";
 
 describe("formatOptionDate", () => {
   // 2026-10-02 10:00 KST
@@ -55,5 +63,24 @@ describe("serviceKey / optionLabel", () => {
 
   it("라벨은 제목 · 부제", () => {
     expect(optionLabel({ title: "궁합", sub: "동진 × 민수" })).toBe("궁합 · 동진 × 민수");
+  });
+});
+
+describe("환불 문구", () => {
+  it("정책 두 줄", () => {
+    expect(REFUND_POLICY).toEqual([
+      "결제일로부터 7일 이내, 사용하지 않은 이용권만 환불돼요.",
+      "쓴 장수는 장당 1,000원으로 계산하고, 보너스 장수는 환불되지 않아요.",
+    ]);
+  });
+
+  it("버튼은 고른 결제의 환불액 — 안 골랐으면 금액 없이", () => {
+    expect(refundButtonLabel(3000)).toBe("3,000원 환불받기");
+    expect(refundButtonLabel(null)).toBe("환불받기");
+  });
+
+  it("완료 문구는 금액과 수단, 보류면 접수 안내", () => {
+    expect(refundSentDesc(3000, false)).toBe("3,000원이 결제하신 수단으로 돌아가요. 카드사에 따라 3~7일 걸려요.");
+    expect(refundSentDesc(3000, true)).toBe("환불을 접수했어요. 처리에 시간이 걸릴 수 있어요.");
   });
 });

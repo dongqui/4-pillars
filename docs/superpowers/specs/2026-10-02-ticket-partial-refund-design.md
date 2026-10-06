@@ -19,8 +19,9 @@
 
 전제(코드에서 확인):
 - 모든 기능의 단가가 1장(`FEATURE_COST`)이라 소비 1건 = 결제 1건 귀속이다.
-- `ticket_entries.reason='grant'` 와 `src/lib/tickets/refund.ts`(`refundTicket`, 기능 단위 되돌림)는
-  호출처가 없다. 지갑의 모든 장수는 결제에서 왔다.
+- `ticket_entries.reason='grant'` 는 호출처가 없다. 지갑의 모든 장수는 결제에서 왔다.
+- 상담 되돌림(`refundTicket`)은 호출처가 있다(상담 첫 턴 실패). `remaining` 을 함께 되돌리도록
+  고쳤다 — 최종 리뷰에서 발견.
 - 결제 수단은 카드·간편결제뿐이라 환불 계좌를 받지 않는다 — PG 가 원결제로 되돌린다.
 
 ## 데이터
@@ -170,7 +171,7 @@ SELECT t.payment_id, t.remaining FROM target t
 
 ## 건드리지 않는 것
 
-- `src/lib/tickets/refund.ts`(`refundTicket`): 기능 단위 되돌림, 호출처 없음. 이름이 겹치지만 이번 범위 밖.
+- 상담 되돌림(`refundTicket`)은 호출처가 있다(상담 첫 턴 실패). `remaining` 을 함께 되돌리도록 고쳤다 — 최종 리뷰에서 발견.
 - 약관 제5조 문구: 이미 "회사 귀책 전액 환불" 과 결제 화면의 "7일 내 미사용분 환불" 이 있다. 바꾸지 않는다.
 - `users.role`: 자동 환불이라 쓰지 않는다.
 

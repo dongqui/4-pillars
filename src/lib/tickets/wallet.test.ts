@@ -51,6 +51,12 @@ describe("confirmPurchaseAndCredit", () => {
     expect(calls[0].values).toEqual(["tx-1", "saju-abc"]);
   });
 
+  it("확정하면서 remaining 을 tickets 로 채운다 — 환불 가능 장수의 출발점", async () => {
+    const { client, calls } = fakeClient([{ balance: 6 }]);
+    await confirmPurchaseAndCredit({ paymentId: "saju-abc", transactionId: "tx-1" }, client);
+    expect(calls[0].sql).toContain("remaining = tickets");
+  });
+
   it("원장은 지갑과 같은 문장에서 쌓인다 — reason 은 purchase", async () => {
     const { client, calls } = fakeClient([{ balance: 6 }]);
     await confirmPurchaseAndCredit({ paymentId: "saju-abc", transactionId: null }, client);

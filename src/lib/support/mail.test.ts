@@ -53,4 +53,27 @@ describe("composeSupportMail", () => {
   it("이메일이 있으면 replyTo 로 — 받은 메일에서 바로 답장한다", () => {
     expect(composeSupportMail(base).replyTo).toBe("dj@example.com");
   });
+
+  it("환불액을 적는다 — 자동 환불이 끝난 메일은 제목이 [환불 완료] 고 조치가 필요 없다고 적는다", () => {
+    const { subject, text } = composeSupportMail({ ...base, kind: "refund", refundReason: "기타", refundAmount: 3000, body: "" });
+    expect(text).toContain("환불액: 3,000원");
+    // 옛 "[환불 요청] 취소해 주세요" 메일과 제목이 같으면 운영자가 이미 끝난 건을 또 취소하려 든다.
+    expect(subject).toContain("[환불 완료]");
+    expect(text).toContain("포트원 취소 완료 — 조치 불필요");
+  });
+
+  it("환불액이 없는 환불 메일은 옛 경로라 [환불 요청] 으로 남는다", () => {
+    const { subject, text } = composeSupportMail({ ...base, kind: "refund", refundReason: "기타", body: "" });
+    expect(subject).toContain("[환불 요청]");
+    expect(text).not.toContain("조치 불필요");
+  });
+
+  it("포트원 실패는 제목이 [환불 실패] 고 수동 취소 안내가 있다", () => {
+    const { subject, text } = composeSupportMail({
+      ...base, kind: "refund", refundReason: "기타", refundAmount: 3000, refundFailed: true, body: "",
+    });
+    expect(subject).toContain("[환불 실패]");
+    expect(text).toContain("수동 취소");
+    expect(text).not.toContain("조치 불필요");
+  });
 });

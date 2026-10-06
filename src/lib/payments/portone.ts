@@ -90,3 +90,43 @@ export async function getPayment(
   }
   return paymentSchema.parse(body);
 }
+
+/** 포트원이 이미 취소된 결제에 돌려주는 type. 우리에겐 성공이다 — 재시도 때 두 번 취소되지 않는다. */
+const ALREADY_CANCELLED = "PAYMENT_ALREADY_CANCELLED";
+
+/**
+ * POST /payments/{paymentId}/cancel — 결제 취소(환불).
+ *
+ * amount 를 생략하면 포트원은 전액 취소로 본다. 부분 환불만 amount 를 싣는다.
+ * 호출 전에 우리 DB 는 이미 refunded 다(executeRefund). 여기서 실패하면 호출자가
+ * refund_failed_at 을 찍고 운영자에게 알린다 — 되돌리지 않는다(설계 문서 "실행" 절).
+ */
+export async function cancelPayment(
+  paymentId: string,
+  o: { reason: string; amount?: number },
+  opts: { fetchImpl?: typeof fetch; env?: NodeJS.ProcessEnv } = {},
+): Promise<void> {
+  const secret = getApiSecret(opts.env);
+  if (!secret) throw new PortOneNotConfiguredError();
+
+  const body: { reason: string; amount?: number } = { reason: o.reason };
+  if (o.amount !== undefined) body.amount = o.amount;
+
+  const doFetch = opts.fetchImpl ?? fetch;
+  const res = await doFetch(`${PORTONE_API_BASE}/payments/${encodeURIComponent(paymentId)}/cancel`, {
+    method: "POST",
+    headers: { Authorization: `PortOne ${secret}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    // 응답이 안 오면 15초에 끊는다 — 여기서 영영 걸리면 DB 는 refunded 인데 실패 기록도 메일도 없는
+    // 유일한 무음 경로가 된다. 끊기면 호출자가 pending 으로 처리하고, 실제로는 취소됐다면
+    // 운영자가 콘솔에서 보고 아무것도 안 하면 된다.
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  const data: unknown = await res.json().catch(() => null);
+  if (res.ok) return;
+
+  const e = data as { type?: string; message?: string } | null;
+  if (e?.type === ALREADY_CANCELLED) return;
+  throw new PortOneError(e?.message ?? `포트원 결제 취소 실패 (HTTP ${res.status})`, e?.type);
+}

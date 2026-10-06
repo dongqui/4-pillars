@@ -47,15 +47,17 @@ export interface ServiceOption {
   createdAt: string | null;
 }
 
-/** 환불 요청의 "결제 내역" 한 줄. */
+/** 환불 요청의 "환불 가능한 결제" 한 줄. 서버가 isRefundable 로 거른 것만 내려온다. */
 export interface PurchaseOption {
   purchaseId: string;
   paymentId: string;
   title: string;
   sub: string;
+  /** 아직 안 쓴 장수 — 전부 회수된다. */
+  remaining: number;
+  /** 지금 환불받을 금액(원). 서버가 계산한 표시용이다 — 실행 때 다시 계산한다. */
+  refundAmount: number;
   createdAt: string;
-  /** 이미 열린 환불 요청이 있다 — 고를 수 없다. */
-  requested: boolean;
 }
 
 export type SupportOptions =
@@ -113,4 +115,20 @@ export function canSubmit(
   if (kind === "error") return s.pick !== null && hasText;
   if (kind === "refund") return s.pick !== null && s.reason !== null;
   return hasText;
+}
+
+/** 환불 탭 상단 정책. 결제 화면(CheckoutView)의 안내와 같은 규칙을 말한다. */
+export const REFUND_POLICY = [
+  "결제일로부터 7일 이내, 사용하지 않은 이용권만 환불돼요.",
+  "쓴 장수는 장당 1,000원으로 계산하고, 보너스 장수는 환불되지 않아요.",
+] as const;
+
+export function refundButtonLabel(amount: number | null): string {
+  return amount === null ? "환불받기" : `${amount.toLocaleString("ko-KR")}원 환불받기`;
+}
+
+/** pending 은 포트원 취소가 실패해 운영자가 마저 처리하는 경우 — 유저에게는 "접수" 로 보인다. */
+export function refundSentDesc(amount: number, pending: boolean): string {
+  if (pending) return "환불을 접수했어요. 처리에 시간이 걸릴 수 있어요.";
+  return `${amount.toLocaleString("ko-KR")}원이 결제하신 수단으로 돌아가요. 카드사에 따라 3~7일 걸려요.`;
 }
